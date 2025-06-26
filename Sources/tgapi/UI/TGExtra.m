@@ -39,32 +39,32 @@
     titleLabel.text = @"TGExtra FE";
     titleLabel.font = [UIFont boldSystemFontOfSize:17];
     titleLabel.textColor = [UIColor labelColor];
-    
-    // Icona base64
-    NSData *imageData = [[NSData alloc] initWithBase64EncodedString:CHOCOPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+
+    // Icona da Base64
+    NSData *imageData = [[NSData alloc] initWithBase64EncodedString:GHOSTPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
     UIImage *image = [UIImage imageWithData:imageData scale:[UIScreen mainScreen].scale];
-    
+
     UIImageView *iconView = [[UIImageView alloc] initWithImage:image];
     iconView.contentMode = UIViewContentModeScaleAspectFit;
     iconView.translatesAutoresizingMaskIntoConstraints = NO;
-    [iconView.widthAnchor constraintEqualToConstant:16].active = YES;
-    [iconView.heightAnchor constraintEqualToConstant:16].active = YES;
 
-    // Stack per icona e titolo
+    // Stack icona + titolo
     UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[titleLabel, iconView]];
     stackView.axis = UILayoutConstraintAxisHorizontal;
-    stackView.spacing = 6; // Spazio tra titolo e icona
+    stackView.spacing = 1;
     stackView.alignment = UIStackViewAlignmentCenter;
-
-    // Contenitore centrato
-    UIView *container = [[UIView alloc] init];
-    [container addSubview:stackView];
-    container.translatesAutoresizingMaskIntoConstraints = NO;
     stackView.translatesAutoresizingMaskIntoConstraints = NO;
+
+    // Container centrale
+    UIView *container = [[UIView alloc] init];
+    container.translatesAutoresizingMaskIntoConstraints = NO;
+    [container addSubview:stackView];
 
     [NSLayoutConstraint activateConstraints:@[
         [stackView.centerXAnchor constraintEqualToAnchor:container.centerXAnchor],
-        [stackView.centerYAnchor constraintEqualToAnchor:container.centerYAnchor]
+        [stackView.centerYAnchor constraintEqualToAnchor:container.centerYAnchor],
+        [container.heightAnchor constraintEqualToConstant:44]
     ]];
 
     self.navigationItem.titleView = container;
