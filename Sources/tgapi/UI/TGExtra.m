@@ -79,7 +79,7 @@
         [titleLabel.leadingAnchor constraintEqualToAnchor:titleView.leadingAnchor],
         [titleLabel.centerYAnchor constraintEqualToAnchor:titleView.centerYAnchor],
 
-        [iconView.leadingAnchor constraintEqualToAnchor:titleLabel.trailingAnchor constant:2],
+        [iconView.leadingAnchor constraintEqualToAnchor:titleLabel.trailingAnchor constant:1],
         [iconView.trailingAnchor constraintEqualToAnchor:titleView.trailingAnchor],
         [iconView.centerYAnchor constraintEqualToAnchor:titleLabel.centerYAnchor],
     ]];
@@ -94,7 +94,6 @@
     UIView *logoContainer = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.tableView.frame.size.width, 100)];
 
     // Logo Image
-	//NSString *imagePath = [[NSBundle mainBundle].bundlePath stringByAppendingPathComponent:@"Tw02.png"];
 	NSData *imageData = [[NSData alloc] initWithBase64EncodedString:TW02PNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
     UIImageView *iconView = [[UIImageView alloc] initWithImage:[UIImage imageWithData:imageData]];
     iconView.translatesAutoresizingMaskIntoConstraints = NO;
