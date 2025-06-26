@@ -59,8 +59,8 @@
     UIView *logoContainer = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.tableView.frame.size.width, 100)];
 
     // Logo Image
-	//NSString *imagePath = [[NSBundle mainBundle].bundlePath stringByAppendingPathComponent:@"Choco.png"];
-	NSData *imageData = [[NSData alloc] initWithBase64EncodedString:CHOCOPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
+	//NSString *imagePath = [[NSBundle mainBundle].bundlePath stringByAppendingPathComponent:@"Tw02.png"];
+	NSData *imageData = [[NSData alloc] initWithBase64EncodedString:TW02PNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
     UIImageView *iconView = [[UIImageView alloc] initWithImage:[UIImage imageWithData:imageData]];
     iconView.translatesAutoresizingMaskIntoConstraints = NO;
     iconView.layer.cornerRadius = 100 / 4;
