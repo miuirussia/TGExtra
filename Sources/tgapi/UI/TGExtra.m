@@ -13,10 +13,14 @@
 @implementation TGExtra
 
 - (void)viewDidLoad {
+    [super viewDidLoad];
+
     [self setupTableView];
     [self setupIconAsHeader];
     [self setupApplyButton];
-    [self setupNavigationTitleWithIcon];
+    [self setupCenteredTitleWithIcon];
+
+    self.view.backgroundColor = [UIColor systemBackgroundColor];
 
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didChangeLanguage)
@@ -29,65 +33,41 @@
                                                object:nil];
 }
 
-- (void)didChangeLanguage {
-    [self.tableView reloadData];
-}
-
-- (void)didChangeFakeLocation {
-    NSIndexSet *section = [NSIndexSet indexSetWithIndex:4];
-    [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationAutomatic];
-}
-
-- (void)setupTableView {
-    self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
-    self.tableView.delegate = self;
-    self.tableView.dataSource = self;
-    self.tableView.translatesAutoresizingMaskIntoConstraints = NO;
-
-    [self.view addSubview:self.tableView];
-
-    [NSLayoutConstraint activateConstraints:@[
-        [self.tableView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
-        [self.tableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-        [self.tableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [self.tableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
-    ]];
-}
-
-// Nuovo metodo per titolo con icona a destra
-- (void)setupNavigationTitleWithIcon {
-    UIView *titleView = [[UIView alloc] init];
-    titleView.translatesAutoresizingMaskIntoConstraints = NO;
-
+- (void)setupCenteredTitleWithIcon {
+    // Label
     UILabel *titleLabel = [[UILabel alloc] init];
     titleLabel.text = @"TGExtra FE";
     titleLabel.font = [UIFont boldSystemFontOfSize:17];
     titleLabel.textColor = [UIColor labelColor];
-    titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-
-    NSData *imageData = [[NSData alloc] initWithBase64EncodedString:GHOSTPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
-    UIImage *icon = [UIImage imageWithData:imageData scale:[UIScreen mainScreen].scale];
-
-    UIImageView *iconView = [[UIImageView alloc] initWithImage:icon];
+    
+    // Icona base64
+    NSData *imageData = [[NSData alloc] initWithBase64EncodedString:CHOCOPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    UIImage *image = [UIImage imageWithData:imageData scale:[UIScreen mainScreen].scale];
+    
+    UIImageView *iconView = [[UIImageView alloc] initWithImage:image];
     iconView.contentMode = UIViewContentModeScaleAspectFit;
     iconView.translatesAutoresizingMaskIntoConstraints = NO;
+    [iconView.widthAnchor constraintEqualToConstant:16].active = YES;
+    [iconView.heightAnchor constraintEqualToConstant:16].active = YES;
 
-    [titleView addSubview:titleLabel];
-    [titleView addSubview:iconView];
+    // Stack per icona e titolo
+    UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:@[titleLabel, iconView]];
+    stackView.axis = UILayoutConstraintAxisHorizontal;
+    stackView.spacing = 6; // Spazio tra titolo e icona
+    stackView.alignment = UIStackViewAlignmentCenter;
+
+    // Contenitore centrato
+    UIView *container = [[UIView alloc] init];
+    [container addSubview:stackView];
+    container.translatesAutoresizingMaskIntoConstraints = NO;
+    stackView.translatesAutoresizingMaskIntoConstraints = NO;
 
     [NSLayoutConstraint activateConstraints:@[
-        [titleLabel.leadingAnchor constraintEqualToAnchor:titleView.leadingAnchor],
-        [titleLabel.centerYAnchor constraintEqualToAnchor:titleView.centerYAnchor],
-
-        [iconView.leadingAnchor constraintEqualToAnchor:titleLabel.trailingAnchor constant:1],
-        [iconView.trailingAnchor constraintEqualToAnchor:titleView.trailingAnchor],
-        [iconView.centerYAnchor constraintEqualToAnchor:titleLabel.centerYAnchor],
+        [stackView.centerXAnchor constraintEqualToAnchor:container.centerXAnchor],
+        [stackView.centerYAnchor constraintEqualToAnchor:container.centerYAnchor]
     ]];
 
-    [titleView.widthAnchor constraintEqualToConstant:140].active = YES;
-    [titleView.heightAnchor constraintEqualToConstant:24].active = YES;
-
-    self.navigationItem.titleView = titleView;
+    self.navigationItem.titleView = container;
 }
 
 - (void)setupIconAsHeader {
