@@ -485,7 +485,7 @@ typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
 			cell.detailTextLabel.text = @"Developer";
 			cell.detailTextLabel.textColor = [UIColor lightGrayColor];
 			NSData *imageData = [[NSData alloc] initWithBase64EncodedString:CHOCOPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
-			cell.imageView.image = [UIImage imageWithData:imageData scale:2.0];
+			cell.imageView.image = [UIImage imageWithData:imageData scale:[UIScreen mainScreen].scale];
 			cell.imageView.layer.cornerRadius = 40/8;
 			cell.imageView.layer.masksToBounds = YES;
 			cell.accessoryView = nil;
