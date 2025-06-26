@@ -82,8 +82,6 @@
         [iconView.leadingAnchor constraintEqualToAnchor:titleLabel.trailingAnchor constant:2],
         [iconView.trailingAnchor constraintEqualToAnchor:titleView.trailingAnchor],
         [iconView.centerYAnchor constraintEqualToAnchor:titleLabel.centerYAnchor],
-        [iconView.widthAnchor constraintEqualToConstant:20],
-        [iconView.heightAnchor constraintEqualToConstant:20],
     ]];
 
     [titleView.widthAnchor constraintEqualToConstant:140].active = YES;
