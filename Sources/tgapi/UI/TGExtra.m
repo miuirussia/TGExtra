@@ -16,7 +16,7 @@
     [self setupTableView];
     [self setupIconAsHeader];
     [self setupApplyButton];
-    [self setupNavigationTitleWithIcon];  // Qui invece di self.title = @"TGExtra FE";
+    [self setupNavigationTitleWithIcon];
 
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didChangeLanguage)
@@ -79,7 +79,7 @@
         [titleLabel.leadingAnchor constraintEqualToAnchor:titleView.leadingAnchor],
         [titleLabel.centerYAnchor constraintEqualToAnchor:titleView.centerYAnchor],
 
-        [iconView.leadingAnchor constraintEqualToAnchor:titleLabel.trailingAnchor constant:6],
+        [iconView.leadingAnchor constraintEqualToAnchor:titleLabel.trailingAnchor constant:2],
         [iconView.trailingAnchor constraintEqualToAnchor:titleView.trailingAnchor],
         [iconView.centerYAnchor constraintEqualToAnchor:titleLabel.centerYAnchor],
         [iconView.widthAnchor constraintEqualToConstant:20],
