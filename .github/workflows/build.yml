@@ -110,7 +110,7 @@ jobs:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                 tag_name: release
-                name: ${{ github.event.repository.name }}
+                name: TGExtra FE
                 body_path: release_body.md
                 files: packages/*.deb
                 draft: false
