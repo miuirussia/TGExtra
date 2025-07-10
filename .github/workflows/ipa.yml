@@ -45,7 +45,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release download release --repo thewinner0217/TGExtra --pattern 'com.choco.tg_*_iphoneos-arm.deb' --dir .
+          gh release download release --repo TheWinner02/TGExtra --pattern 'com.choco.tg_*_iphoneos-arm.deb' --dir .
 
       - name: Extract TGExtra version
         id: extractTGExtra
@@ -59,7 +59,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release download release --repo waruhachi/SideloadFix --pattern 'SideloadFix.dylib' --dir .
+          gh release download release --repo TheWinner02/SideloadFix --pattern 'SideloadFix.dylib' --dir .
           gh release download release --repo TheWinner02/NSEFix --pattern 'NSEFix.dylib' --dir .
 
       - name: Upload Dependencies
