@@ -13,54 +13,88 @@
 @implementation TGExtra
 
 - (void)viewDidLoad {
+    [self setupTableView];
+    [self setupIconAsHeader];
+    [self setupApplyButton];
+    [self setupNavigationTitleWithIcon];
 
-	[self setupTableView];
-	[self setupIconAsHeader];
-	[self setupApplyButton];
-	self.title = @"TGExtra";
-
-	[[NSNotificationCenter defaultCenter] addObserver:self
+    [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didChangeLanguage)
                                                  name:@"LanguageChangedNotification"
                                                object:nil];
 
-	[[NSNotificationCenter defaultCenter] addObserver:self
+    [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(didChangeFakeLocation)
                                                  name:@"TGExtraLocationChanged"
                                                object:nil];
 }
 
 - (void)didChangeLanguage {
-	[self.tableView reloadData];
+    [self.tableView reloadData];
 }
 
 - (void)didChangeFakeLocation {
-	NSIndexSet *section = [NSIndexSet indexSetWithIndex:4];
-	[self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationAutomatic];
+    NSIndexSet *section = [NSIndexSet indexSetWithIndex:4];
+    [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
 - (void)setupTableView {
-	self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
-	self.tableView.delegate = self;
-	self.tableView.dataSource = self;
-	self.tableView.translatesAutoresizingMaskIntoConstraints = NO;
+    self.tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
+    self.tableView.delegate = self;
+    self.tableView.dataSource = self;
+    self.tableView.translatesAutoresizingMaskIntoConstraints = NO;
 
-	[self.view addSubview:self.tableView];
+    [self.view addSubview:self.tableView];
 
-	[NSLayoutConstraint activateConstraints:@[
-    	[self.tableView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
-		[self.tableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-		[self.tableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-		[self.tableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
-	]];
+    [NSLayoutConstraint activateConstraints:@[
+        [self.tableView.topAnchor constraintEqualToAnchor:self.view.topAnchor],
+        [self.tableView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
+        [self.tableView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
+        [self.tableView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor]
+    ]];
+}
+
+// Nuovo metodo per titolo con icona a destra
+- (void)setupNavigationTitleWithIcon {
+    UIView *titleView = [[UIView alloc] init];
+    titleView.translatesAutoresizingMaskIntoConstraints = NO;
+
+    UILabel *titleLabel = [[UILabel alloc] init];
+    titleLabel.text = @"TGExtra FE";
+    titleLabel.font = [UIFont boldSystemFontOfSize:17];
+    titleLabel.textColor = [UIColor labelColor];
+    titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+
+    NSData *imageData = [[NSData alloc] initWithBase64EncodedString:GHOSTPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
+    UIImage *icon = [UIImage imageWithData:imageData scale:[UIScreen mainScreen].scale];
+
+    UIImageView *iconView = [[UIImageView alloc] initWithImage:icon];
+    iconView.contentMode = UIViewContentModeScaleAspectFit;
+    iconView.translatesAutoresizingMaskIntoConstraints = NO;
+
+    [titleView addSubview:titleLabel];
+    [titleView addSubview:iconView];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [titleLabel.leadingAnchor constraintEqualToAnchor:titleView.leadingAnchor],
+        [titleLabel.centerYAnchor constraintEqualToAnchor:titleView.centerYAnchor],
+
+        [iconView.leadingAnchor constraintEqualToAnchor:titleLabel.trailingAnchor constant:1],
+        [iconView.trailingAnchor constraintEqualToAnchor:titleView.trailingAnchor],
+        [iconView.centerYAnchor constraintEqualToAnchor:titleLabel.centerYAnchor],
+    ]];
+
+    [titleView.widthAnchor constraintEqualToConstant:140].active = YES;
+    [titleView.heightAnchor constraintEqualToConstant:24].active = YES;
+
+    self.navigationItem.titleView = titleView;
 }
 
 - (void)setupIconAsHeader {
     UIView *logoContainer = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.tableView.frame.size.width, 100)];
 
     // Logo Image
-	//NSString *imagePath = [[NSBundle mainBundle].bundlePath stringByAppendingPathComponent:@"Choco.png"];
-	NSData *imageData = [[NSData alloc] initWithBase64EncodedString:CHOCOPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
+	NSData *imageData = [[NSData alloc] initWithBase64EncodedString:TW02PNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
     UIImageView *iconView = [[UIImageView alloc] initWithImage:[UIImage imageWithData:imageData]];
     iconView.translatesAutoresizingMaskIntoConstraints = NO;
     iconView.layer.cornerRadius = 100 / 4;
