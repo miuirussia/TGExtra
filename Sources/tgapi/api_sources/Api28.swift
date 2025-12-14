@@ -7,7 +7,7 @@ public extension Api {
         case updates(updates: [Api.Update], users: [Api.User], chats: [Api.Chat], date: Int32, seq: Int32)
         case updatesCombined(updates: [Api.Update], users: [Api.User], chats: [Api.Chat], date: Int32, seqStart: Int32, seq: Int32)
         case updatesTooLong
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .updateShort(let update, let date):
@@ -126,11 +126,11 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(-484987010)
                     }
-                    
+
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .updateShort(let update, let date):
@@ -149,7 +149,7 @@ public extension Api {
                 return ("updatesTooLong", [])
     }
     }
-    
+
         public static func parse_updateShort(_ reader: BufferReader) -> Updates? {
             var _1: Api.Update?
             if let signature = reader.readInt32() {
@@ -369,7 +369,7 @@ public extension Api {
         public static func parse_updatesTooLong(_ reader: BufferReader) -> Updates? {
             return Api.Updates.updatesTooLong
         }
-    
+
     }
 }
 public extension Api {
@@ -377,7 +377,7 @@ public extension Api {
         case urlAuthResultAccepted(url: String)
         case urlAuthResultDefault
         case urlAuthResultRequest(flags: Int32, bot: Api.User, domain: String)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .urlAuthResultAccepted(let url):
@@ -390,7 +390,7 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(-1445536993)
                     }
-                    
+
                     break
                 case .urlAuthResultRequest(let flags, let bot, let domain):
                     if boxed {
@@ -402,7 +402,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .urlAuthResultAccepted(let url):
@@ -413,7 +413,7 @@ public extension Api {
                 return ("urlAuthResultRequest", [("flags", flags as Any), ("bot", bot as Any), ("domain", domain as Any)])
     }
     }
-    
+
         public static func parse_urlAuthResultAccepted(_ reader: BufferReader) -> UrlAuthResult? {
             var _1: String?
             _1 = parseString(reader)
@@ -447,14 +447,14 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum User: TypeConstructorDescription {
         case user(flags: Int32, flags2: Int32, id: Int64, accessHash: Int64?, firstName: String?, lastName: String?, username: String?, phone: String?, photo: Api.UserProfilePhoto?, status: Api.UserStatus?, botInfoVersion: Int32?, restrictionReason: [Api.RestrictionReason]?, botInlinePlaceholder: String?, langCode: String?, emojiStatus: Api.EmojiStatus?, usernames: [Api.Username]?, storiesMaxId: Api.RecentStory?, color: Api.PeerColor?, profileColor: Api.PeerColor?, botActiveUsers: Int32?, botVerificationIcon: Int64?, sendPaidMessagesStars: Int64?)
         case userEmpty(id: Int64)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .user(let flags, let flags2, let id, let accessHash, let firstName, let lastName, let username, let phone, let photo, let status, let botInfoVersion, let restrictionReason, let botInlinePlaceholder, let langCode, let emojiStatus, let usernames, let storiesMaxId, let color, let profileColor, let botActiveUsers, let botVerificationIcon, let sendPaidMessagesStars):
@@ -500,7 +500,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .user(let flags, let flags2, let id, let accessHash, let firstName, let lastName, let username, let phone, let photo, let status, let botInfoVersion, let restrictionReason, let botInlinePlaceholder, let langCode, let emojiStatus, let usernames, let storiesMaxId, let color, let profileColor, let botActiveUsers, let botVerificationIcon, let sendPaidMessagesStars):
@@ -509,10 +509,11 @@ public extension Api {
                 return ("userEmpty", [("id", id as Any)])
     }
     }
-    
+
         public static func parse_user(_ reader: BufferReader) -> User? {
             var _1: Int32?
             _1 = reader.readInt32()
+            _1 = _1! & ~(1 << 18) // TGExtra: set restricted:flags.18?true to false (set bit 18 to 0)
             var _2: Int32?
             _2 = reader.readInt32()
             var _3: Int64?
@@ -537,9 +538,10 @@ public extension Api {
             } }
             var _11: Int32?
             if Int(_1!) & Int(1 << 14) != 0 {_11 = reader.readInt32() }
-            var _12: [Api.RestrictionReason]?
+            let _12: [Api.RestrictionReason]? = nil // TGExtra: Always nil
             if Int(_1!) & Int(1 << 18) != 0 {if let _ = reader.readInt32() {
-                _12 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                _1 = _1! & ~(1 << 18) // TGExtra: disable the flag restriction_reason:flags.18?Vector<RestrictionReason> (set bit 18 to 0)
+                let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
             } }
             var _13: String?
             if Int(_1!) & Int(1 << 19) != 0 {_13 = parseString(reader) }
@@ -611,13 +613,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum UserFull: TypeConstructorDescription {
         case userFull(flags: Int32, flags2: Int32, id: Int64, about: String?, settings: Api.PeerSettings, personalPhoto: Api.Photo?, profilePhoto: Api.Photo?, fallbackPhoto: Api.Photo?, notifySettings: Api.PeerNotifySettings, botInfo: Api.BotInfo?, pinnedMsgId: Int32?, commonChatsCount: Int32, folderId: Int32?, ttlPeriod: Int32?, theme: Api.ChatTheme?, privateForwardName: String?, botGroupAdminRights: Api.ChatAdminRights?, botBroadcastAdminRights: Api.ChatAdminRights?, wallpaper: Api.WallPaper?, stories: Api.PeerStories?, businessWorkHours: Api.BusinessWorkHours?, businessLocation: Api.BusinessLocation?, businessGreetingMessage: Api.BusinessGreetingMessage?, businessAwayMessage: Api.BusinessAwayMessage?, businessIntro: Api.BusinessIntro?, birthday: Api.Birthday?, personalChannelId: Int64?, personalChannelMessage: Int32?, stargiftsCount: Int32?, starrefProgram: Api.StarRefProgram?, botVerification: Api.BotVerification?, sendPaidMessagesStars: Int64?, disallowedGifts: Api.DisallowedGiftsSettings?, starsRating: Api.StarsRating?, starsMyPendingRating: Api.StarsRating?, starsMyPendingRatingDate: Int32?, mainTab: Api.ProfileTab?, savedMusic: Api.Document?, note: Api.TextWithEntities?)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .userFull(let flags, let flags2, let id, let about, let settings, let personalPhoto, let profilePhoto, let fallbackPhoto, let notifySettings, let botInfo, let pinnedMsgId, let commonChatsCount, let folderId, let ttlPeriod, let theme, let privateForwardName, let botGroupAdminRights, let botBroadcastAdminRights, let wallpaper, let stories, let businessWorkHours, let businessLocation, let businessGreetingMessage, let businessAwayMessage, let businessIntro, let birthday, let personalChannelId, let personalChannelMessage, let stargiftsCount, let starrefProgram, let botVerification, let sendPaidMessagesStars, let disallowedGifts, let starsRating, let starsMyPendingRating, let starsMyPendingRatingDate, let mainTab, let savedMusic, let note):
@@ -666,14 +668,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .userFull(let flags, let flags2, let id, let about, let settings, let personalPhoto, let profilePhoto, let fallbackPhoto, let notifySettings, let botInfo, let pinnedMsgId, let commonChatsCount, let folderId, let ttlPeriod, let theme, let privateForwardName, let botGroupAdminRights, let botBroadcastAdminRights, let wallpaper, let stories, let businessWorkHours, let businessLocation, let businessGreetingMessage, let businessAwayMessage, let businessIntro, let birthday, let personalChannelId, let personalChannelMessage, let stargiftsCount, let starrefProgram, let botVerification, let sendPaidMessagesStars, let disallowedGifts, let starsRating, let starsMyPendingRating, let starsMyPendingRatingDate, let mainTab, let savedMusic, let note):
                 return ("userFull", [("flags", flags as Any), ("flags2", flags2 as Any), ("id", id as Any), ("about", about as Any), ("settings", settings as Any), ("personalPhoto", personalPhoto as Any), ("profilePhoto", profilePhoto as Any), ("fallbackPhoto", fallbackPhoto as Any), ("notifySettings", notifySettings as Any), ("botInfo", botInfo as Any), ("pinnedMsgId", pinnedMsgId as Any), ("commonChatsCount", commonChatsCount as Any), ("folderId", folderId as Any), ("ttlPeriod", ttlPeriod as Any), ("theme", theme as Any), ("privateForwardName", privateForwardName as Any), ("botGroupAdminRights", botGroupAdminRights as Any), ("botBroadcastAdminRights", botBroadcastAdminRights as Any), ("wallpaper", wallpaper as Any), ("stories", stories as Any), ("businessWorkHours", businessWorkHours as Any), ("businessLocation", businessLocation as Any), ("businessGreetingMessage", businessGreetingMessage as Any), ("businessAwayMessage", businessAwayMessage as Any), ("businessIntro", businessIntro as Any), ("birthday", birthday as Any), ("personalChannelId", personalChannelId as Any), ("personalChannelMessage", personalChannelMessage as Any), ("stargiftsCount", stargiftsCount as Any), ("starrefProgram", starrefProgram as Any), ("botVerification", botVerification as Any), ("sendPaidMessagesStars", sendPaidMessagesStars as Any), ("disallowedGifts", disallowedGifts as Any), ("starsRating", starsRating as Any), ("starsMyPendingRating", starsMyPendingRating as Any), ("starsMyPendingRatingDate", starsMyPendingRatingDate as Any), ("mainTab", mainTab as Any), ("savedMusic", savedMusic as Any), ("note", note as Any)])
     }
     }
-    
+
         public static func parse_userFull(_ reader: BufferReader) -> UserFull? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -849,14 +851,14 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum UserProfilePhoto: TypeConstructorDescription {
         case userProfilePhoto(flags: Int32, photoId: Int64, strippedThumb: Buffer?, dcId: Int32)
         case userProfilePhotoEmpty
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .userProfilePhoto(let flags, let photoId, let strippedThumb, let dcId):
@@ -872,11 +874,11 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(1326562017)
                     }
-                    
+
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .userProfilePhoto(let flags, let photoId, let strippedThumb, let dcId):
@@ -885,7 +887,7 @@ public extension Api {
                 return ("userProfilePhotoEmpty", [])
     }
     }
-    
+
         public static func parse_userProfilePhoto(_ reader: BufferReader) -> UserProfilePhoto? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -909,7 +911,7 @@ public extension Api {
         public static func parse_userProfilePhotoEmpty(_ reader: BufferReader) -> UserProfilePhoto? {
             return Api.UserProfilePhoto.userProfilePhotoEmpty
         }
-    
+
     }
 }
 public extension Api {
@@ -920,14 +922,14 @@ public extension Api {
         case userStatusOffline(wasOnline: Int32)
         case userStatusOnline(expires: Int32)
         case userStatusRecently(flags: Int32)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .userStatusEmpty:
                     if boxed {
                         buffer.appendInt32(164646985)
                     }
-                    
+
                     break
                 case .userStatusLastMonth(let flags):
                     if boxed {
@@ -961,7 +963,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .userStatusEmpty:
@@ -978,7 +980,7 @@ public extension Api {
                 return ("userStatusRecently", [("flags", flags as Any)])
     }
     }
-    
+
         public static func parse_userStatusEmpty(_ reader: BufferReader) -> UserStatus? {
             return Api.UserStatus.userStatusEmpty
         }
@@ -1037,13 +1039,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum Username: TypeConstructorDescription {
         case username(flags: Int32, username: String)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .username(let flags, let username):
@@ -1055,14 +1057,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .username(let flags, let username):
                 return ("username", [("flags", flags as Any), ("username", username as Any)])
     }
     }
-    
+
         public static func parse_username(_ reader: BufferReader) -> Username? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -1077,7 +1079,7 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
@@ -1085,7 +1087,7 @@ public extension Api {
         case videoSize(flags: Int32, type: String, w: Int32, h: Int32, size: Int32, videoStartTs: Double?)
         case videoSizeEmojiMarkup(emojiId: Int64, backgroundColors: [Int32])
         case videoSizeStickerMarkup(stickerset: Api.InputStickerSet, stickerId: Int64, backgroundColors: [Int32])
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .videoSize(let flags, let type, let w, let h, let size, let videoStartTs):
@@ -1124,7 +1126,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .videoSize(let flags, let type, let w, let h, let size, let videoStartTs):
@@ -1135,7 +1137,7 @@ public extension Api {
                 return ("videoSizeStickerMarkup", [("stickerset", stickerset as Any), ("stickerId", stickerId as Any), ("backgroundColors", backgroundColors as Any)])
     }
     }
-    
+
         public static func parse_videoSize(_ reader: BufferReader) -> VideoSize? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -1199,14 +1201,14 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum WallPaper: TypeConstructorDescription {
         case wallPaper(id: Int64, flags: Int32, accessHash: Int64, slug: String, document: Api.Document, settings: Api.WallPaperSettings?)
         case wallPaperNoFile(id: Int64, flags: Int32, settings: Api.WallPaperSettings?)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .wallPaper(let id, let flags, let accessHash, let slug, let document, let settings):
@@ -1230,7 +1232,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .wallPaper(let id, let flags, let accessHash, let slug, let document, let settings):
@@ -1239,7 +1241,7 @@ public extension Api {
                 return ("wallPaperNoFile", [("id", id as Any), ("flags", flags as Any), ("settings", settings as Any)])
     }
     }
-    
+
         public static func parse_wallPaper(_ reader: BufferReader) -> WallPaper? {
             var _1: Int64?
             _1 = reader.readInt64()
@@ -1289,13 +1291,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum WallPaperSettings: TypeConstructorDescription {
         case wallPaperSettings(flags: Int32, backgroundColor: Int32?, secondBackgroundColor: Int32?, thirdBackgroundColor: Int32?, fourthBackgroundColor: Int32?, intensity: Int32?, rotation: Int32?, emoticon: String?)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .wallPaperSettings(let flags, let backgroundColor, let secondBackgroundColor, let thirdBackgroundColor, let fourthBackgroundColor, let intensity, let rotation, let emoticon):
@@ -1313,14 +1315,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .wallPaperSettings(let flags, let backgroundColor, let secondBackgroundColor, let thirdBackgroundColor, let fourthBackgroundColor, let intensity, let rotation, let emoticon):
                 return ("wallPaperSettings", [("flags", flags as Any), ("backgroundColor", backgroundColor as Any), ("secondBackgroundColor", secondBackgroundColor as Any), ("thirdBackgroundColor", thirdBackgroundColor as Any), ("fourthBackgroundColor", fourthBackgroundColor as Any), ("intensity", intensity as Any), ("rotation", rotation as Any), ("emoticon", emoticon as Any)])
     }
     }
-    
+
         public static func parse_wallPaperSettings(_ reader: BufferReader) -> WallPaperSettings? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -1353,13 +1355,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum WebAuthorization: TypeConstructorDescription {
         case webAuthorization(hash: Int64, botId: Int64, domain: String, browser: String, platform: String, dateCreated: Int32, dateActive: Int32, ip: String, region: String)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .webAuthorization(let hash, let botId, let domain, let browser, let platform, let dateCreated, let dateActive, let ip, let region):
@@ -1378,14 +1380,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .webAuthorization(let hash, let botId, let domain, let browser, let platform, let dateCreated, let dateActive, let ip, let region):
                 return ("webAuthorization", [("hash", hash as Any), ("botId", botId as Any), ("domain", domain as Any), ("browser", browser as Any), ("platform", platform as Any), ("dateCreated", dateCreated as Any), ("dateActive", dateActive as Any), ("ip", ip as Any), ("region", region as Any)])
     }
     }
-    
+
         public static func parse_webAuthorization(_ reader: BufferReader) -> WebAuthorization? {
             var _1: Int64?
             _1 = reader.readInt64()
@@ -1421,14 +1423,14 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum WebDocument: TypeConstructorDescription {
         case webDocument(url: String, accessHash: Int64, size: Int32, mimeType: String, attributes: [Api.DocumentAttribute])
         case webDocumentNoProxy(url: String, size: Int32, mimeType: String, attributes: [Api.DocumentAttribute])
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .webDocument(let url, let accessHash, let size, let mimeType, let attributes):
@@ -1460,7 +1462,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .webDocument(let url, let accessHash, let size, let mimeType, let attributes):
@@ -1469,7 +1471,7 @@ public extension Api {
                 return ("webDocumentNoProxy", [("url", url as Any), ("size", size as Any), ("mimeType", mimeType as Any), ("attributes", attributes as Any)])
     }
     }
-    
+
         public static func parse_webDocument(_ reader: BufferReader) -> WebDocument? {
             var _1: String?
             _1 = parseString(reader)
@@ -1517,7 +1519,7 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
@@ -1526,7 +1528,7 @@ public extension Api {
         case webPageEmpty(flags: Int32, id: Int64, url: String?)
         case webPageNotModified(flags: Int32, cachedPageViews: Int32?)
         case webPagePending(flags: Int32, id: Int64, url: String?, date: Int32)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .webPage(let flags, let id, let url, let displayUrl, let hash, let type, let siteName, let title, let description, let photo, let embedUrl, let embedType, let embedWidth, let embedHeight, let duration, let author, let document, let cachedPage, let attributes):
@@ -1583,7 +1585,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .webPage(let flags, let id, let url, let displayUrl, let hash, let type, let siteName, let title, let description, let photo, let embedUrl, let embedType, let embedWidth, let embedHeight, let duration, let author, let document, let cachedPage, let attributes):
@@ -1596,7 +1598,7 @@ public extension Api {
                 return ("webPagePending", [("flags", flags as Any), ("id", id as Any), ("url", url as Any), ("date", date as Any)])
     }
     }
-    
+
         public static func parse_webPage(_ reader: BufferReader) -> WebPage? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -1721,6 +1723,6 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
