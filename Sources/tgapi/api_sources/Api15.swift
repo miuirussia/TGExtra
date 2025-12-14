@@ -1,7 +1,7 @@
 public extension Api {
     enum KeyboardButtonRow: TypeConstructorDescription {
         case keyboardButtonRow(buttons: [Api.KeyboardButton])
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .keyboardButtonRow(let buttons):
@@ -16,14 +16,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .keyboardButtonRow(let buttons):
                 return ("keyboardButtonRow", [("buttons", buttons as Any)])
     }
     }
-    
+
         public static func parse_keyboardButtonRow(_ reader: BufferReader) -> KeyboardButtonRow? {
             var _1: [Api.KeyboardButton]?
             if let _ = reader.readInt32() {
@@ -37,13 +37,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum LabeledPrice: TypeConstructorDescription {
         case labeledPrice(label: String, amount: Int64)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .labeledPrice(let label, let amount):
@@ -55,14 +55,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .labeledPrice(let label, let amount):
                 return ("labeledPrice", [("label", label as Any), ("amount", amount as Any)])
     }
     }
-    
+
         public static func parse_labeledPrice(_ reader: BufferReader) -> LabeledPrice? {
             var _1: String?
             _1 = parseString(reader)
@@ -77,13 +77,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum LangPackDifference: TypeConstructorDescription {
         case langPackDifference(langCode: String, fromVersion: Int32, version: Int32, strings: [Api.LangPackString])
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .langPackDifference(let langCode, let fromVersion, let version, let strings):
@@ -101,14 +101,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .langPackDifference(let langCode, let fromVersion, let version, let strings):
                 return ("langPackDifference", [("langCode", langCode as Any), ("fromVersion", fromVersion as Any), ("version", version as Any), ("strings", strings as Any)])
     }
     }
-    
+
         public static func parse_langPackDifference(_ reader: BufferReader) -> LangPackDifference? {
             var _1: String?
             _1 = parseString(reader)
@@ -131,13 +131,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum LangPackLanguage: TypeConstructorDescription {
         case langPackLanguage(flags: Int32, name: String, nativeName: String, langCode: String, baseLangCode: String?, pluralCode: String, stringsCount: Int32, translatedCount: Int32, translationsUrl: String)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .langPackLanguage(let flags, let name, let nativeName, let langCode, let baseLangCode, let pluralCode, let stringsCount, let translatedCount, let translationsUrl):
@@ -156,14 +156,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .langPackLanguage(let flags, let name, let nativeName, let langCode, let baseLangCode, let pluralCode, let stringsCount, let translatedCount, let translationsUrl):
                 return ("langPackLanguage", [("flags", flags as Any), ("name", name as Any), ("nativeName", nativeName as Any), ("langCode", langCode as Any), ("baseLangCode", baseLangCode as Any), ("pluralCode", pluralCode as Any), ("stringsCount", stringsCount as Any), ("translatedCount", translatedCount as Any), ("translationsUrl", translationsUrl as Any)])
     }
     }
-    
+
         public static func parse_langPackLanguage(_ reader: BufferReader) -> LangPackLanguage? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -199,7 +199,7 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
@@ -207,7 +207,7 @@ public extension Api {
         case langPackString(key: String, value: String)
         case langPackStringDeleted(key: String)
         case langPackStringPluralized(flags: Int32, key: String, zeroValue: String?, oneValue: String?, twoValue: String?, fewValue: String?, manyValue: String?, otherValue: String)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .langPackString(let key, let value):
@@ -238,7 +238,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .langPackString(let key, let value):
@@ -249,7 +249,7 @@ public extension Api {
                 return ("langPackStringPluralized", [("flags", flags as Any), ("key", key as Any), ("zeroValue", zeroValue as Any), ("oneValue", oneValue as Any), ("twoValue", twoValue as Any), ("fewValue", fewValue as Any), ("manyValue", manyValue as Any), ("otherValue", otherValue as Any)])
     }
     }
-    
+
         public static func parse_langPackString(_ reader: BufferReader) -> LangPackString? {
             var _1: String?
             _1 = parseString(reader)
@@ -307,13 +307,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum MaskCoords: TypeConstructorDescription {
         case maskCoords(n: Int32, x: Double, y: Double, zoom: Double)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .maskCoords(let n, let x, let y, let zoom):
@@ -327,14 +327,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .maskCoords(let n, let x, let y, let zoom):
                 return ("maskCoords", [("n", n as Any), ("x", x as Any), ("y", y as Any), ("zoom", zoom as Any)])
     }
     }
-    
+
         public static func parse_maskCoords(_ reader: BufferReader) -> MaskCoords? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -355,7 +355,7 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
@@ -369,7 +369,7 @@ public extension Api {
         case mediaAreaUrl(coordinates: Api.MediaAreaCoordinates, url: String)
         case mediaAreaVenue(coordinates: Api.MediaAreaCoordinates, geo: Api.GeoPoint, title: String, address: String, provider: String, venueId: String, venueType: String)
         case mediaAreaWeather(coordinates: Api.MediaAreaCoordinates, emoji: String, temperatureC: Double, color: Int32)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .inputMediaAreaChannelPost(let coordinates, let channel, let msgId):
@@ -450,7 +450,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .inputMediaAreaChannelPost(let coordinates, let channel, let msgId):
@@ -473,7 +473,7 @@ public extension Api {
                 return ("mediaAreaWeather", [("coordinates", coordinates as Any), ("emoji", emoji as Any), ("temperatureC", temperatureC as Any), ("color", color as Any)])
     }
     }
-    
+
         public static func parse_inputMediaAreaChannelPost(_ reader: BufferReader) -> MediaArea? {
             var _1: Api.MediaAreaCoordinates?
             if let signature = reader.readInt32() {
@@ -667,13 +667,13 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
     enum MediaAreaCoordinates: TypeConstructorDescription {
         case mediaAreaCoordinates(flags: Int32, x: Double, y: Double, w: Double, h: Double, rotation: Double, radius: Double?)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .mediaAreaCoordinates(let flags, let x, let y, let w, let h, let rotation, let radius):
@@ -690,14 +690,14 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .mediaAreaCoordinates(let flags, let x, let y, let w, let h, let rotation, let radius):
                 return ("mediaAreaCoordinates", [("flags", flags as Any), ("x", x as Any), ("y", y as Any), ("w", w as Any), ("h", h as Any), ("rotation", rotation as Any), ("radius", radius as Any)])
     }
     }
-    
+
         public static func parse_mediaAreaCoordinates(_ reader: BufferReader) -> MediaAreaCoordinates? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -727,7 +727,7 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
@@ -735,7 +735,7 @@ public extension Api {
         case message(flags: Int32, flags2: Int32, id: Int32, fromId: Api.Peer?, fromBoostsApplied: Int32?, peerId: Api.Peer, savedPeerId: Api.Peer?, fwdFrom: Api.MessageFwdHeader?, viaBotId: Int64?, viaBusinessBotId: Int64?, replyTo: Api.MessageReplyHeader?, date: Int32, message: String, media: Api.MessageMedia?, replyMarkup: Api.ReplyMarkup?, entities: [Api.MessageEntity]?, views: Int32?, forwards: Int32?, replies: Api.MessageReplies?, editDate: Int32?, postAuthor: String?, groupedId: Int64?, reactions: Api.MessageReactions?, restrictionReason: [Api.RestrictionReason]?, ttlPeriod: Int32?, quickReplyShortcutId: Int32?, effect: Int64?, factcheck: Api.FactCheck?, reportDeliveryUntilDate: Int32?, paidMessageStars: Int64?, suggestedPost: Api.SuggestedPost?, scheduleRepeatPeriod: Int32?)
         case messageEmpty(flags: Int32, id: Int32, peerId: Api.Peer?)
         case messageService(flags: Int32, id: Int32, fromId: Api.Peer?, peerId: Api.Peer, savedPeerId: Api.Peer?, replyTo: Api.MessageReplyHeader?, date: Int32, action: Api.MessageAction, reactions: Api.MessageReactions?, ttlPeriod: Int32?)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .message(let flags, let flags2, let id, let fromId, let fromBoostsApplied, let peerId, let savedPeerId, let fwdFrom, let viaBotId, let viaBusinessBotId, let replyTo, let date, let message, let media, let replyMarkup, let entities, let views, let forwards, let replies, let editDate, let postAuthor, let groupedId, let reactions, let restrictionReason, let ttlPeriod, let quickReplyShortcutId, let effect, let factcheck, let reportDeliveryUntilDate, let paidMessageStars, let suggestedPost, let scheduleRepeatPeriod):
@@ -808,7 +808,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .message(let flags, let flags2, let id, let fromId, let fromBoostsApplied, let peerId, let savedPeerId, let fwdFrom, let viaBotId, let viaBusinessBotId, let replyTo, let date, let message, let media, let replyMarkup, let entities, let views, let forwards, let replies, let editDate, let postAuthor, let groupedId, let reactions, let restrictionReason, let ttlPeriod, let quickReplyShortcutId, let effect, let factcheck, let reportDeliveryUntilDate, let paidMessageStars, let suggestedPost, let scheduleRepeatPeriod):
@@ -819,10 +819,11 @@ public extension Api {
                 return ("messageService", [("flags", flags as Any), ("id", id as Any), ("fromId", fromId as Any), ("peerId", peerId as Any), ("savedPeerId", savedPeerId as Any), ("replyTo", replyTo as Any), ("date", date as Any), ("action", action as Any), ("reactions", reactions as Any), ("ttlPeriod", ttlPeriod as Any)])
     }
     }
-    
+
         public static func parse_message(_ reader: BufferReader) -> Message? {
             var _1: Int32?
             _1 = reader.readInt32()
+            _1 = _1! & ~(1 << 26) // TGExtra: set noforwards:flags.26?true to false (set bit 26 to 0)
             var _2: Int32?
             _2 = reader.readInt32()
             var _3: Int32?
@@ -887,9 +888,10 @@ public extension Api {
             if Int(_1!) & Int(1 << 20) != 0 {if let signature = reader.readInt32() {
                 _23 = Api.parse(reader, signature: signature) as? Api.MessageReactions
             } }
-            var _24: [Api.RestrictionReason]?
+            let _24: [Api.RestrictionReason]? = nil; // TGExtra: Always nil
             if Int(_1!) & Int(1 << 22) != 0 {if let _ = reader.readInt32() {
-                _24 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                _1 = _1! & ~(1 << 22) // TGExtra: disable the flag restriction_reason:flags.22?Vector<RestrictionReason> (set bit 22 to 0)
+                let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
             } }
             var _25: Int32?
             if Int(_1!) & Int(1 << 25) != 0 {_25 = reader.readInt32() }
@@ -1019,7 +1021,7 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
 public extension Api {
@@ -1084,7 +1086,7 @@ public extension Api {
         case messageActionTopicEdit(flags: Int32, title: String?, iconEmojiId: Int64?, closed: Api.Bool?, hidden: Api.Bool?)
         case messageActionWebViewDataSent(text: String)
         case messageActionWebViewDataSentMe(text: String, data: String)
-    
+
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
                 case .messageActionBoostApply(let boosts):
@@ -1139,7 +1141,7 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(-1780220945)
                     }
-                    
+
                     break
                 case .messageActionChatDeleteUser(let userId):
                     if boxed {
@@ -1169,7 +1171,7 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(-339958837)
                     }
-                    
+
                     break
                 case .messageActionChatMigrateTo(let channelId):
                     if boxed {
@@ -1194,7 +1196,7 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(-202219658)
                     }
-                    
+
                     break
                 case .messageActionCustomAction(let message):
                     if boxed {
@@ -1206,7 +1208,7 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(-1230047312)
                     }
-                    
+
                     break
                 case .messageActionGameScore(let gameId, let score):
                     if boxed {
@@ -1306,7 +1308,7 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(-1615153660)
                     }
-                    
+
                     break
                 case .messageActionInviteToGroupCall(let call, let users):
                     if boxed {
@@ -1380,7 +1382,7 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(-1799538451)
                     }
-                    
+
                     break
                 case .messageActionPrizeStars(let flags, let stars, let transactionId, let boostPeer, let giveawayMsgId):
                     if boxed {
@@ -1418,7 +1420,7 @@ public extension Api {
                     if boxed {
                         buffer.appendInt32(1200788123)
                     }
-                    
+
                     break
                 case .messageActionSecureValuesSent(let types):
                     if boxed {
@@ -1605,7 +1607,7 @@ public extension Api {
                     break
     }
     }
-    
+
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
                 case .messageActionBoostApply(let boosts):
@@ -1730,7 +1732,7 @@ public extension Api {
                 return ("messageActionWebViewDataSentMe", [("text", text as Any), ("data", data as Any)])
     }
     }
-    
+
         public static func parse_messageActionBoostApply(_ reader: BufferReader) -> MessageAction? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -2769,6 +2771,6 @@ public extension Api {
                 return nil
             }
         }
-    
+
     }
 }
