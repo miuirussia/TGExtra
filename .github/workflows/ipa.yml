@@ -45,7 +45,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release download release --repo TheWinner02/TGExtra --pattern 'com.choco.tg_*_iphoneos-arm.deb' --dir .
+          gh release download release --repo miuirussia/TGExtra --pattern 'com.choco.tg_*_iphoneos-arm.deb' --dir .
 
       - name: Extract TGExtra version
         id: extractTGExtra
@@ -97,7 +97,7 @@ jobs:
 
       - name: Install ldid
         run: |
-           brew install ldid
+          brew install ldid
 
       - name: Inject TGExtra + SideloadFix + NSEFix into IPA
         run: |
@@ -116,7 +116,7 @@ jobs:
           mkdir -p deb-extract artifacts
           ar x "$TGEXTRA_DEB"
           tar -xf data.tar.* -C deb-extract
-          
+
           find deb-extract -name "*.dylib"
 
 
@@ -127,10 +127,10 @@ jobs:
           BIN_PATH="$APP_PATH/$EXECUTABLE_NAME"
 
           mkdir -p "$APP_PATH/Frameworks"
-          
+
           DYLIB_PATH=$(find deb-extract -name "*.dylib" | head -n 1)
           cp "$DYLIB_PATH" "$APP_PATH/Frameworks/$DYLIB_NAME"
-          
+
           cp "dependencies/SideloadFix.dylib" "$APP_PATH/Frameworks/SideloadFix.dylib"
           cp "dependencies/NSEFix.dylib" "$APP_PATH/Frameworks/NSEFix.dylib"
 
@@ -150,7 +150,7 @@ jobs:
           (cd "$TMP_DIR" && zip -qr "../$OUT_IPA" .)
           cp "$OUT_IPA" "artifacts/$OUT_IPA"
           cp "$OUT_IPA" "artifacts/$OUT_TIPA"
-          
+
           rm -rf deb-extract "$TMP_DIR"
 
       - name: Upload injected IPA
@@ -303,4 +303,3 @@ jobs:
             artifacts
             dependencies
           failOnError: false
-
