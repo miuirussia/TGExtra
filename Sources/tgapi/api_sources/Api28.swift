@@ -541,7 +541,7 @@ public extension Api {
             let _12: [Api.RestrictionReason]? = nil // TGExtra: Always nil
             if Int(_1!) & Int(1 << 18) != 0 {if let _ = reader.readInt32() {
                 _1 = _1! & ~(1 << 18) // TGExtra: disable the flag restriction_reason:flags.18?Vector<RestrictionReason> (set bit 18 to 0)
-                let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                _ = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
             } }
             var _13: String?
             if Int(_1!) & Int(1 << 19) != 0 {_13 = parseString(reader) }

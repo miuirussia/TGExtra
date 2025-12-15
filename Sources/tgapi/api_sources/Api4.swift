@@ -657,7 +657,7 @@ public extension Api {
             let _9: [Api.RestrictionReason]? = nil; // TGExtra: Always nil
             if Int(_1!) & Int(1 << 9) != 0 {if let _ = reader.readInt32() {
                 _1 = _1! & ~(1 << 9) // TGExtra: disable the flag restriction_reason:flags.9?Vector<RestrictionReason> (set bit 9 to 0)
-                let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                _ = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
             } }
             var _10: Api.ChatAdminRights?
             if Int(_1!) & Int(1 << 14) != 0 {if let signature = reader.readInt32() {
