@@ -48,7 +48,7 @@ jobs:
       - name: Build Package
         shell: bash
         run: |
-          make clean package FINALPACKAGE=1 STRIP=0 ${{ matrix.scheme_arg }}
+          make clean package FINALPACKAGE=1 ${{ matrix.scheme_arg }}
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
