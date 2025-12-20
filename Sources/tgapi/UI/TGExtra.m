@@ -194,7 +194,7 @@ typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
 		case LANGUAGE:
 		   return 1;
 		case CREDITS:
-		   return 2;
+		   return 3;
 		default:
 		   return 0;
 	}
@@ -533,6 +533,14 @@ typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
 			cell.accessoryView = nil;
 			cell.detailTextLabel.textColor = [UIColor lightGrayColor];
 		}
+		else if (indexPath.row == 2) {
+			cell.textLabel.text = @"Patched by KDeveloper";
+			cell.detailTextLabel.text = @"Sources miuirussia/TGExtra at GitHub";
+			cell.imageView.image = [UIImage systemImageNamed:@"note.text"];
+			cell.imageView.tintColor = [self dynamicColorBW];
+			cell.accessoryView = nil;
+			cell.detailTextLabel.textColor = [UIColor lightGrayColor];
+		}
 		cell.textLabel.numberOfLines = 0;
 		cell.detailTextLabel.numberOfLines = 0;
 		return cell;
@@ -566,17 +574,19 @@ typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
 
     if (indexPath.section == CREDITS) {
 		if (indexPath.row == 0) {
-			NSString *base64String = @"aHR0cHM6Ly90Lm1lL3VsdGltYXRlUG9pc29u";
-	        NSData *decodedData = [[NSData alloc] initWithBase64EncodedString:base64String options:0];
-	        NSString *decodedURL = [[NSString alloc] initWithData:decodedData encoding:NSUTF8StringEncoding];
-
-	        NSURL *url = [NSURL URLWithString:decodedURL];
+	        NSURL *url = [NSURL URLWithString:@"https://t.me/ultimatePoison"];
 	        if ([[UIApplication sharedApplication] canOpenURL:url]) {
 	            [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
 	        }
 		}
 		else if (indexPath.row == 1) {
 		    [self showDisclaimer];
+		}
+		else if (indexPath.row == 2) {
+			NSURL *url = [NSURL URLWithString:@"https://github.com/miuirussia/TGExtra"];
+	        if ([[UIApplication sharedApplication] canOpenURL:url]) {
+	            [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+	        }
 		}
     }
 }
