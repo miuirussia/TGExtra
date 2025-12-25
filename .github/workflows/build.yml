@@ -56,13 +56,41 @@ jobs:
           name: ${{ matrix.scheme }}-package
           path: packages/*.deb
 
-  release:
+  cyan:
     needs: build
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all DEBs
+      - name: Download all packages
+        uses: actions/download-artifact@v4
+        with:
+          path: packages
+          merge-multiple: true
+
+      - name: Generate cyan package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download release --repo TheWinner02/SideloadFix --pattern 'SideloadFix.dylib' --dir .
+          gh release download release --repo TheWinner02/NSEFix --pattern 'NSEFix.dylib' --dir .
+
+          pip install --force-reinstall https://github.com/iOSDecrypted/cyanide/archive/main.zip
+          cgen -o packages/tg-extra.cyan -dqg -f ./SideloadFix.dylib ./NSEFix.dylib $(ls packages/com.choco.tg_*_iphoneos-arm.deb | head -n1)
+
+      - name: Upload cyan
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyan-package
+          path: packages/*.cyan
+
+  release:
+    needs: cyan
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all packages
         uses: actions/download-artifact@v4
         with:
           path: packages
@@ -105,6 +133,17 @@ jobs:
             fi
           done
 
+          for pkg in packages/*.cyan; do
+            if [ -f "$pkg" ]; then
+              echo "### Cyan Package" >> release_body.md
+              echo "* MD5: $(md5 -q $pkg)" >> release_body.md
+              echo "* SHA1: $(shasum -a 1 $pkg | awk '{ print $1 }')" >> release_body.md
+              echo "* SHA256: $(shasum -a 256 $pkg | awk '{ print $1 }')" >> release_body.md
+              echo "" >> release_body.md
+              break
+            fi
+          done
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         env:
@@ -113,7 +152,9 @@ jobs:
           tag_name: release
           name: ${{ github.event.repository.name }}
           body_path: release_body.md
-          files: packages/*.deb
+          files: |
+            packages/*.deb
+            packages/*.cyan
           draft: false
           prerelease: false
           make_latest: true
@@ -125,4 +166,5 @@ jobs:
             rootful-package
             rootless-package
             roothide-package
+            cyan-package
           failOnError: false
