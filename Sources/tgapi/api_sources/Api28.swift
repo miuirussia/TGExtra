@@ -513,6 +513,7 @@ public extension Api {
         public static func parse_user(_ reader: BufferReader) -> User? {
             var _1: Int32?
             _1 = reader.readInt32()
+            _1 = _1! & ~(1 << 18) // TGExtra: set restricted:flags.18?true to false (set bit 18 to 0)
             var _2: Int32?
             _2 = reader.readInt32()
             var _3: Int64?
@@ -537,9 +538,10 @@ public extension Api {
             } }
             var _11: Int32?
             if Int(_1!) & Int(1 << 14) != 0 {_11 = reader.readInt32() }
-            var _12: [Api.RestrictionReason]?
+            let _12: [Api.RestrictionReason]? = nil // TGExtra: Always nil
             if Int(_1!) & Int(1 << 18) != 0 {if let _ = reader.readInt32() {
-                _12 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                _1 = _1! & ~(1 << 18) // TGExtra: disable the flag restriction_reason:flags.18?Vector<RestrictionReason> (set bit 18 to 0)
+                let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
             } }
             var _13: String?
             if Int(_1!) & Int(1 << 19) != 0 {_13 = parseString(reader) }

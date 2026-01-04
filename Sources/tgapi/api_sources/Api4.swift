@@ -637,6 +637,7 @@ public extension Api {
         public static func parse_channel(_ reader: BufferReader) -> Chat? {
             var _1: Int32?
             _1 = reader.readInt32()
+            _1 = _1! & ~(1 << 27)  // TGExtra: set noforwards:flags.27?true to false (set bit 27 to 0)
             var _2: Int32?
             _2 = reader.readInt32()
             var _3: Int64?
@@ -653,9 +654,10 @@ public extension Api {
             }
             var _8: Int32?
             _8 = reader.readInt32()
-            var _9: [Api.RestrictionReason]?
+            let _9: [Api.RestrictionReason]? = nil; // TGExtra: Always nil
             if Int(_1!) & Int(1 << 9) != 0 {if let _ = reader.readInt32() {
-                _9 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                _1 = _1! & ~(1 << 9) // TGExtra: disable the flag restriction_reason:flags.9?Vector<RestrictionReason> (set bit 9 to 0)
+                let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
             } }
             var _10: Api.ChatAdminRights?
             if Int(_1!) & Int(1 << 14) != 0 {if let signature = reader.readInt32() {
@@ -757,6 +759,7 @@ public extension Api {
         public static func parse_chat(_ reader: BufferReader) -> Chat? {
             var _1: Int32?
             _1 = reader.readInt32()
+            _1 = _1! & ~(1 << 25) // TGExtra: set noforwards:flags.25?true to false (set bit 25 to 0)
             var _2: Int64?
             _2 = reader.readInt64()
             var _3: String?
