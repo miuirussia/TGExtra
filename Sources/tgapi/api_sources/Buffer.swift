@@ -3,7 +3,7 @@ import Foundation
 public struct Int128 {
     public var _0: Int64
     public var _1: Int64
-
+    
     public init(_0: Int64, _1: Int64) {
         self._0 = _0
         self._1 = _1
@@ -15,14 +15,14 @@ public struct Int256: Equatable, CustomStringConvertible {
     public var _1: Int64
     public var _2: Int64
     public var _3: Int64
-
+    
     public init(_0: Int64, _1: Int64, _2: Int64, _3: Int64) {
         self._0 = _0
         self._1 = _1
         self._2 = _2
         self._3 = _3
     }
-
+    
     public var description: String {
         var data = Data(count: 32)
         data.withUnsafeMutableBytes { buffer in
@@ -34,7 +34,7 @@ public struct Int256: Equatable, CustomStringConvertible {
                 int64Buffer[3] = self._3
             }
         }
-
+        
         let hexString = NSMutableString()
         data.withUnsafeBytes { rawBytes -> Void in
             let bytes = rawBytes.baseAddress!.assumingMemoryBound(to: UInt8.self)
@@ -42,7 +42,7 @@ public struct Int256: Equatable, CustomStringConvertible {
                 hexString.appendFormat("%02x", UInt(bytes.advanced(by: i).pointee))
             }
         }
-
+        
         return hexString as String
     }
 }
@@ -81,7 +81,7 @@ public func serializeBytes(_ value: Buffer, buffer: Buffer, boxed: Bool) {
         if boxed {
             buffer.appendInt32(-1255641564)
         }
-
+        
         var length: Int32 = Int32(value.size)
         var padding: Int32 = 0
         if (length >= 254)
@@ -94,11 +94,11 @@ public func serializeBytes(_ value: Buffer, buffer: Buffer, boxed: Bool) {
         else
         {
             buffer.appendBytes(&length, length: 1)
-
+            
             let e1 = (((length + 1) % 4) == 0 ? (length + 1) : ((length + 1) + 4 - ((length + 1) % 4)))
             padding = (e1) - (length + 1)
         }
-
+    
         if value.size != 0 {
             buffer.appendBytes(value.data!, length: UInt(length))
         }
@@ -115,7 +115,7 @@ func serializeInt128(_ value: Int128, buffer: Buffer, boxed: Bool) {
     if boxed {
         buffer.appendInt32(1270167083)
     }
-
+    
     buffer.appendInt64(value._0)
     buffer.appendInt64(value._1)
 }
@@ -124,7 +124,7 @@ func serializeInt256(_ value: Int256, buffer: Buffer, boxed: Bool) {
     if boxed {
         buffer.appendInt32(153731887)
     }
-
+    
     buffer.appendInt64(value._0)
     buffer.appendInt64(value._1)
     buffer.appendInt64(value._2)
@@ -156,12 +156,12 @@ private func roundUp(_ numToRound: Int, multiple: Int) -> Int
     if multiple == 0 {
         return numToRound
     }
-
+    
     let remainder = numToRound % multiple
     if remainder == 0 {
         return numToRound;
     }
-
+    
     return numToRound + multiple - remainder
 }
 
@@ -182,7 +182,7 @@ public func parseBytes(_ reader: BufferReader) -> Buffer? {
             length = Int(tmp)
             paddingBytes = roundUp(length + 1, multiple: 4) - (length + 1)
         }
-
+        
         let buffer = reader.readBuffer(length)
         reader.skip(paddingBytes)
         return buffer
@@ -202,43 +202,41 @@ public class Buffer: CustomStringConvertible {
     public var _size: UInt = 0
     private var capacity: UInt = 0
     private let freeWhenDone: Bool
-
+    
     public var size: Int {
         return Int(self._size)
     }
-
+    
     deinit {
         if self.freeWhenDone {
-            if let data = self.data {
-                free(data)
-            }
+            free(self.data)
         }
     }
-
+    
     public init(memory: UnsafeMutableRawPointer?, size: Int, capacity: Int, freeWhenDone: Bool) {
         self.data = memory
         self._size = UInt(size)
         self.capacity = UInt(capacity)
         self.freeWhenDone = freeWhenDone
     }
-
+    
     public init() {
         self.data = nil
         self._size = 0
         self.capacity = 0
         self.freeWhenDone = true
     }
-
+    
     convenience public init(data: Data?) {
         self.init()
-
+        
         if let data = data {
             data.withUnsafeBytes { bytes in
                 self.appendBytes(bytes.baseAddress!, length: UInt(bytes.count))
             }
         }
     }
-
+    
     public func makeData() -> Data {
         return self.withUnsafeMutablePointer { pointer, size -> Data in
             if let pointer = pointer {
@@ -248,7 +246,7 @@ public class Buffer: CustomStringConvertible {
             }
         }
     }
-
+    
     public var description: String {
         get {
             var string = ""
@@ -268,7 +266,7 @@ public class Buffer: CustomStringConvertible {
             return string
         }
     }
-
+    
     public func appendBytes(_ bytes: UnsafeRawPointer, length: UInt) {
         if self.capacity < self._size + length {
             self.capacity = self._size + length + 128
@@ -279,11 +277,11 @@ public class Buffer: CustomStringConvertible {
                 self.data = realloc(self.data, Int(self.capacity))!
             }
         }
-
+        
         memcpy(self.data?.advanced(by: Int(self._size)), bytes, Int(length))
         self._size += length
     }
-
+    
     public func appendBuffer(_ buffer: Buffer) {
         if self.capacity < self._size + buffer._size {
             self.capacity = self._size + buffer._size + 128
@@ -294,25 +292,25 @@ public class Buffer: CustomStringConvertible {
                 self.data = realloc(self.data, Int(self.capacity))!
             }
         }
-
+        
         memcpy(self.data?.advanced(by: Int(self._size)), buffer.data, Int(buffer._size))
     }
-
+    
     public func appendInt32(_ value: Int32) {
         var v = value
         self.appendBytes(&v, length: 4)
     }
-
+    
     public func appendInt64(_ value: Int64) {
         var v = value
         self.appendBytes(&v, length: 8)
     }
-
+    
     public func appendDouble(_ value: Double) {
         var v = value
         self.appendBytes(&v, length: 8)
     }
-
+    
     public func withUnsafeMutablePointer<R>(_ f: (UnsafeMutableRawPointer?, UInt) -> R) -> R {
         return f(self.data, self._size)
     }
@@ -321,19 +319,19 @@ public class Buffer: CustomStringConvertible {
 public class BufferReader {
     private let buffer: Buffer
     public private(set) var offset: UInt = 0
-
+    
     public init(_ buffer: Buffer) {
         self.buffer = buffer
     }
-
+    
     public func reset() {
         self.offset = 0
     }
-
+    
     public func skip(_ count: Int) {
         self.offset = min(self.buffer._size, self.offset + UInt(count))
     }
-
+    
     public func readInt32() -> Int32? {
         if self.offset + 4 <= self.buffer._size {
             let value: Int32 = buffer.data!.advanced(by: Int(self.offset)).assumingMemoryBound(to: Int32.self).pointee
@@ -342,7 +340,7 @@ public class BufferReader {
         }
         return nil
     }
-
+    
     public func readInt64() -> Int64? {
         if self.offset + 8 <= self.buffer._size {
             let value: Int64 = buffer.data!.advanced(by: Int(self.offset)).assumingMemoryBound(to: Int64.self).pointee
@@ -351,7 +349,7 @@ public class BufferReader {
         }
         return nil
     }
-
+    
     public func readDouble() -> Double? {
         if self.offset + 8 <= self.buffer._size {
             let value: Double = buffer.data!.advanced(by: Int(self.offset)).assumingMemoryBound(to: Double.self).pointee
@@ -360,7 +358,7 @@ public class BufferReader {
         }
         return nil
     }
-
+    
     public func readBytesAsInt32(_ count: Int) -> Int32? {
         if count == 0 {
             return 0
@@ -373,7 +371,7 @@ public class BufferReader {
         }
         return nil
     }
-
+    
     public func readBuffer(_ count: Int) -> Buffer? {
         if count >= 0 && self.offset + UInt(count) <= self.buffer._size {
             let buffer = Buffer()
@@ -383,18 +381,11 @@ public class BufferReader {
         }
         return nil
     }
-
+    
     public func withReadBufferNoCopy<T>(_ count: Int, _ f: (Buffer) -> T) -> T? {
         if count >= 0 && self.offset + UInt(count) <= self.buffer._size {
             return f(Buffer(memory: self.buffer.data!.advanced(by: Int(self.offset)), size: count, capacity: count, freeWhenDone: false))
         }
         return nil
-    }
-}
-
-extension Buffer {
-    convenience init(nsData: NSData) {
-        self.init()
-        self.appendBytes(nsData.bytes, length: UInt(nsData.length))
     }
 }
