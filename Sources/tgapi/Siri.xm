@@ -3,6 +3,6 @@
 
 %hook INPreferences
 - (long long)_siriAuthorizationStatus {
-  return 2;
+  return INSiriAuthorizationStatusDenied;
 }
 %end
