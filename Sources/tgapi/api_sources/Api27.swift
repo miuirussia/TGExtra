@@ -535,6 +535,7 @@ public extension Api {
         public static func parse_storyItem(_ reader: BufferReader) -> StoryItem? {
             var _1: Int32?
             _1 = reader.readInt32()
+            _1 = _1! & ~(1 << 10) // TGExtra: set noforwards:flags.10?true to false (set bit 10 to 0)
             var _2: Int32?
             _2 = reader.readInt32()
             var _3: Int32?
