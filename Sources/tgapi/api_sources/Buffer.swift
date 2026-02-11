@@ -209,9 +209,7 @@ public class Buffer: CustomStringConvertible {
     
     deinit {
         if self.freeWhenDone {
-            if let data = self.data {
-              free(data)
-            }
+            free(self.data)
         }
     }
     
@@ -365,13 +363,16 @@ public class BufferReader {
         if count == 0 {
             return 0
         }
-        else if count > 0 && count <= 4 || self.offset + UInt(count) <= self.buffer._size {
-            var value: Int32 = 0
-            memcpy(&value, self.buffer.data?.advanced(by: Int(self.offset)), count)
-            self.offset += UInt(count)
-            return value
+        guard count > 0, count <= 4, self.offset + UInt(count) <= self.buffer._size else {
+            return nil
         }
-        return nil
+        guard let bufferData = self.buffer.data else {
+            return nil
+        }
+        var value: Int32 = 0
+        memcpy(&value, bufferData.advanced(by: Int(self.offset)), count)
+        self.offset += UInt(count)
+        return value
     }
     
     public func readBuffer(_ count: Int) -> Buffer? {
@@ -389,12 +390,5 @@ public class BufferReader {
             return f(Buffer(memory: self.buffer.data!.advanced(by: Int(self.offset)), size: count, capacity: count, freeWhenDone: false))
         }
         return nil
-    }
-}
-
-extension Buffer {
-    convenience init(nsData: NSData) {
-        self.init()
-        self.appendBytes(nsData.bytes, length: UInt(nsData.length))
     }
 }
