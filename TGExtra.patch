@@ -20,7 +20,7 @@ index 494d5df..b4c727b 100644
                  if let _ = reader.readInt32() {
 -                    _24 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
 +                    _1 = _1! & ~(1 << 22) // TGExtra: disable the flag restriction_reason:flags.22?Vector<RestrictionReason> (set bit 22 to 0)
-+                    let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
++                    _ = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                  }
              }
              var _25: Int32?
@@ -58,7 +58,7 @@ index 9afe0f8..c9bbdf1 100644
                  if let _ = reader.readInt32() {
 -                    _12 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
 +                    _1 = _1! & ~(1 << 18) // TGExtra: disable the flag restriction_reason:flags.18?Vector<RestrictionReason> (set bit 18 to 0)
-+                    let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
++                    _ = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                  }
              }
              var _13: String?
@@ -84,7 +84,7 @@ index 395f282..78e7a00 100644
                  if let _ = reader.readInt32() {
 -                    _9 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
 +                    _1 = _1! & ~(1 << 9) // TGExtra: disable the flag restriction_reason:flags.9?Vector<RestrictionReason> (set bit 9 to 0)
-+                    let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
++                    _ = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                  }
              }
              var _10: Api.ChatAdminRights?

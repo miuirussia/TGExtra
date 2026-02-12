@@ -1382,7 +1382,7 @@ public extension Api {
             if Int(_1!) & Int(1 << 22) != 0 {
                 if let _ = reader.readInt32() {
                     _1 = _1! & ~(1 << 22) // TGExtra: disable the flag restriction_reason:flags.22?Vector<RestrictionReason> (set bit 22 to 0)
-                    let _empty = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                    _ = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                 }
             }
             var _25: Int32?
