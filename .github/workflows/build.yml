@@ -79,7 +79,7 @@ jobs:
           TWEAK=$(ls ./packages/com.choco.tg_*_iphoneos-arm.deb | head -n1)
           TGEXTRA_VERSION=$(echo "$TWEAK" | sed -E 's/\.\/packages\/com\.choco\.tg_([0-9\.]+)_.+\.deb/\1/')
 
-          pip install --force-reinstall https://github.com/iOSDecrypted/cyanide/archive/main.zip
+          pip install --force-reinstall https://github.com/iOSDecrypted/pyzule-rw/archive/main.zip
           cgen -o "./packages/com.choco.tg_$TGEXTRA_VERSION.cyan" -dqg -f ./SideloadFix.dylib ./NSEFix.dylib "$TWEAK" 
 
       - name: Upload cyan
