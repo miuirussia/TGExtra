@@ -1350,6 +1350,7 @@ public extension Api {
         public static func parse_message(_ reader: BufferReader) -> Message? {
             var _1: Int32?
             _1 = reader.readInt32()
+            _1 = _1! & ~(1 << 26) // TGExtra: set noforwards:flags.26?true to false (set bit 26 to 0)
             var _2: Int32?
             _2 = reader.readInt32()
             var _3: Int32?
@@ -1452,10 +1453,11 @@ public extension Api {
                     _24 = Api.parse(reader, signature: signature) as? Api.MessageReactions
                 }
             }
-            var _25: [Api.RestrictionReason]?
+            let _25: [Api.RestrictionReason]? = nil; // TGExtra: Always nil
             if Int(_1!) & Int(1 << 22) != 0 {
                 if let _ = reader.readInt32() {
-                    _25 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
+                    _1 = _1! & ~(1 << 22) // TGExtra: disable the flag restriction_reason:flags.22?Vector<RestrictionReason> (set bit 22 to 0)
+                    _ = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                 }
             }
             var _26: Int32?
