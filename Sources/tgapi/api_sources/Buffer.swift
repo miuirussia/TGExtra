@@ -209,9 +209,7 @@ public class Buffer: CustomStringConvertible {
     
     deinit {
         if self.freeWhenDone {
-            if let data = self.data {
-              free(data)
-            }
+            free(self.data)
         }
     }
     
@@ -392,12 +390,5 @@ public class BufferReader {
             return f(Buffer(memory: self.buffer.data!.advanced(by: Int(self.offset)), size: count, capacity: count, freeWhenDone: false))
         }
         return nil
-    }
-}
-
-extension Buffer {
-    convenience init(nsData: NSData) {
-        self.init()
-        self.appendBytes(nsData.bytes, length: UInt(nsData.length))
     }
 }
