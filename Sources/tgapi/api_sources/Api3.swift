@@ -1,4 +1,212 @@
 public extension Api {
+    enum BusinessBotRecipients: TypeConstructorDescription {
+        public class Cons_businessBotRecipients: TypeConstructorDescription {
+            public var flags: Int32
+            public var users: [Int64]?
+            public var excludeUsers: [Int64]?
+            public init(flags: Int32, users: [Int64]?, excludeUsers: [Int64]?) {
+                self.flags = flags
+                self.users = users
+                self.excludeUsers = excludeUsers
+            }
+            public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+                return ("businessBotRecipients", [("flags", ConstructorParameterDescription(self.flags)), ("users", ConstructorParameterDescription(self.users)), ("excludeUsers", ConstructorParameterDescription(self.excludeUsers))])
+            }
+        }
+        case businessBotRecipients(Cons_businessBotRecipients)
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+            case .businessBotRecipients(let _data):
+                if boxed {
+                    buffer.appendInt32(-1198722189)
+                }
+                serializeInt32(_data.flags, buffer: buffer, boxed: false)
+                if Int(_data.flags) & Int(1 << 4) != 0 {
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(_data.users!.count))
+                    for item in _data.users! {
+                        serializeInt64(item, buffer: buffer, boxed: false)
+                    }
+                }
+                if Int(_data.flags) & Int(1 << 6) != 0 {
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(_data.excludeUsers!.count))
+                    for item in _data.excludeUsers! {
+                        serializeInt64(item, buffer: buffer, boxed: false)
+                    }
+                }
+                break
+            }
+        }
+
+        public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+            switch self {
+            case .businessBotRecipients(let _data):
+                return ("businessBotRecipients", [("flags", ConstructorParameterDescription(_data.flags)), ("users", ConstructorParameterDescription(_data.users)), ("excludeUsers", ConstructorParameterDescription(_data.excludeUsers))])
+            }
+        }
+
+        public static func parse_businessBotRecipients(_ reader: BufferReader) -> BusinessBotRecipients? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: [Int64]?
+            if Int(_1 ?? 0) & Int(1 << 4) != 0 {
+                if let _ = reader.readInt32() {
+                    _2 = Api.parseVector(reader, elementSignature: 570911930, elementType: Int64.self)
+                }
+            }
+            var _3: [Int64]?
+            if Int(_1 ?? 0) & Int(1 << 6) != 0 {
+                if let _ = reader.readInt32() {
+                    _3 = Api.parseVector(reader, elementSignature: 570911930, elementType: Int64.self)
+                }
+            }
+            let _c1 = _1 != nil
+            let _c2 = (Int(_1 ?? 0) & Int(1 << 4) == 0) || _2 != nil
+            let _c3 = (Int(_1 ?? 0) & Int(1 << 6) == 0) || _3 != nil
+            if _c1 && _c2 && _c3 {
+                return Api.BusinessBotRecipients.businessBotRecipients(Cons_businessBotRecipients(flags: _1!, users: _2, excludeUsers: _3))
+            }
+            else {
+                return nil
+            }
+        }
+    }
+}
+public extension Api {
+    enum BusinessBotRights: TypeConstructorDescription {
+        public class Cons_businessBotRights: TypeConstructorDescription {
+            public var flags: Int32
+            public init(flags: Int32) {
+                self.flags = flags
+            }
+            public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+                return ("businessBotRights", [("flags", ConstructorParameterDescription(self.flags))])
+            }
+        }
+        case businessBotRights(Cons_businessBotRights)
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+            case .businessBotRights(let _data):
+                if boxed {
+                    buffer.appendInt32(-1604170505)
+                }
+                serializeInt32(_data.flags, buffer: buffer, boxed: false)
+                break
+            }
+        }
+
+        public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+            switch self {
+            case .businessBotRights(let _data):
+                return ("businessBotRights", [("flags", ConstructorParameterDescription(_data.flags))])
+            }
+        }
+
+        public static func parse_businessBotRights(_ reader: BufferReader) -> BusinessBotRights? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            let _c1 = _1 != nil
+            if _c1 {
+                return Api.BusinessBotRights.businessBotRights(Cons_businessBotRights(flags: _1!))
+            }
+            else {
+                return nil
+            }
+        }
+    }
+}
+public extension Api {
+    enum BusinessChatLink: TypeConstructorDescription {
+        public class Cons_businessChatLink: TypeConstructorDescription {
+            public var flags: Int32
+            public var link: String
+            public var message: String
+            public var entities: [Api.MessageEntity]?
+            public var title: String?
+            public var views: Int32
+            public init(flags: Int32, link: String, message: String, entities: [Api.MessageEntity]?, title: String?, views: Int32) {
+                self.flags = flags
+                self.link = link
+                self.message = message
+                self.entities = entities
+                self.title = title
+                self.views = views
+            }
+            public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+                return ("businessChatLink", [("flags", ConstructorParameterDescription(self.flags)), ("link", ConstructorParameterDescription(self.link)), ("message", ConstructorParameterDescription(self.message)), ("entities", ConstructorParameterDescription(self.entities)), ("title", ConstructorParameterDescription(self.title)), ("views", ConstructorParameterDescription(self.views))])
+            }
+        }
+        case businessChatLink(Cons_businessChatLink)
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+            case .businessChatLink(let _data):
+                if boxed {
+                    buffer.appendInt32(-1263638929)
+                }
+                serializeInt32(_data.flags, buffer: buffer, boxed: false)
+                serializeString(_data.link, buffer: buffer, boxed: false)
+                serializeString(_data.message, buffer: buffer, boxed: false)
+                if Int(_data.flags) & Int(1 << 0) != 0 {
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(_data.entities!.count))
+                    for item in _data.entities! {
+                        item.serialize(buffer, true)
+                    }
+                }
+                if Int(_data.flags) & Int(1 << 1) != 0 {
+                    serializeString(_data.title!, buffer: buffer, boxed: false)
+                }
+                serializeInt32(_data.views, buffer: buffer, boxed: false)
+                break
+            }
+        }
+
+        public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+            switch self {
+            case .businessChatLink(let _data):
+                return ("businessChatLink", [("flags", ConstructorParameterDescription(_data.flags)), ("link", ConstructorParameterDescription(_data.link)), ("message", ConstructorParameterDescription(_data.message)), ("entities", ConstructorParameterDescription(_data.entities)), ("title", ConstructorParameterDescription(_data.title)), ("views", ConstructorParameterDescription(_data.views))])
+            }
+        }
+
+        public static func parse_businessChatLink(_ reader: BufferReader) -> BusinessChatLink? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: String?
+            _2 = parseString(reader)
+            var _3: String?
+            _3 = parseString(reader)
+            var _4: [Api.MessageEntity]?
+            if Int(_1 ?? 0) & Int(1 << 0) != 0 {
+                if let _ = reader.readInt32() {
+                    _4 = Api.parseVector(reader, elementSignature: 0, elementType: Api.MessageEntity.self)
+                }
+            }
+            var _5: String?
+            if Int(_1 ?? 0) & Int(1 << 1) != 0 {
+                _5 = parseString(reader)
+            }
+            var _6: Int32?
+            _6 = reader.readInt32()
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = _3 != nil
+            let _c4 = (Int(_1 ?? 0) & Int(1 << 0) == 0) || _4 != nil
+            let _c5 = (Int(_1 ?? 0) & Int(1 << 1) == 0) || _5 != nil
+            let _c6 = _6 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 {
+                return Api.BusinessChatLink.businessChatLink(Cons_businessChatLink(flags: _1!, link: _2!, message: _3!, entities: _4, title: _5, views: _6!))
+            }
+            else {
+                return nil
+            }
+        }
+    }
+}
+public extension Api {
     enum BusinessGreetingMessage: TypeConstructorDescription {
         public class Cons_businessGreetingMessage: TypeConstructorDescription {
             public var shortcutId: Int32
@@ -106,7 +314,7 @@ public extension Api {
             var _3: String?
             _3 = parseString(reader)
             var _4: Api.Document?
-            if Int(_1!) & Int(1 << 0) != 0 {
+            if Int(_1 ?? 0) & Int(1 << 0) != 0 {
                 if let signature = reader.readInt32() {
                     _4 = Api.parse(reader, signature: signature) as? Api.Document
                 }
@@ -114,7 +322,7 @@ public extension Api {
             let _c1 = _1 != nil
             let _c2 = _2 != nil
             let _c3 = _3 != nil
-            let _c4 = (Int(_1!) & Int(1 << 0) == 0) || _4 != nil
+            let _c4 = (Int(_1 ?? 0) & Int(1 << 0) == 0) || _4 != nil
             if _c1 && _c2 && _c3 && _c4 {
                 return Api.BusinessIntro.businessIntro(Cons_businessIntro(flags: _1!, title: _2!, description: _3!, sticker: _4))
             }
@@ -167,7 +375,7 @@ public extension Api {
             var _1: Int32?
             _1 = reader.readInt32()
             var _2: Api.GeoPoint?
-            if Int(_1!) & Int(1 << 0) != 0 {
+            if Int(_1 ?? 0) & Int(1 << 0) != 0 {
                 if let signature = reader.readInt32() {
                     _2 = Api.parse(reader, signature: signature) as? Api.GeoPoint
                 }
@@ -175,7 +383,7 @@ public extension Api {
             var _3: String?
             _3 = parseString(reader)
             let _c1 = _1 != nil
-            let _c2 = (Int(_1!) & Int(1 << 0) == 0) || _2 != nil
+            let _c2 = (Int(_1 ?? 0) & Int(1 << 0) == 0) || _2 != nil
             let _c3 = _3 != nil
             if _c1 && _c2 && _c3 {
                 return Api.BusinessLocation.businessLocation(Cons_businessLocation(flags: _1!, geoPoint: _2, address: _3!))
@@ -230,13 +438,13 @@ public extension Api {
             var _1: Int32?
             _1 = reader.readInt32()
             var _2: [Int64]?
-            if Int(_1!) & Int(1 << 4) != 0 {
+            if Int(_1 ?? 0) & Int(1 << 4) != 0 {
                 if let _ = reader.readInt32() {
                     _2 = Api.parseVector(reader, elementSignature: 570911930, elementType: Int64.self)
                 }
             }
             let _c1 = _1 != nil
-            let _c2 = (Int(_1!) & Int(1 << 4) == 0) || _2 != nil
+            let _c2 = (Int(_1 ?? 0) & Int(1 << 4) == 0) || _2 != nil
             if _c1 && _c2 {
                 return Api.BusinessRecipients.businessRecipients(Cons_businessRecipients(flags: _1!, users: _2))
             }
@@ -351,6 +559,222 @@ public extension Api {
             let _c3 = _3 != nil
             if _c1 && _c2 && _c3 {
                 return Api.BusinessWorkHours.businessWorkHours(Cons_businessWorkHours(flags: _1!, timezoneId: _2!, weeklyOpen: _3!))
+            }
+            else {
+                return nil
+            }
+        }
+    }
+}
+public extension Api {
+    enum ButtonType: TypeConstructorDescription {
+        public class Cons_buttonTypeRequestPeer: TypeConstructorDescription {
+            public var flags: Int32
+            public var buttonId: Int32
+            public var peerType: Api.RequestPeerType
+            public var maxQuantity: Int32
+            public init(flags: Int32, buttonId: Int32, peerType: Api.RequestPeerType, maxQuantity: Int32) {
+                self.flags = flags
+                self.buttonId = buttonId
+                self.peerType = peerType
+                self.maxQuantity = maxQuantity
+            }
+            public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+                return ("buttonTypeRequestPeer", [("flags", ConstructorParameterDescription(self.flags)), ("buttonId", ConstructorParameterDescription(self.buttonId)), ("peerType", ConstructorParameterDescription(self.peerType)), ("maxQuantity", ConstructorParameterDescription(self.maxQuantity))])
+            }
+        }
+        public class Cons_buttonTypeRequestPoll: TypeConstructorDescription {
+            public var flags: Int32
+            public var quiz: Api.Bool?
+            public init(flags: Int32, quiz: Api.Bool?) {
+                self.flags = flags
+                self.quiz = quiz
+            }
+            public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+                return ("buttonTypeRequestPoll", [("flags", ConstructorParameterDescription(self.flags)), ("quiz", ConstructorParameterDescription(self.quiz))])
+            }
+        }
+        public class Cons_buttonTypeSimpleWebView: TypeConstructorDescription {
+            public var url: String
+            public init(url: String) {
+                self.url = url
+            }
+            public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+                return ("buttonTypeSimpleWebView", [("url", ConstructorParameterDescription(self.url))])
+            }
+        }
+        public class Cons_inputButtonTypeRequestPeer: TypeConstructorDescription {
+            public var flags: Int32
+            public var buttonId: Int32
+            public var peerType: Api.RequestPeerType
+            public var maxQuantity: Int32
+            public init(flags: Int32, buttonId: Int32, peerType: Api.RequestPeerType, maxQuantity: Int32) {
+                self.flags = flags
+                self.buttonId = buttonId
+                self.peerType = peerType
+                self.maxQuantity = maxQuantity
+            }
+            public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+                return ("inputButtonTypeRequestPeer", [("flags", ConstructorParameterDescription(self.flags)), ("buttonId", ConstructorParameterDescription(self.buttonId)), ("peerType", ConstructorParameterDescription(self.peerType)), ("maxQuantity", ConstructorParameterDescription(self.maxQuantity))])
+            }
+        }
+        case buttonTypeDefault
+        case buttonTypeRequestGeoLocation
+        case buttonTypeRequestPeer(Cons_buttonTypeRequestPeer)
+        case buttonTypeRequestPhone
+        case buttonTypeRequestPoll(Cons_buttonTypeRequestPoll)
+        case buttonTypeSimpleWebView(Cons_buttonTypeSimpleWebView)
+        case inputButtonTypeRequestPeer(Cons_inputButtonTypeRequestPeer)
+
+        public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+            switch self {
+            case .buttonTypeDefault:
+                if boxed {
+                    buffer.appendInt32(-908226327)
+                }
+                break
+            case .buttonTypeRequestGeoLocation:
+                if boxed {
+                    buffer.appendInt32(-1678843584)
+                }
+                break
+            case .buttonTypeRequestPeer(let _data):
+                if boxed {
+                    buffer.appendInt32(1331208759)
+                }
+                serializeInt32(_data.flags, buffer: buffer, boxed: false)
+                serializeInt32(_data.buttonId, buffer: buffer, boxed: false)
+                _data.peerType.serialize(buffer, true)
+                serializeInt32(_data.maxQuantity, buffer: buffer, boxed: false)
+                break
+            case .buttonTypeRequestPhone:
+                if boxed {
+                    buffer.appendInt32(-549636359)
+                }
+                break
+            case .buttonTypeRequestPoll(let _data):
+                if boxed {
+                    buffer.appendInt32(-1429209212)
+                }
+                serializeInt32(_data.flags, buffer: buffer, boxed: false)
+                if Int(_data.flags) & Int(1 << 0) != 0 {
+                    _data.quiz!.serialize(buffer, true)
+                }
+                break
+            case .buttonTypeSimpleWebView(let _data):
+                if boxed {
+                    buffer.appendInt32(-1072014982)
+                }
+                serializeString(_data.url, buffer: buffer, boxed: false)
+                break
+            case .inputButtonTypeRequestPeer(let _data):
+                if boxed {
+                    buffer.appendInt32(1071802622)
+                }
+                serializeInt32(_data.flags, buffer: buffer, boxed: false)
+                serializeInt32(_data.buttonId, buffer: buffer, boxed: false)
+                _data.peerType.serialize(buffer, true)
+                serializeInt32(_data.maxQuantity, buffer: buffer, boxed: false)
+                break
+            }
+        }
+
+        public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
+            switch self {
+            case .buttonTypeDefault:
+                return ("buttonTypeDefault", [])
+            case .buttonTypeRequestGeoLocation:
+                return ("buttonTypeRequestGeoLocation", [])
+            case .buttonTypeRequestPeer(let _data):
+                return ("buttonTypeRequestPeer", [("flags", ConstructorParameterDescription(_data.flags)), ("buttonId", ConstructorParameterDescription(_data.buttonId)), ("peerType", ConstructorParameterDescription(_data.peerType)), ("maxQuantity", ConstructorParameterDescription(_data.maxQuantity))])
+            case .buttonTypeRequestPhone:
+                return ("buttonTypeRequestPhone", [])
+            case .buttonTypeRequestPoll(let _data):
+                return ("buttonTypeRequestPoll", [("flags", ConstructorParameterDescription(_data.flags)), ("quiz", ConstructorParameterDescription(_data.quiz))])
+            case .buttonTypeSimpleWebView(let _data):
+                return ("buttonTypeSimpleWebView", [("url", ConstructorParameterDescription(_data.url))])
+            case .inputButtonTypeRequestPeer(let _data):
+                return ("inputButtonTypeRequestPeer", [("flags", ConstructorParameterDescription(_data.flags)), ("buttonId", ConstructorParameterDescription(_data.buttonId)), ("peerType", ConstructorParameterDescription(_data.peerType)), ("maxQuantity", ConstructorParameterDescription(_data.maxQuantity))])
+            }
+        }
+
+        public static func parse_buttonTypeDefault(_ reader: BufferReader) -> ButtonType? {
+            return Api.ButtonType.buttonTypeDefault
+        }
+        public static func parse_buttonTypeRequestGeoLocation(_ reader: BufferReader) -> ButtonType? {
+            return Api.ButtonType.buttonTypeRequestGeoLocation
+        }
+        public static func parse_buttonTypeRequestPeer(_ reader: BufferReader) -> ButtonType? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Int32?
+            _2 = reader.readInt32()
+            var _3: Api.RequestPeerType?
+            if let signature = reader.readInt32() {
+                _3 = Api.parse(reader, signature: signature) as? Api.RequestPeerType
+            }
+            var _4: Int32?
+            _4 = reader.readInt32()
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = _3 != nil
+            let _c4 = _4 != nil
+            if _c1 && _c2 && _c3 && _c4 {
+                return Api.ButtonType.buttonTypeRequestPeer(Cons_buttonTypeRequestPeer(flags: _1!, buttonId: _2!, peerType: _3!, maxQuantity: _4!))
+            }
+            else {
+                return nil
+            }
+        }
+        public static func parse_buttonTypeRequestPhone(_ reader: BufferReader) -> ButtonType? {
+            return Api.ButtonType.buttonTypeRequestPhone
+        }
+        public static func parse_buttonTypeRequestPoll(_ reader: BufferReader) -> ButtonType? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Api.Bool?
+            if Int(_1 ?? 0) & Int(1 << 0) != 0 {
+                if let signature = reader.readInt32() {
+                    _2 = Api.parse(reader, signature: signature) as? Api.Bool
+                }
+            }
+            let _c1 = _1 != nil
+            let _c2 = (Int(_1 ?? 0) & Int(1 << 0) == 0) || _2 != nil
+            if _c1 && _c2 {
+                return Api.ButtonType.buttonTypeRequestPoll(Cons_buttonTypeRequestPoll(flags: _1!, quiz: _2))
+            }
+            else {
+                return nil
+            }
+        }
+        public static func parse_buttonTypeSimpleWebView(_ reader: BufferReader) -> ButtonType? {
+            var _1: String?
+            _1 = parseString(reader)
+            let _c1 = _1 != nil
+            if _c1 {
+                return Api.ButtonType.buttonTypeSimpleWebView(Cons_buttonTypeSimpleWebView(url: _1!))
+            }
+            else {
+                return nil
+            }
+        }
+        public static func parse_inputButtonTypeRequestPeer(_ reader: BufferReader) -> ButtonType? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Int32?
+            _2 = reader.readInt32()
+            var _3: Api.RequestPeerType?
+            if let signature = reader.readInt32() {
+                _3 = Api.parse(reader, signature: signature) as? Api.RequestPeerType
+            }
+            var _4: Int32?
+            _4 = reader.readInt32()
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = _3 != nil
+            let _c4 = _4 != nil
+            if _c1 && _c2 && _c3 && _c4 {
+                return Api.ButtonType.inputButtonTypeRequestPeer(Cons_inputButtonTypeRequestPeer(flags: _1!, buttonId: _2!, peerType: _3!, maxQuantity: _4!))
             }
             else {
                 return nil
@@ -2115,20 +2539,20 @@ public extension Api {
             var _1: Int32?
             _1 = reader.readInt32()
             var _2: Api.ForumTopic?
-            if Int(_1!) & Int(1 << 0) != 0 {
+            if Int(_1 ?? 0) & Int(1 << 0) != 0 {
                 if let signature = reader.readInt32() {
                     _2 = Api.parse(reader, signature: signature) as? Api.ForumTopic
                 }
             }
             var _3: Api.ForumTopic?
-            if Int(_1!) & Int(1 << 1) != 0 {
+            if Int(_1 ?? 0) & Int(1 << 1) != 0 {
                 if let signature = reader.readInt32() {
                     _3 = Api.parse(reader, signature: signature) as? Api.ForumTopic
                 }
             }
             let _c1 = _1 != nil
-            let _c2 = (Int(_1!) & Int(1 << 0) == 0) || _2 != nil
-            let _c3 = (Int(_1!) & Int(1 << 1) == 0) || _3 != nil
+            let _c2 = (Int(_1 ?? 0) & Int(1 << 0) == 0) || _2 != nil
+            let _c3 = (Int(_1 ?? 0) & Int(1 << 1) == 0) || _3 != nil
             if _c1 && _c2 && _c3 {
                 return Api.ChannelAdminLogEventAction.channelAdminLogEventActionPinTopic(Cons_channelAdminLogEventActionPinTopic(flags: _1!, prevTopic: _2, newTopic: _3))
             }

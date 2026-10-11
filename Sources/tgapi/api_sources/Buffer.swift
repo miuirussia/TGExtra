@@ -210,7 +210,7 @@ public class Buffer: CustomStringConvertible {
     deinit {
         if self.freeWhenDone {
             if let data = self.data {
-              free(data)
+                free(data)
             }
         }
     }
