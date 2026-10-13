@@ -149,3 +149,5 @@
 "ADVANCED_SETTINGS_SHOW" = "Show detail settings";
 "GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
+"IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "Ignora il divieto di copia nelle chat private";
+"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Consenti la copia nelle chat private con restrizioni di condivisione. Riapri il profilo della persona dopo aver modificato questa opzione.";

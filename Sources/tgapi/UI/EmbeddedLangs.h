@@ -110,6 +110,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"تجاهل منع النسخ في المحادثات الخاصة",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"السماح بالنسخ في المحادثات الخاصة التي تقيّد المشاركة. أعد فتح ملف الشخص بعد تغيير هذا الخيار.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -221,6 +223,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"忽略私聊复制限制",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"允许在限制分享的私聊中复制内容。更改此选项后，请重新打开对方的个人资料。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -332,6 +336,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Ignore Copy Protection in Private Chats",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Allow copying in private chats with sharing restrictions. Reopen the person's profile after changing this option.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -443,6 +449,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Ignorar la protección de copia en chats privados",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Permitir copiar en chats privados con restricciones para compartir. Vuelve a abrir el perfil de la persona después de cambiar esta opción.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -554,6 +562,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Ignorer la protection contre la copie en privé",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Autoriser la copie dans les discussions privées avec restrictions de partage. Rouvrez le profil de la personne après avoir modifié cette option.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -665,6 +675,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Ignora il divieto di copia nelle chat private",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Consenti la copia nelle chat private con restrizioni di condivisione. Riapri il profilo della persona dopo aver modificato questa opzione.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -776,6 +788,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"個人チャットのコピー制限を無視",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"共有が制限された個人チャットでコピーを許可します。この設定を変更した後、相手のプロフィールを開き直してください。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -887,6 +901,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Показать подробные настройки",
             @"GHOST_MODE_SUBTITLE": @"Общий переключатель скрытия активности",
             @"CHANGE_LANGUAGE_TITLE": @"Изменить язык",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Игнорировать запрет копирования в личных чатах",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Разрешать копирование в личных чатах с запретом распространения. После изменения опции заново откройте профиль собеседника.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -998,6 +1014,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"忽略私聊複製限制",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"允許在限制分享的私聊中複製內容。變更此選項後，請重新開啟對方的個人資料。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1109,6 +1127,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"ADVANCED_SETTINGS_SHOW": @"Show detail settings",
             @"GHOST_MODE_SUBTITLE": @"Master switch for hidden activity",
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Bỏ qua hạn chế sao chép trong trò chuyện riêng",
+            @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Cho phép sao chép trong trò chuyện riêng có hạn chế chia sẻ. Mở lại hồ sơ của người đó sau khi thay đổi tùy chọn này.",
         };
     }
     return nil;

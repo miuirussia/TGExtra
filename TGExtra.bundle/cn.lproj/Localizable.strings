@@ -149,3 +149,5 @@
 "ADVANCED_SETTINGS_SHOW" = "Show detail settings";
 "GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
+"IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "忽略私聊复制限制";
+"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "允许在限制分享的私聊中复制内容。更改此选项后，请重新打开对方的个人资料。";
