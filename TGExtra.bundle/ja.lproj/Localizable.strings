@@ -76,6 +76,18 @@
 "ENABLE_SAVING_PROTECTED_CONTENT_TITLE" = "保護されたコンテンツの保存を許可";
 "ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "保存が制限されているコンテンツも保存できるようにします。";
 
+
+"ANTI_REVOKE_TITLE" = "メッセージ削除防止";
+"ANTI_REVOKE_SUBTITLE" = "送信者がメッセージを削除してもチャットに残します。";
+
+"ANTI_SCREENSHOT_TITLE" = "スクリーンショット通知を隠す";
+"ANTI_SCREENSHOT_SUBTITLE" = "シークレットチャットや保護チャンネルでのスクリーンショット通知を送信しません。";
+
+"ANTI_SELF_DESTRUCT_TITLE" = "消えるメディアを自由に表示";
+"ANTI_SELF_DESTRUCT_SUBTITLE" = "自壊タイマーを起動せずに1回限りの写真/動画を開く。";
+"ANTI_AUTO_DELETE_TITLE" = "自動削除メッセージを保存";
+"ANTI_AUTO_DELETE_SUBTITLE" = "自動削除（1日、7日など）のあるチャットでメッセージが削除されるのを防ぐ。";
+
 /* File Picker */
 "FIX_FILE_PICKER_TITLE" = "ファイルピッカーを修正";
 "FIX_FILE_PICKER_SUBTITLE" = "サイドロード版でファイルアプリからファイルを選択できない問題を修正します。";
@@ -99,3 +111,39 @@
 "DISCLAIMER" = "免責事項";
 
 "AUTHOR_MESSAGE" = "このTweakは個人的かつ教育目的のみで提供されており、Telegram とは一切関係がありません。Telegram の名称やロゴなどの商標はそれぞれの所有者に帰属します。違反行為や規約違反に使わないでください。何か問題が発生しても開発者は責任を負いません。すべて自己責任でご使用ください。\n \nそれと、もし気に入ったら何か感想をください。正直、評価が励みになります。\n \nまた、1～2ドル寄付してサポートしたい場合は、Telegramで連絡してください。";
+"ANTI_EDIT_TITLE" = "編集されたメッセージの原文を保存";
+"ANTI_EDIT_SUBTITLE" = "相手が編集したメッセージのすべてのバージョンを保存します。チャットには最新の内容が表示されたままです。吹き出しの鉛筆をタップすると、以前の内容を読めます。";
+"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "この Telegram のバージョンでは利用できません — API レイヤーが更新されるまで編集の更新を読み取れません。";
+"CLOSE" = "閉じる";
+"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "ビデオメッセージのアップロード中の表示を隠します。";
+"EDIT_HISTORY_TITLE" = "編集履歴";
+"EDIT_HISTORY_ORIGINAL" = "原文：";
+"EDIT_HISTORY_EDIT" = "編集";
+"EDIT_HISTORY_COPY_LATEST" = "最新版をコピー";
+"GHOST_EXCEPTIONS_SECTION_HEADER" = "ゴーストモードの例外";
+"GHOST_EXCEPTIONS_SECTION_FOOTER" = "ほかの全員にはゴーストモードが効いたまま、この人たちにだけ入力中の表示と既読が見えます。オンライン状態は対象外です。Telegram は全員に一度に送るため、特定の一人にだけ知らせることはできません。";
+"GHOST_EXCEPTIONS_EMPTY_TITLE" = "例外はまだありません";
+"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "相手のプロフィールを開き、右上の目のボタンをタップすると追加できます。";
+"GHOST_EXCEPTIONS_RENAME_TITLE" = "名前を変更";
+"GHOST_EXCEPTIONS_RENAME_MESSAGE" = "このリストに表示する名前を決めます。空のままにするとプロフィール名を使います。";
+"GHOST_EXCEPTION_ADDED_TOAST" = "例外に追加しました — この人にはあなたの実際の動きが見えます";
+"GHOST_EXCEPTION_REMOVED_TOAST" = "例外を解除しました — ゴーストモードが再び適用されます";
+"GHOST_MODE_NEEDS_SUBFEATURE" = "先に詳細設定で少なくとも 1 つの機能をオンにしてください。";
+"HIDE_DISAPPEARING_LABEL_TITLE" = "消えるメッセージの目印を隠す";
+"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "取得した一度きりのメディアの先頭に \"dissapearing message\" の目印を付けないようにします。";
+"SAVE" = "保存";
+"VIDEO_TO_VOICE_TITLE" = "動画をボイスに";
+"VIDEO_TO_VOICE_SUBTITLE" = "選んだ動画の音声だけを、本物のボイスメッセージとして送ります。プレビューでのトリミング範囲もそのまま反映されるので、選んだ部分だけが送られます。プレビュー左上の波形ボタンで、動画ごとに切り替えることもできます。";
+"VIDEO_TO_VOICE_ON_TOAST" = "この動画はボイスメッセージとして送信されます";
+"VIDEO_TO_VOICE_OFF_TOAST" = "通常の動画として送信します";
+"VIDEO_TO_VOICE_EXTRACTING" = "音声を抽出中…";
+"VIDEO_TO_VOICE_SUCCESS" = "音声の準備ができました — 送信します";
+"VIDEO_TO_VOICE_FAILED" = "音声を抽出できませんでした — 動画として送信します";
+"VIDEO_TO_VOICE_NO_AUDIO" = "この動画には音がありません — 動画として送信します";
+
+/* First-run alert */
+"ADVANCED_SETTINGS_TITLE" = "Advanced Settings";
+"ADVANCED_SETTINGS_HIDE" = "Hide detail settings";
+"ADVANCED_SETTINGS_SHOW" = "Show detail settings";
+"GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
+"CHANGE_LANGUAGE_TITLE" = "Change Language";

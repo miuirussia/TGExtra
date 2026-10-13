@@ -76,6 +76,18 @@
 "ENABLE_SAVING_PROTECTED_CONTENT_TITLE" = "Cho phép lưu nội dung được bảo vệ";
 "ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "Cho phép lưu và chụp ảnh màn hình nội dung được bảo vệ.";
 
+
+"ANTI_REVOKE_TITLE" = "Chống thu hồi tin nhắn";
+"ANTI_REVOKE_SUBTITLE" = "Giữ tin nhắn trong cuộc trò chuyện kể cả khi người gửi đã xóa.";
+
+"ANTI_SCREENSHOT_TITLE" = "Ẩn thông báo chụp màn hình";
+"ANTI_SCREENSHOT_SUBTITLE" = "Không gửi thông báo chụp màn hình trong đoạn chat bí mật và kênh được bảo vệ.";
+
+"ANTI_SELF_DESTRUCT_TITLE" = "Xem media biến mất tự do";
+"ANTI_SELF_DESTRUCT_SUBTITLE" = "Mở ảnh/video biến mất mà không kích hoạt bộ đếm tự hủy.";
+"ANTI_AUTO_DELETE_TITLE" = "Lưu tin nhắn tự xóa";
+"ANTI_AUTO_DELETE_SUBTITLE" = "Ngăn tin nhắn bị xóa trong đoạn chat có tự xóa (1 ngày, 7 ngày, v.v.).";
+
 /* File Picker */
 "FIX_FILE_PICKER_TITLE" = "Sửa lỗi chọn tệp";
 "FIX_FILE_PICKER_SUBTITLE" = "Khắc phục lỗi không thể chọn tệp từ ứng dụng Files trên bản sideload";
@@ -99,3 +111,39 @@
 "DISCLAIMER" = "Tuyên bố miễn trừ";
 
 "AUTHOR_MESSAGE" = "Bản chỉnh sửa Telegram này chỉ dành cho mục đích cá nhân và giáo dục. Chúng tôi không liên kết với Telegram. Mọi nhãn hiệu, bao gồm tên và logo Telegram, thuộc về chủ sở hữu tương ứng. Không sử dụng để vi phạm quy tắc, hành vi mờ ám hoặc điều khoản Telegram - chúng tôi không chịu trách nhiệm nếu có vấn đề phát sinh. Tự chịu rủi ro khi sử dụng. \n \nNếu bạn thích, hãy nói gì đó. Tôi thực sự sống nhờ sự công nhận. \n \nNếu muốn hỗ trợ tôi bằng cách quyên góp, hãy liên hệ với tôi trên Telegram";
+"ANTI_EDIT_TITLE" = "Lưu tin nhắn gốc đã bị sửa";
+"ANTI_EDIT_SUBTITLE" = "Giữ lại mọi phiên bản của tin nhắn bị người khác sửa. Khung chat vẫn hiện nội dung mới nhất; chạm vào bút chì trên bong bóng để đọc nội dung trước đó.";
+"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Không dùng được trên phiên bản Telegram này — không đọc được cập nhật sửa tin cho tới khi lớp API được làm mới.";
+"CLOSE" = "Đóng";
+"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "Ẩn chỉ báo khi đang tải lên video tròn.";
+"EDIT_HISTORY_TITLE" = "Lịch sử chỉnh sửa";
+"EDIT_HISTORY_ORIGINAL" = "Bản gốc:";
+"EDIT_HISTORY_EDIT" = "Sửa";
+"EDIT_HISTORY_COPY_LATEST" = "Chép bản mới nhất";
+"GHOST_EXCEPTIONS_SECTION_HEADER" = "Ngoại lệ Chế độ ẩn";
+"GHOST_EXCEPTIONS_SECTION_FOOTER" = "Những người này vẫn thấy bạn đang gõ và đã đọc tin, trong khi Chế độ ẩn vẫn bật với mọi người khác. Trạng thái trực tuyến không nằm trong diện này: Telegram gửi nó cho tất cả cùng lúc, nên không thể chỉ mở riêng cho một người.";
+"GHOST_EXCEPTIONS_EMPTY_TITLE" = "Chưa có ngoại lệ nào";
+"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "Mở trang cá nhân của ai đó rồi chạm nút con mắt ở góc trên bên phải để thêm.";
+"GHOST_EXCEPTIONS_RENAME_TITLE" = "Đổi tên";
+"GHOST_EXCEPTIONS_RENAME_MESSAGE" = "Chọn tên hiện trong danh sách này. Để trống để dùng tên trên trang cá nhân.";
+"GHOST_EXCEPTION_ADDED_TOAST" = "Đã thêm ngoại lệ — người này thấy hoạt động thật của bạn";
+"GHOST_EXCEPTION_REMOVED_TOAST" = "Đã bỏ ngoại lệ — Chế độ ẩn áp dụng trở lại";
+"GHOST_MODE_NEEDS_SUBFEATURE" = "Hãy bật ít nhất một tính năng trong Cài đặt nâng cao trước.";
+"HIDE_DISAPPEARING_LABEL_TITLE" = "Ẩn nhãn tin tự huỷ";
+"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Thôi chèn nhãn \"dissapearing message\" vào trước media xem một lần đã chặn được.";
+"SAVE" = "Lưu";
+"VIDEO_TO_VOICE_TITLE" = "Video thành tin thoại";
+"VIDEO_TO_VOICE_SUBTITLE" = "Chỉ gửi phần tiếng của video đã chọn, dưới dạng tin nhắn thoại thật. Vẫn tôn trọng đoạn bạn cắt trong khung xem trước, nên chỉ phần đã chọn được gửi đi. Bạn cũng có thể bật/tắt riêng cho từng video bằng nút sóng âm ở góc trên bên trái khung xem trước.";
+"VIDEO_TO_VOICE_ON_TOAST" = "Video này sẽ được gửi dưới dạng tin nhắn thoại";
+"VIDEO_TO_VOICE_OFF_TOAST" = "Gửi lại như video bình thường";
+"VIDEO_TO_VOICE_EXTRACTING" = "Đang tách âm thanh…";
+"VIDEO_TO_VOICE_SUCCESS" = "Âm thanh đã sẵn sàng — đang gửi";
+"VIDEO_TO_VOICE_FAILED" = "Không tách được âm thanh — gửi video thay thế";
+"VIDEO_TO_VOICE_NO_AUDIO" = "Video này không có tiếng — gửi video thay thế";
+
+/* First-run alert */
+"ADVANCED_SETTINGS_TITLE" = "Advanced Settings";
+"ADVANCED_SETTINGS_HIDE" = "Hide detail settings";
+"ADVANCED_SETTINGS_SHOW" = "Show detail settings";
+"GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
+"CHANGE_LANGUAGE_TITLE" = "Change Language";
