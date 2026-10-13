@@ -8,6 +8,8 @@ TWEAK_NAME = TGExtra
 $(TWEAK_NAME)_FILES = $(filter-out Sources/tgapiC/Tweak.m,$(shell find Sources \( -name '*.swift' -o -name '*.m' -o -name '*.xm' \)))
 $(TWEAK_NAME)_SWIFTFLAGS = -ISources/tgapiC/include
 $(TWEAK_NAME)_CFLAGS = -fobjc-arc -ISources/tgapiC/include -Wno-deprecated-declarations
+# Global CCFLAGS also reach Swift's Objective-C importer; scope this to the Photos user.
+Sources/tgapi/VideoToVoice.xm_CFLAGS = -std=c++11
 $(TWEAK_NAME)_FRAMEWORKS = CoreServices UIKit CoreLocation MapKit AVFoundation Photos Intents
 $(TWEAK_NAME)_LIBRARIES = z
 $(TWEAK_NAME)_LOGOS_DEFAULT_GENERATOR = internal
