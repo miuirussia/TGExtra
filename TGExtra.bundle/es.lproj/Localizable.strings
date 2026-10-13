@@ -77,6 +77,18 @@
 "ENABLE_SAVING_PROTECTED_CONTENT_TITLE" = "Activar guardado de contenido protegido";
 "ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "Eludir restricciones para guardar contenido protegido.";
 
+
+"ANTI_REVOKE_TITLE" = "Anti-Revocación";
+"ANTI_REVOKE_SUBTITLE" = "Mantén los mensajes en el chat aunque el remitente los elimine.";
+
+"ANTI_SCREENSHOT_TITLE" = "Ocultar aviso de captura";
+"ANTI_SCREENSHOT_SUBTITLE" = "Evita notificaciones de captura de pantalla en chats secretos y canales protegidos.";
+
+"ANTI_SELF_DESTRUCT_TITLE" = "Ver medios que desaparecen libremente";
+"ANTI_SELF_DESTRUCT_SUBTITLE" = "Abrir fotos/videos que desaparecen sin activar el temporizador.";
+"ANTI_AUTO_DELETE_TITLE" = "Guardar mensajes de auto-eliminación";
+"ANTI_AUTO_DELETE_SUBTITLE" = "Evita que se eliminen los mensajes en chats con auto-eliminación (1 día, 7 días, etc.).";
+
 /* File Picker */
 "FIX_FILE_PICKER_TITLE" = "Reparar Selector de Archivos";
 "FIX_FILE_PICKER_SUBTITLE" = "Soluciona el problema que impide seleccionar archivos desde la app Archivos en versiones instaladas manualmente";
@@ -102,3 +114,39 @@
 "DISCLAIMER" = "Aviso legal";
 
 "AUTHOR_MESSAGE" = "Este ajuste de Telegram es solo para uso personal y educativo. No estamos afiliados con Telegram de ninguna manera. Todas las marcas registradas, incluido el nombre y logo de Telegram, pertenecen a sus respectivos propietarios. No uses esto para romper reglas, hacer cosas sospechosas o violar los términos de Telegram — no nos hacemos responsables si algo sale mal. Úsalo bajo tu propio riesgo.\n\nAdemás... si te gusta, dilo. En serio, vivo del reconocimiento.\n\nY también... si quieres apoyarme donando uno o dos dólares, contáctame por Telegram.";
+"ANTI_EDIT_TITLE" = "Guardar el original de los mensajes editados";
+"ANTI_EDIT_SUBTITLE" = "Conserva todas las versiones de un mensaje que alguien edite. El chat sigue mostrando el texto más reciente; toca el lápiz de la burbuja para leer lo que decía antes.";
+"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "No disponible en esta versión de Telegram: las actualizaciones de edición no se pueden leer hasta que se renueve la capa de la API.";
+"CLOSE" = "Cerrar";
+"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "Oculta el indicador al subir un videomensaje redondo.";
+"EDIT_HISTORY_TITLE" = "Historial de ediciones";
+"EDIT_HISTORY_ORIGINAL" = "Original:";
+"EDIT_HISTORY_EDIT" = "Edición";
+"EDIT_HISTORY_COPY_LATEST" = "Copiar la última versión";
+"GHOST_EXCEPTIONS_SECTION_HEADER" = "Excepciones del modo fantasma";
+"GHOST_EXCEPTIONS_SECTION_FOOTER" = "Estas personas siguen viendo cuando escribes y cuando lees sus mensajes, mientras el modo fantasma sigue activo para todos los demás. El estado en línea no entra aquí: Telegram lo envía a todos a la vez, así que no se puede mostrar solo a una persona.";
+"GHOST_EXCEPTIONS_EMPTY_TITLE" = "Aún no hay excepciones";
+"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "Abre el perfil de alguien y toca el botón del ojo en la esquina superior derecha para añadirlo.";
+"GHOST_EXCEPTIONS_RENAME_TITLE" = "Renombrar";
+"GHOST_EXCEPTIONS_RENAME_MESSAGE" = "Elige el nombre que se mostrará en esta lista. Déjalo vacío para usar el del perfil.";
+"GHOST_EXCEPTION_ADDED_TOAST" = "Excepción añadida: esta persona ve tu actividad real";
+"GHOST_EXCEPTION_REMOVED_TOAST" = "Excepción eliminada: el modo fantasma vuelve a aplicarse";
+"GHOST_MODE_NEEDS_SUBFEATURE" = "Activa antes al menos una función en los ajustes avanzados.";
+"HIDE_DISAPPEARING_LABEL_TITLE" = "Ocultar la etiqueta de temporales";
+"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Deja de anteponer la marca \"dissapearing message\" al contenido de una sola vez que se intercepta.";
+"SAVE" = "Guardar";
+"VIDEO_TO_VOICE_TITLE" = "Vídeo a nota de voz";
+"VIDEO_TO_VOICE_SUBTITLE" = "Envía solo el sonido del vídeo elegido, como una nota de voz de verdad. Se respeta el recorte de la vista previa, así que solo se envía el fragmento seleccionado. También puedes cambiarlo vídeo a vídeo con el botón de onda en la esquina superior izquierda de la vista previa.";
+"VIDEO_TO_VOICE_ON_TOAST" = "Este vídeo se enviará como nota de voz";
+"VIDEO_TO_VOICE_OFF_TOAST" = "Se enviará de nuevo como vídeo normal";
+"VIDEO_TO_VOICE_EXTRACTING" = "Extrayendo el audio…";
+"VIDEO_TO_VOICE_SUCCESS" = "Audio listo: enviando";
+"VIDEO_TO_VOICE_FAILED" = "No se pudo extraer el audio: se envía el vídeo";
+"VIDEO_TO_VOICE_NO_AUDIO" = "Este vídeo no tiene sonido: se envía el vídeo";
+
+/* First-run alert */
+"ADVANCED_SETTINGS_TITLE" = "Advanced Settings";
+"ADVANCED_SETTINGS_HIDE" = "Hide detail settings";
+"ADVANCED_SETTINGS_SHOW" = "Show detail settings";
+"GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
+"CHANGE_LANGUAGE_TITLE" = "Change Language";

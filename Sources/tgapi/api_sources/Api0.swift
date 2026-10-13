@@ -1786,7 +1786,7 @@ public extension Api {
     }
 
     static func parseVector<T>(_ reader: BufferReader, elementSignature: Int32, elementType: T.Type) -> [T]? {
-        if let count = reader.readInt32() {
+        if let count = reader.readInt32(), count >= 0 {
             var array = [T]()
             var i: Int32 = 0
             while i < count {

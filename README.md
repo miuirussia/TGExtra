@@ -1,7 +1,8 @@
 # TGExtra
 A simple Telegram iOS Tweak.
 
-To Open Tweak menu : Longpress screen with 3 finger (if no flex injected) of 4 fingers.
+Open the tweak menu by long-pressing **Ask a Question** in Telegram Settings,
+long-pressing the screen with three fingers, or tapping the Chats tab five times.
 
 ## Screenshots
 
@@ -13,7 +14,37 @@ To Open Tweak menu : Longpress screen with 3 finger (if no flex injected) of 4 f
 - Disable Ads
 - Ghost Mode
 - No Read Receipt for messages and Stories
-- Allow saving Protected Content ( Due to frequenet Telegram Api updates this feature is only limited for client compiled with 11.8.1 sources)
+- Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
+  apply to typing and read receipts; online status remains hidden globally.
+- Save and forward protected content
+- Keep deleted messages and messages with chat auto-delete timers
+- Keep original text and edit history; tap the pencil beside a message to view revisions
+- Disable screenshot notifications for supported Telegram requests
+- View disappearing media without starting its timer, with an optional label
+- Video to Voice: send the audio track as a voice message, respecting preview trims
+- Fix the Files picker and clear its temporary cache
+- Fake location and ten interface languages
+
+The integration uses the Telegram API 13.0 sources already in this repository.
+Private UI hooks depend on the host app exposing the corresponding methods.
+New features default to off; existing preferences are preserved on upgrade.
+
+## Building and checks
+
+Build with Theos and an iOS SDK using `make package`. The existing rootful,
+rootless and roothide packaging schemes are retained.
+
+After changing translations, run `python3 generate_langs.py` to regenerate the
+embedded fallback translations.
+
+Run `Tests/run.sh` on macOS to check protocol transformations, ghost exceptions,
+settings migration and persisted history. Tests use in-memory preferences.
+UI interaction, video extraction and installation still require an iOS device.
+
+## Acknowledgements
+
+The additional functions and menu are adapted from the local **mxgram / Mx**
+fork, with its networking code adapted to TGExtra's API 13.0 and branding.
 
 
 ## Disclaimer

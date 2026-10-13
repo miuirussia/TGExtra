@@ -76,6 +76,18 @@
 "ENABLE_SAVING_PROTECTED_CONTENT_TITLE" = "允许保存受保护内容";
 "ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "绕过限制，保存受保护的内容。";
 
+
+"ANTI_REVOKE_TITLE" = "防撤回消息";
+"ANTI_REVOKE_SUBTITLE" = "即使发送者删除了消息，也将其保留在聊天中。";
+
+"ANTI_SCREENSHOT_TITLE" = "隐藏截屏通知";
+"ANTI_SCREENSHOT_SUBTITLE" = "在私密聊天和受保护频道中截图时不发送通知。";
+
+"ANTI_SELF_DESTRUCT_TITLE" = "自由查看消失的媒体";
+"ANTI_SELF_DESTRUCT_SUBTITLE" = "打开一次性消失的照片/视频而不触发自毁计时器。";
+"ANTI_AUTO_DELETE_TITLE" = "保存自动删除消息";
+"ANTI_AUTO_DELETE_SUBTITLE" = "防止在启用自动删除（1天、7天等）的聊天中消息被删除。";
+
 /* File Picker */
 "FIX_FILE_PICKER_TITLE" = "修复文件选择器";
 "FIX_FILE_PICKER_SUBTITLE" = "修复在侧载版本中无法从文件应用选择文件的问题";
@@ -100,3 +112,40 @@
 
 
 
+"ANTI_EDIT_TITLE" = "保存被编辑消息的原文";
+"ANTI_EDIT_SUBTITLE" = "保留他人编辑过的每一个版本。聊天中仍显示最新内容；点击气泡上的铅笔即可查看之前写了什么。";
+"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "此 Telegram 版本不可用 —— 在 API 层更新之前无法读取编辑更新。";
+"CLOSE" = "关闭";
+"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "上传圆形视频消息时隐藏提示。";
+"DISCLAIMER" = "免责声明";
+"EDIT_HISTORY_TITLE" = "编辑记录";
+"EDIT_HISTORY_ORIGINAL" = "原文：";
+"EDIT_HISTORY_EDIT" = "编辑";
+"EDIT_HISTORY_COPY_LATEST" = "复制最新版本";
+"GHOST_EXCEPTIONS_SECTION_HEADER" = "幽灵模式例外";
+"GHOST_EXCEPTIONS_SECTION_FOOTER" = "对其他人保持幽灵模式的同时，这些人仍能看到你的「正在输入」和已读回执。在线状态不在此列：Telegram 会一次性发给所有人，无法只对某一个人公开。";
+"GHOST_EXCEPTIONS_EMPTY_TITLE" = "还没有例外";
+"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "打开某人的个人资料，点击右上角的眼睛按钮即可添加。";
+"GHOST_EXCEPTIONS_RENAME_TITLE" = "重命名";
+"GHOST_EXCEPTIONS_RENAME_MESSAGE" = "选择在此列表中显示的名称。留空则使用个人资料上的名字。";
+"GHOST_EXCEPTION_ADDED_TOAST" = "已添加例外 —— 此人会看到你的真实动态";
+"GHOST_EXCEPTION_REMOVED_TOAST" = "已移除例外 —— 幽灵模式重新生效";
+"GHOST_MODE_NEEDS_SUBFEATURE" = "请先在高级设置中至少启用一项功能。";
+"HIDE_DISAPPEARING_LABEL_TITLE" = "隐藏阅后即焚标记";
+"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "不再在拦截到的一次性媒体前加上 \"dissapearing message\" 标记。";
+"SAVE" = "保存";
+"VIDEO_TO_VOICE_TITLE" = "视频转语音";
+"VIDEO_TO_VOICE_SUBTITLE" = "只把所选视频的声音作为真正的语音消息发出。预览里的裁剪范围同样有效，因此只发送选定的片段。也可以用预览左上角的波形按钮，对单个视频单独切换。";
+"VIDEO_TO_VOICE_ON_TOAST" = "这个视频将作为语音消息发送";
+"VIDEO_TO_VOICE_OFF_TOAST" = "恢复按普通视频发送";
+"VIDEO_TO_VOICE_EXTRACTING" = "正在提取音频…";
+"VIDEO_TO_VOICE_SUCCESS" = "音频已就绪 —— 正在发送";
+"VIDEO_TO_VOICE_FAILED" = "无法提取音频 —— 改为发送视频";
+"VIDEO_TO_VOICE_NO_AUDIO" = "这个视频没有声音 —— 改为发送视频";
+
+/* First-run alert */
+"ADVANCED_SETTINGS_TITLE" = "Advanced Settings";
+"ADVANCED_SETTINGS_HIDE" = "Hide detail settings";
+"ADVANCED_SETTINGS_SHOW" = "Show detail settings";
+"GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
+"CHANGE_LANGUAGE_TITLE" = "Change Language";

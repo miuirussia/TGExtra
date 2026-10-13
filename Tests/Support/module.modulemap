@@ -1,0 +1,4 @@
+module TestSupport {
+    header "TestSupport.h"
+    export *
+}

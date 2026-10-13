@@ -76,6 +76,18 @@
 "ENABLE_SAVING_PROTECTED_CONTENT_TITLE" = "允許儲存受保護內容";
 "ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "繞過儲存受保護內容的限制";
 
+
+"ANTI_REVOKE_TITLE" = "防撤回訊息";
+"ANTI_REVOKE_SUBTITLE" = "即使發送者刪除訊息，也保留在聊天中。";
+
+"ANTI_SCREENSHOT_TITLE" = "隱藏截圖通知";
+"ANTI_SCREENSHOT_SUBTITLE" = "在私密聊天和受保護頻道中截圖時不發送通知。";
+
+"ANTI_SELF_DESTRUCT_TITLE" = "自由查看消失的媒體";
+"ANTI_SELF_DESTRUCT_SUBTITLE" = "打開一次性消失的照片/影片而不觸發自毀計時器。";
+"ANTI_AUTO_DELETE_TITLE" = "儲存自動刪除訊息";
+"ANTI_AUTO_DELETE_SUBTITLE" = "防止在啟用自動刪除（1天、7天等）的聊天中訊息被刪除。";
+
 /* File Picker */
 "FIX_FILE_PICKER_TITLE" = "修復檔案選擇器";
 "FIX_FILE_PICKER_SUBTITLE" = "修復側載版本無法從檔案應用程式選擇檔案的問題";
@@ -99,3 +111,39 @@
 "DISCLAIMER" = "免責聲明";
 
 "AUTHOR_MESSAGE" = "本Telegram調整工具僅限於個人及教育用途。我們與Telegram無任何關聯。所有商標，包括Telegram名稱及標誌，皆屬其各自所有者所有。請勿使用本工具違反規則、進行不當行為或違反Telegram的服務條款。若因使用本工具而產生任何問題，我們概不負責，使用者須自行承擔風險。\n \n此外，若您對本工具感到滿意，歡迎提供意見或反饋，您的支持對我們至關重要。\n \n如有意透過小額捐款支持我，請透過Telegram與我聯繫。";
+"ANTI_EDIT_TITLE" = "保存被編輯訊息的原文";
+"ANTI_EDIT_SUBTITLE" = "保留他人編輯過的每一個版本。聊天中仍顯示最新內容；點一下泡泡上的鉛筆即可查看先前寫了什麼。";
+"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "此 Telegram 版本無法使用 —— 在 API 層更新之前讀不到編輯更新。";
+"CLOSE" = "關閉";
+"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "上傳圓形影片訊息時隱藏提示。";
+"EDIT_HISTORY_TITLE" = "編輯紀錄";
+"EDIT_HISTORY_ORIGINAL" = "原文：";
+"EDIT_HISTORY_EDIT" = "編輯";
+"EDIT_HISTORY_COPY_LATEST" = "複製最新版本";
+"GHOST_EXCEPTIONS_SECTION_HEADER" = "幽靈模式例外";
+"GHOST_EXCEPTIONS_SECTION_FOOTER" = "對其他人維持幽靈模式的同時，這些人仍看得到你的「正在輸入」與已讀回條。上線狀態不在此列：Telegram 會一次發給所有人，無法只對某一個人公開。";
+"GHOST_EXCEPTIONS_EMPTY_TITLE" = "還沒有例外";
+"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "開啟某人的個人檔案，點右上角的眼睛按鈕即可加入。";
+"GHOST_EXCEPTIONS_RENAME_TITLE" = "重新命名";
+"GHOST_EXCEPTIONS_RENAME_MESSAGE" = "選擇在這份清單中顯示的名稱。留空則使用個人檔案上的名字。";
+"GHOST_EXCEPTION_ADDED_TOAST" = "已加入例外 —— 這個人會看到你的真實動態";
+"GHOST_EXCEPTION_REMOVED_TOAST" = "已移除例外 —— 幽靈模式重新生效";
+"GHOST_MODE_NEEDS_SUBFEATURE" = "請先在進階設定中至少啟用一項功能。";
+"HIDE_DISAPPEARING_LABEL_TITLE" = "隱藏閱後即焚標記";
+"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "不再在攔截到的一次性媒體前加上 \"dissapearing message\" 標記。";
+"SAVE" = "儲存";
+"VIDEO_TO_VOICE_TITLE" = "影片轉語音";
+"VIDEO_TO_VOICE_SUBTITLE" = "只把所選影片的聲音當成真正的語音訊息送出。預覽裡的裁剪範圍同樣有效，因此只送出選定的片段。也可以用預覽左上角的波形按鈕，對單支影片單獨切換。";
+"VIDEO_TO_VOICE_ON_TOAST" = "這支影片將以語音訊息送出";
+"VIDEO_TO_VOICE_OFF_TOAST" = "恢復以一般影片送出";
+"VIDEO_TO_VOICE_EXTRACTING" = "正在擷取音訊…";
+"VIDEO_TO_VOICE_SUCCESS" = "音訊已就緒 —— 正在傳送";
+"VIDEO_TO_VOICE_FAILED" = "無法擷取音訊 —— 改為傳送影片";
+"VIDEO_TO_VOICE_NO_AUDIO" = "這支影片沒有聲音 —— 改為傳送影片";
+
+/* First-run alert */
+"ADVANCED_SETTINGS_TITLE" = "Advanced Settings";
+"ADVANCED_SETTINGS_HIDE" = "Hide detail settings";
+"ADVANCED_SETTINGS_SHOW" = "Show detail settings";
+"GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
+"CHANGE_LANGUAGE_TITLE" = "Change Language";

@@ -76,6 +76,18 @@
 "ENABLE_SAVING_PROTECTED_CONTENT_TITLE" = "تمكين حفظ المحتوى المحمي";
 "ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "تجاوز القيود وحفظ المحتوى المحمي.";
 
+
+"ANTI_REVOKE_TITLE" = "مانع حذف الرسائل";
+"ANTI_REVOKE_SUBTITLE" = "إبقاء الرسائل في المحادثة حتى بعد حذفها من قِبَل المُرسِل.";
+
+"ANTI_SCREENSHOT_TITLE" = "إخفاء إشعار لقطة الشاشة";
+"ANTI_SCREENSHOT_SUBTITLE" = "منع إرسال إشعار التقاط لقطة الشاشة في المحادثات السرية والقنوات المحمية.";
+
+"ANTI_SELF_DESTRUCT_TITLE" = "عرض الوسائط المختفية بحرية";
+"ANTI_SELF_DESTRUCT_SUBTITLE" = "فتح الصور/الفيديوهات التي تختفي لمرة واحدة دون تشغيل مؤقت التدمير الذاتي.";
+"ANTI_AUTO_DELETE_TITLE" = "حفظ الرسائل ذات الحذف التلقائي";
+"ANTI_AUTO_DELETE_SUBTITLE" = "منع حذف الرسائل في المحادثات ذات الحذف التلقائي (يوم واحد، 7 أيام، إلخ).";
+
 /* File Picker */
 "FIX_FILE_PICKER_TITLE" = "إصلاح منتقي الملفات";
 "FIX_FILE_PICKER_SUBTITLE" = "يصلح المشكلة التي تمنع اختيار الملفات من تطبيق الملفات في النسخ الجانبية";
@@ -97,3 +109,40 @@
 "CANCEL" = "إلغاء";
 
 "AUTHOR_MESSAGE" = "هذا التعديل على تيليجرام مخصص للاستخدام الشخصي والتعليمي فقط. نحن لسنا تابعين لتيليجرام بأي شكل من الأشكال. جميع العلامات التجارية، بما في ذلك اسم تيليجرام وشعاره، تعود لأصحابها. لا تستخدم هذا التعديل لكسر القوانين أو القيام بأي شيء مريب أو مخالف لشروط استخدام تيليجرام — نحن غير مسؤولين إذا حدث أي شيء غير متوقع. استخدمه على مسؤوليتك الخاصة.\n\nأيضًا... إذا أعجبك، قل شيئًا. أنا حرفيًا أعيش على التقدير.\n\nوإذا كنت ترغب في دعمي بالتبرع بدولار أو اثنين، تواصل معي على تيليجرام.";
+"ANTI_EDIT_TITLE" = "حفظ النص الأصلي للرسائل المعدَّلة";
+"ANTI_EDIT_SUBTITLE" = "يحتفظ بكل نسخة من الرسالة التي يعدّلها أحدهم. تبقى المحادثة تعرض آخر نص؛ اضغط على القلم في الفقاعة لقراءة ما كان مكتوبًا سابقًا.";
+"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "غير متاح في هذه النسخة من تيليجرام — لا يمكن قراءة تحديثات التعديل حتى يجري تحديث طبقة الـ API.";
+"CLOSE" = "إغلاق";
+"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "إخفاء المؤشر عند رفع رسالة فيديو دائرية.";
+"DISCLAIMER" = "إخلاء مسؤولية";
+"EDIT_HISTORY_TITLE" = "سجل التعديلات";
+"EDIT_HISTORY_ORIGINAL" = "الأصلي:";
+"EDIT_HISTORY_EDIT" = "تعديل";
+"EDIT_HISTORY_COPY_LATEST" = "نسخ أحدث نسخة";
+"GHOST_EXCEPTIONS_SECTION_HEADER" = "استثناءات وضع الشبح";
+"GHOST_EXCEPTIONS_SECTION_FOOTER" = "هؤلاء الأشخاص سيظلون يرون مؤشر الكتابة وإيصالات القراءة، بينما يبقى وضع الشبح مفعّلًا مع الجميع. حالة الاتصال ليست ضمن ذلك: تيليجرام يرسلها للجميع دفعة واحدة، فلا يمكن كشفها لشخص واحد فقط.";
+"GHOST_EXCEPTIONS_EMPTY_TITLE" = "لا استثناءات بعد";
+"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "افتح ملف شخص ما واضغط زر العين في الزاوية العلوية لإضافته.";
+"GHOST_EXCEPTIONS_RENAME_TITLE" = "إعادة تسمية";
+"GHOST_EXCEPTIONS_RENAME_MESSAGE" = "اختر الاسم الذي يظهر في هذه القائمة. اتركه فارغًا لاستخدام اسم الملف الشخصي.";
+"GHOST_EXCEPTION_ADDED_TOAST" = "تمت إضافة استثناء — هذا الشخص يرى نشاطك الحقيقي";
+"GHOST_EXCEPTION_REMOVED_TOAST" = "تمت إزالة الاستثناء — عاد وضع الشبح للعمل";
+"GHOST_MODE_NEEDS_SUBFEATURE" = "فعّل أولًا ميزة واحدة على الأقل في الإعدادات المتقدمة.";
+"HIDE_DISAPPEARING_LABEL_TITLE" = "إخفاء علامة الاختفاء";
+"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "التوقف عن إضافة علامة \"dissapearing message\" قبل الوسائط أحادية العرض المعترضة.";
+"SAVE" = "حفظ";
+"VIDEO_TO_VOICE_TITLE" = "فيديو إلى رسالة صوتية";
+"VIDEO_TO_VOICE_SUBTITLE" = "يرسل صوت الفيديو المختار فقط، كرسالة صوتية حقيقية. يُحترم القص في المعاينة، فلا يُرسل سوى المقطع المحدد. يمكنك أيضًا تبديل ذلك لكل فيديو عبر زر الموجة في الزاوية العلوية من المعاينة.";
+"VIDEO_TO_VOICE_ON_TOAST" = "سيُرسل هذا الفيديو كرسالة صوتية";
+"VIDEO_TO_VOICE_OFF_TOAST" = "سيُرسل كفيديو عادي مجددًا";
+"VIDEO_TO_VOICE_EXTRACTING" = "جارٍ استخراج الصوت…";
+"VIDEO_TO_VOICE_SUCCESS" = "الصوت جاهز — جارٍ الإرسال";
+"VIDEO_TO_VOICE_FAILED" = "تعذّر استخراج الصوت — سيُرسل الفيديو بدلًا منه";
+"VIDEO_TO_VOICE_NO_AUDIO" = "هذا الفيديو بلا صوت — سيُرسل الفيديو بدلًا منه";
+
+/* First-run alert */
+"ADVANCED_SETTINGS_TITLE" = "Advanced Settings";
+"ADVANCED_SETTINGS_HIDE" = "Hide detail settings";
+"ADVANCED_SETTINGS_SHOW" = "Show detail settings";
+"GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
+"CHANGE_LANGUAGE_TITLE" = "Change Language";
