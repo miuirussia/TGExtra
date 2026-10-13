@@ -150,3 +150,5 @@
 "ADVANCED_SETTINGS_SHOW" = "Показать подробные настройки";
 "GHOST_MODE_SUBTITLE" = "Общий переключатель скрытия активности";
 "CHANGE_LANGUAGE_TITLE" = "Изменить язык";
+"IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "Игнорировать запрет копирования в личных чатах";
+"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Разрешать копирование в личных чатах с запретом распространения. После изменения опции заново откройте профиль собеседника.";

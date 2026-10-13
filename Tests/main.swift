@@ -25,7 +25,7 @@ func check(_ condition: @autoclosure () -> Bool, _ message: String) {
     precondition(condition(), message)
 }
 func flags(_ enabled: String...) {
-    for key in ["TGExtraAntiRevoke", "TGExtraAntiAutoDelete", "TGExtraAntiSelfDestruct", "TGExtraAntiEdit", "disableForwardRestriction", "TGExtraVideoToVoice"] {
+    for key in ["TGExtraAntiRevoke", "TGExtraAntiAutoDelete", "TGExtraAntiSelfDestruct", "TGExtraAntiEdit", "disableForwardRestriction", "TGExtraVideoToVoice", "TGExtraIgnorePrivateChatCopyProtection"] {
         defaults.set(enabled.contains(key), forKey: key)
     }
 }
@@ -72,6 +72,80 @@ func deletionIds(_ update: Api.Update) -> [Int32] {
     }
 }
 func patch(_ value: Any) -> NSData? { TLParser.stripAntiSelfDestruct(serialized(value)) }
+
+flags()
+let privateUser = Api.UserFull.userFull(.init(
+    flags: 0,
+    flags2: (1 << 23) | (1 << 24) | (1 << 26),
+    id: 42,
+    about: nil,
+    settings: .peerSettings(.init(flags: 0, geoDistance: nil, requestChatTitle: nil, requestChatDate: nil, businessBotId: nil, businessBotManageUrl: nil, chargePaidMessageStars: nil, registrationMonth: nil, phoneCountry: nil, nameChangeDate: nil, photoChangeDate: nil)),
+    personalPhoto: nil,
+    profilePhoto: nil,
+    fallbackPhoto: nil,
+    notifySettings: .peerNotifySettings(.init(flags: 0, showPreviews: nil, silent: nil, muteUntil: nil, iosSound: nil, androidSound: nil, otherSound: nil, storiesMuted: nil, storiesHideSender: nil, storiesIosSound: nil, storiesAndroidSound: nil, storiesOtherSound: nil)),
+    botInfo: nil,
+    pinnedMsgId: nil,
+    commonChatsCount: 7,
+    folderId: nil,
+    ttlPeriod: nil,
+    theme: nil,
+    privateForwardName: nil,
+    botGroupAdminRights: nil,
+    botBroadcastAdminRights: nil,
+    wallpaper: nil,
+    stories: nil,
+    businessWorkHours: nil,
+    businessLocation: nil,
+    businessGreetingMessage: nil,
+    businessAwayMessage: nil,
+    businessIntro: nil,
+    birthday: nil,
+    personalChannelId: nil,
+    personalChannelMessage: nil,
+    stargiftsCount: nil,
+    starrefProgram: nil,
+    botVerification: nil,
+    sendPaidMessagesStars: nil,
+    disallowedGifts: nil,
+    starsRating: nil,
+    starsMyPendingRating: nil,
+    starsMyPendingRatingDate: nil,
+    mainTab: nil,
+    savedMusic: nil,
+    note: nil,
+    botManagerId: nil))
+let protectedGroup = Api.Chat.chat(.init(flags: 1 << 25, id: 77, title: "Protected group",
+    photo: .chatPhotoEmpty, participantsCount: 2, date: 1234, version: 1,
+    migratedTo: nil, adminRights: nil, defaultBannedRights: nil))
+let privateResponse = Api.users.UserFull.userFull(.init(fullUser: privateUser, chats: [protectedGroup], users: []))
+let privateBytes = serialized(privateResponse)
+check(TLParser.handleResponse(privateBytes, functionID: -1240508136) == nil, "Private copy bypass defaults to off")
+flags("TGExtraIgnorePrivateChatCopyProtection")
+let privatePatched = TLParser.handleResponse(privateBytes, functionID: -1240508136)!
+let privateDecoded = parsed(privatePatched, as: Api.users.UserFull.self)
+guard case let .userFull(fullResponse) = privateDecoded,
+      case let .userFull(fullUser) = fullResponse.fullUser else { fatalError("Expected full user") }
+check(fullUser.flags2 == 1 << 26, "Clear only the two private-chat copy flags")
+check(fullUser.id == 42 && fullUser.commonChatsCount == 7, "Keep private profile fields intact")
+check((privatePatched as Data).prefix(12) == (privateBytes as Data).prefix(12) &&
+      (privatePatched as Data).dropFirst(16) == (privateBytes as Data).dropFirst(16), "Only flags2 bytes change; nested chats and users stay untouched")
+let privatePacked = Buffer()
+privatePacked.appendInt32(0x3072cfa1)
+serializeBytes(Buffer(data: gzip(privateBytes as Data)), buffer: privatePacked, boxed: false)
+check(TLParser.handleResponse(privatePacked.makeData() as NSData, functionID: -1240508136) == privatePatched, "Handle gzipped private-chat settings")
+check(TLParser.handleResponse(privatePatched, functionID: -1240508136) == nil, "An already-cleared private profile is unchanged")
+let directPrivate = parsed(patch(privateUser)!, as: Api.UserFull.self)
+guard case let .userFull(directUser) = directPrivate else { fatalError("Expected direct user") }
+check(directUser.flags2 == 1 << 26, "Handle a direct userFull constructor")
+let unrelated = serialized(message(900, peer: .peerChannel(.init(channelId: 900))))
+check(TLParser.stripAntiSelfDestruct(unrelated) == nil, "Private bypass does not rewrite channel messages")
+for length in 0..<privateBytes.length {
+    check(TLParser.stripAntiSelfDestruct((privateBytes as Data).prefix(length) as NSData) == nil, "Truncated full-user replies pass through")
+}
+flags()
+check(TLParser.handleResponse(privateBytes, functionID: -1240508136) == nil, "Turning the private option off restores the original response")
+print("PASS independent private-chat copy protection bypass")
 
 flags("TGExtraAntiRevoke")
 let revoked = parsed(patch(deletion([10, 11]))!, as: Api.Update.self)

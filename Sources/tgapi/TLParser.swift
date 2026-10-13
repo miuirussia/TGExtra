@@ -1541,6 +1541,7 @@ class TLParser: NSObject {
         guard data.length >= 4, depth < 16 else { return nil }
         let isAntiSelfDestruct = UserDefaults.standard.bool(forKey: "TGExtraAntiSelfDestruct")
         let isNoForwardsBypass = UserDefaults.standard.bool(forKey: "disableForwardRestriction")
+        let ignorePrivateCopyProtection = UserDefaults.standard.bool(forKey: "TGExtraIgnorePrivateChatCopyProtection")
 
         // The last clause keeps the parser running while your own user id is
         // still unknown, so it can be picked off a users vector. It stops
@@ -1548,7 +1549,7 @@ class TLParser: NSObject {
         let isAntiRevoke = UserDefaults.standard.bool(forKey: "TGExtraAntiRevoke")
         let isAntiAutoDelete = UserDefaults.standard.bool(forKey: "TGExtraAntiAutoDelete")
         guard isAntiSelfDestruct || isNoForwardsBypass || isAntiEditEnabled
-                || isAntiAutoDelete || isAntiRevoke || !isOwnIdKnown else { return nil }
+                || ignorePrivateCopyProtection || isAntiAutoDelete || isAntiRevoke || !isOwnIdKnown else { return nil }
         let buffer = Buffer(data: data as Data)
         let reader = BufferReader(buffer)
         guard let signature = reader.readInt32() else { return nil }
@@ -1602,6 +1603,31 @@ class TLParser: NSObject {
 
         guard reader.offset == UInt(data.length) else { return nil }
         noteUsersAnywhere(result)
+
+        if ignorePrivateCopyProtection {
+            // API 13.0's CachedUserData derives both private-chat restrictions
+            // from userFull.flags2 bits 23 and 24. Patch this field in place:
+            // reserializing a whole users.UserFull would also apply the existing
+            // generated noforwards patches to unrelated chats in its vectors.
+            var flagsOffset: Int?
+            var privateFlags: Int32?
+            if let fullUser = result as? Api.UserFull, case let .userFull(user) = fullUser {
+                flagsOffset = 8 // constructor, flags, flags2
+                privateFlags = user.flags2
+            } else if let response = result as? Api.users.UserFull,
+                      case let .userFull(responseData) = response,
+                      case let .userFull(user) = responseData.fullUser {
+                flagsOffset = 12 // users.userFull, userFull, flags, flags2
+                privateFlags = user.flags2
+            }
+            if let offset = flagsOffset, let flags = privateFlags {
+                var cleared = (flags & ~((1 << 23) | (1 << 24))).littleEndian
+                guard cleared != flags.littleEndian else { return nil }
+                let patched = NSMutableData(data: data as Data)
+                patched.replaceBytes(in: NSRange(location: offset, length: 4), withBytes: &cleared)
+                return patched
+            }
+        }
 
         var modified = false
         var newResult: Any = result

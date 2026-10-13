@@ -17,6 +17,9 @@ long-pressing the screen with three fingers, or tapping the Chats tab five times
 - Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
   apply to typing and read receipts; online status remains hidden globally.
 - Save and forward protected content
+- Ignore copy protection in private chats, independently of the protected-content
+  toggle. Reopen the other person's profile after changing this option to refresh
+  cached chat settings. The server-side sharing setting remains unchanged.
 - Keep deleted messages and messages with chat auto-delete timers
 - Keep original text and edit history; tap the pencil beside a message to view revisions
 - Disable screenshot notifications for supported Telegram requests

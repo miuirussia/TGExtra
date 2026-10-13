@@ -65,6 +65,7 @@
 // FIX: was incorrectly mapped to "disableOnlineStatus" — now has its own key
 #define kDisableAllAds @"disableAllAds"
 #define kDisableForwardRestriction @"disableForwardRestriction"
+#define kIgnorePrivateChatCopyProtection @"TGExtraIgnorePrivateChatCopyProtection"
 
 // Anti-features
 #define kAntiRevoke @"TGExtraAntiRevoke"

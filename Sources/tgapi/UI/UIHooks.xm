@@ -1270,6 +1270,7 @@ static void hook() {
 
     [[NSUserDefaults standardUserDefaults] registerDefaults:@{
         kDisableAllAds: @NO,
+        kIgnorePrivateChatCopyProtection: @NO,
         kAntiRevoke: @NO,
         kAntiEdit: @NO,
         kAntiSelfDestruct: @NO,
