@@ -37,13 +37,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Theos dependencies
+        shell: bash
+        run: |
+          brew install make ldid
+          echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
+          echo "THEOS=$GITHUB_WORKSPACE/theos" >> "$GITHUB_ENV"
+
+      # Check out the selected branches directly; the cached updater expects origin/master.
       - name: Set up Theos
-        uses: waruhachi/theos-action@v2.4.6
+        uses: actions/checkout@v4
         with:
-          theos-src: "waruhachi/theos"
-          theos-branch: "main"
-          sdks-src: "waruhachi/sdks"
-          sdks-branch: "main"
+          repository: waruhachi/theos
+          ref: main
+          submodules: recursive
+          path: theos
+
+      - name: Set up iOS SDKs
+        uses: actions/checkout@v4
+        with:
+          repository: waruhachi/sdks
+          ref: main
+          submodules: recursive
+          path: theos/sdks
 
       - name: Build Package
         shell: bash
