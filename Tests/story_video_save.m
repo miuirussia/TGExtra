@@ -94,9 +94,9 @@ static void verifyImportedVideo(PHPhotoLibrary *library, NSURL *source, BOOL nor
     [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
 }
 
-static void runSave(NSURL *source, NSInteger route, BOOL normalize, BOOL failure, BOOL wait) {
-    bypassEnabled = normalize;
-    BOOL expectsNormalization = normalize && TGExtraStoryVideoNeedsNormalization(source);
+static void runSave(NSURL *source, NSInteger route, BOOL bypass, BOOL failure, BOOL wait) {
+    bypassEnabled = bypass;
+    BOOL expectsNormalization = TGExtraStoryVideoNeedsNormalization(source);
     PHPhotoLibrary *library = [PHPhotoLibrary new];
     library.failImport = failure;
     PHAssetResourceCreationOptions *options = [PHAssetResourceCreationOptions new];
@@ -148,12 +148,17 @@ int main(int argc, const char *argv[]) {
                     runSave(source, route, YES, NO, NO);
                     runSave(source, route, NO, NO, NO);
                 }
+                NSURL *round = [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"round-60-fps.mp4"]];
+                for (NSInteger route = 0; route < 3; route++) {
+                    runSave(round, route, YES, NO, NO);
+                    runSave(round, route, NO, NO, NO);
+                }
                 runSave(source, 0, YES, YES, NO);
                 runSave(source, 1, YES, NO, YES);
                 runSave(source, 1, YES, YES, YES);
                 NSURL *ordinary = [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"silent.mp4"]];
                 for (NSInteger route = 0; route < 3; route++) runSave(ordinary, route, YES, NO, NO);
-                NSLog(@"PASS video save hooks without a story controller, three import routes, toggle and cleanup");
+                NSLog(@"PASS story and round video saves, three import routes, bypass independence and cleanup");
                 dispatch_semaphore_signal(done);
             }
         });

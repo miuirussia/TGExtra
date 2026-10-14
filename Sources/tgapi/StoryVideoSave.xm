@@ -3,18 +3,15 @@
 #else
 #import <Photos/Photos.h>
 #endif
-#import "Constants.h"
 #import "StoryVideoExport.h"
 #import "Logger/Logger.h"
 
 static NSString *const kStoryExportFiles = @"TGExtraStoryExportFiles";
 
 // Do not depend on Swift controller names or the queue used to start a save.
-// Scope the hooks to Photos transactions with the bypass enabled, then check
-// the actual input frame rate. The changes block runs on a Photos worker.
-static BOOL tgextraShouldNormalizeVideoImport(void) {
-    return [[NSUserDefaults standardUserDefaults] boolForKey:kDisableForwardRestriction];
-}
+// Check the actual input frame rate inside Photos transactions, independently
+// of the protection bypass: ordinary video messages also need this correction.
+// The changes block runs on a Photos worker.
 
 static dispatch_block_t tgextraVideoChanges(dispatch_block_t changes,
                                           NSMutableArray<NSURL *> *outputs) {
@@ -54,7 +51,7 @@ static NSURL *tgextraNormalizedVideoURL(NSURL *url) {
 %hook PHPhotoLibrary
 - (void)performChanges:(dispatch_block_t)changeBlock
     completionHandler:(void (^)(BOOL, NSError *))completionHandler {
-    if (!changeBlock || !tgextraShouldNormalizeVideoImport() ||
+    if (!changeBlock ||
         NSThread.currentThread.threadDictionary[kStoryExportFiles]) {
         %orig;
         return;
@@ -68,7 +65,7 @@ static NSURL *tgextraNormalizedVideoURL(NSURL *url) {
 }
 
 - (BOOL)performChangesAndWait:(dispatch_block_t)changeBlock error:(NSError **)error {
-    if (!changeBlock || !tgextraShouldNormalizeVideoImport() ||
+    if (!changeBlock ||
         NSThread.currentThread.threadDictionary[kStoryExportFiles]) return %orig;
     NSMutableArray<NSURL *> *outputs = [NSMutableArray array];
     BOOL success = NO;

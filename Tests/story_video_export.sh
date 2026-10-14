@@ -10,6 +10,9 @@ ffmpeg -v error -f lavfi -i 'testsrc2=size=96x64:rate=120' \
     "$test_build_dir/high-fps.mp4"
 ffmpeg -v error -f lavfi -i 'testsrc2=size=96x64:rate=24' -t 1 \
     -c:v libx264 -pix_fmt yuv420p "$test_build_dir/silent.mp4"
+ffmpeg -v error -f lavfi -i 'testsrc2=size=96x96:rate=60' \
+    -f lavfi -i 'sine=frequency=440:sample_rate=44100' -t 2 \
+    -c:v libx264 -pix_fmt yuv420p -c:a aac "$test_build_dir/round-60-fps.mp4"
 clang -fobjc-arc -Werror -Wno-deprecated-declarations \
     -framework Foundation -framework AVFoundation -framework CoreMedia \
     -framework CoreVideo -framework CoreGraphics \
