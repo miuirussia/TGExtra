@@ -1,3 +1,27 @@
+diff --git a/Sources/tgapi/api_sources/Api0.swift b/Sources/tgapi/api_sources/Api0.swift
+index 3fca6d2..e4fbc25 100644
+--- a/Sources/tgapi/api_sources/Api0.swift
++++ b/Sources/tgapi/api_sources/Api0.swift
+@@ -1768,6 +1768,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
+ }()
+ 
+ public extension Api {
++    internal static func isKnownConstructor(_ signature: Int32) -> Swift.Bool {
++        return parsers[signature] != nil
++    }
++
+     static func parse(_ buffer: Buffer) -> Any? {
+         let reader = BufferReader(buffer)
+         if let signature = reader.readInt32() {
+@@ -1786,7 +1790,7 @@ public extension Api {
+     }
+ 
+     static func parseVector<T>(_ reader: BufferReader, elementSignature: Int32, elementType: T.Type) -> [T]? {
+-        if let count = reader.readInt32() {
++        if let count = reader.readInt32(), count >= 0 {
+             var array = [T]()
+             var i: Int32 = 0
+             while i < count {
 diff --git a/Sources/tgapi/api_sources/Api16.swift b/Sources/tgapi/api_sources/Api16.swift
 index c942bd0..3984f06 100644
 --- a/Sources/tgapi/api_sources/Api16.swift
