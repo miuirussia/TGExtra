@@ -17,9 +17,10 @@ long-pressing the screen with three fingers, or tapping the Chats tab five times
 - Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
   apply to typing and read receipts; online status remains hidden globally.
 - Save and forward protected content
-- Normalize high-frame-rate videos (including 120 fps stories) to H.264/AAC at
-  30 fps before saving to Photos when the protected-content bypass is enabled,
-  preserving duration and audio. Ordinary 24/30/60 fps videos are unchanged.
+- Normalize high-frame-rate videos (including 60 fps video messages and 120 fps
+  stories) to H.264/AAC at 30 fps before saving to Photos, preserving duration
+  and audio. Works independently of the protected-content bypass.
+  Ordinary 24/30 fps videos are unchanged.
   This does not undo slow motion already rendered into a previously saved file.
 - Ignore copy protection in private chats, independently of the protected-content
   toggle. Reopen the other person's profile after changing this option to refresh

@@ -6,9 +6,9 @@ BOOL TGExtraStoryVideoNeedsNormalization(NSURL *inputURL) {
     if (!inputURL.isFileURL) return NO;
     AVURLAsset *asset = [AVURLAsset URLAssetWithURL:inputURL options:nil];
     AVAssetTrack *track = [asset tracksWithMediaType:AVMediaTypeVideo].firstObject;
-    // Keep ordinary 24/30/60 fps imports unchanged. Telegram story sources
-    // can carry 120 fps, which Photos classifies as high-frame-rate video.
-    return track.nominalFrameRate > 60.5;
+    // Normalize both 60 fps video messages and 120 fps stories before Photos
+    // imports them. Keep ordinary 24/30 fps video unchanged.
+    return track.nominalFrameRate > 30.5;
 }
 
 NSURL *TGExtraExportStoryVideo(NSURL *inputURL) {

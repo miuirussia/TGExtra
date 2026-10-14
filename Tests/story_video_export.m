@@ -90,6 +90,9 @@ int main(int argc, const char *argv[]) {
                 check(TGExtraStoryVideoNeedsNormalization(highFPS), @"120 fps input needs normalization");
                 verifyExport(highFPS, YES, CGSizeMake(96, 64));
                 verifyExport(highFPS, YES, CGSizeMake(96, 64));
+                NSURL *round = [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"round-60-fps.mp4"]];
+                check(TGExtraStoryVideoNeedsNormalization(round), @"60 fps video message needs normalization");
+                verifyExport(round, YES, CGSizeMake(96, 96));
                 NSURL *silent = [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"silent.mp4"]];
                 check(!TGExtraStoryVideoNeedsNormalization(silent), @"Ordinary video needs no normalization");
                 verifyExport(silent, NO, CGSizeMake(96, 64));
