@@ -1768,6 +1768,10 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
 }()
 
 public extension Api {
+    internal static func isKnownConstructor(_ signature: Int32) -> Swift.Bool {
+        return parsers[signature] != nil
+    }
+
     static func parse(_ buffer: Buffer) -> Any? {
         let reader = BufferReader(buffer)
         if let signature = reader.readInt32() {

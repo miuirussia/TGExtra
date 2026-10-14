@@ -1531,6 +1531,78 @@ class TLParser: NSObject {
 
     private static let processingLock = NSRecursiveLock()
 
+    /// A newer User or Chat constructor must not disable protection for the
+    /// updates that precede it. Decode only the Updates vector, then leave the
+    /// peer vectors and synchronization trailer for the host to parse.
+    private static func patchUpdateVector(_ data: NSData, signature: Int32) -> NSData? {
+        guard signature == 1957577280 || signature == 1918567619 else { return nil }
+        let reader = BufferReader(Buffer(nsData: data))
+        reader.skip(4)
+        guard reader.readInt32() == 481674261,
+              let count = reader.readInt32(), count >= 0,
+              Int(count) <= (data.length - 12) / 4 else { return nil }
+
+        var updates = [(update: Api.Update, start: Int, length: Int)]()
+        for _ in 0..<count {
+            let start = Int(reader.offset)
+            guard let constructor = reader.readInt32(),
+                  let update = Api.parse(reader, signature: constructor) as? Api.Update else {
+                // An unknown update has no length prefix. Do not scan its
+                // contents for constructor-looking words or guess its end.
+                return nil
+            }
+            updates.append((update, start, Int(reader.offset) - start))
+        }
+        let tail = Int(reader.offset)
+        // Two peer vectors plus date/seq (and seq_start for combined updates).
+        let minimumTail = signature == 1918567619 ? 28 : 24
+        guard data.length - tail >= minimumTail else { return nil }
+
+        // Only an unknown peer constructor justifies leaving the tail opaque.
+        // Known constructors that fail to decode, bad vector framing and a
+        // missing date/seq must not record updates from a rejected packet.
+        var unknownPeer = false
+        for isUsers in [true, false] {
+            let minimumSuffix = (signature == 1918567619 ? 12 : 8) + (isUsers ? 8 : 0)
+            guard reader.readInt32() == 481674261,
+                  let peerCount = reader.readInt32(), peerCount >= 0,
+                  data.length - Int(reader.offset) >= minimumSuffix,
+                  Int(peerCount) <= (data.length - Int(reader.offset) - minimumSuffix) / 4 else { return nil }
+            for _ in 0..<peerCount {
+                guard let constructor = reader.readInt32() else { return nil }
+                if !Api.isKnownConstructor(constructor) {
+                    unknownPeer = true
+                    break
+                }
+                guard let peer = Api.parse(reader, signature: constructor),
+                      isUsers ? peer is Api.User : peer is Api.Chat else { return nil }
+            }
+            if unknownPeer { break }
+        }
+        guard unknownPeer else { return nil }
+
+        let output = Buffer()
+        output.appendBytes(data.bytes, length: 12)
+        let noForwardsBypass = UserDefaults.standard.bool(forKey: "disableForwardRestriction")
+        var modified = false
+        for entry in updates {
+            let (patched, changed) = stripTTLUpdate(entry.update)
+            // Generated Message parsers clear noforwards/restriction flags
+            // while reading. Their changes need serialization even when the
+            // TTL helper reports no additional change.
+            let bytes = changed || noForwardsBypass ? serializeBoxed(patched) : nil
+            let original = data.subdata(with: NSRange(location: entry.start, length: entry.length))
+            if let bytes = bytes, bytes as Data != original {
+                output.appendBytes(bytes.bytes, length: UInt(bytes.length))
+                modified = true
+            } else {
+                output.appendBytes(data.bytes.advanced(by: entry.start), length: UInt(entry.length))
+            }
+        }
+        output.appendBytes(data.bytes.advanced(by: tail), length: UInt(data.length - tail))
+        return modified ? output.makeData() as NSData : nil
+    }
+
     @objc static func stripAntiSelfDestruct(_ data: NSData) -> NSData? {
         processingLock.lock()
         defer { processingLock.unlock() }
@@ -1594,11 +1666,10 @@ class TLParser: NSObject {
         }
         // Do not reset the reader, because Api.parse(reader, signature:) expects the reader to be at offset 4
         guard let result = Api.parse(reader, signature: signature) else {
-            // A constructor the bundled API layer cannot decode. Worth knowing:
-            // if edit updates land here, the layer is out of step with the
-            // server and no amount of downstream logic will ever see them.
+            // The host may know a peer constructor that the bundled schema
+            // does not. The update vector can still be handled independently.
             diagUnparsed(signature)
-            return nil
+            return patchUpdateVector(data, signature: signature)
         }
 
         guard reader.offset == UInt(data.length) else { return nil }

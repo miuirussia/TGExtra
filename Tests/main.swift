@@ -148,6 +148,51 @@ check(TLParser.handleResponse(privateBytes, functionID: -1240508136) == nil, "Tu
 print("PASS independent private-chat copy protection bypass")
 
 flags("TGExtraAntiRevoke")
+// The host can decode a newer User/Chat constructor even when our bundled
+// schema cannot. Deletions in the preceding update vector must still be blocked.
+func updatesWithOpaquePeer(_ updates: [Api.Update], combined: Bool = false, opaqueChat: Bool = false) -> NSData {
+    let buffer = Buffer()
+    buffer.appendInt32(combined ? 1918567619 : 1957577280)
+    buffer.appendInt32(481674261)
+    buffer.appendInt32(Int32(updates.count))
+    for update in updates { update.serialize(buffer, true) }
+    buffer.appendInt32(481674261)
+    buffer.appendInt32(opaqueChat ? 0 : 1)
+    if opaqueChat {
+        buffer.appendInt32(481674261)
+        buffer.appendInt32(1)
+    }
+    buffer.appendInt32(1234567) // opaque peer constructor
+    buffer.appendInt32(0)
+    if !opaqueChat {
+        buffer.appendInt32(481674261)
+        buffer.appendInt32(0)
+    }
+    buffer.appendInt32(1234)
+    if combined { buffer.appendInt32(7) }
+    buffer.appendInt32(8)
+    return buffer.makeData() as NSData
+}
+for combined in [false, true] {
+  for opaqueChat in [false, true] {
+    let bytes = updatesWithOpaquePeer([
+        deletion([101, 102]),
+        .updateReadHistoryOutbox(.init(peer: .peerUser(.init(userId: 42)), maxId: 9, pts: 51, ptsCount: 1))
+    ], combined: combined, opaqueChat: opaqueChat)
+    let patched = TLParser.stripAntiSelfDestruct(bytes)
+    check(patched != nil, "Block deletions even when the peer vector cannot be decoded")
+    let reader = BufferReader(Buffer(nsData: patched!))
+    reader.skip(12)
+    check(deletionIds(Api.parse(reader, signature: reader.readInt32()!) as! Api.Update) == [0, 0], "Neutralize the deletion in the update vector")
+    check((patched! as Data).prefix(24) == (bytes as Data).prefix(24) &&
+          (patched! as Data).dropFirst(32) == (bytes as Data).dropFirst(32), "Only deletion IDs change; other updates and opaque peers stay intact")
+  }
+}
+let opaqueChannel = updatesWithOpaquePeer([deletion([103], channel: 77)])
+let opaqueChannelReader = BufferReader(Buffer(nsData: TLParser.stripAntiSelfDestruct(opaqueChannel)!))
+opaqueChannelReader.skip(12)
+check(deletionIds(Api.parse(opaqueChannelReader, signature: opaqueChannelReader.readInt32()!) as! Api.Update) == [0], "Protect channel deletions with an opaque peer vector")
+check(TLParser.isDeleted(103, peer: -1_000_000_000_077) && !TLParser.isDeleted(103, peer: 42), "Fallback deletion markers retain their channel scope")
 let revoked = parsed(patch(deletion([10, 11]))!, as: Api.Update.self)
 check(deletionIds(revoked) == [0, 0], "Retain deleted messages")
 check(TLParser.isDeleted(10, peer: 42), "Deletion marker is scoped to private chats")
@@ -157,6 +202,53 @@ check(deletionIds(channelDeleted) == [0], "Retain channel deletion")
 check(!TLParser.isDeleted(10, peer: -1_000_000_000_078), "Repeated channel message IDs stay independent")
 flags()
 check(patch(deletion([12])) == nil, "Disabled anti-revoke passes through")
+check(TLParser.stripAntiSelfDestruct(updatesWithOpaquePeer([deletion([104])])) == nil, "Disabled anti-revoke leaves opaque updates untouched")
+check(!TLParser.isDeleted(104, peer: 42), "Disabled fallback does not record deletions")
+flags("TGExtraAntiRevoke")
+let brokenVector = NSMutableData(data: updatesWithOpaquePeer([
+    deletion([106]), deletion([107])
+]) as Data)
+var unknownUpdate: Int32 = 1234567
+brokenVector.replaceBytes(in: NSRange(location: 12 + serialized(deletion([106])).length, length: 4), withBytes: &unknownUpdate)
+check(TLParser.stripAntiSelfDestruct(brokenVector) == nil, "An unknown update cannot be skipped without its length")
+check(!TLParser.isDeleted(106, peer: 42), "Do not record partial update vectors")
+let ordinaryBatch = serialized(Api.Updates.updates(.init(updates: [deletion([108])], users: [], chats: [], date: 1234, seq: 8)))
+for length in 0..<ordinaryBatch.length {
+    check(TLParser.stripAntiSelfDestruct((ordinaryBatch as Data).prefix(length) as NSData) == nil, "Incomplete update vectors and framing pass through")
+}
+var trailingGarbage = ordinaryBatch as Data
+trailingGarbage.append(contentsOf: [0, 0, 0, 0])
+check(TLParser.stripAntiSelfDestruct(trailingGarbage as NSData) == nil, "Updates with trailing garbage pass through")
+
+flags("TGExtraAntiRevoke", "TGExtraAntiEdit", "TGExtraAntiAutoDelete")
+let knownPeerUpdates: [Api.Update] = [
+    .updateNewMessage(.init(message: message(120, ttl: 86400), pts: 50, ptsCount: 1)),
+    deletion([121])
+]
+for combined in [false, true] {
+    let users: [Api.User] = [.userEmpty(.init(id: 42))]
+    let chats: [Api.Chat] = [.chatEmpty(.init(id: 77))]
+    let batch: Api.Updates = combined
+        ? .updatesCombined(.init(updates: knownPeerUpdates, users: users, chats: chats, date: 1234, seqStart: 7, seq: 8))
+        : .updates(.init(updates: knownPeerUpdates, users: users, chats: chats, date: 1234, seq: 8))
+    let bytes = serialized(batch) as Data
+    for length in 0..<bytes.count {
+        check(TLParser.stripAntiSelfDestruct(bytes.prefix(length) as NSData) == nil, "Truncated known peers and synchronization fields pass through")
+    }
+    check(!TLParser.isDeleted(121, peer: 42), "Rejected packets do not record deletion markers")
+    let usersOffset = 12 + knownPeerUpdates.reduce(0) { $0 + serialized($1).length }
+    for (offset, value) in [(usersOffset + 4, Int32(-1)), (usersOffset + 24, Int32(-1)), (usersOffset + 8, Int32(693512293))] {
+        var invalid = bytes
+        var word = value.littleEndian
+        withUnsafeBytes(of: &word) { invalid.replaceSubrange(offset..<offset + 4, with: $0) }
+        check(TLParser.stripAntiSelfDestruct(invalid as NSData) == nil, "Invalid peer vector framing does not enable the fallback")
+        check(!TLParser.isDeleted(121, peer: 42), "Invalid peer vectors do not record deletion markers")
+    }
+}
+_ = patch(Api.Update.updateEditMessage(.init(message: message(120, text: "Valid edit", edit: 1235), pts: 51, ptsCount: 1)))
+check(TLParser.editHistory(forId: 120, peer: 42) == nil, "Rejected originals never enter edit history")
+flags("TGExtraAntiAutoDelete")
+check(patch(deletion([120])) == nil, "Rejected packets do not classify timed messages")
 
 flags("TGExtraAntiAutoDelete")
 let autoDeleted = messageData(parsed(patch(message(20, ttl: 86400))!, as: Api.Message.self))
@@ -168,6 +260,12 @@ let channel = Api.Peer.peerChannel(.init(channelId: 88))
 _ = patch(message(22, peer: channel, ttl: 60))
 check(patch(deletion([22], channel: 89)) == nil, "TTL IDs are scoped to channels")
 check(deletionIds(parsed(patch(deletion([22], channel: 88))!, as: Api.Update.self)) == [0], "Protect auto-delete in the matching channel")
+let opaqueTimer = updatesWithOpaquePeer([.updateNewMessage(.init(message: message(109, ttl: 86400), pts: 50, ptsCount: 1))])
+let timerReader = BufferReader(Buffer(nsData: TLParser.stripAntiSelfDestruct(opaqueTimer)!))
+timerReader.skip(12)
+guard case let .updateNewMessage(timerUpdate) = Api.parse(timerReader, signature: timerReader.readInt32()!) as! Api.Update else { fatalError("Expected new message") }
+check(messageData(timerUpdate.message).ttlPeriod == nil, "Strip chat timers despite unknown peers")
+check(deletionIds(parsed(patch(deletion([109, 110]))!, as: Api.Update.self)) == [0, 110], "Fallback timer classification protects only timed messages")
 
 flags("TGExtraAntiSelfDestruct")
 let photo = Api.MessageMedia.messageMediaPhoto(.init(flags: (1 << 0) | (1 << 2) | (1 << 3), photo: .photoEmpty(.init(id: 99)), ttlSeconds: 5, video: nil))
@@ -181,6 +279,24 @@ defaults.set(true, forKey: "TGExtraHideDisappearingLabel")
 let hiddenLabel = messageData(parsed(patch(message(33, media: photo))!, as: Api.Message.self))
 check(hiddenLabel.message == "Original 😀", "Hide disappearing label")
 defaults.set(false, forKey: "TGExtraHideDisappearingLabel")
+let opaqueMedia = updatesWithOpaquePeer([.updateNewMessage(.init(message: message(111, media: photo), pts: 50, ptsCount: 1))])
+let mediaReader = BufferReader(Buffer(nsData: TLParser.stripAntiSelfDestruct(opaqueMedia)!))
+mediaReader.skip(12)
+guard case let .updateNewMessage(mediaUpdate) = Api.parse(mediaReader, signature: mediaReader.readInt32()!) as! Api.Update,
+      case let .messageMediaPhoto(mediaPhoto) = messageData(mediaUpdate.message).media! else { fatalError("Expected disappearing photo") }
+check(mediaPhoto.ttlSeconds == nil, "Strip disappearing media timers despite unknown peers")
+check(deletionIds(parsed(patch(deletion([111, 112]))!, as: Api.Update.self)) == [0, 112], "Fallback disappearing classification remains selective")
+
+flags("disableForwardRestriction")
+let protectedMessage = message(113)
+messageData(protectedMessage).flags |= 1 << 26
+let opaqueProtected = updatesWithOpaquePeer([.updateNewMessage(.init(message: protectedMessage, pts: 50, ptsCount: 1))])
+let protectedBytes = TLParser.stripAntiSelfDestruct(opaqueProtected)!
+let protectedReader = BufferReader(Buffer(nsData: protectedBytes))
+protectedReader.skip(20) // Updates header, updateNewMessage and Message constructors
+check(protectedReader.readInt32()! & (1 << 26) == 0, "Serialize the generated noforwards change despite unknown peers")
+flags("TGExtraAntiEdit")
+check(TLParser.stripAntiSelfDestruct(opaqueProtected) == nil, "Recording alone keeps protected wire flags unchanged")
 
 flags("TGExtraAntiEdit")
 let original = message(40)
@@ -190,6 +306,31 @@ check(patch(Api.Update.updateEditMessage(.init(message: edited, pts: 51, ptsCoun
 check(TLParser.editHistory(forId: 40, peer: 42) == ["Original 😀", "New text"], "Keep original and revised text")
 check(TLParser.editHistory(forId: 40, peer: 43) == nil, "Never mix edit histories across peers")
 check(defaults.dictionary(forKey: "TGExtraEditHistoryByPeer") != nil, "Persist edit history immediately")
+let opaqueOriginal = updatesWithOpaquePeer([.updateNewMessage(.init(message: message(105), pts: 50, ptsCount: 1))])
+check(TLParser.stripAntiSelfDestruct(opaqueOriginal) == nil, "Recording an original preserves opaque packet bytes")
+let opaqueEdit = updatesWithOpaquePeer([.updateEditMessage(.init(message: message(105, text: "Edited in opaque batch", edit: 1235), pts: 51, ptsCount: 1))], combined: true)
+check(TLParser.stripAntiSelfDestruct(opaqueEdit) == nil, "Recording an edit preserves opaque packet bytes")
+check(TLParser.editHistory(forId: 105, peer: 42) == ["Original 😀", "Edited in opaque batch"], "Track original and edit even when peer data is unknown")
+
+flags("TGExtraAntiRevoke", "TGExtraAntiEdit")
+let opaqueMixed = updatesWithOpaquePeer([
+    .updateEditMessage(.init(message: message(105, text: "Second edit", edit: 1236), pts: 52, ptsCount: 1)),
+    deletion([105])
+])
+check(TLParser.stripAntiSelfDestruct(opaqueMixed) != nil, "Protect deletion and record editing in the same opaque packet")
+check(TLParser.editHistory(forId: 105, peer: 42) == ["Original 😀", "Edited in opaque batch", "Second edit"], "Keep every text revision when deletion protection is also enabled")
+check(TLParser.isDeleted(105, peer: 42), "Mark the deleted message from a mixed packet")
+for (channelId, peer) in [(Int64(77), Int64(-1_000_000_000_077)), (78, -1_000_000_000_078)] {
+    let original = message(114, peer: .peerChannel(.init(channelId: channelId)), text: "Channel \(channelId)")
+    _ = TLParser.stripAntiSelfDestruct(updatesWithOpaquePeer([.updateNewChannelMessage(.init(message: original, pts: 50, ptsCount: 1))]))
+    let edited = message(114, peer: .peerChannel(.init(channelId: channelId)), text: "Edited channel \(channelId)", edit: 1235)
+    _ = TLParser.stripAntiSelfDestruct(updatesWithOpaquePeer([.updateEditChannelMessage(.init(message: edited, pts: 51, ptsCount: 1))], opaqueChat: true))
+    check(TLParser.editHistory(forId: 114, peer: NSNumber(value: peer)) == ["Channel \(channelId)", "Edited channel \(channelId)"], "Fallback histories never collide across channels")
+}
+let outgoing = message(115, text: "My message")
+messageData(outgoing).flags |= 1 << 1
+_ = TLParser.stripAntiSelfDestruct(updatesWithOpaquePeer([.updateNewMessage(.init(message: outgoing, pts: 50, ptsCount: 1))]))
+check(TLParser.editHistory(forId: 115, peer: 42) == nil, "Fallback does not track outgoing messages")
 
 flags("TGExtraAntiRevoke")
 let updateBytes = serialized(deletion([50])) as Data
@@ -213,6 +354,13 @@ let packed = Buffer()
 packed.appendInt32(0x3072cfa1)
 serializeBytes(Buffer(data: gzip(updateBytes)), buffer: packed, boxed: false)
 check(deletionIds(parsed(TLParser.handleResponse(packed.makeData() as NSData, functionID: 1)!, as: Api.Update.self)) == [0], "Patch gzipped RPC replies")
+let packedOpaque = Buffer()
+packedOpaque.appendInt32(0x3072cfa1)
+serializeBytes(Buffer(data: gzip(updatesWithOpaquePeer([deletion([116])]) as Data)), buffer: packedOpaque, boxed: false)
+let unpackedOpaque = TLParser.stripAntiSelfDestruct(packedOpaque.makeData() as NSData)!
+let opaqueReader = BufferReader(Buffer(nsData: unpackedOpaque))
+opaqueReader.skip(12)
+check(deletionIds(Api.parse(opaqueReader, signature: opaqueReader.readInt32()!) as! Api.Update) == [0], "Apply the fallback inside gzip wrappers")
 let container = Buffer()
 container.appendInt32(0x73f1f8dc); container.appendInt32(1)
 container.appendInt64(123); container.appendInt32(1); container.appendInt32(Int32(updateBytes.count))
@@ -249,4 +397,4 @@ check(audio.duration == 7 && audio.flags & (1 << 10) != 0 && audio.waveform?.siz
 check(parseString(voiceReader) == "caption" && voiceReader.readInt64() == 999, "Keep request fields after media unchanged")
 flags()
 check(TLParser.rewriteVoiceUpload(request.makeData() as NSData) == nil, "Video-to-voice toggle disables rewriting")
-print("PASS TL updates, auto-delete, disappearing media, edits, gzip, containers and voice uploads")
+print("PASS TL updates (including opaque peer metadata), auto-delete, disappearing media, edits, gzip, containers and voice uploads")
