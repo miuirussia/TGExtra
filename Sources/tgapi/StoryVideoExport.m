@@ -2,6 +2,15 @@
 #import <AVFoundation/AVFoundation.h>
 #import "Logger/Logger.h"
 
+BOOL TGExtraStoryVideoNeedsNormalization(NSURL *inputURL) {
+    if (!inputURL.isFileURL) return NO;
+    AVURLAsset *asset = [AVURLAsset URLAssetWithURL:inputURL options:nil];
+    AVAssetTrack *track = [asset tracksWithMediaType:AVMediaTypeVideo].firstObject;
+    // Keep ordinary 24/30/60 fps imports unchanged. Telegram story sources
+    // can carry 120 fps, which Photos classifies as high-frame-rate video.
+    return track.nominalFrameRate > 60.5;
+}
+
 NSURL *TGExtraExportStoryVideo(NSURL *inputURL) {
     if ([NSThread isMainThread] || !inputURL.isFileURL) return nil;
 
