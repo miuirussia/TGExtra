@@ -80,16 +80,18 @@ static void verifyExport(NSURL *sourceURL, BOOL hasAudio, CGSize expectedSize) {
 
 int main(int argc, const char *argv[]) {
     @autoreleasepool {
-        check(argc == 2, @"Fixture directory supplied");
+        check(argc == 2 || argc == 3, @"Fixture directory supplied, with an optional real video");
         NSString *directory = [NSString stringWithUTF8String:argv[1]];
         NSURL *highFPS = [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"high-fps.mp4"]];
         check(TGExtraExportStoryVideo(highFPS) == nil, @"Never block the main thread");
         dispatch_semaphore_t done = dispatch_semaphore_create(0);
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
             @autoreleasepool {
+                check(TGExtraStoryVideoNeedsNormalization(highFPS), @"120 fps input needs normalization");
                 verifyExport(highFPS, YES, CGSizeMake(96, 64));
                 verifyExport(highFPS, YES, CGSizeMake(96, 64));
                 NSURL *silent = [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"silent.mp4"]];
+                check(!TGExtraStoryVideoNeedsNormalization(silent), @"Ordinary video needs no normalization");
                 verifyExport(silent, NO, CGSizeMake(96, 64));
                 verifyExport(rotateFixture(silent, directory), NO, CGSizeMake(64, 96));
                 NSURL *broken = [NSURL fileURLWithPath:[directory stringByAppendingPathComponent:@"broken.mp4"]];
@@ -97,6 +99,14 @@ int main(int argc, const char *argv[]) {
                 check(TGExtraExportStoryVideo(broken) == nil, @"Reject corrupt input");
                 check(TGExtraExportStoryVideo([NSURL URLWithString:@"https://example.com/video.mp4"]) == nil,
                       @"Reject nonlocal input");
+                if (argc == 3) {
+                    NSURL *realURL = [NSURL fileURLWithPath:[NSString stringWithUTF8String:argv[2]]];
+                    AVURLAsset *real = [AVURLAsset URLAssetWithURL:realURL options:nil];
+                    AVAssetTrack *video = [real tracksWithMediaType:AVMediaTypeVideo].firstObject;
+                    CGRect bounds = CGRectApplyAffineTransform((CGRect){CGPointZero, video.naturalSize}, video.preferredTransform);
+                    verifyExport(realURL, [real tracksWithMediaType:AVMediaTypeAudio].count > 0, bounds.size);
+                    NSLog(@"PASS real video duration=%.3f and audio", CMTimeGetSeconds(real.duration));
+                }
                 NSLog(@"PASS story video rate, duration, audio, rotation, repeated saves and invalid input");
                 dispatch_semaphore_signal(done);
             }

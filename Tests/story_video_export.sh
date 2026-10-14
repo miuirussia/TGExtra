@@ -15,4 +15,19 @@ clang -fobjc-arc -Werror -Wno-deprecated-declarations \
     -framework CoreVideo -framework CoreGraphics \
     Sources/tgapi/StoryVideoExport.m Tests/story_video_export.m \
     -o "$test_build_dir/StoryVideoExportTests"
-"$test_build_dir/StoryVideoExportTests" "$test_build_dir"
+"$test_build_dir/StoryVideoExportTests" "$test_build_dir" "$@"
+
+# Set LOGOS_PL to a standalone Logos checkout, or use a Theos installation.
+logos_script=${LOGOS_PL:-${THEOS:-}/bin/logos.pl}
+if [ -f "$logos_script" ]; then
+    perl "$logos_script" -c generator=internal Sources/tgapi/StoryVideoSave.xm \
+        > "$test_build_dir/StoryVideoSave.mm"
+    clang -fobjc-arc -DTGEXTRA_TESTING -Werror -Wno-deprecated-declarations \
+        -I Sources/tgapi -I Tests/Support \
+        -framework Foundation -framework AVFoundation -framework CoreMedia \
+        Sources/tgapi/StoryVideoExport.m Tests/story_video_save.m \
+        "$test_build_dir/StoryVideoSave.mm" -lc++ -o "$test_build_dir/StoryVideoSaveTests"
+    "$test_build_dir/StoryVideoSaveTests" "$test_build_dir"
+else
+    echo 'SKIP Photos hook tests: set THEOS or LOGOS_PL to enable Logos preprocessing'
+fi
