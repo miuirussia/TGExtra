@@ -17,6 +17,9 @@ long-pressing the screen with three fingers, or tapping the Chats tab five times
 - Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
   apply to typing and read receipts; online status remains hidden globally.
 - Save and forward protected content
+- Normalize story videos to H.264/AAC at 30 fps before saving to Photos when
+  the protected-content bypass is enabled, preserving duration and audio.
+  This does not undo slow motion already rendered into a previously saved file.
 - Ignore copy protection in private chats, independently of the protected-content
   toggle. Reopen the other person's profile after changing this option to refresh
   cached chat settings. The server-side sharing setting remains unchanged.
@@ -43,6 +46,8 @@ embedded fallback translations.
 Run `Tests/run.sh` on macOS to check protocol transformations, ghost exceptions,
 settings migration and persisted history. Tests use in-memory preferences.
 UI interaction, video extraction and installation still require an iOS device.
+Run `Tests/story_video_export.sh` on macOS with FFmpeg installed to check story
+video frame rate, duration, audio, rotation and export failure handling.
 
 ## Acknowledgements
 
