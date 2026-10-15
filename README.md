@@ -43,6 +43,16 @@ first observed text and up to 19 recent revisions. Loading other messages does
 not evict saved histories; only the cache of unedited originals is limited to
 2000 messages. Versions the tweak never received cannot be recovered.
 
+Histories are isolated by the local account record as well as chat and message
+ID. Responses with an older `editDate` cannot append a stale version; the latest
+date is persisted even when the text stays the same. Different edits bearing
+the same second-resolution date are retained in arrival order.
+Account identity comes from the connection's account directory and the message
+node's account context. If it cannot be resolved, history recording and lookup
+are skipped. Older histories without an account key remain stored under their
+original preferences keys, but are not automatically assigned or displayed:
+their owning account cannot be determined reliably.
+
 ## Building and checks
 
 Build with Theos and an iOS SDK using `make package`. The existing rootful,

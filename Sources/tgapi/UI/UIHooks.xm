@@ -878,6 +878,10 @@ static NSHashTable *activeMessageNodes = nil;
     for (ASDisplayNode *node in nodesCopy) {
         NSNumber *msgId = [TLParser getMessageIdFromNode:node];
         if (!msgId || ![deletedIds containsObject:msgId]) continue;
+        NSString *account = note.userInfo[@"account"];
+        if (account && ![account isEqualToString:[TLParser getHistoryAccountFromNode:node]]) continue;
+        NSNumber *changedPeer = note.userInfo[@"peer"];
+        if (changedPeer && ![changedPeer isEqual:[TLParser getMessagePeerKeyFromNode:node]]) continue;
 
         [node setNeedsLayout];
         [node.view setNeedsLayout];
@@ -904,6 +908,7 @@ static NSHashTable *activeMessageNodes = nil;
 static const NSInteger kTGExtraEditBadgeTag = 8899;
 static char kTGExtraEditMsgIdKey;
 static char kTGExtraEditPeerKey;
+static char kTGExtraEditAccountKey;
 
 @interface TGExtraEditHistoryButtonTarget : NSObject
 + (instancetype)shared;
@@ -922,8 +927,9 @@ static char kTGExtraEditPeerKey;
     NSNumber *msgId = objc_getAssociatedObject(sender, &kTGExtraEditMsgIdKey);
     if (!msgId) return;
     NSNumber *peerKey = objc_getAssociatedObject(sender, &kTGExtraEditPeerKey);
+    NSString *account = objc_getAssociatedObject(sender, &kTGExtraEditAccountKey);
 
-    NSArray<NSString *> *versions = [TLParser editHistoryForId:msgId peer:peerKey];
+    NSArray<NSString *> *versions = [TLParser editHistoryForId:msgId peer:peerKey account:account];
     if (versions.count < 2) return;
 
     NSMutableString *body = [NSMutableString string];
@@ -968,8 +974,9 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
         if (v.tag == kTGExtraEditBadgeTag) { badge = (UIButton *)v; break; }
     }
 
+    NSString *account = [TLParser getHistoryAccountFromNode:node];
     NSUInteger versions = (msgId != nil)
-        ? [TLParser editHistoryForId:msgId peer:peerKey].count
+        ? [TLParser editHistoryForId:msgId peer:peerKey account:account].count
         : 0;
     BOOL hasHistory = (versions > 1);
 
@@ -982,7 +989,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
         static NSMutableSet *seen = nil;
         static dispatch_once_t onceToken;
         dispatch_once(&onceToken, ^{ seen = [NSMutableSet set]; });
-        NSString *key = [NSString stringWithFormat:@"%@/%@/%lu", msgId, peerKey,
+        NSString *key = [NSString stringWithFormat:@"%@/%@/%@/%lu", account, msgId, peerKey,
                          (unsigned long)versions];
         BOOL report = NO;
         @synchronized(seen) {
@@ -992,7 +999,8 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
             }
         }
         if (report) {
-            tgextraDiag("edit-badge id=%{public}s peer=%{public}s versions=%lu drawn=%d",
+            tgextraDiag("edit-badge account=%{public}s id=%{public}s peer=%{public}s versions=%lu drawn=%d",
+                   account ? account.UTF8String : "nil",
                    msgId ? msgId.stringValue.UTF8String : "nil",
                    peerKey ? peerKey.stringValue.UTF8String : "nil",
                    (unsigned long)versions, hasHistory);
@@ -1022,6 +1030,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     }
     objc_setAssociatedObject(badge, &kTGExtraEditMsgIdKey, msgId, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     objc_setAssociatedObject(badge, &kTGExtraEditPeerKey, peerKey, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(badge, &kTGExtraEditAccountKey, account, OBJC_ASSOCIATION_COPY_NONATOMIC);
 
     // Keep the parent interactive; some bubble nodes ship with taps disabled on
     // their backing view, which would swallow every touch aimed at the badge.

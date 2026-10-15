@@ -49,7 +49,58 @@ static NSData *typingPayload(int64_t user, int32_t action) {
     [data appendBytes:&hash length:8]; [data appendBytes:&action length:4];
     return data;
 }
+
+@interface TestHistoryUsage : NSObject
+@property NSString *filePath;
+@end
+@implementation TestHistoryUsage
+@end
+@interface TestHistoryMTProto : NSObject {
+    id _usageCalculationInfo;
+}
+- (instancetype)initWithUsage:(id)usage;
+@end
+@implementation TestHistoryMTProto
+- (instancetype)initWithUsage:(id)usage {
+    if ((self = [super init])) _usageCalculationInfo = usage;
+    return self;
+}
+@end
+@interface TestHistoryRequestService : NSObject
+@property id mtProto;
+@end
+@implementation TestHistoryRequestService
+@end
+
 void TGExtraTestHandlersAndMigration(void) {
+    TestHistoryUsage *usage = [TestHistoryUsage new];
+    usage.filePath = @"/old-container/accounts/account-18446744073709551615/network-stats";
+    TestHistoryMTProto *network = [[TestHistoryMTProto alloc] initWithUsage:usage];
+    TestHistoryRequestService *service = [TestHistoryRequestService new];
+    service.mtProto = network;
+    NSCAssert([TGExtraHistoryAccountForMTProto(network) isEqual:@"account-18446744073709551615"], @"Resolve the network's account through its private usage ivar");
+    NSCAssert([TGExtraHistoryAccountForRequestService(service) isEqual:TGExtraHistoryAccountForMTProto(network)], @"RPC and push streams use the same account key");
+    usage.filePath = @"/new-container/accounts/account-18446744073709551615/network-stats";
+    NSCAssert([TGExtraHistoryAccountForMTProto(network) isEqual:@"account-18446744073709551615"], @"Container changes preserve account identity");
+    NSCAssert(TGExtraHistoryAccountForMTProto([NSObject new]) == nil, @"Unknown host objects do not raise KVC exceptions");
+    NSCAssert(TGExtraHistoryAccountForRequestService([NSObject new]) == nil, @"Unknown request services have no account fallback");
+    NSCAssert(TGExtraHistoryAccountForPath(@"/accounts/account-invalid/network-stats") == nil, @"Reject invalid account paths");
+    NSCAssert(TGExtraHistoryAccountForPath(@"/accounts/account-/network-stats") == nil, @"Reject empty account identifiers");
+    NSCAssert(TGExtraHistoryAccountForPath(@"/network-stats") == nil, @"Never infer the current account from an unscoped path");
+    NSObject *historyRequest = [NSObject new];
+    service.mtProto = nil;
+    TGExtraSetHistoryRequestService(historyRequest, service);
+    NSCAssert(TGExtraHistoryAccountForRequest(historyRequest) == nil, @"A service without a connection cannot attribute history yet");
+    service.mtProto = network;
+    NSCAssert([TGExtraHistoryAccountForRequest(historyRequest) isEqual:TGExtraHistoryAccountForMTProto(network)], @"Resolve the account after the queued service attachment");
+    TGExtraSetHistoryRequestService(historyRequest, nil);
+    NSCAssert(TGExtraHistoryAccountForRequest(historyRequest) == nil, @"Reused requests do not retain a previous service binding");
+    @autoreleasepool {
+        TestHistoryRequestService *temporaryService = [TestHistoryRequestService new];
+        temporaryService.mtProto = network;
+        TGExtraSetHistoryRequestService(historyRequest, temporaryService);
+    }
+    NSCAssert(TGExtraHistoryAccountForRequest(historyRequest) == nil, @"Bindings must not keep a service alive");
     NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
     [defaults setBool:YES forKey:kDisableTypingStatus];
     [defaults setBool:NO forKey:kDisableAllAds];
