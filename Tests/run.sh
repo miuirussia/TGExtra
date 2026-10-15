@@ -12,6 +12,7 @@ clang -fobjc-arc -DTGEXTRA_TESTING -c Sources/tgapi/DefaultsMigration.m -o "$tes
 clang -fobjc-arc -c Sources/tgapi/FunctionHandler.m -o "$test_build_dir/handlers.o"
 clang -fobjc-arc -c Sources/tgapi/GhostExceptions.m -o "$test_build_dir/exceptions.o"
 clang -fobjc-arc -c Sources/tgapiC/Gzip.m -o "$test_build_dir/gzip.o"
+clang -fobjc-arc -c Sources/tgapiC/HistoryAccount.m -o "$test_build_dir/history-account.o"
 swiftc -whole-module-optimization -I Sources/tgapiC/include -I Tests/Support -module-cache-path "$test_build_dir/cache" \
     Sources/tgapi/api_sources/*.swift Sources/tgapi/TLParser.swift Tests/main.swift \
     "$test_build_dir"/*.o -lz -o "$test_build_dir/TGExtraTests"

@@ -1,9 +1,10 @@
 #import <Foundation/Foundation.h>
 #import "Logger/Logger.h"
 #import "Constants.h"
+#import "../tgapiC/include/Tweak.h"
 
 @interface TLParser : NSObject
-+ (NSData *)handleResponse:(NSData *)data functionID:(NSNumber *)ios;
++ (NSData *)handleResponse:(NSData *)data functionID:(NSNumber *)ios account:(NSString *)account;
 + (void)addDeletedId:(int32_t)msgId peer:(int64_t)peer;
 + (void)loadPersistedIds;
 + (NSNumber *)getMessageId:(id)item;
@@ -14,15 +15,16 @@
 + (NSNumber *)getMessageIdFromNode:(id)node;
 + (NSString *)getDebugDumpFromNode:(id)node;
 + (BOOL)isDeleted:(NSNumber *)msgId peer:(NSNumber *)peer;
-+ (NSData *)stripAntiSelfDestruct:(NSData *)data;
++ (NSData *)stripAntiSelfDestruct:(NSData *)data account:(NSString *)account;
 + (void)registerVoiceUploadWithFileName:(NSString *)fileName
                                duration:(NSInteger)duration
                                waveform:(NSData *)waveform;
 + (BOOL)isMessageSelfDestructing:(NSNumber *)msgId peer:(NSNumber *)peer;
 + (NSData *)fakeUpdatesResponse;
 + (NSData *)rewriteVoiceUpload:(NSData *)data;
-+ (NSArray<NSString *> *)editHistoryForId:(NSNumber *)msgId peer:(NSNumber *)peer;
++ (NSArray<NSString *> *)editHistoryForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account;
 + (NSNumber *)getMessagePeerKeyFromNode:(id)node;
++ (NSString *)getHistoryAccountFromNode:(id)node;
 @end
 
 @interface MTRpcError : NSObject

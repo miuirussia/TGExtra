@@ -8,6 +8,7 @@
 
 - (void)setPayload:(NSData *)payload metadata:(id)metadata shortMetadata:(id)shortMetadata responseParser:(id (^)(NSData *))responseParser {
     self.fakeData = nil;
+    TGExtraSetHistoryRequestService(self, nil);
     if (payload.length < 4 || !responseParser) {
         %orig;
         return;
@@ -35,8 +36,10 @@
             break;
         case kMessagesReadMessageContents: handleReadMessageContents(self, payload); break;
     }
+    __weak MTRequest *weakRequest = self;
     id (^wrappedParser)(NSData *) = ^id(NSData *data) {
-        NSData *patched = [TLParser handleResponse:data functionID:@(functionID)];
+        NSData *patched = [TLParser handleResponse:data functionID:@(functionID)
+                                          account:TGExtraHistoryAccountForRequest(weakRequest)];
         return responseParser(patched ?: data);
     };
     %orig(payload, metadata, shortMetadata, wrappedParser);
@@ -45,6 +48,7 @@
 
 %hook MTRequestMessageService
 - (void)addRequest:(MTRequest *)request {
+    TGExtraSetHistoryRequestService(request, self);
     if (request.fakeData && request.completed && request.responseParser) {
         MTRequestResponseInfo *info = [[%c(MTRequestResponseInfo) alloc]
             initWithNetworkType:1 timestamp:NSDate.date.timeIntervalSince1970 duration:0.045];
@@ -58,7 +62,7 @@
 
 %hook MTProto
 - (id)parseMessage:(NSData *)data {
-    NSData *patched = [TLParser stripAntiSelfDestruct:data];
+    NSData *patched = [TLParser stripAntiSelfDestruct:data account:TGExtraHistoryAccountForMTProto(self)];
     return %orig(patched ?: data);
 }
 %end

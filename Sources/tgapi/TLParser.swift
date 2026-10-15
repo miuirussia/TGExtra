@@ -112,60 +112,45 @@ class TLParser: NSObject {
     private static let editQueue = DispatchQueue(label: "com.tgextra.editHistory",
                                                  attributes: .concurrent)
 
-    /// What identifies a message: the conversation together with the number.
-    ///
-    /// A message id on its own does not. Channel and supergroup numbering
-    /// restarts at 1 for every peer, so id 7 exists in every channel you are in.
-    ///
-    /// 1.4.3 fixed the *lookup* by remembering one peer per id and refusing a
-    /// hit from anywhere else. That stopped the false pencils and started
-    /// disappearing ones: the store still held a single slot per bare id, so the
-    /// moment another chat produced a message with the same number it took the
-    /// slot over, resetting the versions and reassigning the peer. Coming back
-    /// to the first chat, the lookup then failed its own peer check and the
-    /// pencil was gone — measured as id=9 in one channel answering 2 versions
-    /// and 0 versions on different passes.
-    ///
-    /// Both chats can be tracked at once now, because the peer is part of the
-    /// key rather than a note beside it.
+    /// Account record, conversation and message number are all required:
+    /// two accounts can have different messages under the same peer and id.
     private struct EditKey: Hashable {
+        let account: String
         let peer: Int64
         let id: Int32
 
-        /// Round-trips through the defaults dictionary, which takes only strings
-        /// as keys.
-        var storageKey: String { "\(peer):\(id)" }
+        var storageKey: String { "\(account):\(peer):\(id)" }
 
-        init(peer: Int64, id: Int32) {
+        init(account: String, peer: Int64, id: Int32) {
+            self.account = account
             self.peer = peer
             self.id = id
         }
 
         init?(storageKey: String) {
-            let parts = storageKey.split(separator: ":", maxSplits: 1)
-            guard parts.count == 2,
-                  let peer = Int64(parts[0]),
-                  let id = Int32(parts[1]) else { return nil }
+            let parts = storageKey.split(separator: ":")
+            guard parts.count == 3,
+                  let peer = Int64(parts[1]), let id = Int32(parts[2]) else { return nil }
+            self.account = String(parts[0])
             self.peer = peer
             self.id = id
         }
     }
 
-    private static var _editHistory = [EditKey: [String]]()
-    // Only unedited originals can be evicted. Loading unrelated messages must
-    // never erase a history that cannot be fetched from the server again.
+    private struct EditEntry {
+        var versions: [String]
+        var editDate: Int32?
+    }
+
+    private static var _editHistory = [EditKey: EditEntry]()
+    // Only unedited originals can be evicted; unrelated traffic must not erase
+    // versions which cannot be fetched again.
     private static var _originalOrder = [EditKey]()
     private static var _editLoaded = false
     private static var _editPersistScheduled = false
-
-    /// New key: the old one held the id-keyed layout this replaces, and reading
-    /// it back under the new shape would misfile every entry.
-    private static let editUdKey = "TGExtraEditHistoryByPeer"
-
-    /// The 1.4.3 pair, read once to carry existing history across and never
-    /// written again.
-    private static let legacyEditUdKey = "TGExtraEditHistory"
-    private static let legacyEditPeersUdKey = "TGExtraEditHistoryPeers"
+    private static let editUdKey = "TGExtraEditHistoryByAccount"
+    // Older keys are left intact. Their entries have no account identity and
+    // cannot safely be attributed to any of the current accounts.
 
     private static let maxTrackedOriginals = 2000
     private static let maxVersionsPerMessage = 20
@@ -238,37 +223,16 @@ class TLParser: NSObject {
         editQueue.async(flags: .barrier) {
             guard !_editLoaded else { return }
             _editLoaded = true
-            if let saved = UserDefaults.standard.dictionary(forKey: editUdKey) as? [String: [String]] {
-                for (key, versions) in saved {
-                    guard let editKey = EditKey(storageKey: key), !versions.isEmpty else { continue }
-                    _editHistory[editKey] = versions
-                    if versions.count == 1 { _originalOrder.append(editKey) }
-                }
-                trimOriginalsLocked()
-                let multi = _editHistory.values.filter { $0.count > 1 }.count
-                diag("anti-edit loaded \(_editHistory.count) entries, \(multi) with an edit")
-                return
-            }
-
-            // Nothing under the new key: carry across whatever 1.4.3 left, then
-            // let the next flush write it in the new shape. An entry with no
-            // peer came from a build that tracked bare ids and cannot be placed
-            // in any conversation, so it is dropped rather than guessed at.
-            var dropped = 0
-            let savedPeers = (UserDefaults.standard.dictionary(forKey: legacyEditPeersUdKey) as? [String: NSNumber]) ?? [:]
-            guard let legacy = UserDefaults.standard.dictionary(forKey: legacyEditUdKey) as? [String: [String]] else { return }
-            for (key, versions) in legacy {
-                guard let id = Int32(key), !versions.isEmpty else { continue }
-                guard let peer = savedPeers[key]?.int64Value, peer != 0 else {
-                    dropped += 1
-                    continue
-                }
-                let editKey = EditKey(peer: peer, id: id)
-                _editHistory[editKey] = versions
+            guard let saved = UserDefaults.standard.dictionary(forKey: editUdKey) as? [String: [String: Any]] else { return }
+            for (key, value) in saved {
+                guard let editKey = EditKey(storageKey: key),
+                      let versions = value["versions"] as? [String], !versions.isEmpty else { continue }
+                _editHistory[editKey] = EditEntry(versions: versions,
+                    editDate: (value["editDate"] as? NSNumber)?.int32Value)
                 if versions.count == 1 { _originalOrder.append(editKey) }
             }
             trimOriginalsLocked()
-            diag("anti-edit migrated \(_editHistory.count) entries from 1.4.3, dropped \(dropped) without a peer")
+            diag("anti-edit loaded \(_editHistory.count) account-scoped entries")
         }
     }
 
@@ -281,14 +245,14 @@ class TLParser: NSObject {
 
     /// Writes the whole map out. Must be called with the barrier held.
     private static func writeEditHistoryLocked() {
-        var out = [String: [String]]()
-        var multi = 0
-        for (key, versions) in _editHistory {
-            out[key.storageKey] = versions
-            if versions.count > 1 { multi += 1 }
+        var out = [String: [String: Any]]()
+        for (key, entry) in _editHistory {
+            var value: [String: Any] = ["versions": entry.versions]
+            if let date = entry.editDate { value["editDate"] = NSNumber(value: date) }
+            out[key.storageKey] = value
         }
         UserDefaults.standard.set(out, forKey: editUdKey)
-        diag("anti-edit persisted \(out.count) entries, \(multi) with an edit")
+        diag("anti-edit persisted \(out.count) account-scoped entries")
     }
 
     /// Coalesced write-back, for recording originals. Must be called with the
@@ -307,25 +271,42 @@ class TLParser: NSObject {
         }
     }
 
-    /// Remember a message's text the first time we see it. Later sightings are
-    /// ignored, so the stored element 0 always stays the pre-edit original.
-    ///
-    /// A sighting from a *different* conversation under the same id is simply a
-    /// different message, and now gets an entry of its own — the two no longer
-    /// compete for one slot.
-    ///
-    /// Nothing is tracked without a peer. An entry that cannot say which chat it
-    /// belongs to cannot be checked against the next message of the same number,
-    /// which is the whole point.
-    private static func recordOriginalText(_ text: String, forId id: Int32, peer: Int64) {
-        guard id != 0, peer != 0 else { return }
-        let key = EditKey(peer: peer, id: id)
-        editQueue.sync(flags: .barrier) {
-            guard _editHistory[key] == nil else { return }
-            _editHistory[key] = [text]
-            _originalOrder.append(key)
-            trimOriginalsLocked()
-            scheduleEditPersistLocked()
+    /// Returns true only when another text version was appended. The date is
+    /// a high-water mark even when a newer edit changes only formatting: a late
+    /// response with an older text must not roll the history back afterwards.
+    private static func recordText(_ text: String, forId id: Int32, peer: Int64,
+                                   editDate: Int32?) -> Bool {
+        guard id != 0, peer != 0, let account = processingHistoryAccount else { return false }
+        let key = EditKey(account: account, peer: peer, id: id)
+        return editQueue.sync(flags: .barrier) {
+            guard var entry = _editHistory[key] else {
+                _editHistory[key] = EditEntry(versions: [text], editDate: editDate)
+                _originalOrder.append(key)
+                trimOriginalsLocked()
+                scheduleEditPersistLocked()
+                return false
+            }
+            guard let date = editDate else { return false }
+            if let latestDate = entry.editDate, date < latestDate { return false }
+            let dateChanged = entry.editDate != date
+            entry.editDate = date
+            guard entry.versions.last != text else {
+                if dateChanged {
+                    _editHistory[key] = entry
+                    // Keep ordering metadata as durable as the edited history.
+                    if entry.versions.count > 1 { writeEditHistoryLocked() }
+                    else { scheduleEditPersistLocked() }
+                }
+                return false
+            }
+            if entry.versions.count == 1 { _originalOrder.removeAll { $0 == key } }
+            entry.versions.append(text)
+            if entry.versions.count > maxVersionsPerMessage {
+                entry.versions.removeSubrange(1..<(entry.versions.count - maxVersionsPerMessage + 1))
+            }
+            _editHistory[key] = entry
+            writeEditHistoryLocked()
+            return true
         }
     }
 
@@ -342,52 +323,11 @@ class TLParser: NSObject {
         }
     }
 
-    private static func appendEditedText(_ text: String, forId id: Int32, peer: Int64) {
-        guard id != 0, peer != 0 else { return }
-        let key = EditKey(peer: peer, id: id)
-        editQueue.sync(flags: .barrier) {
-            guard var versions = _editHistory[key] else { return }
-            guard versions.last != text else { return }
-            if versions.count == 1 {
-                _originalOrder.removeAll { $0 == key }
-            }
-            versions.append(text)
-            if versions.count > maxVersionsPerMessage {
-                // Drop the middle, never element 0 — that is the original.
-                versions.removeSubrange(1..<(versions.count - maxVersionsPerMessage + 1))
-            }
-            _editHistory[key] = versions
-            // Written now, not in five seconds. An edit is the one thing here
-            // that cannot be recovered by seeing the message again — the server
-            // only ever serves the latest text, so a version lost to the app
-            // being killed is lost for good. Recording originals stays batched;
-            // this is rare enough to pay for immediately.
-            writeEditHistoryLocked()
-        }
-    }
-
-    /// The latest recorded text for this message in this conversation. Another
-    /// chat's message of the same number lives under its own key and cannot be
-    /// returned here by accident.
-    private static func latestText(forId id: Int32, peer: Int64) -> String? {
-        guard peer != 0 else { return nil }
-        let key = EditKey(peer: peer, id: id)
-        return editQueue.sync { _editHistory[key]?.last }
-    }
-
-    /// Every recorded version of a message, oldest first — element 0 is the
-    /// original. Returns nil when only the original is on file, so the UI side
-    /// can use a non-nil answer as "this message is worth a pencil badge".
-    ///
-    /// The peer is required, and a mismatch answers nil. Ids repeat across
-    /// chats, and answering on the id alone is what put a badge on one chat's
-    /// message showing another chat's history when tapped. A caller that cannot
-    /// work out which conversation it is looking at gets no badge, which is the
-    /// safe way to be wrong.
-    @objc static func editHistory(forId id: NSNumber, peer: NSNumber?) -> [String]? {
-        guard let peer = peer, peer.int64Value != 0 else { return nil }
-        let key = EditKey(peer: peer.int64Value, id: id.int32Value)
-        let versions = editQueue.sync { _editHistory[key] }
+    /// An unresolved account must never see a different account's history.
+    @objc static func editHistory(forId id: NSNumber, peer: NSNumber?, account: String?) -> [String]? {
+        guard let account = account, let peer = peer, peer.int64Value != 0 else { return nil }
+        let key = EditKey(account: account, peer: peer.int64Value, id: id.int32Value)
+        let versions = editQueue.sync { _editHistory[key]?.versions }
         guard let versions = versions, versions.count > 1 else { return nil }
         return versions
     }
@@ -403,7 +343,7 @@ class TLParser: NSObject {
         guard isAntiEditEnabled else { return }
         guard id != 0 else { return }
         diag("anti-edit RECORD id=\(id) peer=\(peer) \(text.count) chars")
-        recordOriginalText(text, forId: id, peer: peer)
+        _ = recordText(text, forId: id, peer: peer, editDate: nil)
     }
 
     /// Files what a message currently says. First sighting becomes the original;
@@ -420,21 +360,9 @@ class TLParser: NSObject {
         guard data.id != 0 else { return }
 
         let peer = peerKey(data.peerId)
-        guard let latest = latestText(forId: data.id, peer: peer) else {
-            recordOriginalText(data.message, forId: data.id, peer: peer)
-            return
-        }
-        guard latest != data.message else { return }
-
-        // A changed text needs edit_date before it can become a new version.
-        // Other updates can redeliver a Message without representing an edit.
-        guard data.editDate != nil else {
-            diag("anti-edit SKIP id=\(data.id) — text differs but no edit_date")
-            return
-        }
-
-        appendEditedText(data.message, forId: data.id, peer: peer)
-        diag("anti-edit VERSION id=\(data.id) peer=\(peer) — \(latest.count) chars -> \(data.message.count) chars")
+        guard recordText(data.message, forId: data.id, peer: peer, editDate: data.editDate),
+              let account = processingHistoryAccount else { return }
+        diag("anti-edit VERSION id=\(data.id) peer=\(peer) account=\(account)")
 
         // The badge is drawn during -layout, and an edit arriving while the chat
         // is already on screen triggers no layout pass of its own. Without this
@@ -444,7 +372,7 @@ class TLParser: NSObject {
             NotificationCenter.default.post(
                 name: NSNotification.Name("TGExtraMessageEditedRealtime"),
                 object: nil,
-                userInfo: ["ids": [NSNumber(value: id)]]
+                userInfo: ["ids": [NSNumber(value: id)], "account": account, "peer": NSNumber(value: peer)]
             )
         }
     }
@@ -686,6 +614,27 @@ class TLParser: NSObject {
             }
         }
         return findPeerKey(in: item, depth: 0)
+    }
+
+    /// Walk only the node -> item -> context -> account chain, never the
+    /// global shared context or the account currently selected in another UI.
+    @objc static func getHistoryAccountFromNode(_ node: Any) -> String? {
+        return findHistoryAccount(in: node, depth: 0)
+    }
+
+    private static func findHistoryAccount(in wrapped: Any, depth: Int) -> String? {
+        guard depth <= 6 else { return nil }
+        var mirror: Mirror? = Mirror(reflecting: unwrapOptional(wrapped))
+        while let current = mirror {
+            for child in current.children {
+                if child.label == "basePath", let path = child.value as? String,
+                   let account = TGExtraHistoryAccountForPath(path) { return account }
+                if ["item", "context", "account"].contains(child.label ?? ""),
+                   let account = findHistoryAccount(in: child.value, depth: depth + 1) { return account }
+            }
+            mirror = current.superclassMirror
+        }
+        return nil
     }
 
     /// Capped so a failing extraction cannot flood the log from -layout.
@@ -1705,9 +1654,17 @@ class TLParser: NSObject {
         return modified ? output.makeData() as NSData : nil
     }
 
-    @objc static func stripAntiSelfDestruct(_ data: NSData) -> NSData? {
+    // Protected by processingLock, including recursive parsing of containers.
+    private static var processingHistoryAccount: String?
+
+    @objc static func stripAntiSelfDestruct(_ data: NSData, account: String?) -> NSData? {
         processingLock.lock()
-        defer { processingLock.unlock() }
+        let previousAccount = processingHistoryAccount
+        processingHistoryAccount = account
+        defer {
+            processingHistoryAccount = previousAccount
+            processingLock.unlock()
+        }
         return patchResponse(data, depth: 0)
     }
 
@@ -2097,7 +2054,7 @@ class TLParser: NSObject {
         noteUsersAnywhere(result)
     }
 
-    @objc static func handleResponse(_ data: NSData, functionID: NSNumber) -> NSData? {
+    @objc static func handleResponse(_ data: NSData, functionID: NSNumber, account: String?) -> NSData? {
         processingLock.lock()
         defer { processingLock.unlock() }
         if peerLookupFunctions.contains(functionID.int32Value) {
@@ -2105,7 +2062,7 @@ class TLParser: NSObject {
         }
         // Returns patched data only if something was actually modified.
         // Returning nil means "no change" — caller uses original data as-is.
-        return stripAntiSelfDestruct(data)
+        return stripAntiSelfDestruct(data, account: account)
     }
     @objc static func fakeUpdatesResponse() -> NSData {
         return serializeBoxed(Api.Updates.updates(Api.Updates.Cons_updates(
