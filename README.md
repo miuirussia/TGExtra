@@ -37,6 +37,12 @@ The integration uses the Telegram API 13.0 sources already in this repository.
 Private UI hooks depend on the host app exposing the corresponding methods.
 New features default to off; existing preferences are preserved on upgrade.
 
+Edit history keeps text versions observed while Anti-Edit is enabled, including
+outgoing messages and empty media captions. Each edited message retains its
+first observed text and up to 19 recent revisions. Loading other messages does
+not evict saved histories; only the cache of unedited originals is limited to
+2000 messages. Versions the tweak never received cannot be recovered.
+
 ## Building and checks
 
 Build with Theos and an iOS SDK using `make package`. The existing rootful,

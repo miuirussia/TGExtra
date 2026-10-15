@@ -104,7 +104,7 @@ class TLParser: NSObject {
     // MARK: - Anti-Edit
 
     /// Every text version of a message we have seen, oldest first. Element 0 is
-    /// the original, which is what Anti-Edit restores.
+    /// the earliest text observed while Anti-Edit was enabled.
     ///
     /// Writes take a barrier synchronously rather than asynchronously: a single
     /// pass over a response records an original and then reads it back, so the
@@ -152,7 +152,9 @@ class TLParser: NSObject {
     }
 
     private static var _editHistory = [EditKey: [String]]()
-    private static var _editOrder = [EditKey]()   // insertion order, for trimming
+    // Only unedited originals can be evicted. Loading unrelated messages must
+    // never erase a history that cannot be fetched from the server again.
+    private static var _originalOrder = [EditKey]()
     private static var _editLoaded = false
     private static var _editPersistScheduled = false
 
@@ -165,7 +167,7 @@ class TLParser: NSObject {
     private static let legacyEditUdKey = "TGExtraEditHistory"
     private static let legacyEditPeersUdKey = "TGExtraEditHistoryPeers"
 
-    private static let maxTrackedMessages = 2000
+    private static let maxTrackedOriginals = 2000
     private static let maxVersionsPerMessage = 20
 
 
@@ -240,10 +242,11 @@ class TLParser: NSObject {
                 for (key, versions) in saved {
                     guard let editKey = EditKey(storageKey: key), !versions.isEmpty else { continue }
                     _editHistory[editKey] = versions
-                    _editOrder.append(editKey)
+                    if versions.count == 1 { _originalOrder.append(editKey) }
                 }
+                trimOriginalsLocked()
                 let multi = _editHistory.values.filter { $0.count > 1 }.count
-                diag("anti-edit loaded \(_editOrder.count) entries, \(multi) with an edit")
+                diag("anti-edit loaded \(_editHistory.count) entries, \(multi) with an edit")
                 return
             }
 
@@ -262,9 +265,17 @@ class TLParser: NSObject {
                 }
                 let editKey = EditKey(peer: peer, id: id)
                 _editHistory[editKey] = versions
-                _editOrder.append(editKey)
+                if versions.count == 1 { _originalOrder.append(editKey) }
             }
-            diag("anti-edit migrated \(_editOrder.count) entries from 1.4.3, dropped \(dropped) without a peer")
+            trimOriginalsLocked()
+            diag("anti-edit migrated \(_editHistory.count) entries from 1.4.3, dropped \(dropped) without a peer")
+        }
+    }
+
+    /// Must be called with the edit barrier held.
+    private static func trimOriginalsLocked() {
+        while _originalOrder.count > maxTrackedOriginals {
+            _editHistory.removeValue(forKey: _originalOrder.removeFirst())
         }
     }
 
@@ -272,11 +283,9 @@ class TLParser: NSObject {
     private static func writeEditHistoryLocked() {
         var out = [String: [String]]()
         var multi = 0
-        for key in _editOrder {
-            if let versions = _editHistory[key] {
-                out[key.storageKey] = versions
-                if versions.count > 1 { multi += 1 }
-            }
+        for (key, versions) in _editHistory {
+            out[key.storageKey] = versions
+            if versions.count > 1 { multi += 1 }
         }
         UserDefaults.standard.set(out, forKey: editUdKey)
         diag("anti-edit persisted \(out.count) entries, \(multi) with an edit")
@@ -287,8 +296,8 @@ class TLParser: NSObject {
     ///
     /// An original is recorded for *every* message that passes through, so
     /// persisting each one eagerly would mean a UserDefaults write per message.
-    /// Losing a few of those to a kill costs nothing: the message is still on
-    /// the server and will be recorded again next time it is seen.
+    /// An original not yet flushed can be lost if the app is killed before
+    /// this write, so keep the delay short.
     private static func scheduleEditPersistLocked() {
         guard !_editPersistScheduled else { return }
         _editPersistScheduled = true
@@ -309,16 +318,13 @@ class TLParser: NSObject {
     /// belongs to cannot be checked against the next message of the same number,
     /// which is the whole point.
     private static func recordOriginalText(_ text: String, forId id: Int32, peer: Int64) {
-        guard id != 0, peer != 0, !text.isEmpty else { return }
+        guard id != 0, peer != 0 else { return }
         let key = EditKey(peer: peer, id: id)
         editQueue.sync(flags: .barrier) {
             guard _editHistory[key] == nil else { return }
             _editHistory[key] = [text]
-            _editOrder.append(key)
-            while _editOrder.count > maxTrackedMessages {
-                let oldest = _editOrder.removeFirst()
-                _editHistory.removeValue(forKey: oldest)
-            }
+            _originalOrder.append(key)
+            trimOriginalsLocked()
             scheduleEditPersistLocked()
         }
     }
@@ -342,6 +348,9 @@ class TLParser: NSObject {
         editQueue.sync(flags: .barrier) {
             guard var versions = _editHistory[key] else { return }
             guard versions.last != text else { return }
+            if versions.count == 1 {
+                _originalOrder.removeAll { $0 == key }
+            }
             versions.append(text)
             if versions.count > maxVersionsPerMessage {
                 // Drop the middle, never element 0 — that is the original.
@@ -357,13 +366,13 @@ class TLParser: NSObject {
         }
     }
 
-    /// The recorded original for this message in this conversation. Another
+    /// The latest recorded text for this message in this conversation. Another
     /// chat's message of the same number lives under its own key and cannot be
     /// returned here by accident.
-    private static func originalText(forId id: Int32, peer: Int64) -> String? {
+    private static func latestText(forId id: Int32, peer: Int64) -> String? {
         guard peer != 0 else { return nil }
         let key = EditKey(peer: peer, id: id)
-        return editQueue.sync { _editHistory[key]?.first }
+        return editQueue.sync { _editHistory[key]?.last }
     }
 
     /// Every recorded version of a message, oldest first — element 0 is the
@@ -383,31 +392,16 @@ class TLParser: NSObject {
         return versions
     }
 
-    /// Records the text of a message arriving live, before anyone can edit it.
-    ///
-    /// Without this Anti-Edit only ever worked for messages that happened to be
-    /// pulled from history *before* being edited. A message received and then
-    /// edited in the same session had no stored original, so the edit tracker
-    /// filed the already-edited text as the original and had nothing to restore.
-    ///
-    /// Outgoing messages are skipped for the same reason the tracker skips
-    /// them: rewriting your own edits breaks editing your own messages.
-    private static func recordIncomingOriginal(_ apiMsg: Api.Message) {
-        guard case let .message(data) = apiMsg else { return }
-        recordShortFormOriginal(id: data.id, flags: data.flags, text: data.message,
-                                peer: peerKey(data.peerId))
-    }
-
     /// Same job for the compact update forms. Telegram does not wrap a plain
     /// one-to-one or group text message in a full Message object — it sends
     /// updateShortMessage / updateShortChatMessage, which carry the text inline.
     /// Those are the ones an ordinary conversation actually arrives as, so
     /// missing them meant Anti-Edit never recorded anything in the very case it
-    /// exists for. `out` sits at flags bit 1 in every one of these forms.
-    private static func recordShortFormOriginal(id: Int32, flags: Int32, text: String, peer: Int64) {
+    /// exists for. Outgoing versions are safe to record too: tracking never
+    /// rewrites the message sent to the host.
+    private static func recordShortFormOriginal(id: Int32, text: String, peer: Int64) {
         guard isAntiEditEnabled else { return }
-        guard id != 0, !text.isEmpty else { return }
-        guard (Int(flags) & Int(1 << 1)) == 0 else { return }
+        guard id != 0 else { return }
         diag("anti-edit RECORD id=\(id) peer=\(peer) \(text.count) chars")
         recordOriginalText(text, forId: id, peer: peer)
     }
@@ -423,39 +417,36 @@ class TLParser: NSObject {
     private static func trackMessageVersions(_ apiMsg: Api.Message) {
         guard isAntiEditEnabled else { return }
         guard case let .message(data) = apiMsg else { return }
-        guard data.id != 0, !data.message.isEmpty else { return }
-
-        // Your own messages are your own edits; there is no earlier version
-        // worth keeping, and touching them risks breaking your ability to edit.
-        guard (Int(data.flags) & Int(1 << 1)) == 0 else { return }
+        guard data.id != 0 else { return }
 
         let peer = peerKey(data.peerId)
-        guard let original = originalText(forId: data.id, peer: peer) else {
+        guard let latest = latestText(forId: data.id, peer: peer) else {
             recordOriginalText(data.message, forId: data.id, peer: peer)
             return
         }
-        guard original != data.message else { return }
+        guard latest != data.message else { return }
 
-        // An edit always carries edit_date. Everything else that re-delivers a
-        // whole Message — a reaction landing, a view count ticking over, a
-        // history refetch — leaves it unset, and treating those as edits is
-        // what put a pencil on messages nobody had edited.
+        // A changed text needs edit_date before it can become a new version.
+        // Other updates can redeliver a Message without representing an edit.
         guard data.editDate != nil else {
             diag("anti-edit SKIP id=\(data.id) — text differs but no edit_date")
             return
         }
 
         appendEditedText(data.message, forId: data.id, peer: peer)
-        diag("anti-edit VERSION id=\(data.id) peer=\(peer) — \(original.count) chars -> \(data.message.count) chars")
+        diag("anti-edit VERSION id=\(data.id) peer=\(peer) — \(latest.count) chars -> \(data.message.count) chars")
 
         // The badge is drawn during -layout, and an edit arriving while the chat
         // is already on screen triggers no layout pass of its own. Without this
         // nudge the pencil only turned up after leaving and reopening the app.
-        NotificationCenter.default.post(
-            name: NSNotification.Name("TGExtraMessageEditedRealtime"),
-            object: nil,
-            userInfo: ["ids": [NSNumber(value: data.id)]]
-        )
+        let id = data.id
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("TGExtraMessageEditedRealtime"),
+                object: nil,
+                userInfo: ["ids": [NSNumber(value: id)]]
+            )
+        }
     }
 
     /// Applied to every batch of loaded messages. Records only; the batch is
@@ -1445,14 +1436,14 @@ class TLParser: NSObject {
     private static func stripTTLUpdate(_ update: Api.Update) -> (Api.Update, Bool) {
         switch update {
         case let .updateNewMessage(data):
-            recordIncomingOriginal(data.message)
+            trackMessageVersions(data.message)
             let (strippedMsg, changed) = stripTTLMessage(data.message)
             if !changed {
                 return (update, false)
             }
             return (.updateNewMessage(Api.Update.Cons_updateNewMessage(message: strippedMsg, pts: data.pts, ptsCount: data.ptsCount)), true)
         case let .updateNewChannelMessage(data):
-            recordIncomingOriginal(data.message)
+            trackMessageVersions(data.message)
             let (strippedMsg, changed) = stripTTLMessage(data.message)
             if !changed {
                 return (update, false)
@@ -1531,6 +1522,134 @@ class TLParser: NSObject {
 
     private static let processingLock = NSRecursiveLock()
 
+    /// Accept an opaque tail only when a peer constructor is actually unknown.
+    /// Malformed known peers and vector headers must not commit partial data.
+    private static func hasUnknownPeer(_ reader: BufferReader, length: Int,
+                                       usersFirst: Bool, suffixBytes: Int) -> Bool {
+        guard length - Int(reader.offset) >= 16 + suffixBytes else { return false }
+        for (index, isUsers) in (usersFirst ? [true, false] : [false, true]).enumerated() {
+            let minimumSuffix = suffixBytes + (index == 0 ? 8 : 0)
+            guard reader.readInt32() == 481674261,
+                  let count = reader.readInt32(), count >= 0,
+                  length - Int(reader.offset) >= minimumSuffix,
+                  Int(count) <= (length - Int(reader.offset) - minimumSuffix) / 4 else { return false }
+            for _ in 0..<count {
+                guard let constructor = reader.readInt32() else { return false }
+                if !Api.isKnownConstructor(constructor) { return true }
+                guard let peer = Api.parse(reader, signature: constructor),
+                      isUsers ? peer is Api.User : peer is Api.Chat else { return false }
+            }
+        }
+        return false
+    }
+
+    /// History and difference replies carry messages before their peer vectors.
+    /// Read that known prefix without reserializing an unknown peer's bytes.
+    private static func trackVersionsWithOpaquePeers(_ data: NSData, signature: Int32) {
+        guard isAntiEditEnabled else { return }
+        let reader = BufferReader(Buffer(nsData: data))
+        reader.skip(4)
+
+        func object<T>(_ type: T.Type) -> T? {
+            guard let constructor = reader.readInt32() else { return nil }
+            return Api.parse(reader, signature: constructor) as? T
+        }
+        func vector<T>(_ type: T.Type) -> [T]? {
+            guard reader.readInt32() == 481674261,
+                  let count = reader.readInt32(), count >= 0,
+                  Int(count) <= (data.length - Int(reader.offset)) / 4 else { return nil }
+            var values = [T]()
+            for _ in 0..<count {
+                guard let value = object(type) else { return nil }
+                values.append(value)
+            }
+            return values
+        }
+
+        var flags: Int32 = 0
+        var hasTopics = false
+        var hasUpdates = false
+        var hasEncrypted = false
+        var suffixBytes = 0
+        switch signature {
+        case 494135274: // messages.messages
+            hasTopics = true
+        case -948520370, 1595959062: // channelMessages, messagesSlice
+            guard let value = reader.readInt32(), reader.readInt32() != nil else { return }
+            flags = value
+            if signature == -948520370 {
+                guard reader.readInt32() != nil else { return } // count (after pts)
+            } else if flags & (1 << 0) != 0 {
+                guard reader.readInt32() != nil else { return } // next_rate
+            }
+            if flags & (1 << 2) != 0 {
+                guard reader.readInt32() != nil else { return }
+            }
+            if signature == 1595959062 && flags & (1 << 3) != 0 {
+                guard object(Api.SearchPostsFlood.self) != nil else { return }
+            }
+            hasTopics = true
+        case 364538944, 1910543603, 863093588: // dialogs, dialogsSlice, peerDialogs
+            if signature == 1910543603 {
+                guard reader.readInt32() != nil else { return }
+            }
+            guard vector(Api.Dialog.self) != nil else { return }
+            if signature == 863093588 { suffixBytes = 24 } // updates.State
+        case -1506535550: // discussionMessage
+            guard let value = reader.readInt32() else { return }
+            flags = value
+        case 543450958: // channelDifference
+            guard let value = reader.readInt32(), reader.readInt32() != nil else { return }
+            if value & (1 << 1) != 0 {
+                guard reader.readInt32() != nil else { return }
+            }
+            hasUpdates = true
+        case -1531132162: // channelDifferenceTooLong
+            guard let value = reader.readInt32() else { return }
+            if value & (1 << 1) != 0 {
+                guard reader.readInt32() != nil else { return }
+            }
+            guard object(Api.Dialog.self) != nil else { return }
+        case 16030880, -1459938943: // difference, differenceSlice
+            hasEncrypted = true
+            hasUpdates = true
+            suffixBytes = 24
+        default:
+            return
+        }
+
+        guard let messages = vector(Api.Message.self) else { return }
+        if hasTopics {
+            guard vector(Api.ForumTopic.self) != nil else { return }
+        }
+        if hasEncrypted {
+            guard vector(Api.EncryptedMessage.self) != nil else { return }
+        }
+        var updates = [Api.Update]()
+        if hasUpdates {
+            guard let values = vector(Api.Update.self) else { return }
+            updates = values
+        }
+        if signature == -1506535550 {
+            for bit in 0...2 where flags & (1 << bit) != 0 {
+                guard reader.readInt32() != nil else { return }
+            }
+            guard reader.readInt32() != nil else { return } // unread_count
+        }
+        guard hasUnknownPeer(reader, length: data.length, usersFirst: false,
+                             suffixBytes: suffixBytes) else { return }
+        trackVersions(in: messages)
+        for update in updates {
+            switch update {
+            case let .updateNewMessage(value): trackMessageVersions(value.message)
+            case let .updateNewChannelMessage(value): trackMessageVersions(value.message)
+            case let .updateEditMessage(value): trackMessageVersions(value.message)
+            case let .updateEditChannelMessage(value): trackMessageVersions(value.message)
+            default: break
+            }
+        }
+    }
+
     /// A newer User or Chat constructor must not disable protection for the
     /// updates that precede it. Decode only the Updates vector, then leave the
     /// peer vectors and synchronization trailer for the host to parse.
@@ -1561,25 +1680,8 @@ class TLParser: NSObject {
         // Only an unknown peer constructor justifies leaving the tail opaque.
         // Known constructors that fail to decode, bad vector framing and a
         // missing date/seq must not record updates from a rejected packet.
-        var unknownPeer = false
-        for isUsers in [true, false] {
-            let minimumSuffix = (signature == 1918567619 ? 12 : 8) + (isUsers ? 8 : 0)
-            guard reader.readInt32() == 481674261,
-                  let peerCount = reader.readInt32(), peerCount >= 0,
-                  data.length - Int(reader.offset) >= minimumSuffix,
-                  Int(peerCount) <= (data.length - Int(reader.offset) - minimumSuffix) / 4 else { return nil }
-            for _ in 0..<peerCount {
-                guard let constructor = reader.readInt32() else { return nil }
-                if !Api.isKnownConstructor(constructor) {
-                    unknownPeer = true
-                    break
-                }
-                guard let peer = Api.parse(reader, signature: constructor),
-                      isUsers ? peer is Api.User : peer is Api.Chat else { return nil }
-            }
-            if unknownPeer { break }
-        }
-        guard unknownPeer else { return nil }
+        guard hasUnknownPeer(reader, length: data.length, usersFirst: true,
+                             suffixBytes: signature == 1918567619 ? 12 : 8) else { return nil }
 
         let output = Buffer()
         output.appendBytes(data.bytes, length: 12)
@@ -1669,6 +1771,7 @@ class TLParser: NSObject {
             // The host may know a peer constructor that the bundled schema
             // does not. The update vector can still be handled independently.
             diagUnparsed(signature)
+            trackVersionsWithOpaquePeers(data, signature: signature)
             return patchUpdateVector(data, signature: signature)
         }
 
@@ -1721,7 +1824,7 @@ class TLParser: NSObject {
             case let .updateShortMessage(data):
                 // A private chat is identified by the other user, which is what
                 // userId holds here and what peerUser carries in the full form.
-                recordShortFormOriginal(id: data.id, flags: data.flags, text: data.message,
+                recordShortFormOriginal(id: data.id, text: data.message,
                                         peer: data.userId)
                 var isDestructing = false
                 if data.ttlPeriod != nil {
@@ -1753,7 +1856,7 @@ class TLParser: NSObject {
                     modified = true
                 }
             case let .updateShortChatMessage(data):
-                recordShortFormOriginal(id: data.id, flags: data.flags, text: data.message,
+                recordShortFormOriginal(id: data.id, text: data.message,
                                         peer: -data.chatId)
                 var isDestructing = false
                 if data.ttlPeriod != nil {
@@ -1910,6 +2013,7 @@ class TLParser: NSObject {
                 modified = true
             }
         } else if let message = result as? Api.Message {
+            trackMessageVersions(message)
             let (stripped, changed) = stripTTLMessage(message)
             if changed {
                 newResult = stripped
@@ -1918,6 +2022,7 @@ class TLParser: NSObject {
         } else if let discussion = result as? Api.messages.DiscussionMessage {
             switch discussion {
             case let .discussionMessage(data):
+                trackVersions(in: data.messages)
                 let (newChats, changedChats) = stripNoForwardsFromChats(data.chats)
                 var changedMsgs = false
                 let newMessages = data.messages.map { msg -> Api.Message in
@@ -1933,6 +2038,7 @@ class TLParser: NSObject {
         } else if let peerDialogs = result as? Api.messages.PeerDialogs {
             switch peerDialogs {
             case let .peerDialogs(data):
+                trackVersions(in: data.messages)
                 let (newChats, changedChats) = stripNoForwardsFromChats(data.chats)
                 var changedMsgs = false
                 let newMessages = data.messages.map { msg -> Api.Message in
@@ -1944,6 +2050,12 @@ class TLParser: NSObject {
                     newResult = Api.messages.PeerDialogs.peerDialogs(Api.messages.PeerDialogs.Cons_peerDialogs(dialogs: data.dialogs, messages: newMessages, chats: newChats, users: data.users, state: data.state))
                     modified = true
                 }
+            }
+        } else if let dialogs = result as? Api.messages.Dialogs {
+            switch dialogs {
+            case let .dialogs(data): trackVersions(in: data.messages)
+            case let .dialogsSlice(data): trackVersions(in: data.messages)
+            default: break
             }
         }
 
