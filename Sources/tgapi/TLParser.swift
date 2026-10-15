@@ -6,99 +6,272 @@ import os
 class TLParser: NSObject {
     @objc static var sharedContext: Any?
 
-    // Message ids saved from deletion, each with the conversation it was
-    // deleted from.
-    //
-    // Message ids are not unique on their own: channel and supergroup numbering
-    // restarts at 1 per peer. A bare set of ids therefore put the trash icon on
-    // every message that happened to share a number with something deleted
-    // somewhere else — a message plainly still there, flagged as revoked.
-    //
-    // updateDeleteChannelMessages names its channel. updateDeleteMessages does
-    // not, and does not need to: it covers private chats and basic groups,
-    // whose ids all come from one per-account sequence. Those are stored under
-    // cloudScope and match any non-channel message.
-    private static let deletedQueue = DispatchQueue(label: "com.tgextra.deletedIds",
-                                                    attributes: .concurrent)
     private static let cloudScope: Int64 = 0
-    /// Every scope a given id was deleted from.
-    ///
-    /// A set, not one value. The pencil badge had the same shape of bug and the
-    /// same symptom: one slot per bare id means the second chat to delete a
-    /// message of that number takes the slot from the first, and the first
-    /// chat's marker vanishes. Channels number from 1, so ids collide constantly.
-    private static var _deletedIds = [Int32: Set<Int64>]()
-    private static let udKey = "TGExtraDeletedMsgIds"
-    private static var _loaded = false
+    private static let markerUdKey = "TGExtraMessageMarkersByAccount"
+    // Protected by processingLock. Keep timer classifications until explicitly
+    // cleared: evicting them would silently re-enable a later server deletion.
+    private static var messageMarkers = [EditKey: Int]()
+    private static var markersLoaded = false
+    private static let deletedMarker = 1
+    private static let disappearingMarker = 2
+    private static let autoDeleteMarker = 4
 
-    /// Called from ObjC (Hooks.xm) before zeroing message IDs in anti-revoke.
-    /// `peer` is cloudScope for the account-wide id sequence, or a channel's
-    /// peer key as peerKey(_:) encodes it.
-    @objc static func addDeletedId(_ id: Int32, peer: Int64) {
-        guard id != 0 else { return }
-        deletedQueue.async(flags: .barrier) {
-            _deletedIds[id, default: []].insert(peer)
-            // Written from the in-memory map rather than read back and appended
-            // to. Casting the stored dictionary to the new shape would fail
-            // outright on a 1.4.3 file — every id in it having one scope, not a
-            // list — and the ?? [:] would then quietly discard the lot.
-            // Keep growth bounded, in memory as well as on disk — trimming only
-            // the copy being written would let the map itself grow without end.
-            // Dropping the numerically smallest ids loses the oldest of the
-            // account-wide sequence first, which is the right end to lose.
-            if _deletedIds.count > 1000 {
-                for key in _deletedIds.keys.sorted().prefix(_deletedIds.count - 1000) {
-                    _deletedIds.removeValue(forKey: key)
-                }
+    private static func loadMarkers() {
+        guard !markersLoaded else { return }
+        markersLoaded = true
+        for (storedKey, value) in UserDefaults.standard.dictionary(forKey: markerUdKey) ?? [:] {
+            if let key = EditKey(storageKey: storedKey), let bits = value as? NSNumber {
+                messageMarkers[key] = bits.intValue
             }
-
-            var saved = [String: [NSNumber]]()
-            for (key, scopes) in _deletedIds {
-                saved[String(key)] = scopes.map { NSNumber(value: $0) }
-            }
-            UserDefaults.standard.set(saved, forKey: udKey)
         }
+        // Legacy accountless markers stay archived; their owner is unknown.
     }
 
-    /// Whether a message was revoked — the id must have been deleted from *this*
-    /// conversation, not merely from somewhere.
-    private static func isDeletedMessage(id: Int32, peer: Int64) -> Bool {
-        return deletedQueue.sync {
-            guard let scopes = _deletedIds[id] else { return false }
-            if scopes.contains(peer) { return true }
-            // Anything that is not a channel shares the account-wide range, so a
-            // cloudScope entry answers for all of them.
-            return scopes.contains(cloudScope) && peer > -1_000_000_000_000
-        }
+    private static func markerKey(id: Int32, peer: Int64, account: String?, namespace: Int32) -> EditKey? {
+        guard id != 0, let account = account else { return nil }
+        let scope = (namespace == 0 || namespace == 5) && peer > -1_000_000_000_000 ? cloudScope : peer
+        return EditKey(account: account, peer: scope, id: id, namespace: namespace)
     }
 
-    /// Load persisted deleted IDs from UserDefaults into memory (call once at startup).
+    private static func markerBits(id: Int32, peer: Int64, account: String?, namespace: Int32) -> Int {
+        loadMarkers()
+        guard let key = markerKey(id: id, peer: peer, account: account, namespace: namespace) else { return 0 }
+        var bits = messageMarkers[key] ?? 0
+        if namespace == 0 && peer <= -1_000_000_000_000 {
+            let range = EditKey(account: key.account, peer: peer, id: 0)
+            if id > 0 && Int(id) <= messageMarkers[range, default: 0] { bits |= deletedMarker }
+        }
+        return bits
+    }
+
+    private static func persistMarkers() {
+        UserDefaults.standard.set(Dictionary(uniqueKeysWithValues: messageMarkers.map {
+            ($0.key.storageKey, $0.value)
+        }), forKey: markerUdKey)
+    }
+
+    private static func recordMarker(_ bit: Int, id: Int32, peer: Int64, account: String?, namespace: Int32) {
+        loadMarkers()
+        guard let key = markerKey(id: id, peer: peer, account: account, namespace: namespace),
+              (messageMarkers[key, default: 0] & bit) == 0 else { return }
+        messageMarkers[key, default: 0] |= bit
+        persistMarkers()
+    }
+
+    @objc(addDeletedId:peer:account:messageNamespace:) static func addDeletedId(_ id: Int32, peer: Int64, account: String?, namespace: Int32 = 0) {
+        processingLock.lock()
+        defer { processingLock.unlock() }
+        recordMarker(deletedMarker, id: id, peer: peer, account: account, namespace: namespace)
+    }
+
     @objc static func loadPersistedIds() {
-        deletedQueue.async(flags: .barrier) {
-            guard !_loaded else { return }
-            _loaded = true
-            // Entries written before ids carried a peer cannot say which chat
-            // they came from, and keeping them means keeping the false marker
-            // they cause. Dropped, once.
-            guard let stored = UserDefaults.standard.dictionary(forKey: udKey) else {
-                return
-            }
-            for (key, value) in stored {
-                guard let id = Int32(key) else { continue }
-                if let scopes = value as? [NSNumber] {
-                    _deletedIds[id] = Set(scopes.map { $0.int64Value })
-                } else if let single = value as? NSNumber {
-                    // 1.4.3 stored one scope per id. Same data, narrower shape.
-                    _deletedIds[id] = [single.int64Value]
-                }
-            }
-            if _deletedIds.isEmpty {
-                UserDefaults.standard.removeObject(forKey: udKey)
-            }
-            diag("anti-revoke loaded \(_deletedIds.count) deleted ids")
-        }
+        processingLock.lock()
+        loadMarkers()
+        processingLock.unlock()
         loadEditHistory()
         installApiLogger()
+    }
+
+    // Last observed cloud messages can answer getMessages validation after a
+    // reconnect. This does not intercept local Postbox transactions or decrypt
+    // secret chats. Explicitly revoked snapshots are pinned; the ordinary
+    // observation cache is bounded by arrival order, never by numeric id.
+    private static let snapshotUdKey = "TGExtraObservedMessages"
+    private static var snapshots = [EditKey: Data]()
+    private static var snapshotOrder = [EditKey]()
+    private static var snapshotsLoaded = false
+    private static var snapshotWriteScheduled = false
+    private static var snapshotGeneration: UInt64 = 0
+    private static var requestedMessageIds: [Int32]?
+    private static var requestedMessagePeer: Int64?
+
+    private static func loadSnapshots() {
+        guard !snapshotsLoaded else { return }
+        snapshotsLoaded = true
+        let saved = UserDefaults.standard.dictionary(forKey: snapshotUdKey) ?? [:]
+        if let messages = saved["messages"] as? [String: Data] {
+            for (raw, bytes) in messages {
+                if let key = EditKey(storageKey: raw) { snapshots[key] = bytes }
+            }
+        }
+        snapshotOrder = (saved["order"] as? [String] ?? []).compactMap(EditKey.init(storageKey:))
+        var seen = Set<EditKey>()
+        snapshotOrder = snapshotOrder.filter { snapshots[$0] != nil && seen.insert($0).inserted }
+        snapshotOrder.append(contentsOf: snapshots.keys.filter { !seen.contains($0) }.sorted { $0.storageKey < $1.storageKey })
+    }
+
+    private static func writeSnapshots() {
+        UserDefaults.standard.set([
+            "messages": Dictionary(uniqueKeysWithValues: snapshots.map { ($0.key.storageKey, $0.value) }),
+            "order": snapshotOrder.map { $0.storageKey }
+        ], forKey: snapshotUdKey)
+    }
+
+    private static func scheduleSnapshotWrite() {
+        guard !snapshotWriteScheduled else { return }
+        snapshotWriteScheduled = true
+        let generation = snapshotGeneration
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 5) {
+            processingLock.lock()
+            defer { processingLock.unlock() }
+            guard generation == snapshotGeneration else { return }
+            snapshotWriteScheduled = false
+            writeSnapshots()
+        }
+    }
+
+    private static func decodedSnapshot(_ bytes: Data) -> Api.Message? {
+        let reader = BufferReader(Buffer(data: bytes))
+        guard let constructor = reader.readInt32(),
+              let message = Api.parse(reader, signature: constructor) as? Api.Message,
+              reader.offset == UInt(bytes.count) else { return nil }
+        return message
+    }
+
+    private static func cacheMessage(_ message: Api.Message) {
+        guard processingNamespace == 0, let account = processingHistoryAccount else { return }
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: "TGExtraAntiRevoke") || defaults.bool(forKey: "TGExtraAntiAutoDelete") ||
+              defaults.bool(forKey: "TGExtraAntiSelfDestruct") else { return }
+        let id: Int32
+        let peer: Int64
+        let editDate: Int32?
+        switch message {
+        case let .message(data): (id, peer, editDate) = (data.id, peerKey(data.peerId), data.editDate)
+        case let .messageService(data): (id, peer, editDate) = (data.id, peerKey(data.peerId), nil)
+        default: return
+        }
+        guard id != 0 else { return }
+        loadSnapshots()
+        let key = EditKey(account: account, peer: peer, id: id)
+        if let bytes = snapshots[key], let previous = decodedSnapshot(bytes), case let .message(data) = previous,
+           let oldDate = data.editDate {
+            guard let editDate = editDate, editDate >= oldDate else { return }
+        }
+        let bytes = serializeBoxed(message) as Data
+        guard snapshots[key] != bytes else { return }
+        snapshots[key] = bytes
+        snapshotOrder.removeAll { $0 == key }
+        snapshotOrder.append(key)
+        let unpinned = snapshotOrder.filter {
+            markerBits(id: $0.id, peer: $0.peer, account: $0.account, namespace: $0.namespace) & deletedMarker == 0
+        }
+        let evicted = Set(unpinned.prefix(max(0, unpinned.count - 2000)))
+        for key in evicted { snapshots.removeValue(forKey: key) }
+        snapshotOrder.removeAll { evicted.contains($0) }
+        scheduleSnapshotWrite()
+    }
+
+    private static func restoreValidatedMessages(_ messages: [Api.Message]) -> ([Api.Message], Bool) {
+        guard processingNamespace == 0, let account = processingHistoryAccount,
+              let requested = requestedMessageIds else { return (messages, false) }
+        loadSnapshots()
+        var available = Set<Int32>()
+        for message in messages {
+            switch message {
+            case let .message(data): available.insert(data.id)
+            case let .messageService(data): available.insert(data.id)
+            default: break
+            }
+        }
+        var recovered = [Int32: Api.Message]()
+        for id in requested where !available.contains(id) {
+            let matches = snapshots.keys.filter {
+                $0.account == account && $0.namespace == 0 && $0.id == id
+            }.filter { key in
+                if let peer = requestedMessagePeer { return key.peer == peer }
+                return key.peer > -1_000_000_000_000
+            }
+            guard matches.count == 1, let key = matches.first, let bytes = snapshots[key],
+                  let snapshot = decodedSnapshot(bytes),
+                  neutralizeDeletions([id], peer: key.peer) != nil else { continue }
+            recovered[id] = snapshot
+        }
+        guard !recovered.isEmpty else { return (messages, false) }
+        // Persist newly pinned snapshots before the host can validate again.
+        writeSnapshots()
+        var result = messages.map { message -> Api.Message in
+            if case let .messageEmpty(data) = message, let replacement = recovered.removeValue(forKey: data.id) { return replacement }
+            return message
+        }
+        for id in requested {
+            if let replacement = recovered.removeValue(forKey: id) { result.append(replacement) }
+        }
+        return (result, true)
+    }
+
+    private static func validationRequest(_ payload: NSData?, function: Int32) -> (ids: [Int32], peer: Int64?)? {
+        guard function == 1673946374 || function == -1383294429, let payload = payload else { return nil }
+        let reader = BufferReader(Buffer(nsData: payload))
+        guard reader.readInt32() == function else { return nil }
+        var peer: Int64?
+        if function == -1383294429 {
+            guard let constructor = reader.readInt32(), let channel = Api.parse(reader, signature: constructor) as? Api.InputChannel else { return nil }
+            switch channel {
+            case let .inputChannel(data): peer = -(1_000_000_000_000 + data.channelId)
+            case let .inputChannelFromMessage(data): peer = -(1_000_000_000_000 + data.channelId)
+            default: return nil
+            }
+        }
+        guard reader.readInt32() == 481674261, let count = reader.readInt32(), count >= 0,
+              Int(count) <= (payload.length - Int(reader.offset)) / 4 else { return nil }
+        var ids = [Int32]()
+        for _ in 0..<count {
+            guard let constructor = reader.readInt32(), let input = Api.parse(reader, signature: constructor) as? Api.InputMessage else { return nil }
+            if case let .inputMessageID(data) = input { ids.append(data.id) }
+        }
+        guard reader.offset == UInt(payload.length) else { return nil }
+        return (ids, peer)
+    }
+
+    private struct OutgoingOriginal {
+        let peer: Int64
+        let text: String
+        let entities: [Api.MessageEntity]?
+    }
+    private static var outgoingOriginal: OutgoingOriginal?
+
+    private static func outgoingRequest(_ payload: NSData?, function: Int32) -> OutgoingOriginal? {
+        guard function == -17526942 || function == 53536639, let payload = payload else { return nil }
+        let reader = BufferReader(Buffer(nsData: payload))
+        func object<T>(_ type: T.Type) -> T? {
+            guard let constructor = reader.readInt32() else { return nil }
+            return Api.parse(reader, signature: constructor) as? T
+        }
+        guard reader.readInt32() == function, let flags = reader.readInt32(),
+              let peer = object(Api.InputPeer.self) else { return nil }
+        let peerId: Int64
+        switch peer {
+        case let .inputPeerUser(data): peerId = data.userId
+        case let .inputPeerChat(data): peerId = -data.chatId
+        case let .inputPeerChannel(data): peerId = -(1_000_000_000_000 + data.channelId)
+        case let .inputPeerUserFromMessage(data): peerId = data.userId
+        case let .inputPeerChannelFromMessage(data): peerId = -(1_000_000_000_000 + data.channelId)
+        default: return nil // inputPeerSelf needs an account-scoped self id.
+        }
+        if flags & 1 != 0 && object(Api.InputReplyTo.self) == nil { return nil }
+        if function == 53536639 && object(Api.InputMedia.self) == nil { return nil }
+        guard let text = parseString(reader), reader.readInt64() != nil else { return nil }
+        if flags & (1 << 2) != 0 && object(Api.ReplyMarkup.self) == nil { return nil }
+        var entities: [Api.MessageEntity]?
+        if flags & (1 << 3) != 0 {
+            guard reader.readInt32() == 481674261, let count = reader.readInt32(), count >= 0,
+                  Int(count) <= (payload.length - Int(reader.offset)) / 4 else { return nil }
+            var values = [Api.MessageEntity]()
+            for _ in 0..<count {
+                guard let value = object(Api.MessageEntity.self) else { return nil }
+                values.append(value)
+            }
+            entities = values
+        }
+        for bit in [10, 24] where flags & (1 << bit) != 0 { guard reader.readInt32() != nil else { return nil } }
+        if flags & (1 << 13) != 0 && object(Api.InputPeer.self) == nil { return nil }
+        if flags & (1 << 17) != 0 && object(Api.InputQuickReplyShortcut.self) == nil { return nil }
+        for bit in [18, 21] where flags & (1 << bit) != 0 { guard reader.readInt64() != nil else { return nil } }
+        if flags & (1 << 22) != 0 && object(Api.SuggestedPost.self) == nil { return nil }
+        if function == -17526942 && flags & (1 << 23) != 0 && object(Api.InputRichMessage.self) == nil { return nil }
+        guard reader.offset == UInt(payload.length) else { return nil }
+        return OutgoingOriginal(peer: peerId, text: text, entities: entities)
     }
 
     // MARK: - Anti-Edit
@@ -118,28 +291,38 @@ class TLParser: NSObject {
         let account: String
         let peer: Int64
         let id: Int32
+        let namespace: Int32
 
-        var storageKey: String { "\(account):\(peer):\(id)" }
+        var storageKey: String {
+            let base = "\(account):\(peer):\(id)"
+            return namespace == 0 ? base : "\(base):\(namespace)"
+        }
 
-        init(account: String, peer: Int64, id: Int32) {
+        init(account: String, peer: Int64, id: Int32, namespace: Int32 = 0) {
             self.account = account
             self.peer = peer
             self.id = id
+            self.namespace = namespace
         }
 
         init?(storageKey: String) {
             let parts = storageKey.split(separator: ":")
-            guard parts.count == 3,
+            guard parts.count == 3 || parts.count == 4,
                   let peer = Int64(parts[1]), let id = Int32(parts[2]) else { return nil }
             self.account = String(parts[0])
             self.peer = peer
             self.id = id
+            if parts.count == 4 {
+                guard let namespace = Int32(parts[3]) else { return nil }
+                self.namespace = namespace
+            } else { self.namespace = 0 }
         }
     }
 
     private struct EditEntry {
         var versions: [String]
         var editDate: Int32?
+        var contents: [[String: Data]]
     }
 
     private static var _editHistory = [EditKey: EditEntry]()
@@ -228,8 +411,10 @@ class TLParser: NSObject {
             for (key, value) in saved {
                 guard let editKey = EditKey(storageKey: key),
                       let versions = value["versions"] as? [String], !versions.isEmpty else { continue }
+                let savedContents = value["contents"] as? [[String: Data]] ?? []
+                let contents = savedContents.count == versions.count ? savedContents : Array(repeating: [:], count: versions.count)
                 _editHistory[editKey] = EditEntry(versions: versions,
-                    editDate: (value["editDate"] as? NSNumber)?.int32Value)
+                    editDate: (value["editDate"] as? NSNumber)?.int32Value, contents: contents)
                 if versions.count == 1 { _originalOrder.append(editKey) }
             }
             trimOriginalsLocked()
@@ -248,7 +433,7 @@ class TLParser: NSObject {
     private static func writeEditHistoryLocked() {
         var out = [String: [String: Any]]()
         for (key, entry) in _editHistory {
-            var value: [String: Any] = ["versions": entry.versions]
+            var value: [String: Any] = ["versions": entry.versions, "contents": entry.contents]
             if let date = entry.editDate { value["editDate"] = NSNumber(value: date) }
             out[key.storageKey] = value
         }
@@ -289,41 +474,48 @@ class TLParser: NSObject {
                 UserDefaults.standard.removeObject(forKey: key)
             }
         }
-        deletedQueue.sync(flags: .barrier) {
-            _loaded = true
-            _deletedIds.removeAll()
-            UserDefaults.standard.removeObject(forKey: udKey)
+        snapshotsLoaded = true
+        snapshots.removeAll()
+        snapshotOrder.removeAll()
+        snapshotGeneration &+= 1
+        snapshotWriteScheduled = false
+        UserDefaults.standard.removeObject(forKey: snapshotUdKey)
+        markersLoaded = true
+        messageMarkers.removeAll()
+        for key in [markerUdKey, "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"] {
+            UserDefaults.standard.removeObject(forKey: key)
         }
-        selfDestructingMessageIds.removeAll()
-        autoDeleteMessageIds.removeAll()
-        UserDefaults.standard.removeObject(forKey: "TGExtraSelfDestructingMsgIds")
-        UserDefaults.standard.removeObject(forKey: "TGExtraAutoDeleteMsgIds")
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: NSNotification.Name("TGExtraMessageDataCleared"), object: nil)
         }
     }
 
-    /// Returns true only when another text version was appended. The date is
+    /// Returns true when another text or content revision was appended. The date is
     /// a high-water mark even when a newer edit changes only formatting: a late
     /// response with an older text must not roll the history back afterwards.
     private static func recordText(_ text: String, forId id: Int32, peer: Int64,
-                                   editDate: Int32?) -> Bool {
+                                   editDate: Int32?, allowUndatedEdit: Bool = false, content: [String: Data] = [:]) -> Bool {
         guard id != 0, peer != 0, let account = processingHistoryAccount else { return false }
-        let key = EditKey(account: account, peer: peer, id: id)
+        let key = EditKey(account: account, peer: peer, id: id, namespace: processingNamespace)
         return editQueue.sync(flags: .barrier) {
             guard var entry = _editHistory[key] else {
-                _editHistory[key] = EditEntry(versions: [text], editDate: editDate)
+                _editHistory[key] = EditEntry(versions: [text], editDate: editDate, contents: [content])
                 _originalOrder.append(key)
                 trimOriginalsLocked()
                 scheduleEditPersistLocked()
                 return false
             }
-            guard let date = editDate else { return false }
-            if let latestDate = entry.editDate, date < latestDate { return false }
-            let dateChanged = entry.editDate != date
-            entry.editDate = date
-            guard entry.versions.last != text else {
-                if dateChanged {
+            guard editDate != nil || allowUndatedEdit else { return false }
+            if let date = editDate, let latestDate = entry.editDate, date < latestDate { return false }
+            let dateChanged = editDate != nil && entry.editDate != editDate
+            if let date = editDate { entry.editDate = date }
+            let previousContent = entry.contents.last ?? [:]
+            let contentChanged = !previousContent.isEmpty && !content.isEmpty &&
+                ["entities", "mediaIdentity", "rich"].contains { previousContent[$0] != content[$0] }
+            guard entry.versions.last != text || contentChanged else {
+                let learnedContent = previousContent.isEmpty && !content.isEmpty
+                if learnedContent { entry.contents[entry.contents.count - 1] = content }
+                if dateChanged || learnedContent {
                     _editHistory[key] = entry
                     // Keep ordering metadata as durable as the edited history.
                     if entry.versions.count > 1 { writeEditHistoryLocked() }
@@ -333,8 +525,11 @@ class TLParser: NSObject {
             }
             if entry.versions.count == 1 { _originalOrder.removeAll { $0 == key } }
             entry.versions.append(text)
+            entry.contents.append(content)
             if entry.versions.count > maxVersionsPerMessage {
-                entry.versions.removeSubrange(1..<(entry.versions.count - maxVersionsPerMessage + 1))
+                let removed = 1..<(entry.versions.count - maxVersionsPerMessage + 1)
+                entry.versions.removeSubrange(removed)
+                entry.contents.removeSubrange(removed)
             }
             _editHistory[key] = entry
             writeEditHistoryLocked()
@@ -356,12 +551,82 @@ class TLParser: NSObject {
     }
 
     /// An unresolved account must never see a different account's history.
-    @objc static func editHistory(forId id: NSNumber, peer: NSNumber?, account: String?) -> [String]? {
+    @objc(editHistoryForId:peer:account:messageNamespace:) static func editHistory(forId id: NSNumber, peer: NSNumber?, account: String?, namespace: NSNumber? = nil) -> [String]? {
         guard let account = account, let peer = peer, peer.int64Value != 0 else { return nil }
-        let key = EditKey(account: account, peer: peer.int64Value, id: id.int32Value)
+        let key = EditKey(account: account, peer: peer.int64Value, id: id.int32Value, namespace: namespace?.int32Value ?? 0)
         let versions = editQueue.sync { _editHistory[key]?.versions }
         guard let versions = versions, versions.count > 1 else { return nil }
         return versions
+    }
+
+    @objc(editRevisionDetailsForId:peer:account:messageNamespace:) static func editRevisionDetails(forId id: NSNumber, peer: NSNumber?, account: String?, namespace: NSNumber?) -> [[String: Any]]? {
+        guard let account = account, let peer = peer else { return nil }
+        let key = EditKey(account: account, peer: peer.int64Value, id: id.int32Value, namespace: namespace?.int32Value ?? 0)
+        return editQueue.sync {
+            guard let entry = _editHistory[key], entry.versions.count > 1 else { return nil }
+            return entry.contents.enumerated().map { index, content in
+                let previous = index > 0 ? entry.contents[index - 1] : content
+                let comparable = !previous.isEmpty && !content.isEmpty
+                let richFormattingChanged = index > 0 && entry.versions[index] == entry.versions[index - 1] && previous["rich"] != content["rich"]
+                return ["text": entry.versions[index], "content": content,
+                        "mediaChanged": comparable && previous["mediaIdentity"] != content["mediaIdentity"],
+                        "formatChanged": comparable && (previous["entities"] != content["entities"] || richFormattingChanged)]
+            }
+        }
+    }
+
+    private static func revisionContent(entities: [Api.MessageEntity]?, media: Api.MessageMedia?, rich: Api.RichMessage?) -> [String: Data] {
+        let entityBuffer = Buffer()
+        for entity in entities ?? [] { entity.serialize(entityBuffer, true) }
+        var content = ["entities": entityBuffer.makeData(), "mediaIdentity": Data()]
+        if let media = media {
+            content["media"] = serializeBoxed(media) as Data
+            let identity: String
+            switch media {
+            case let .messageMediaPhoto(data):
+                switch data.photo {
+                case let .photo(data)?: identity = "photo:\(data.id)"
+                case let .photoEmpty(data)?: identity = "photo:\(data.id)"
+                default: identity = "photo"
+                }
+            case let .messageMediaDocument(data):
+                switch data.document {
+                case let .document(data)?: identity = "document:\(data.id)"
+                case let .documentEmpty(data)?: identity = "document:\(data.id)"
+                default: identity = "document"
+                }
+            case .messageMediaPoll, .messageMediaGeoLive, .messageMediaWebPage:
+                // Dynamic poll results, live location and webpage refreshes are
+                // not edits. Track their type without recording every refresh.
+                identity = media.descriptionFields().0
+            default:
+                identity = ""
+            }
+            content["mediaIdentity"] = identity.isEmpty ? content["media"] : Data(identity.utf8)
+        }
+        if let rich = rich { content["rich"] = serializeBoxed(rich) as Data }
+        return content
+    }
+
+    /// Extract actual text blocks, not URLs, file references or debug dumps.
+    private static func richText(_ value: Any, depth: Int = 0) -> String {
+        guard depth < 48 else { return "" }
+        if let message = value as? Api.RichMessage, case let .richMessage(data) = message {
+            return data.blocks.map { richText($0, depth: depth + 1) }.joined(separator: "\n")
+        }
+        if let text = value as? Api.RichText {
+            switch text {
+            case let .textPlain(data): return data.text
+            case let .textCustomEmoji(data): return data.alt
+            case let .textMath(data): return data.source
+            case let .textDiff(data): return richText(data.text, depth: depth + 1)
+            default: break
+            }
+        }
+        if let texts = value as? [Api.RichText] { return texts.map { richText($0, depth: depth + 1) }.joined() }
+        let mirror = Mirror(reflecting: value)
+        let pieces = mirror.children.map { richText($0.value, depth: depth + 1) }.filter { !$0.isEmpty }
+        return pieces.joined(separator: value is Api.RichMessage || mirror.displayStyle == .collection ? "\n" : "")
     }
 
     /// Same job for the compact update forms. Telegram does not wrap a plain
@@ -371,11 +636,11 @@ class TLParser: NSObject {
     /// missing them meant Anti-Edit never recorded anything in the very case it
     /// exists for. Outgoing versions are safe to record too: tracking never
     /// rewrites the message sent to the host.
-    private static func recordShortFormOriginal(id: Int32, text: String, peer: Int64) {
+    private static func recordShortFormOriginal(id: Int32, text: String, peer: Int64, entities: [Api.MessageEntity]?) {
         guard isAntiEditEnabled else { return }
         guard id != 0 else { return }
         diag("anti-edit RECORD id=\(id) peer=\(peer) \(text.count) chars")
-        _ = recordText(text, forId: id, peer: peer, editDate: nil)
+        _ = recordText(text, forId: id, peer: peer, editDate: nil, content: revisionContent(entities: entities, media: nil, rich: nil))
     }
 
     /// Files what a message currently says. First sighting becomes the original;
@@ -386,13 +651,16 @@ class TLParser: NSObject {
     /// reachable through the pencil badge. Substituting the original into the
     /// bubble instead, as this used to, meant the reader could see that an edit
     /// had happened but never what it said.
-    private static func trackMessageVersions(_ apiMsg: Api.Message) {
+    private static func trackMessageVersions(_ apiMsg: Api.Message, allowUndatedEdit: Bool = false) {
         guard isAntiEditEnabled else { return }
         guard case let .message(data) = apiMsg else { return }
         guard data.id != 0 else { return }
 
         let peer = peerKey(data.peerId)
-        guard recordText(data.message, forId: data.id, peer: peer, editDate: data.editDate),
+        let text = data.richMessage.map { richText($0) }.flatMap { $0.isEmpty ? nil : $0 } ?? data.message
+        let content = revisionContent(entities: data.entities, media: data.media, rich: data.richMessage)
+        guard recordText(text, forId: data.id, peer: peer, editDate: data.editDate,
+                         allowUndatedEdit: allowUndatedEdit, content: content),
               let account = processingHistoryAccount else { return }
         diag("anti-edit VERSION id=\(data.id) peer=\(peer) account=\(account)")
 
@@ -400,11 +668,12 @@ class TLParser: NSObject {
         // is already on screen triggers no layout pass of its own. Without this
         // nudge the pencil only turned up after leaving and reopening the app.
         let id = data.id
+        let namespace = processingNamespace
         DispatchQueue.main.async {
             NotificationCenter.default.post(
                 name: NSNotification.Name("TGExtraMessageEditedRealtime"),
                 object: nil,
-                userInfo: ["ids": [NSNumber(value: id)], "account": account, "peer": NSNumber(value: peer)]
+                userInfo: ["ids": [NSNumber(value: id)], "account": account, "peer": NSNumber(value: peer), "namespace": NSNumber(value: namespace)]
             )
         }
     }
@@ -413,7 +682,7 @@ class TLParser: NSObject {
     /// handed back untouched, so this never marks the response as modified.
     private static func trackVersions(in msgs: [Api.Message]) {
         guard isAntiEditEnabled else { return }
-        msgs.forEach(trackMessageVersions)
+        msgs.forEach { trackMessageVersions($0) }
     }
 
     /// Applies every message-level rewrite to a batch arriving from the network,
@@ -425,17 +694,19 @@ class TLParser: NSObject {
     /// stripping was computed and then thrown away.
     private static func patchMessageBatch(_ msgs: [Api.Message], chats: [Api.Chat])
             -> (messages: [Api.Message], chats: [Api.Chat], changed: Bool) {
-        trackVersions(in: msgs)
+        let (messages, restored) = restoreValidatedMessages(msgs)
+        messages.forEach(cacheMessage)
+        trackVersions(in: messages)
 
         let (newChats, changedChats) = stripNoForwardsFromChats(chats)
 
         var changedTTL = false
-        let final = msgs.map { msg -> Api.Message in
+        let final = messages.map { msg -> Api.Message in
             let (stripped, didStrip) = stripTTLMessage(msg)
             if didStrip { changedTTL = true }
             return stripped
         }
-        return (final, newChats, changedChats || changedTTL)
+        return (final, newChats, restored || changedChats || changedTTL)
     }
 
     /// Dynamically extracts message.id.id from a ChatMessageItem using string description parsing.
@@ -646,6 +917,28 @@ class TLParser: NSObject {
             }
         }
         return findPeerKey(in: item, depth: 0)
+    }
+
+    @objc static func getMessageNamespaceFromNode(_ node: Any) -> NSNumber? {
+        func find(_ value: Any, depth: Int) -> Int32? {
+            guard depth <= 9 else { return nil }
+            var mirror: Mirror? = Mirror(reflecting: unwrapOptional(value))
+            while let current = mirror {
+                let children = Array(current.children)
+                if children.contains(where: { $0.label == "peerId" }),
+                   let namespace = children.first(where: { $0.label == "namespace" }),
+                   let raw = rawNumber(namespace.value), let result = Int32(exactly: raw) { return result }
+                for child in children {
+                    let label = child.label ?? ""
+                    if ["item", "content", "message", "firstMessage", "id", "some", ""].contains(label) || label.hasPrefix(".") {
+                        if let result = find(child.value, depth: depth + 1) { return result }
+                    }
+                }
+                mirror = current.superclassMirror
+            }
+            return nil
+        }
+        return find(node, depth: 0).map { NSNumber(value: $0) }
     }
 
     /// Walk only the node -> item -> context -> account chain, never the
@@ -1209,58 +1502,29 @@ class TLParser: NSObject {
         return nil
     }
 
-    /// A caller with no peer gets `false`: showing the marker on the wrong
-    /// message is worse than not showing it on the right one.
-    @objc static func isDeleted(_ msgId: NSNumber, peer: NSNumber?) -> Bool {
+    @objc(isDeleted:peer:account:messageNamespace:) static func isDeleted(_ msgId: NSNumber, peer: NSNumber?, account: String?, namespace: NSNumber? = nil) -> Bool {
         guard let peer = peer, peer.int64Value != 0 else { return false }
-        return isDeletedMessage(id: msgId.int32Value, peer: peer.int64Value)
+        processingLock.lock()
+        defer { processingLock.unlock() }
+        return markerBits(id: msgId.int32Value, peer: peer.int64Value, account: account,
+                          namespace: namespace?.int32Value ?? 0) & deletedMarker != 0
     }
 
-    // A revoked message used to get a 🗑️ glued onto the front of its text. That
-    // rewrite is gone: the bubble already carries a red trash icon drawn next to
-    // the timestamp, so the prefix was a second marker for the same fact — and a
-    // costly one. It never shifted the entity offsets that came with the message,
-    // so every bold run, link, mention and custom emoji on a revoked message
-    // landed three UTF-16 units to the left of where it belonged.
-    //
-    // `_deletedIds` is still recorded; it is what the icon asks about.
-    // Restore timer classification so a deletion after relaunch still matches.
-    private static var selfDestructingMessageIds = loadTimedIds("TGExtraSelfDestructingMsgIds")
-    private static var autoDeleteMessageIds = loadTimedIds("TGExtraAutoDeleteMsgIds")
-
-    @objc static func isMessageSelfDestructing(_ msgId: NSNumber, peer: NSNumber?) -> Bool {
+    @objc(isMessageSelfDestructing:peer:account:messageNamespace:) static func isMessageSelfDestructing(_ msgId: NSNumber, peer: NSNumber?, account: String?, namespace: NSNumber? = nil) -> Bool {
         guard let peer = peer else { return false }
         processingLock.lock()
         defer { processingLock.unlock() }
-        let scope = peer.int64Value <= -1_000_000_000_000 ? peer.int64Value : cloudScope
-        return selfDestructingMessageIds[msgId.int32Value]?.contains(scope) == true
-    }
-
-    private static func loadTimedIds(_ key: String) -> [Int32: Set<Int64>] {
-        let saved = UserDefaults.standard.dictionary(forKey: key) as? [String: [NSNumber]] ?? [:]
-        var ids = [Int32: Set<Int64>]()
-        for (id, scopes) in saved {
-            if let id = Int32(id) { ids[id] = Set(scopes.map { $0.int64Value }) }
-        }
-        return ids
+        return markerBits(id: msgId.int32Value, peer: peer.int64Value, account: account,
+                          namespace: namespace?.int32Value ?? 0) & disappearingMarker != 0
     }
 
     private static func recordTimedId(_ id: Int32, scope: Int64, disappearing: Bool) {
-        var ids = disappearing ? selfDestructingMessageIds : autoDeleteMessageIds
-        guard ids[id]?.contains(scope) != true else { return }
-        ids[id, default: []].insert(scope)
-        if ids.count > 2000 {
-            for oldest in ids.keys.sorted().prefix(ids.count - 2000) { ids.removeValue(forKey: oldest) }
-        }
-        var saved = [String: [NSNumber]]()
-        for (id, scopes) in ids { saved[String(id)] = scopes.map { NSNumber(value: $0) } }
-        if disappearing { selfDestructingMessageIds = ids } else { autoDeleteMessageIds = ids }
-        UserDefaults.standard.set(saved, forKey: disappearing ? "TGExtraSelfDestructingMsgIds" : "TGExtraAutoDeleteMsgIds")
+        recordMarker(disappearing ? disappearingMarker : autoDeleteMarker,
+                     id: id, peer: scope, account: processingHistoryAccount, namespace: processingNamespace)
     }
 
     private static func deletionScope(_ peer: Api.Peer) -> Int64 {
-        if case let .peerChannel(data) = peer { return -(1_000_000_000_000 + data.channelId) }
-        return cloudScope
+        return peerKey(peer)
     }
 
     private static func stripTTLMedia(_ media: Api.MessageMedia, messageId: Int32, scope: Int64) -> Api.MessageMedia {
@@ -1376,6 +1640,14 @@ class TLParser: NSObject {
 
     private static func stripTTLMessage(_ apiMsg: Api.Message) -> (Api.Message, Bool) {
         let defaults = UserDefaults.standard
+        if case let .messageService(data) = apiMsg {
+            guard data.ttlPeriod != nil else { return (apiMsg, false) }
+            recordTimedId(data.id, scope: deletionScope(data.peerId), disappearing: false)
+            guard defaults.bool(forKey: "TGExtraAntiAutoDelete") else { return (apiMsg, false) }
+            data.flags &= ~(1 << 25)
+            data.ttlPeriod = nil
+            return (apiMsg, true)
+        }
         guard case let .message(data) = apiMsg else { return (apiMsg, false) }
         let scope = deletionScope(data.peerId)
         let autoDelete = data.ttlPeriod != nil
@@ -1384,7 +1656,7 @@ class TLParser: NSObject {
         if let media = data.media {
             data.media = stripTTLMedia(media, messageId: data.id, scope: scope)
         }
-        let disappearing = selfDestructingMessageIds[data.id]?.contains(scope) == true
+        let disappearing = markerBits(id: data.id, peer: scope, account: processingHistoryAccount, namespace: processingNamespace) & disappearingMarker != 0
         if autoDelete && defaults.bool(forKey: "TGExtraAntiAutoDelete") {
             data.flags &= ~(1 << 25)
             data.ttlPeriod = nil
@@ -1417,6 +1689,7 @@ class TLParser: NSObject {
     private static func stripTTLUpdate(_ update: Api.Update) -> (Api.Update, Bool) {
         switch update {
         case let .updateNewMessage(data):
+            cacheMessage(data.message)
             trackMessageVersions(data.message)
             let (strippedMsg, changed) = stripTTLMessage(data.message)
             if !changed {
@@ -1424,6 +1697,7 @@ class TLParser: NSObject {
             }
             return (.updateNewMessage(Api.Update.Cons_updateNewMessage(message: strippedMsg, pts: data.pts, ptsCount: data.ptsCount)), true)
         case let .updateNewChannelMessage(data):
+            cacheMessage(data.message)
             trackMessageVersions(data.message)
             let (strippedMsg, changed) = stripTTLMessage(data.message)
             if !changed {
@@ -1434,15 +1708,78 @@ class TLParser: NSObject {
         // the edit as Telegram intended; the pencil badge is what surfaces the
         // versions that came before it.
         case let .updateEditMessage(data):
+            cacheMessage(data.message)
             // Logged before the flag check: silence here otherwise cannot be
             // told apart from "the update never arrived".
             diag("updateEditMessage seen, antiEdit=\(isAntiEditEnabled)")
-            trackMessageVersions(data.message)
-            return (update, false)
+            trackMessageVersions(data.message, allowUndatedEdit: true)
+            let (message, changed) = stripTTLMessage(data.message)
+            return (.updateEditMessage(.init(message: message, pts: data.pts, ptsCount: data.ptsCount)), changed)
         case let .updateEditChannelMessage(data):
+            cacheMessage(data.message)
             diag("updateEditChannelMessage seen, antiEdit=\(isAntiEditEnabled)")
-            trackMessageVersions(data.message)
-            return (update, false)
+            trackMessageVersions(data.message, allowUndatedEdit: true)
+            let (message, changed) = stripTTLMessage(data.message)
+            return (.updateEditChannelMessage(.init(message: message, pts: data.pts, ptsCount: data.ptsCount)), changed)
+        case let .updateNewScheduledMessage(data):
+            return withNamespace(3) {
+                trackMessageVersions(data.message, allowUndatedEdit: true)
+                let (message, changed) = stripTTLMessage(data.message)
+                return (.updateNewScheduledMessage(.init(message: message)), changed)
+            }
+        case let .updateQuickReplyMessage(data):
+            return withNamespace(5) {
+                trackMessageVersions(data.message, allowUndatedEdit: true)
+                let (message, changed) = stripTTLMessage(data.message)
+                return (.updateQuickReplyMessage(.init(message: message)), changed)
+            }
+        case let .updateDeleteScheduledMessages(data):
+            // Sending a scheduled message removes it from the queue normally.
+            guard data.sentMessages == nil else { return (update, false) }
+            return withNamespace(3) {
+                guard let kept = neutralizeDeletions(data.messages, peer: peerKey(data.peer)) else { return (update, false) }
+                return (.updateDeleteScheduledMessages(.init(flags: data.flags, peer: data.peer,
+                    messages: kept, sentMessages: nil)), true)
+            }
+        case let .updateDeleteQuickReplyMessages(data):
+            return withNamespace(5) {
+                guard let kept = neutralizeDeletions(data.messages, peer: cloudScope) else { return (update, false) }
+                return (.updateDeleteQuickReplyMessages(.init(shortcutId: data.shortcutId, messages: kept)), true)
+            }
+        case let .updateNewEphemeralMessage(data):
+            let changed = patchEphemeralMessage(data.message, isEdit: false)
+            return (update, changed)
+        case let .updateEditEphemeralMessage(data):
+            let changed = patchEphemeralMessage(data.message, isEdit: true)
+            return (update, changed)
+        case let .updateDeleteEphemeralMessages(data):
+            var ids = data.ids
+            // The host removes both local and anchored messages for these ids.
+            for namespace: Int32 in [7, 8] {
+                let kept = withNamespace(namespace) { neutralizeDeletions(data.ids, peer: peerKey(data.peer)) ?? data.ids }
+                ids = zip(ids, kept).map { $0 == 0 || $1 == 0 ? 0 : $0 }
+            }
+            return (.updateDeleteEphemeralMessages(.init(peer: data.peer, ids: ids)), ids != data.ids)
+        case let .updateChannelAvailableMessages(data):
+            guard UserDefaults.standard.bool(forKey: "TGExtraAntiRevoke") else { return (update, false) }
+            if let account = processingHistoryAccount, data.availableMinId > 0 {
+                loadMarkers()
+                let peer = -(1_000_000_000_000 + data.channelId)
+                let key = EditKey(account: account, peer: peer, id: 0)
+                messageMarkers[key] = max(messageMarkers[key, default: 0], Int(data.availableMinId))
+                persistMarkers()
+                loadSnapshots()
+                if !snapshots.isEmpty { writeSnapshots() }
+                let maxId = data.availableMinId
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: NSNotification.Name("TGExtraMessageDeletedRealtime"), object: nil,
+                        userInfo: ["maxId": NSNumber(value: maxId), "account": account,
+                                   "peer": NSNumber(value: peer), "namespace": NSNumber(value: 0)])
+                }
+            }
+            // This update carries no pts. An empty zero-pts deletion is a no-op
+            // for the host and preserves the surrounding packet's counters.
+            return (.updateDeleteMessages(.init(messages: [], pts: 0, ptsCount: 0)), true)
         case let .updateDeleteMessages(data):
             guard let kept = neutralizeDeletions(data.messages, peer: cloudScope) else { return (update, false) }
             return (.updateDeleteMessages(Api.Update.Cons_updateDeleteMessages(
@@ -1455,6 +1792,36 @@ class TLParser: NSObject {
                 pts: data.pts, ptsCount: data.ptsCount)), true)
         default:
             return (update, false)
+        }
+    }
+
+    private static func patchEphemeralMessage(_ message: Api.EphemeralMessage, isEdit: Bool) -> Bool {
+        guard case let .ephemeralMessage(data) = message else { return false }
+        guard let peer = data.peerId else {
+            guard let media = data.media else { return false }
+            let before = serializeBoxed(message)
+            data.media = stripTTLMedia(media, messageId: 0, scope: 0)
+            return before != serializeBoxed(message)
+        }
+        let namespace: Int32 = data.flags & (1 << 5) != 0 ? 9 : (data.anchorMsgId == nil ? 7 : 8)
+        return withNamespace(namespace) {
+            if isAntiEditEnabled {
+                let text = data.richMessage.map { richText($0) }.flatMap { $0.isEmpty ? nil : $0 } ?? data.message
+                if recordText(text, forId: data.id, peer: peerKey(peer), editDate: nil, allowUndatedEdit: isEdit,
+                              content: revisionContent(entities: data.entities, media: data.media, rich: data.richMessage)),
+                   let account = processingHistoryAccount {
+                    let id = data.id
+                    let peerId = peerKey(peer)
+                    DispatchQueue.main.async {
+                        NotificationCenter.default.post(name: NSNotification.Name("TGExtraMessageEditedRealtime"), object: nil,
+                            userInfo: ["ids": [NSNumber(value: id)], "peer": NSNumber(value: peerId),
+                                       "account": account, "namespace": NSNumber(value: namespace)])
+                    }
+                }
+            }
+            let before = serializeBoxed(message)
+            if let media = data.media { data.media = stripTTLMedia(media, messageId: data.id, scope: peerKey(peer)) }
+            return before != serializeBoxed(message)
         }
     }
 
@@ -1479,22 +1846,26 @@ class TLParser: NSObject {
         let kept = ids.map { id -> Int32 in
             guard id != 0 else { return 0 }
             let protected = antiRevoke ||
-                (antiSelfDestruct && selfDestructingMessageIds[id]?.contains(peer) == true) ||
-                (antiAutoDelete && autoDeleteMessageIds[id]?.contains(peer) == true)
+                (antiSelfDestruct && markerBits(id: id, peer: peer, account: processingHistoryAccount, namespace: processingNamespace) & disappearingMarker != 0) ||
+                (antiAutoDelete && markerBits(id: id, peer: peer, account: processingHistoryAccount, namespace: processingNamespace) & autoDeleteMarker != 0)
             return protected ? 0 : id
         }
         let live = zip(ids, kept).compactMap { original, replacement in
             original != 0 && replacement == 0 ? original : nil
         }
-        live.forEach { addDeletedId($0, peer: peer) }
+        live.forEach { addDeletedId($0, peer: peer, account: processingHistoryAccount, namespace: processingNamespace) }
         guard kept != ids else { return nil }
+        loadSnapshots()
+        if !snapshots.isEmpty { writeSnapshots() }
 
-        if antiRevoke {
+        if let account = processingHistoryAccount {
             let saved = live.map { NSNumber(value: $0) }
+            let namespace = processingNamespace
             DispatchQueue.main.async {
                 NotificationCenter.default.post(
-                    name: NSNotification.Name("TGExtraMessageDeletedRealtime"),
-                    object: nil, userInfo: ["ids": saved])
+                    name: NSNotification.Name("TGExtraMessageDeletedRealtime"), object: nil,
+                    userInfo: ["ids": saved, "account": account, "peer": NSNumber(value: peer),
+                               "namespace": NSNumber(value: namespace)])
             }
         }
         diag("anti-revoke: neutralised \(live.count) deletion(s) in the parsed path")
@@ -1526,8 +1897,7 @@ class TLParser: NSObject {
 
     /// History and difference replies carry messages before their peer vectors.
     /// Read that known prefix without reserializing an unknown peer's bytes.
-    private static func trackVersionsWithOpaquePeers(_ data: NSData, signature: Int32) {
-        guard isAntiEditEnabled else { return }
+    private static func patchHistoryWithOpaquePeers(_ data: NSData, signature: Int32) -> NSData? {
         let reader = BufferReader(Buffer(nsData: data))
         reader.skip(4)
 
@@ -1556,79 +1926,90 @@ class TLParser: NSObject {
         case 494135274: // messages.messages
             hasTopics = true
         case -948520370, 1595959062: // channelMessages, messagesSlice
-            guard let value = reader.readInt32(), reader.readInt32() != nil else { return }
+            guard let value = reader.readInt32(), reader.readInt32() != nil else { return nil }
             flags = value
             if signature == -948520370 {
-                guard reader.readInt32() != nil else { return } // count (after pts)
+                guard reader.readInt32() != nil else { return nil } // count (after pts)
             } else if flags & (1 << 0) != 0 {
-                guard reader.readInt32() != nil else { return } // next_rate
+                guard reader.readInt32() != nil else { return nil } // next_rate
             }
             if flags & (1 << 2) != 0 {
-                guard reader.readInt32() != nil else { return }
+                guard reader.readInt32() != nil else { return nil }
             }
             if signature == 1595959062 && flags & (1 << 3) != 0 {
-                guard object(Api.SearchPostsFlood.self) != nil else { return }
+                guard object(Api.SearchPostsFlood.self) != nil else { return nil }
             }
             hasTopics = true
         case 364538944, 1910543603, 863093588: // dialogs, dialogsSlice, peerDialogs
             if signature == 1910543603 {
-                guard reader.readInt32() != nil else { return }
+                guard reader.readInt32() != nil else { return nil }
             }
-            guard vector(Api.Dialog.self) != nil else { return }
+            guard vector(Api.Dialog.self) != nil else { return nil }
             if signature == 863093588 { suffixBytes = 24 } // updates.State
         case -1506535550: // discussionMessage
-            guard let value = reader.readInt32() else { return }
+            guard let value = reader.readInt32() else { return nil }
             flags = value
         case 543450958: // channelDifference
-            guard let value = reader.readInt32(), reader.readInt32() != nil else { return }
+            guard let value = reader.readInt32(), reader.readInt32() != nil else { return nil }
             if value & (1 << 1) != 0 {
-                guard reader.readInt32() != nil else { return }
+                guard reader.readInt32() != nil else { return nil }
             }
             hasUpdates = true
         case -1531132162: // channelDifferenceTooLong
-            guard let value = reader.readInt32() else { return }
+            guard let value = reader.readInt32() else { return nil }
             if value & (1 << 1) != 0 {
-                guard reader.readInt32() != nil else { return }
+                guard reader.readInt32() != nil else { return nil }
             }
-            guard object(Api.Dialog.self) != nil else { return }
+            guard object(Api.Dialog.self) != nil else { return nil }
         case 16030880, -1459938943: // difference, differenceSlice
             hasEncrypted = true
             hasUpdates = true
             suffixBytes = 24
         default:
-            return
+            return nil
         }
 
-        guard let messages = vector(Api.Message.self) else { return }
+        let messageStart = Int(reader.offset)
+        guard let messages = vector(Api.Message.self) else { return nil }
+        let messageEnd = Int(reader.offset)
         if hasTopics {
-            guard vector(Api.ForumTopic.self) != nil else { return }
+            guard vector(Api.ForumTopic.self) != nil else { return nil }
         }
         if hasEncrypted {
-            guard vector(Api.EncryptedMessage.self) != nil else { return }
+            guard vector(Api.EncryptedMessage.self) != nil else { return nil }
         }
         var updates = [Api.Update]()
+        let updateStart = Int(reader.offset)
+        var updateEnd = updateStart
         if hasUpdates {
-            guard let values = vector(Api.Update.self) else { return }
+            guard let values = vector(Api.Update.self) else { return nil }
             updates = values
+            updateEnd = Int(reader.offset)
         }
         if signature == -1506535550 {
             for bit in 0...2 where flags & (1 << bit) != 0 {
-                guard reader.readInt32() != nil else { return }
+                guard reader.readInt32() != nil else { return nil }
             }
-            guard reader.readInt32() != nil else { return } // unread_count
+            guard reader.readInt32() != nil else { return nil } // unread_count
         }
         guard hasUnknownPeer(reader, length: data.length, usersFirst: false,
-                             suffixBytes: suffixBytes) else { return }
-        trackVersions(in: messages)
-        for update in updates {
-            switch update {
-            case let .updateNewMessage(value): trackMessageVersions(value.message)
-            case let .updateNewChannelMessage(value): trackMessageVersions(value.message)
-            case let .updateEditMessage(value): trackMessageVersions(value.message)
-            case let .updateEditChannelMessage(value): trackMessageVersions(value.message)
-            default: break
-            }
+                             suffixBytes: suffixBytes) else { return nil }
+        let batch = patchMessageBatch(messages, chats: [])
+        let (patchedUpdates, changedUpdates) = stripTTLUpdates(updates)
+        guard batch.changed || changedUpdates || UserDefaults.standard.bool(forKey: "disableForwardRestriction") else { return nil }
+        func boxedVector(_ values: [Any]) -> Data {
+            let buffer = Buffer()
+            buffer.appendInt32(481674261)
+            buffer.appendInt32(Int32(values.count))
+            for value in values { Api.serializeObject(value, buffer: buffer, boxed: true) }
+            return buffer.makeData()
         }
+        var replacements = [(Range<Int>, Data)]()
+        replacements.append((messageStart..<messageEnd, boxedVector(batch.messages)))
+        if hasUpdates { replacements.append((updateStart..<updateEnd, boxedVector(patchedUpdates))) }
+        var output = data as Data
+        for (range, bytes) in replacements.reversed() { output.replaceSubrange(range, with: bytes) }
+        return output == data as Data ? nil : output as NSData
     }
 
     /// A newer User or Chat constructor must not disable protection for the
@@ -1688,6 +2069,14 @@ class TLParser: NSObject {
 
     // Protected by processingLock, including recursive parsing of containers.
     private static var processingHistoryAccount: String?
+    private static var processingNamespace: Int32 = 0
+
+    private static func withNamespace<T>(_ namespace: Int32, _ body: () -> T) -> T {
+        let previous = processingNamespace
+        processingNamespace = namespace
+        defer { processingNamespace = previous }
+        return body()
+    }
 
     @objc static func stripAntiSelfDestruct(_ data: NSData, account: String?) -> NSData? {
         processingLock.lock()
@@ -1727,32 +2116,33 @@ class TLParser: NSObject {
         }
         if signature == 0x73f1f8dc { // msg_container
             guard let count = reader.readInt32(), count >= 0, Int(count) <= (data.length - 8) / 16 else { return nil }
+            var messages = [(id: Int64, sequence: Int32, body: NSData)]()
+            for _ in 0..<count {
+                guard let id = reader.readInt64(), let sequence = reader.readInt32(),
+                      let length = reader.readInt32(), length >= 4, length % 4 == 0,
+                      let body = reader.readBuffer(Int(length)) else { return nil }
+                messages.append((id, sequence, body.makeData() as NSData))
+            }
+            // Validate all framing before recording anything from a child.
+            guard reader.offset == UInt(data.length) else { return nil }
             let outBuf = Buffer()
             outBuf.appendInt32(0x73f1f8dc)
             outBuf.appendInt32(count)
 
             var modifiedContainer = false
-            for _ in 0..<count {
-                guard let msg_id = reader.readInt64(),
-                      let seqno = reader.readInt32(),
-                      let bytes = reader.readInt32() else { return nil }
-
-                guard let bodyBuffer = reader.readBuffer(Int(bytes)) else { return nil }
-                let bodyData = bodyBuffer.makeData() as NSData
-
-                var newBodyData = bodyData
+            for message in messages {
+                var newBodyData = message.body
                 if let stripped = patchResponse(newBodyData, depth: depth + 1) {
                     newBodyData = stripped
                     modifiedContainer = true
                 }
 
-                outBuf.appendInt64(msg_id)
-                outBuf.appendInt32(seqno)
+                outBuf.appendInt64(message.id)
+                outBuf.appendInt32(message.sequence)
                 outBuf.appendInt32(Int32(newBodyData.length))
                 outBuf.appendBytes(newBodyData.bytes, length: UInt(newBodyData.length))
             }
 
-            guard reader.offset == UInt(data.length) else { return nil }
             return modifiedContainer ? (outBuf.makeData() as NSData) : nil
         }
         // Do not reset the reader, because Api.parse(reader, signature:) expects the reader to be at offset 4
@@ -1760,7 +2150,7 @@ class TLParser: NSObject {
             // The host may know a peer constructor that the bundled schema
             // does not. The update vector can still be handled independently.
             diagUnparsed(signature)
-            trackVersionsWithOpaquePeers(data, signature: signature)
+            if let patched = patchHistoryWithOpaquePeers(data, signature: signature) { return patched }
             return patchUpdateVector(data, signature: signature)
         }
 
@@ -1814,7 +2204,7 @@ class TLParser: NSObject {
                 // A private chat is identified by the other user, which is what
                 // userId holds here and what peerUser carries in the full form.
                 recordShortFormOriginal(id: data.id, text: data.message,
-                                        peer: data.userId)
+                                        peer: data.userId, entities: data.entities)
                 var isDestructing = false
                 if data.ttlPeriod != nil {
                     recordTimedId(data.id, scope: cloudScope, disappearing: false)
@@ -1846,7 +2236,7 @@ class TLParser: NSObject {
                 }
             case let .updateShortChatMessage(data):
                 recordShortFormOriginal(id: data.id, text: data.message,
-                                        peer: -data.chatId)
+                                        peer: -data.chatId, entities: data.entities)
                 var isDestructing = false
                 if data.ttlPeriod != nil {
                     recordTimedId(data.id, scope: cloudScope, disappearing: false)
@@ -1875,11 +2265,17 @@ class TLParser: NSObject {
                     modified = true
                 }
             case let .updateShortSentMessage(data):
+                if isAntiEditEnabled, let original = outgoingOriginal {
+                    _ = recordText(original.text, forId: data.id, peer: original.peer, editDate: nil,
+                        content: revisionContent(entities: data.entities ?? original.entities, media: data.media, rich: nil))
+                }
+                let before = serializeBoxed(updates)
+                if data.ttlPeriod != nil { recordTimedId(data.id, scope: cloudScope, disappearing: false) }
                 let newMedia = data.media.map { stripTTLMedia($0, messageId: data.id, scope: cloudScope) }
                 let isMediaDestructing = isAntiAutoDelete && data.ttlPeriod != nil
                 let newFlags = isMediaDestructing ? (data.flags & ~(1 << 25) & ~(1 << 5)) : data.flags
 
-                if newFlags != data.flags || isMediaDestructing {
+                if newFlags != data.flags || isMediaDestructing || before != serializeBoxed(updates) {
                     newResult = Api.Updates.updateShortSentMessage(Api.Updates.Cons_updateShortSentMessage(flags: newFlags, id: data.id, pts: data.pts, ptsCount: data.ptsCount, date: data.date, media: newMedia, entities: data.entities, ttlPeriod: isMediaDestructing ? nil : data.ttlPeriod))
                     modified = true
                 }
@@ -2002,6 +2398,7 @@ class TLParser: NSObject {
                 modified = true
             }
         } else if let message = result as? Api.Message {
+            cacheMessage(message)
             trackMessageVersions(message)
             let (stripped, changed) = stripTTLMessage(message)
             if changed {
@@ -2009,41 +2406,44 @@ class TLParser: NSObject {
                 modified = true
             }
         } else if let discussion = result as? Api.messages.DiscussionMessage {
-            switch discussion {
-            case let .discussionMessage(data):
-                trackVersions(in: data.messages)
-                let (newChats, changedChats) = stripNoForwardsFromChats(data.chats)
-                var changedMsgs = false
-                let newMessages = data.messages.map { msg -> Api.Message in
-                    let (stripped, changed) = stripTTLMessage(msg)
-                    if changed { changedMsgs = true }
-                    return stripped
-                }
-                if changedChats || changedMsgs {
-                    newResult = Api.messages.DiscussionMessage.discussionMessage(Api.messages.DiscussionMessage.Cons_discussionMessage(flags: data.flags, messages: newMessages, maxId: data.maxId, readInboxMaxId: data.readInboxMaxId, readOutboxMaxId: data.readOutboxMaxId, unreadCount: data.unreadCount, chats: newChats, users: data.users))
+            if case let .discussionMessage(data) = discussion {
+                let p = patchMessageBatch(data.messages, chats: data.chats)
+                if p.changed {
+                    newResult = Api.messages.DiscussionMessage.discussionMessage(.init(flags: data.flags,
+                        messages: p.messages, maxId: data.maxId, readInboxMaxId: data.readInboxMaxId,
+                        readOutboxMaxId: data.readOutboxMaxId, unreadCount: data.unreadCount, chats: p.chats, users: data.users))
                     modified = true
                 }
             }
         } else if let peerDialogs = result as? Api.messages.PeerDialogs {
-            switch peerDialogs {
-            case let .peerDialogs(data):
-                trackVersions(in: data.messages)
-                let (newChats, changedChats) = stripNoForwardsFromChats(data.chats)
-                var changedMsgs = false
-                let newMessages = data.messages.map { msg -> Api.Message in
-                    let (stripped, changed) = stripTTLMessage(msg)
-                    if changed { changedMsgs = true }
-                    return stripped
-                }
-                if changedChats || changedMsgs {
-                    newResult = Api.messages.PeerDialogs.peerDialogs(Api.messages.PeerDialogs.Cons_peerDialogs(dialogs: data.dialogs, messages: newMessages, chats: newChats, users: data.users, state: data.state))
+            if case let .peerDialogs(data) = peerDialogs {
+                let p = patchMessageBatch(data.messages, chats: data.chats)
+                if p.changed {
+                    newResult = Api.messages.PeerDialogs.peerDialogs(.init(dialogs: data.dialogs,
+                        messages: p.messages, chats: p.chats, users: data.users, state: data.state))
                     modified = true
+                }
+            }
+        } else if let welcome = result as? Api.ephemeral.WelcomeMessages {
+            if case let .welcomeMessages(data) = welcome {
+                for message in data.messages {
+                    if patchEphemeralMessage(message, isEdit: true) { modified = true }
                 }
             }
         } else if let dialogs = result as? Api.messages.Dialogs {
             switch dialogs {
-            case let .dialogs(data): trackVersions(in: data.messages)
-            case let .dialogsSlice(data): trackVersions(in: data.messages)
+            case let .dialogs(data):
+                let p = patchMessageBatch(data.messages, chats: data.chats)
+                if p.changed {
+                    newResult = Api.messages.Dialogs.dialogs(.init(dialogs: data.dialogs, messages: p.messages, chats: p.chats, users: data.users))
+                    modified = true
+                }
+            case let .dialogsSlice(data):
+                let p = patchMessageBatch(data.messages, chats: data.chats)
+                if p.changed {
+                    newResult = Api.messages.Dialogs.dialogsSlice(.init(count: data.count, dialogs: data.dialogs, messages: p.messages, chats: p.chats, users: data.users))
+                    modified = true
+                }
             default: break
             }
         }
@@ -2086,15 +2486,33 @@ class TLParser: NSObject {
         noteUsersAnywhere(result)
     }
 
-    @objc static func handleResponse(_ data: NSData, functionID: NSNumber, account: String?) -> NSData? {
+    @objc(handleResponse:functionID:account:requestPayload:) static func handleResponse(_ data: NSData, functionID: NSNumber, account: String?, requestPayload: NSData? = nil) -> NSData? {
         processingLock.lock()
         defer { processingLock.unlock() }
+        let previousIds = requestedMessageIds
+        let previousPeer = requestedMessagePeer
+        let previousOutgoing = outgoingOriginal
+        outgoingOriginal = outgoingRequest(requestPayload, function: functionID.int32Value)
+        let validation = validationRequest(requestPayload, function: functionID.int32Value)
+        requestedMessageIds = validation?.ids
+        requestedMessagePeer = validation?.peer
+        defer {
+            requestedMessageIds = previousIds
+            requestedMessagePeer = previousPeer
+            outgoingOriginal = previousOutgoing
+        }
         if peerLookupFunctions.contains(functionID.int32Value) {
             harvestPeerNames(data)
         }
         // Returns patched data only if something was actually modified.
         // Returning nil means "no change" — caller uses original data as-is.
-        return stripAntiSelfDestruct(data, account: account)
+        let namespace: Int32
+        switch functionID.int32Value {
+        case -183077365, -1111817116: namespace = 3 // scheduled history / messages
+        case -1801153085: namespace = 5 // quick replies
+        default: namespace = 0
+        }
+        return withNamespace(namespace) { stripAntiSelfDestruct(data, account: account) }
     }
     @objc static func fakeUpdatesResponse() -> NSData {
         return serializeBoxed(Api.Updates.updates(Api.Updates.Cons_updates(

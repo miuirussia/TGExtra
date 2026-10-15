@@ -158,3 +158,6 @@
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Delete TGExtra's edit histories, original texts, and deletion/timer markers for all accounts, including older archives? This cannot be undone. Telegram chats and tweak settings will be kept.";
 "MESSAGE_DATA_CLEARING" = "Clearing message data…";
 "MESSAGE_DATA_CLEARED" = "Message database cleared";
+
+"EDIT_HISTORY_MEDIA_CHANGED" = "Media changed";
+"EDIT_HISTORY_FORMAT_CHANGED" = "Formatting changed";

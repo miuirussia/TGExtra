@@ -159,3 +159,6 @@
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Eliminare la cronologia delle modifiche, i testi originali e gli indicatori di eliminazione/timer di TGExtra per tutti gli account, inclusi i vecchi archivi? Questa azione è irreversibile. Le chat di Telegram e le impostazioni del tweak verranno conservate.";
 "MESSAGE_DATA_CLEARING" = "Eliminazione dei dati dei messaggi…";
 "MESSAGE_DATA_CLEARED" = "Database dei messaggi svuotato";
+
+"EDIT_HISTORY_MEDIA_CHANGED" = "Contenuto multimediale modificato";
+"EDIT_HISTORY_FORMAT_CHANGED" = "Formattazione modificata";

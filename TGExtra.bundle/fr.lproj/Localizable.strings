@@ -157,3 +157,6 @@
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Supprimer les historiques des modifications, les textes originaux et les marqueurs de suppression/minuteur de TGExtra pour tous les comptes, y compris les anciennes archives ? Cette action est irréversible. Les discussions Telegram et les réglages du tweak seront conservés.";
 "MESSAGE_DATA_CLEARING" = "Suppression des données des messages…";
 "MESSAGE_DATA_CLEARED" = "Base de messages vidée";
+
+"EDIT_HISTORY_MEDIA_CHANGED" = "Média modifié";
+"EDIT_HISTORY_FORMAT_CHANGED" = "Mise en forme modifiée";

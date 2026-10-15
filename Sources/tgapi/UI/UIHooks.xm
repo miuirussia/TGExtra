@@ -848,6 +848,74 @@ static void injectGhostExceptionButton(ASDisplayNode *headerNode, long long peer
     } @catch (NSException *e) {}
 }
 
+static void updateTGExtraStatusBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *nodePeerKey) {
+        NSString *account = [TLParser getHistoryAccountFromNode:node];
+        NSNumber *messageNamespace = [TLParser getMessageNamespaceFromNode:node];
+        BOOL isDeletedMsg = (msgId && messageNamespace && [TLParser isDeleted:msgId peer:nodePeerKey account:account messageNamespace:messageNamespace]);
+        BOOL isSelfDestructMsg = (msgId && messageNamespace && [TLParser isMessageSelfDestructing:msgId peer:nodePeerKey account:account messageNamespace:messageNamespace]);
+        if (isDeletedMsg || isSelfDestructMsg) {
+            UIImageView *statusIcon = nil;
+            for (UIView *v in node.view.subviews) {
+                if (v.tag == 8898) {
+                    statusIcon = (UIImageView *)v;
+                    break;
+                }
+            }
+
+            BOOL isNewlyCreated = NO;
+            if (!statusIcon) {
+                statusIcon = [[UIImageView alloc] init];
+                statusIcon.tag = 8898;
+                [node.view addSubview:statusIcon];
+                isNewlyCreated = YES;
+            }
+
+            if (isDeletedMsg) {
+                statusIcon.image = [UIImage systemImageNamed:@"trash.fill"];
+                statusIcon.tintColor = [UIColor systemRedColor];
+            } else {
+                statusIcon.image = [UIImage systemImageNamed:@"timer"];
+                statusIcon.tintColor = [UIColor systemOrangeColor];
+            }
+
+            ASDisplayNode *statusNode = findNodeByClassNamePrefix(node, @"ChatMessageDateAndStatusNode");
+            if (statusNode && statusNode.view) {
+                CGRect statusFrame = [node.view convertRect:statusNode.view.bounds fromView:statusNode.view];
+                statusIcon.frame = CGRectMake(statusFrame.origin.x - 18, statusFrame.origin.y + (statusFrame.size.height / 2.0) - 7, 14, 14);
+                statusIcon.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
+            } else {
+                // Same 14pt as the anchored branch. A bubble with no
+                // date-and-status node — a sticker, a GIF, a round video — used
+                // to get a 20pt icon here, visibly bigger than the one every
+                // other message shows.
+                statusIcon.frame = CGRectMake(node.view.bounds.size.width - 34, node.view.bounds.size.height - 32, 14, 14);
+                statusIcon.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleTopMargin;
+            }
+
+            BOOL wasHidden = statusIcon.hidden;
+            statusIcon.hidden = NO;
+            [node.view bringSubviewToFront:statusIcon];
+
+            if (wasHidden || isNewlyCreated) {
+                statusIcon.transform = CGAffineTransformMakeScale(0.1, 0.1);
+                statusIcon.alpha = 0.0;
+                [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.5 initialSpringVelocity:0.8 options:UIViewAnimationOptionCurveEaseOut animations:^{
+                    statusIcon.transform = CGAffineTransformIdentity;
+                    statusIcon.alpha = 1.0;
+                } completion:nil];
+            }
+
+        } else {
+            node.view.backgroundColor = [UIColor clearColor];
+            for (UIView *v in node.view.subviews) {
+                if (v.tag == 8898) {
+                    v.hidden = YES;
+                }
+            }
+        }
+
+}
+
 static NSHashTable *activeMessageNodes = nil;
 
 static void trackTGExtraMessageNode(ASDisplayNode *node) {
@@ -867,6 +935,7 @@ static void scheduleTGExtraEditBadgeUpdate(ASDisplayNode *node) {
         // its identity here, together with the account and the view geometry.
         NSNumber *msgId = [TLParser getMessageIdFromNode:node];
         NSNumber *peerKey = msgId ? [TLParser getMessagePeerKeyFromNode:node] : nil;
+        updateTGExtraStatusBadge(node, msgId, peerKey);
         updateTGExtraEditBadge(node, msgId, peerKey);
     });
 }
@@ -902,7 +971,8 @@ static void scheduleTGExtraEditBadgeUpdate(ASDisplayNode *node) {
 }
 - (void)handleMessagesChanged:(NSNotification *)note {
     NSArray *deletedIds = note.userInfo[@"ids"];
-    if (!deletedIds || deletedIds.count == 0) return;
+    NSNumber *maxId = note.userInfo[@"maxId"];
+    if (deletedIds.count == 0 && !maxId) return;
 
     NSHashTable *nodesCopy = nil;
     @synchronized(activeMessageNodes) {
@@ -911,11 +981,15 @@ static void scheduleTGExtraEditBadgeUpdate(ASDisplayNode *node) {
 
     for (ASDisplayNode *node in nodesCopy) {
         NSNumber *msgId = [TLParser getMessageIdFromNode:node];
-        if (!msgId || ![deletedIds containsObject:msgId]) continue;
+        if (!msgId || (![deletedIds containsObject:msgId] && !(maxId && msgId.intValue > 0 && msgId.intValue <= maxId.intValue))) continue;
         NSString *account = note.userInfo[@"account"];
         if (account && ![account isEqualToString:[TLParser getHistoryAccountFromNode:node]]) continue;
         NSNumber *changedPeer = note.userInfo[@"peer"];
-        if (changedPeer && ![changedPeer isEqual:[TLParser getMessagePeerKeyFromNode:node]]) continue;
+        NSNumber *messageNamespace = note.userInfo[@"namespace"];
+        if (messageNamespace && ![messageNamespace isEqual:[TLParser getMessageNamespaceFromNode:node]]) continue;
+        NSNumber *nodePeer = [TLParser getMessagePeerKeyFromNode:node];
+        if (changedPeer && changedPeer.longLongValue != 0 && ![changedPeer isEqual:nodePeer]) continue;
+        if (changedPeer && changedPeer.longLongValue == 0 && (!nodePeer || nodePeer.longLongValue <= -1000000000000LL)) continue;
 
         [node setNeedsLayout];
         [node.view setNeedsLayout];
@@ -938,6 +1012,7 @@ static const NSInteger kTGExtraEditBadgeTag = 8899;
 static char kTGExtraEditMsgIdKey;
 static char kTGExtraEditPeerKey;
 static char kTGExtraEditAccountKey;
+static char kTGExtraEditNamespaceKey;
 
 @interface TGExtraEditHistoryButtonTarget : NSObject
 + (instancetype)shared;
@@ -957,9 +1032,11 @@ static char kTGExtraEditAccountKey;
     if (!msgId) return;
     NSNumber *peerKey = objc_getAssociatedObject(sender, &kTGExtraEditPeerKey);
     NSString *account = objc_getAssociatedObject(sender, &kTGExtraEditAccountKey);
+    NSNumber *messageNamespace = objc_getAssociatedObject(sender, &kTGExtraEditNamespaceKey);
 
-    NSArray<NSString *> *versions = [TLParser editHistoryForId:msgId peer:peerKey account:account];
+    NSArray<NSString *> *versions = [TLParser editHistoryForId:msgId peer:peerKey account:account messageNamespace:messageNamespace];
     if (versions.count < 2) return;
+    NSArray<NSDictionary *> *details = [TLParser editRevisionDetailsForId:msgId peer:peerKey account:account messageNamespace:messageNamespace];
 
     NSMutableString *body = [NSMutableString string];
     for (NSUInteger i = 0; i < versions.count; i++) {
@@ -968,6 +1045,13 @@ static char kTGExtraEditAccountKey;
                                         [TGExtraLocalization localizedStringForKey:@"EDIT_HISTORY_EDIT"],
                                         (unsigned long)i];
         [body appendFormat:@"%@\n%@", label, versions[i]];
+        NSDictionary *revision = i < details.count ? details[i] : nil;
+        if ([revision[@"mediaChanged"] boolValue]) {
+            [body appendFormat:@"\n[%@]", TGExtraLoc(@"EDIT_HISTORY_MEDIA_CHANGED")];
+        }
+        if ([revision[@"formatChanged"] boolValue]) {
+            [body appendFormat:@"\n[%@]", TGExtraLoc(@"EDIT_HISTORY_FORMAT_CHANGED")];
+        }
         if (i < versions.count - 1) [body appendString:@"\n\n"];
     }
 
@@ -1004,8 +1088,9 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     }
 
     NSString *account = [TLParser getHistoryAccountFromNode:node];
-    NSUInteger versions = (msgId != nil)
-        ? [TLParser editHistoryForId:msgId peer:peerKey account:account].count
+    NSNumber *messageNamespace = [TLParser getMessageNamespaceFromNode:node];
+    NSUInteger versions = (msgId != nil && messageNamespace != nil)
+        ? [TLParser editHistoryForId:msgId peer:peerKey account:account messageNamespace:messageNamespace].count
         : 0;
     BOOL hasHistory = (versions > 1);
 
@@ -1060,6 +1145,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     objc_setAssociatedObject(badge, &kTGExtraEditMsgIdKey, msgId, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     objc_setAssociatedObject(badge, &kTGExtraEditPeerKey, peerKey, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     objc_setAssociatedObject(badge, &kTGExtraEditAccountKey, account, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    objc_setAssociatedObject(badge, &kTGExtraEditNamespaceKey, messageNamespace, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 
     // Keep the parent interactive; some bubble nodes ship with taps disabled on
     // their backing view, which would swallow every touch aimed at the badge.
@@ -1189,68 +1275,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     dispatch_async(dispatch_get_main_queue(), ^{
         NSNumber *msgId = [TLParser getMessageIdFromNode:node];
         NSNumber *nodePeerKey = msgId ? [TLParser getMessagePeerKeyFromNode:node] : nil;
-        BOOL isDeletedMsg = (msgId && [TLParser isDeleted:msgId peer:nodePeerKey]);
-        BOOL isSelfDestructMsg = (msgId && [TLParser isMessageSelfDestructing:msgId peer:nodePeerKey]);
-        if (isDeletedMsg || isSelfDestructMsg) {
-            UIImageView *statusIcon = nil;
-            for (UIView *v in node.view.subviews) {
-                if (v.tag == 8898) {
-                    statusIcon = (UIImageView *)v;
-                    break;
-                }
-            }
-
-            BOOL isNewlyCreated = NO;
-            if (!statusIcon) {
-                statusIcon = [[UIImageView alloc] init];
-                statusIcon.tag = 8898;
-                [node.view addSubview:statusIcon];
-                isNewlyCreated = YES;
-            }
-
-            if (isDeletedMsg) {
-                statusIcon.image = [UIImage systemImageNamed:@"trash.fill"];
-                statusIcon.tintColor = [UIColor systemRedColor];
-            } else {
-                statusIcon.image = [UIImage systemImageNamed:@"timer"];
-                statusIcon.tintColor = [UIColor systemOrangeColor];
-            }
-
-            ASDisplayNode *statusNode = findNodeByClassNamePrefix(node, @"ChatMessageDateAndStatusNode");
-            if (statusNode && statusNode.view) {
-                CGRect statusFrame = [node.view convertRect:statusNode.view.bounds fromView:statusNode.view];
-                statusIcon.frame = CGRectMake(statusFrame.origin.x - 18, statusFrame.origin.y + (statusFrame.size.height / 2.0) - 7, 14, 14);
-                statusIcon.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
-            } else {
-                // Same 14pt as the anchored branch. A bubble with no
-                // date-and-status node — a sticker, a GIF, a round video — used
-                // to get a 20pt icon here, visibly bigger than the one every
-                // other message shows.
-                statusIcon.frame = CGRectMake(node.view.bounds.size.width - 34, node.view.bounds.size.height - 32, 14, 14);
-                statusIcon.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleTopMargin;
-            }
-
-            BOOL wasHidden = statusIcon.hidden;
-            statusIcon.hidden = NO;
-            [node.view bringSubviewToFront:statusIcon];
-
-            if (wasHidden || isNewlyCreated) {
-                statusIcon.transform = CGAffineTransformMakeScale(0.1, 0.1);
-                statusIcon.alpha = 0.0;
-                [UIView animateWithDuration:0.5 delay:0 usingSpringWithDamping:0.5 initialSpringVelocity:0.8 options:UIViewAnimationOptionCurveEaseOut animations:^{
-                    statusIcon.transform = CGAffineTransformIdentity;
-                    statusIcon.alpha = 1.0;
-                } completion:nil];
-            }
-
-        } else {
-            node.view.backgroundColor = [UIColor clearColor];
-            for (UIView *v in node.view.subviews) {
-                if (v.tag == 8898) {
-                    v.hidden = YES;
-                }
-            }
-        }
+        updateTGExtraStatusBadge(node, msgId, nodePeerKey);
 
         updateTGExtraEditBadge(node, msgId, nodePeerKey);
     });

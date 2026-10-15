@@ -157,3 +157,6 @@
 "MESSAGE_DATA_CLEAR_CONFIRM" = "清除所有帳號的 TGExtra 編輯歷史、原始文字和刪除/計時器標記（包括舊封存）？此操作無法復原。Telegram 聊天和外掛設定將保留。";
 "MESSAGE_DATA_CLEARING" = "正在清除訊息資料…";
 "MESSAGE_DATA_CLEARED" = "訊息資料庫已清空";
+
+"EDIT_HISTORY_MEDIA_CHANGED" = "媒體已變更";
+"EDIT_HISTORY_FORMAT_CHANGED" = "格式已變更";

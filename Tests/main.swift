@@ -9,8 +9,14 @@ func strip(_ data: NSData, account: String? = testAccount) -> NSData? {
 func response(_ data: NSData, functionID: NSNumber, account: String? = testAccount) -> NSData? {
     TLParser.handleResponse(data, functionID: functionID, account: account)
 }
-func history(forId id: NSNumber, peer: NSNumber?, account: String? = testAccount) -> [String]? {
-    TLParser.editHistory(forId: id, peer: peer, account: account)
+func history(forId id: NSNumber, peer: NSNumber?, account: String? = testAccount, namespace: Int32 = 0) -> [String]? {
+    TLParser.editHistory(forId: id, peer: peer, account: account, namespace: NSNumber(value: namespace))
+}
+func isDeleted(_ id: NSNumber, peer: NSNumber?, account: String? = testAccount, namespace: Int32 = 0) -> Bool {
+    TLParser.isDeleted(id, peer: peer, account: account, namespace: NSNumber(value: namespace))
+}
+func isMessageSelfDestructing(_ id: NSNumber, peer: NSNumber?, account: String? = testAccount, namespace: Int32 = 0) -> Bool {
+    TLParser.isMessageSelfDestructing(id, peer: peer, account: account, namespace: NSNumber(value: namespace))
 }
 
 let defaults = TGExtraUseTestDefaults()!
@@ -23,8 +29,11 @@ if CommandLine.arguments.contains("--restore") {
     ]
     for id in 10_000...12_100 { saved["account-1:42:\(id)"] = ["versions": ["Unedited"]] }
     defaults.set(saved, forKey: "TGExtraEditHistoryByAccount")
-    defaults.set(["10": [NSNumber(value: 0)]], forKey: "TGExtraDeletedMsgIds")
-    defaults.set(["20": [NSNumber(value: 0)]], forKey: "TGExtraAutoDeleteMsgIds")
+    defaults.set(["account-1:0:10": 1, "account-1:0:20": 4], forKey: "TGExtraMessageMarkersByAccount")
+    let restoredKey = "account-1:-1000000000077:20"
+    let restoredMessage = serialized(message(20, peer: .peerChannel(.init(channelId: 77)), text: "Persisted snapshot")) as Data
+    defaults.set(["messages": [restoredKey: restoredMessage], "order": [restoredKey]], forKey: "TGExtraObservedMessages")
+    defaults.set(["account-1:0:10": 1, "account-1:0:20": 4, "account-1:-1000000000077:20": 4], forKey: "TGExtraMessageMarkersByAccount")
     defaults.set(true, forKey: "TGExtraAntiAutoDelete")
     defaults.set(true, forKey: "TGExtraAntiEdit")
     defaults.set(999, forKey: "TGExtraLastKnownUserId")
@@ -38,9 +47,15 @@ if CommandLine.arguments.contains("--restore") {
     _ = strip(serialized(message(40, text: "Newest", edit: 2001)))
     precondition(history(forId: 40, peer: 42) == ["Before", "After", "Newest"])
     precondition(history(forId: 40, peer: 42, account: "account-2") == ["Other before", "Other after"])
-    precondition(TLParser.isDeleted(10, peer: 42))
+    precondition(isDeleted(10, peer: 42))
     let deletion = Api.Update.updateDeleteMessages(.init(messages: [20], pts: 5, ptsCount: 1))
     precondition(strip(TLParser.serializeBoxed(deletion)) != nil)
+    precondition(!isDeleted(10, peer: 42, account: "account-2"))
+    let restoreRequest = Api.functions.channels.getMessages(channel: .inputChannel(.init(channelId: 77, accessHash: 1)), id: [.inputMessageID(.init(id: 20))]).1.makeData() as NSData
+    let emptyRestore = serialized(Api.messages.Messages.messages(.init(messages: [], topics: [], chats: [], users: [])))
+    let recovered = TLParser.handleResponse(emptyRestore, functionID: -1383294429, account: testAccount, requestPayload: restoreRequest)!
+    guard case let .messages(recoveredMessages) = parsed(recovered, as: Api.messages.Messages.self) else { fatalError("Expected restored snapshot") }
+    precondition(messageData(recoveredMessages.messages[0]).message == "Persisted snapshot")
     print("PASS persisted edit history, deletion markers and timer classification")
     exit(0)
 }
@@ -222,18 +237,18 @@ let opaqueChannel = updatesWithOpaquePeer([deletion([103], channel: 77)])
 let opaqueChannelReader = BufferReader(Buffer(nsData: strip(opaqueChannel)!))
 opaqueChannelReader.skip(12)
 check(deletionIds(Api.parse(opaqueChannelReader, signature: opaqueChannelReader.readInt32()!) as! Api.Update) == [0], "Protect channel deletions with an opaque peer vector")
-check(TLParser.isDeleted(103, peer: -1_000_000_000_077) && !TLParser.isDeleted(103, peer: 42), "Fallback deletion markers retain their channel scope")
+check(isDeleted(103, peer: -1_000_000_000_077) && !isDeleted(103, peer: 42), "Fallback deletion markers retain their channel scope")
 let revoked = parsed(patch(deletion([10, 11]))!, as: Api.Update.self)
 check(deletionIds(revoked) == [0, 0], "Retain deleted messages")
-check(TLParser.isDeleted(10, peer: 42), "Deletion marker is scoped to private chats")
-check(!TLParser.isDeleted(10, peer: -1_000_000_000_077), "Private deletion never marks a channel")
+check(isDeleted(10, peer: 42), "Deletion marker is scoped to private chats")
+check(!isDeleted(10, peer: -1_000_000_000_077), "Private deletion never marks a channel")
 let channelDeleted = parsed(patch(deletion([10], channel: 77))!, as: Api.Update.self)
 check(deletionIds(channelDeleted) == [0], "Retain channel deletion")
-check(!TLParser.isDeleted(10, peer: -1_000_000_000_078), "Repeated channel message IDs stay independent")
+check(!isDeleted(10, peer: -1_000_000_000_078), "Repeated channel message IDs stay independent")
 flags()
 check(patch(deletion([12])) == nil, "Disabled anti-revoke passes through")
 check(strip(updatesWithOpaquePeer([deletion([104])])) == nil, "Disabled anti-revoke leaves opaque updates untouched")
-check(!TLParser.isDeleted(104, peer: 42), "Disabled fallback does not record deletions")
+check(!isDeleted(104, peer: 42), "Disabled fallback does not record deletions")
 flags("TGExtraAntiRevoke")
 let brokenVector = NSMutableData(data: updatesWithOpaquePeer([
     deletion([106]), deletion([107])
@@ -241,7 +256,7 @@ let brokenVector = NSMutableData(data: updatesWithOpaquePeer([
 var unknownUpdate: Int32 = 1234567
 brokenVector.replaceBytes(in: NSRange(location: 12 + serialized(deletion([106])).length, length: 4), withBytes: &unknownUpdate)
 check(strip(brokenVector) == nil, "An unknown update cannot be skipped without its length")
-check(!TLParser.isDeleted(106, peer: 42), "Do not record partial update vectors")
+check(!isDeleted(106, peer: 42), "Do not record partial update vectors")
 let ordinaryBatch = serialized(Api.Updates.updates(.init(updates: [deletion([108])], users: [], chats: [], date: 1234, seq: 8)))
 for length in 0..<ordinaryBatch.length {
     check(strip((ordinaryBatch as Data).prefix(length) as NSData) == nil, "Incomplete update vectors and framing pass through")
@@ -265,14 +280,14 @@ for combined in [false, true] {
     for length in 0..<bytes.count {
         check(strip(bytes.prefix(length) as NSData) == nil, "Truncated known peers and synchronization fields pass through")
     }
-    check(!TLParser.isDeleted(121, peer: 42), "Rejected packets do not record deletion markers")
+    check(!isDeleted(121, peer: 42), "Rejected packets do not record deletion markers")
     let usersOffset = 12 + knownPeerUpdates.reduce(0) { $0 + serialized($1).length }
     for (offset, value) in [(usersOffset + 4, Int32(-1)), (usersOffset + 24, Int32(-1)), (usersOffset + 8, Int32(693512293))] {
         var invalid = bytes
         var word = value.littleEndian
         withUnsafeBytes(of: &word) { invalid.replaceSubrange(offset..<offset + 4, with: $0) }
         check(strip(invalid as NSData) == nil, "Invalid peer vector framing does not enable the fallback")
-        check(!TLParser.isDeleted(121, peer: 42), "Invalid peer vectors do not record deletion markers")
+        check(!isDeleted(121, peer: 42), "Invalid peer vectors do not record deletion markers")
     }
 }
 _ = patch(Api.Update.updateEditMessage(.init(message: message(120, text: "Valid edit", edit: 1235), pts: 51, ptsCount: 1)))
@@ -349,7 +364,7 @@ let opaqueMixed = updatesWithOpaquePeer([
 ])
 check(strip(opaqueMixed) != nil, "Protect deletion and record editing in the same opaque packet")
 check(history(forId: 105, peer: 42) == ["Original 😀", "Edited in opaque batch", "Second edit"], "Keep every text revision when deletion protection is also enabled")
-check(TLParser.isDeleted(105, peer: 42), "Mark the deleted message from a mixed packet")
+check(isDeleted(105, peer: 42), "Mark the deleted message from a mixed packet")
 for (channelId, peer) in [(Int64(77), Int64(-1_000_000_000_077)), (78, -1_000_000_000_078)] {
     let original = message(114, peer: .peerChannel(.init(channelId: channelId)), text: "Channel \(channelId)")
     _ = strip(updatesWithOpaquePeer([.updateNewChannelMessage(.init(message: original, pts: 50, ptsCount: 1))]))
@@ -568,16 +583,16 @@ print("PASS TL updates (including opaque peer metadata), auto-delete, disappeari
 
 flags("TGExtraAntiEdit", "TGExtraAntiAutoDelete", "TGExtraAntiSelfDestruct")
 _ = patch(message(900, text: "Pending original before clearing"))
-TLParser.addDeletedId(900, peer: 42)
+TLParser.addDeletedId(900, peer: 42, account: testAccount)
 _ = patch(message(901, ttl: 60))
 _ = patch(message(902, media: photo))
-check(TLParser.isDeleted(900, peer: 42), "Prepare an in-memory deletion marker")
-check(TLParser.isMessageSelfDestructing(902, peer: 42), "Prepare an in-memory disappearing marker")
+check(isDeleted(900, peer: 42), "Prepare an in-memory deletion marker")
+check(isMessageSelfDestructing(902, peer: 42), "Prepare an in-memory disappearing marker")
 check(history(forId: 137, peer: 42, account: "account-2") != nil, "Prepare a second account's history")
 defaults.set(["1": ["Old", "Edited"]], forKey: "TGExtraEditHistory")
 defaults.set(["1": NSNumber(value: 42)], forKey: "TGExtraEditHistoryPeers")
 let messageStorageKeys = ["TGExtraEditHistoryByAccount", "TGExtraEditHistoryByPeer", "TGExtraEditHistory",
-    "TGExtraEditHistoryPeers", "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"]
+    "TGExtraEditHistoryPeers", "TGExtraObservedMessages", "TGExtraMessageMarkersByAccount", "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"]
 let preferencesBeforeClear = defaults.dictionaryRepresentation().filter { !messageStorageKeys.contains($0.key) }
 var receivedClearNotification = false
 let clearObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name("TGExtraMessageDataCleared"), object: nil, queue: nil) { _ in
@@ -590,8 +605,8 @@ check(receivedClearNotification, "Clearing notifies visible message nodes")
 NotificationCenter.default.removeObserver(clearObserver)
 check(history(forId: 40, peer: 42) == nil, "Clearing removes the first account's in-memory history")
 check(history(forId: 137, peer: 42, account: "account-2") == nil, "Clearing removes every account's history")
-check(!TLParser.isDeleted(900, peer: 42), "Clearing removes in-memory deletion markers")
-check(!TLParser.isMessageSelfDestructing(902, peer: 42), "Clearing removes in-memory disappearing markers")
+check(!isDeleted(900, peer: 42), "Clearing removes in-memory deletion markers")
+check(!isMessageSelfDestructing(902, peer: 42), "Clearing removes in-memory disappearing markers")
 check(patch(deletion([901, 902])) == nil, "Cleared timer classifications cannot protect stale message IDs")
 for key in messageStorageKeys { check(defaults.object(forKey: key) == nil, "Remove persisted message data and legacy archives") }
 let preferencesAfterClear = defaults.dictionaryRepresentation().filter { !messageStorageKeys.contains($0.key) }
@@ -616,3 +631,6 @@ TLParser.clearMessageData()
 TLParser.clearMessageData()
 check(defaults.object(forKey: "TGExtraEditHistoryByAccount") == nil, "Repeated clearing is safe")
 print("PASS message database clearing, legacy removal, delayed writes, notifications and preserved settings")
+
+
+testMessageProtection()

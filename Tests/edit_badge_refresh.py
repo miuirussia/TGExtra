@@ -30,7 +30,9 @@ support = r'''
 @property NSNumber *messageID;
 @property NSNumber *peer;
 @property NSString *account;
+@property NSNumber *messageNamespace;
 @property NSUInteger refreshCount;
+@property NSUInteger statusRefreshCount;
 @property NSNumber *drawnID;
 - (void)setNeedsLayout;
 @end
@@ -41,6 +43,7 @@ support = r'''
         self.messageID = @10;
         self.peer = @42;
         self.account = @"account-1";
+        self.messageNamespace = @0;
     }
     return self;
 }
@@ -51,13 +54,19 @@ support = r'''
 + (NSNumber *)getMessageIdFromNode:(ASDisplayNode *)node;
 + (NSNumber *)getMessagePeerKeyFromNode:(ASDisplayNode *)node;
 + (NSString *)getHistoryAccountFromNode:(ASDisplayNode *)node;
++ (NSNumber *)getMessageNamespaceFromNode:(ASDisplayNode *)node;
 @end
 @implementation TLParser
 + (NSNumber *)getMessageIdFromNode:(ASDisplayNode *)node { return node.messageID; }
 + (NSNumber *)getMessagePeerKeyFromNode:(ASDisplayNode *)node { return node.peer; }
 + (NSString *)getHistoryAccountFromNode:(ASDisplayNode *)node { return node.account; }
++ (NSNumber *)getMessageNamespaceFromNode:(ASDisplayNode *)node { return node.messageNamespace; }
 @end
 
+static void updateTGExtraStatusBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peerKey) {
+    NSCAssert(NSThread.isMainThread, @"Status updates must run on main");
+    node.statusRefreshCount++;
+}
 static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peerKey) {
     NSCAssert(NSThread.isMainThread, @"Badge updates must run on main");
     NSCAssert([peerKey isEqual:node.peer], @"Use the current item's peer");
@@ -94,7 +103,7 @@ int main(void) {
         [[NSNotificationCenter defaultCenter] postNotificationName:@"TGExtraMessageEditedRealtime"
             object:nil userInfo:@{@"ids": @[@10], @"account": @"account-1", @"peer": @42}];
         drainMainQueue();
-        NSCAssert(node.refreshCount == 2, @"A visible edit must refresh directly without layout");
+        NSCAssert(node.refreshCount == 2 && node.statusRefreshCount == 2, @"Both badges refresh directly without layout");
         NSCAssert(otherAccount.refreshCount == 1 && otherChat.refreshCount == 1,
                   @"Matching message IDs in other accounts and chats must not refresh");
 
@@ -110,7 +119,27 @@ int main(void) {
         node.messageID = @13;
         drainMainQueue();
         NSCAssert([node.drawnID isEqual:@13], @"Notification refresh must not draw the previous item");
-        puts("PASS edit badge attachment, direct notifications, account/chat isolation and queued reuse");
+        ChatMessageBubbleItemNode *scheduled = [ChatMessageBubbleItemNode new];
+        scheduled.messageNamespace = @3;
+        [scheduled didEnterHierarchy];
+        drainMainQueue();
+        NSUInteger ordinaryRefreshes = otherChat.refreshCount;
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"TGExtraMessageEditedRealtime"
+            object:nil userInfo:@{@"ids": @[@10], @"account": @"account-1", @"peer": @42, @"namespace": @0}];
+        drainMainQueue();
+        NSCAssert(scheduled.refreshCount == 1, @"A matching id in a different namespace must not refresh");
+        NSCAssert(otherChat.refreshCount == ordinaryRefreshes, @"The notification still matches its peer");
+
+        ChatMessageBubbleItemNode *channelNode = [ChatMessageBubbleItemNode new];
+        channelNode.peer = @(-1000000000077LL);
+        [channelNode didEnterHierarchy];
+        drainMainQueue();
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"TGExtraMessageDeletedRealtime"
+            object:nil userInfo:@{@"maxId": @10, @"account": @"account-1", @"peer": @(-1000000000077LL), @"namespace": @0}];
+        drainMainQueue();
+        NSCAssert(channelNode.statusRefreshCount == 2, @"Range deletions refresh the visible status badge without layout");
+        NSCAssert(scheduled.refreshCount == 1, @"Range deletion does not refresh unrelated namespaces");
+        puts("PASS badge attachment, direct edits/deletions/ranges, account/chat/namespace isolation and queued reuse");
     }
     return 0;
 }
