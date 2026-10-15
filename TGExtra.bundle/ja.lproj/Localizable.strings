@@ -157,3 +157,6 @@
 "MESSAGE_DATA_CLEAR_CONFIRM" = "古いアーカイブを含む、全アカウントのTGExtraの編集履歴、元のテキスト、削除・タイマーの記録を消去しますか？この操作は取り消せません。Telegramのチャットとアドオンの設定は保持されます。";
 "MESSAGE_DATA_CLEARING" = "メッセージデータを消去中…";
 "MESSAGE_DATA_CLEARED" = "メッセージデータベースを消去しました";
+
+"EDIT_HISTORY_MEDIA_CHANGED" = "メディアが変更されました";
+"EDIT_HISTORY_FORMAT_CHANGED" = "書式が変更されました";

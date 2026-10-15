@@ -160,3 +160,6 @@
 "MESSAGE_DATA_CLEAR_CONFIRM" = "¿Eliminar los historiales de edición, textos originales y marcas de eliminación/temporizador de TGExtra de todas las cuentas, incluidos los archivos antiguos? No se puede deshacer. Los chats de Telegram y los ajustes del tweak se conservarán.";
 "MESSAGE_DATA_CLEARING" = "Borrando datos de mensajes…";
 "MESSAGE_DATA_CLEARED" = "Base de mensajes vaciada";
+
+"EDIT_HISTORY_MEDIA_CHANGED" = "Contenido multimedia modificado";
+"EDIT_HISTORY_FORMAT_CHANGED" = "Formato modificado";

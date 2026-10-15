@@ -4,8 +4,8 @@
 #import "../tgapiC/include/Tweak.h"
 
 @interface TLParser : NSObject
-+ (NSData *)handleResponse:(NSData *)data functionID:(NSNumber *)ios account:(NSString *)account;
-+ (void)addDeletedId:(int32_t)msgId peer:(int64_t)peer;
++ (NSData *)handleResponse:(NSData *)data functionID:(NSNumber *)ios account:(NSString *)account requestPayload:(NSData *)payload;
++ (void)addDeletedId:(int32_t)msgId peer:(int64_t)peer account:(NSString *)account messageNamespace:(int32_t)messageNamespace;
 + (void)loadPersistedIds;
 + (void)clearMessageData;
 + (NSNumber *)getMessageId:(id)item;
@@ -15,17 +15,19 @@
 + (NSString *)debugPeerCandidates:(id)node;
 + (NSNumber *)getMessageIdFromNode:(id)node;
 + (NSString *)getDebugDumpFromNode:(id)node;
-+ (BOOL)isDeleted:(NSNumber *)msgId peer:(NSNumber *)peer;
++ (BOOL)isDeleted:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSData *)stripAntiSelfDestruct:(NSData *)data account:(NSString *)account;
 + (void)registerVoiceUploadWithFileName:(NSString *)fileName
                                duration:(NSInteger)duration
                                waveform:(NSData *)waveform;
-+ (BOOL)isMessageSelfDestructing:(NSNumber *)msgId peer:(NSNumber *)peer;
++ (BOOL)isMessageSelfDestructing:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSData *)fakeUpdatesResponse;
 + (NSData *)rewriteVoiceUpload:(NSData *)data;
-+ (NSArray<NSString *> *)editHistoryForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account;
++ (NSArray<NSString *> *)editHistoryForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
++ (NSArray<NSDictionary *> *)editRevisionDetailsForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSNumber *)getMessagePeerKeyFromNode:(id)node;
 + (NSString *)getHistoryAccountFromNode:(id)node;
++ (NSNumber *)getMessageNamespaceFromNode:(id)node;
 @end
 
 @interface MTRpcError : NSObject

@@ -118,6 +118,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"هل تريد حذف سجل التعديلات والنصوص الأصلية وعلامات الحذف والمؤقتات في TGExtra لجميع الحسابات، بما في ذلك الأرشيفات القديمة؟ لا يمكن التراجع عن هذا الإجراء. سيتم الاحتفاظ بمحادثات Telegram وإعدادات الإضافة.",
             @"MESSAGE_DATA_CLEARING": @"جارٍ مسح بيانات الرسائل…",
             @"MESSAGE_DATA_CLEARED": @"تم مسح قاعدة بيانات الرسائل",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"تم تغيير الوسائط",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"تم تغيير التنسيق",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -237,6 +239,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"清除所有账号的 TGExtra 编辑历史、原始文本和删除/定时器标记（包括旧存档）？此操作无法撤销。Telegram 聊天和插件设置将保留。",
             @"MESSAGE_DATA_CLEARING": @"正在清除消息数据…",
             @"MESSAGE_DATA_CLEARED": @"消息数据库已清空",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"媒体已更改",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"格式已更改",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -356,6 +360,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"Delete TGExtra's edit histories, original texts, and deletion/timer markers for all accounts, including older archives? This cannot be undone. Telegram chats and tweak settings will be kept.",
             @"MESSAGE_DATA_CLEARING": @"Clearing message data…",
             @"MESSAGE_DATA_CLEARED": @"Message database cleared",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"Media changed",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"Formatting changed",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -475,6 +481,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"¿Eliminar los historiales de edición, textos originales y marcas de eliminación/temporizador de TGExtra de todas las cuentas, incluidos los archivos antiguos? No se puede deshacer. Los chats de Telegram y los ajustes del tweak se conservarán.",
             @"MESSAGE_DATA_CLEARING": @"Borrando datos de mensajes…",
             @"MESSAGE_DATA_CLEARED": @"Base de mensajes vaciada",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"Contenido multimedia modificado",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"Formato modificado",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -594,6 +602,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"Supprimer les historiques des modifications, les textes originaux et les marqueurs de suppression/minuteur de TGExtra pour tous les comptes, y compris les anciennes archives ? Cette action est irréversible. Les discussions Telegram et les réglages du tweak seront conservés.",
             @"MESSAGE_DATA_CLEARING": @"Suppression des données des messages…",
             @"MESSAGE_DATA_CLEARED": @"Base de messages vidée",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"Média modifié",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"Mise en forme modifiée",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -713,6 +723,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"Eliminare la cronologia delle modifiche, i testi originali e gli indicatori di eliminazione/timer di TGExtra per tutti gli account, inclusi i vecchi archivi? Questa azione è irreversibile. Le chat di Telegram e le impostazioni del tweak verranno conservate.",
             @"MESSAGE_DATA_CLEARING": @"Eliminazione dei dati dei messaggi…",
             @"MESSAGE_DATA_CLEARED": @"Database dei messaggi svuotato",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"Contenuto multimediale modificato",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"Formattazione modificata",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -832,6 +844,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"古いアーカイブを含む、全アカウントのTGExtraの編集履歴、元のテキスト、削除・タイマーの記録を消去しますか？この操作は取り消せません。Telegramのチャットとアドオンの設定は保持されます。",
             @"MESSAGE_DATA_CLEARING": @"メッセージデータを消去中…",
             @"MESSAGE_DATA_CLEARED": @"メッセージデータベースを消去しました",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"メディアが変更されました",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"書式が変更されました",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -951,6 +965,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"Удалить историю правок, исходные тексты и отметки удалений/таймеров TGExtra для всех аккаунтов, включая старые архивы? Отменить очистку нельзя. Переписки Telegram и настройки твика сохранятся.",
             @"MESSAGE_DATA_CLEARING": @"Очистка данных сообщений…",
             @"MESSAGE_DATA_CLEARED": @"База сообщений очищена",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"Медиа изменено",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"Форматирование изменено",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1070,6 +1086,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"清除所有帳號的 TGExtra 編輯歷史、原始文字和刪除/計時器標記（包括舊封存）？此操作無法復原。Telegram 聊天和外掛設定將保留。",
             @"MESSAGE_DATA_CLEARING": @"正在清除訊息資料…",
             @"MESSAGE_DATA_CLEARED": @"訊息資料庫已清空",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"媒體已變更",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"格式已變更",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1189,6 +1207,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEAR_CONFIRM": @"Xóa lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của TGExtra cho tất cả tài khoản, kể cả kho lưu trữ cũ? Không thể hoàn tác. Các cuộc trò chuyện Telegram và cài đặt tweak sẽ được giữ lại.",
             @"MESSAGE_DATA_CLEARING": @"Đang xóa dữ liệu tin nhắn…",
             @"MESSAGE_DATA_CLEARED": @"Đã xóa cơ sở dữ liệu tin nhắn",
+            @"EDIT_HISTORY_MEDIA_CHANGED": @"Đã thay đổi nội dung đa phương tiện",
+            @"EDIT_HISTORY_FORMAT_CHANGED": @"Đã thay đổi định dạng",
         };
     }
     return nil;

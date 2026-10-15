@@ -39,7 +39,8 @@
     __weak MTRequest *weakRequest = self;
     id (^wrappedParser)(NSData *) = ^id(NSData *data) {
         NSData *patched = [TLParser handleResponse:data functionID:@(functionID)
-                                          account:TGExtraHistoryAccountForRequest(weakRequest)];
+                                          account:TGExtraHistoryAccountForRequest(weakRequest)
+                                   requestPayload:weakRequest.payload];
         return responseParser(patched ?: data);
     };
     %orig(payload, metadata, shortMetadata, wrappedParser);
