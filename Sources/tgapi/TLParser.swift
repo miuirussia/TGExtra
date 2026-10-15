@@ -148,6 +148,7 @@ class TLParser: NSObject {
     private static var _originalOrder = [EditKey]()
     private static var _editLoaded = false
     private static var _editPersistScheduled = false
+    private static var _editPersistGeneration: UInt64 = 0
     private static let editUdKey = "TGExtraEditHistoryByAccount"
     // Older keys are left intact. Their entries have no account identity and
     // cannot safely be attributed to any of the current accounts.
@@ -265,9 +266,40 @@ class TLParser: NSObject {
     private static func scheduleEditPersistLocked() {
         guard !_editPersistScheduled else { return }
         _editPersistScheduled = true
+        let generation = _editPersistGeneration
         editQueue.asyncAfter(deadline: .now() + 5.0, flags: .barrier) {
+            guard generation == _editPersistGeneration else { return }
             _editPersistScheduled = false
             writeEditHistoryLocked()
+        }
+    }
+
+    /// Clears only TGExtra's message metadata, across all accounts. Serialize
+    /// with network parsing and drain pending writes before removing storage.
+    @objc static func clearMessageData() {
+        processingLock.lock()
+        defer { processingLock.unlock() }
+        editQueue.sync(flags: .barrier) {
+            _editLoaded = true
+            _editHistory.removeAll()
+            _originalOrder.removeAll()
+            _editPersistGeneration &+= 1
+            _editPersistScheduled = false
+            for key in [editUdKey, "TGExtraEditHistoryByPeer", "TGExtraEditHistory", "TGExtraEditHistoryPeers"] {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+        deletedQueue.sync(flags: .barrier) {
+            _loaded = true
+            _deletedIds.removeAll()
+            UserDefaults.standard.removeObject(forKey: udKey)
+        }
+        selfDestructingMessageIds.removeAll()
+        autoDeleteMessageIds.removeAll()
+        UserDefaults.standard.removeObject(forKey: "TGExtraSelfDestructingMsgIds")
+        UserDefaults.standard.removeObject(forKey: "TGExtraAutoDeleteMsgIds")
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: NSNotification.Name("TGExtraMessageDataCleared"), object: nil)
         }
     }
 

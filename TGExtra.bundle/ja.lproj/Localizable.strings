@@ -149,3 +149,11 @@
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
 "IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "個人チャットのコピー制限を無視";
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "共有が制限された個人チャットでコピーを許可します。この設定を変更した後、相手のプロフィールを開き直してください。";
+
+/* Message data */
+"MESSAGE_DATA_SECTION_HEADER" = "メッセージデータ";
+"MESSAGE_DATA_CLEAR_TITLE" = "メッセージデータベースを消去";
+"MESSAGE_DATA_CLEAR_SUBTITLE" = "全アカウントの編集履歴、元のテキスト、削除・タイマーの記録。";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "古いアーカイブを含む、全アカウントのTGExtraの編集履歴、元のテキスト、削除・タイマーの記録を消去しますか？この操作は取り消せません。Telegramのチャットとアドオンの設定は保持されます。";
+"MESSAGE_DATA_CLEARING" = "メッセージデータを消去中…";
+"MESSAGE_DATA_CLEARED" = "メッセージデータベースを消去しました";

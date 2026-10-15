@@ -148,3 +148,11 @@
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
 "IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "تجاهل منع النسخ في المحادثات الخاصة";
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "السماح بالنسخ في المحادثات الخاصة التي تقيّد المشاركة. أعد فتح ملف الشخص بعد تغيير هذا الخيار.";
+
+/* Message data */
+"MESSAGE_DATA_SECTION_HEADER" = "بيانات الرسائل";
+"MESSAGE_DATA_CLEAR_TITLE" = "مسح قاعدة بيانات الرسائل";
+"MESSAGE_DATA_CLEAR_SUBTITLE" = "سجل التعديلات والنصوص الأصلية وعلامات الحذف والمؤقتات لجميع الحسابات.";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "هل تريد حذف سجل التعديلات والنصوص الأصلية وعلامات الحذف والمؤقتات في TGExtra لجميع الحسابات، بما في ذلك الأرشيفات القديمة؟ لا يمكن التراجع عن هذا الإجراء. سيتم الاحتفاظ بمحادثات Telegram وإعدادات الإضافة.";
+"MESSAGE_DATA_CLEARING" = "جارٍ مسح بيانات الرسائل…";
+"MESSAGE_DATA_CLEARED" = "تم مسح قاعدة بيانات الرسائل";

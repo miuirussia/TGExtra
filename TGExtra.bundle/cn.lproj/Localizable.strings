@@ -151,3 +151,11 @@
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
 "IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "忽略私聊复制限制";
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "允许在限制分享的私聊中复制内容。更改此选项后，请重新打开对方的个人资料。";
+
+/* Message data */
+"MESSAGE_DATA_SECTION_HEADER" = "消息数据";
+"MESSAGE_DATA_CLEAR_TITLE" = "清空消息数据库";
+"MESSAGE_DATA_CLEAR_SUBTITLE" = "所有账号的编辑历史、原始文本和删除/定时器标记。";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "清除所有账号的 TGExtra 编辑历史、原始文本和删除/定时器标记（包括旧存档）？此操作无法撤销。Telegram 聊天和插件设置将保留。";
+"MESSAGE_DATA_CLEARING" = "正在清除消息数据…";
+"MESSAGE_DATA_CLEARED" = "消息数据库已清空";

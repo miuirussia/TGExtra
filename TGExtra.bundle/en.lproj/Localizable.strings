@@ -150,3 +150,11 @@
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
 "IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "Ignore Copy Protection in Private Chats";
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Allow copying in private chats with sharing restrictions. Reopen the person's profile after changing this option.";
+
+/* Message data */
+"MESSAGE_DATA_SECTION_HEADER" = "Message Data";
+"MESSAGE_DATA_CLEAR_TITLE" = "Clear Message Database";
+"MESSAGE_DATA_CLEAR_SUBTITLE" = "Edit histories, original texts, and deletion/timer markers for all accounts.";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "Delete TGExtra's edit histories, original texts, and deletion/timer markers for all accounts, including older archives? This cannot be undone. Telegram chats and tweak settings will be kept.";
+"MESSAGE_DATA_CLEARING" = "Clearing message data…";
+"MESSAGE_DATA_CLEARED" = "Message database cleared";

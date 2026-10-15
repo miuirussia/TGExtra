@@ -19,7 +19,8 @@ typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
   FILE_FIXER = 3,
   FAKE_LOCATION = 4,
   LANGUAGE = 5,
-  CREDITS = 6,
+  MESSAGE_DATA = 6,
+  CREDITS = 7,
 };
 
 static NSString *const kTGExtraTweakVersion = @"1.3.0";
@@ -28,11 +29,13 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 @property(nonatomic, strong) UITableView *tableView;
 @property(nonatomic, strong) NSString *cacheSize;
 @property(nonatomic, assign) BOOL isGhostModeExpanded;
+@property(nonatomic, assign) BOOL isClearingMessageData;
 - (NSString *)switchKeyForIndexPath:(NSIndexPath *)indexPath;
 - (NSString *)sizeOfUglyFileFixDirectory;
 - (void)reloadGhostExceptions;
 - (void)openProfileForException:(NSDictionary *)entry;
 - (void)showRenamePromptForException:(NSDictionary *)entry;
+- (void)confirmClearMessageData;
 + (NSArray<NSString *> *)ghostSubFeatureKeys;
 @end
 
@@ -222,7 +225,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 #pragma mark - UITableViewDataSource
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-  return 7;
+  return 8;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView
@@ -241,6 +244,8 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   case FAKE_LOCATION:
     return 2;
   case LANGUAGE:
+    return 1;
+  case MESSAGE_DATA:
     return 1;
   case CREDITS:
     return 2;
@@ -266,6 +271,8 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     return TGLoc(@"FAKE_LOCATION_SECTION_HEADER");
   case LANGUAGE:
     return TGLoc(@"LANGUAGE_SECTION_HEADER");
+  case MESSAGE_DATA:
+    return TGLoc(@"MESSAGE_DATA_SECTION_HEADER");
   case CREDITS:
     return TGLoc(@"CREDITS_SECTION_HEADER");
   default:
@@ -649,6 +656,40 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     cell.textLabel.numberOfLines = 0;
     cell.detailTextLabel.numberOfLines = 0;
     return cell;
+  } else if (indexPath.section == MESSAGE_DATA) {
+    cell = [tableView dequeueReusableCellWithIdentifier:@"messageDataCell"];
+    if (!cell) {
+      cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
+                                   reuseIdentifier:@"messageDataCell"];
+      cell.textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+      cell.detailTextLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+      cell.textLabel.adjustsFontForContentSizeCategory = YES;
+      cell.detailTextLabel.adjustsFontForContentSizeCategory = YES;
+    }
+    cell.textLabel.text = self.isClearingMessageData
+        ? TGLoc(@"MESSAGE_DATA_CLEARING") : TGLoc(@"MESSAGE_DATA_CLEAR_TITLE");
+    cell.detailTextLabel.text = TGLoc(@"MESSAGE_DATA_CLEAR_SUBTITLE");
+    cell.textLabel.textColor = self.isClearingMessageData ? UIColor.secondaryLabelColor : UIColor.systemRedColor;
+    cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
+    cell.imageView.image = [UIImage systemImageNamed:@"trash"];
+    cell.imageView.tintColor = UIColor.systemRedColor;
+    cell.imageView.isAccessibilityElement = NO;
+    cell.accessoryType = UITableViewCellAccessoryNone;
+    cell.accessoryView = nil;
+    cell.userInteractionEnabled = !self.isClearingMessageData;
+    cell.isAccessibilityElement = YES;
+    cell.accessibilityLabel = cell.textLabel.text;
+    cell.accessibilityHint = cell.detailTextLabel.text;
+    cell.accessibilityTraits = UIAccessibilityTraitButton |
+        (self.isClearingMessageData ? UIAccessibilityTraitNotEnabled : 0);
+    cell.textLabel.numberOfLines = 0;
+    cell.detailTextLabel.numberOfLines = 0;
+    if (self.isClearingMessageData) {
+      UIActivityIndicatorView *spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+      [spinner startAnimating];
+      cell.accessoryView = spinner;
+    }
+    return cell;
   } else if (indexPath.section == CREDITS) {
     cell = [self normalCellFromTableView:tableView];
     if (indexPath.row == 0) {
@@ -719,6 +760,11 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     if (indexPath.row == 0) {
       [self showLanguageSelector];
     }
+  }
+
+  if (indexPath.section == MESSAGE_DATA) {
+    [self confirmClearMessageData];
+    return;
   }
 
   if (indexPath.section == CREDITS) {
@@ -1042,6 +1088,31 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   UINavigationController *navVC =
       [[UINavigationController alloc] initWithRootViewController:ui];
   [self presentViewController:navVC animated:YES completion:nil];
+}
+
+- (void)confirmClearMessageData {
+  if (self.isClearingMessageData) return;
+  UIAlertController *alert = [UIAlertController
+      alertControllerWithTitle:TGLoc(@"MESSAGE_DATA_CLEAR_TITLE")
+                       message:TGLoc(@"MESSAGE_DATA_CLEAR_CONFIRM")
+                preferredStyle:UIAlertControllerStyleAlert];
+  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"CANCEL")
+      style:UIAlertActionStyleCancel handler:nil]];
+  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"MESSAGE_DATA_CLEAR_TITLE")
+      style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+        self.isClearingMessageData = YES;
+        NSIndexSet *section = [NSIndexSet indexSetWithIndex:MESSAGE_DATA];
+        [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+          [TLParser clearMessageData];
+          dispatch_async(dispatch_get_main_queue(), ^{
+            self.isClearingMessageData = NO;
+            [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
+            TGExtraShowToast(TGLoc(@"MESSAGE_DATA_CLEARED"));
+          });
+        });
+      }]];
+  [self presentViewController:alert animated:YES completion:nil];
 }
 
 - (void)clearFilePickerFixCache {
