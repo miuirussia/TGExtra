@@ -53,6 +53,12 @@ are skipped. Older histories without an account key remain stored under their
 original preferences keys, but are not automatically assigned or displayed:
 their owning account cannot be determined reliably.
 
+In the tweak menu, **Message Data → Clear Message Database** removes TGExtra's
+edit histories, cached originals, deletion/timer markers and older history
+archives for all accounts after confirmation. Telegram chats and tweak settings
+are preserved. Recording continues for subsequently received messages while the
+corresponding features are enabled.
+
 ## Building and checks
 
 Build with Theos and an iOS SDK using `make package`. The existing rootful,

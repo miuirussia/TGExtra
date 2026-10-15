@@ -112,6 +112,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"تجاهل منع النسخ في المحادثات الخاصة",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"السماح بالنسخ في المحادثات الخاصة التي تقيّد المشاركة. أعد فتح ملف الشخص بعد تغيير هذا الخيار.",
+            @"MESSAGE_DATA_SECTION_HEADER": @"بيانات الرسائل",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"مسح قاعدة بيانات الرسائل",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"سجل التعديلات والنصوص الأصلية وعلامات الحذف والمؤقتات لجميع الحسابات.",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"هل تريد حذف سجل التعديلات والنصوص الأصلية وعلامات الحذف والمؤقتات في TGExtra لجميع الحسابات، بما في ذلك الأرشيفات القديمة؟ لا يمكن التراجع عن هذا الإجراء. سيتم الاحتفاظ بمحادثات Telegram وإعدادات الإضافة.",
+            @"MESSAGE_DATA_CLEARING": @"جارٍ مسح بيانات الرسائل…",
+            @"MESSAGE_DATA_CLEARED": @"تم مسح قاعدة بيانات الرسائل",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -225,6 +231,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"忽略私聊复制限制",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"允许在限制分享的私聊中复制内容。更改此选项后，请重新打开对方的个人资料。",
+            @"MESSAGE_DATA_SECTION_HEADER": @"消息数据",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"清空消息数据库",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"所有账号的编辑历史、原始文本和删除/定时器标记。",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"清除所有账号的 TGExtra 编辑历史、原始文本和删除/定时器标记（包括旧存档）？此操作无法撤销。Telegram 聊天和插件设置将保留。",
+            @"MESSAGE_DATA_CLEARING": @"正在清除消息数据…",
+            @"MESSAGE_DATA_CLEARED": @"消息数据库已清空",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -338,6 +350,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Ignore Copy Protection in Private Chats",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Allow copying in private chats with sharing restrictions. Reopen the person's profile after changing this option.",
+            @"MESSAGE_DATA_SECTION_HEADER": @"Message Data",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"Clear Message Database",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"Edit histories, original texts, and deletion/timer markers for all accounts.",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"Delete TGExtra's edit histories, original texts, and deletion/timer markers for all accounts, including older archives? This cannot be undone. Telegram chats and tweak settings will be kept.",
+            @"MESSAGE_DATA_CLEARING": @"Clearing message data…",
+            @"MESSAGE_DATA_CLEARED": @"Message database cleared",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -451,6 +469,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Ignorar la protección de copia en chats privados",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Permitir copiar en chats privados con restricciones para compartir. Vuelve a abrir el perfil de la persona después de cambiar esta opción.",
+            @"MESSAGE_DATA_SECTION_HEADER": @"Datos de mensajes",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"Vaciar la base de mensajes",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"Historiales de edición, textos originales y marcas de eliminación/temporizador de todas las cuentas.",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"¿Eliminar los historiales de edición, textos originales y marcas de eliminación/temporizador de TGExtra de todas las cuentas, incluidos los archivos antiguos? No se puede deshacer. Los chats de Telegram y los ajustes del tweak se conservarán.",
+            @"MESSAGE_DATA_CLEARING": @"Borrando datos de mensajes…",
+            @"MESSAGE_DATA_CLEARED": @"Base de mensajes vaciada",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -564,6 +588,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Ignorer la protection contre la copie en privé",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Autoriser la copie dans les discussions privées avec restrictions de partage. Rouvrez le profil de la personne après avoir modifié cette option.",
+            @"MESSAGE_DATA_SECTION_HEADER": @"Données des messages",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"Vider la base de messages",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"Historiques des modifications, textes originaux et marqueurs de suppression/minuteur pour tous les comptes.",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"Supprimer les historiques des modifications, les textes originaux et les marqueurs de suppression/minuteur de TGExtra pour tous les comptes, y compris les anciennes archives ? Cette action est irréversible. Les discussions Telegram et les réglages du tweak seront conservés.",
+            @"MESSAGE_DATA_CLEARING": @"Suppression des données des messages…",
+            @"MESSAGE_DATA_CLEARED": @"Base de messages vidée",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -677,6 +707,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Ignora il divieto di copia nelle chat private",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Consenti la copia nelle chat private con restrizioni di condivisione. Riapri il profilo della persona dopo aver modificato questa opzione.",
+            @"MESSAGE_DATA_SECTION_HEADER": @"Dati dei messaggi",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"Svuota il database dei messaggi",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"Cronologia delle modifiche, testi originali e indicatori di eliminazione/timer per tutti gli account.",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"Eliminare la cronologia delle modifiche, i testi originali e gli indicatori di eliminazione/timer di TGExtra per tutti gli account, inclusi i vecchi archivi? Questa azione è irreversibile. Le chat di Telegram e le impostazioni del tweak verranno conservate.",
+            @"MESSAGE_DATA_CLEARING": @"Eliminazione dei dati dei messaggi…",
+            @"MESSAGE_DATA_CLEARED": @"Database dei messaggi svuotato",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -790,6 +826,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"個人チャットのコピー制限を無視",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"共有が制限された個人チャットでコピーを許可します。この設定を変更した後、相手のプロフィールを開き直してください。",
+            @"MESSAGE_DATA_SECTION_HEADER": @"メッセージデータ",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"メッセージデータベースを消去",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"全アカウントの編集履歴、元のテキスト、削除・タイマーの記録。",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"古いアーカイブを含む、全アカウントのTGExtraの編集履歴、元のテキスト、削除・タイマーの記録を消去しますか？この操作は取り消せません。Telegramのチャットとアドオンの設定は保持されます。",
+            @"MESSAGE_DATA_CLEARING": @"メッセージデータを消去中…",
+            @"MESSAGE_DATA_CLEARED": @"メッセージデータベースを消去しました",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -903,6 +945,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Изменить язык",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Игнорировать запрет копирования в личных чатах",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Разрешать копирование в личных чатах с запретом распространения. После изменения опции заново откройте профиль собеседника.",
+            @"MESSAGE_DATA_SECTION_HEADER": @"Данные сообщений",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"Очистить базу сообщений",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"История правок, исходные тексты и отметки удалений/таймеров для всех аккаунтов.",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"Удалить историю правок, исходные тексты и отметки удалений/таймеров TGExtra для всех аккаунтов, включая старые архивы? Отменить очистку нельзя. Переписки Telegram и настройки твика сохранятся.",
+            @"MESSAGE_DATA_CLEARING": @"Очистка данных сообщений…",
+            @"MESSAGE_DATA_CLEARED": @"База сообщений очищена",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1016,6 +1064,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"忽略私聊複製限制",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"允許在限制分享的私聊中複製內容。變更此選項後，請重新開啟對方的個人資料。",
+            @"MESSAGE_DATA_SECTION_HEADER": @"訊息資料",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"清空訊息資料庫",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"所有帳號的編輯歷史、原始文字和刪除/計時器標記。",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"清除所有帳號的 TGExtra 編輯歷史、原始文字和刪除/計時器標記（包括舊封存）？此操作無法復原。Telegram 聊天和外掛設定將保留。",
+            @"MESSAGE_DATA_CLEARING": @"正在清除訊息資料…",
+            @"MESSAGE_DATA_CLEARED": @"訊息資料庫已清空",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1129,6 +1183,12 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CHANGE_LANGUAGE_TITLE": @"Change Language",
             @"IGNORE_PRIVATE_COPY_PROTECTION_TITLE": @"Bỏ qua hạn chế sao chép trong trò chuyện riêng",
             @"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE": @"Cho phép sao chép trong trò chuyện riêng có hạn chế chia sẻ. Mở lại hồ sơ của người đó sau khi thay đổi tùy chọn này.",
+            @"MESSAGE_DATA_SECTION_HEADER": @"Dữ liệu tin nhắn",
+            @"MESSAGE_DATA_CLEAR_TITLE": @"Xóa cơ sở dữ liệu tin nhắn",
+            @"MESSAGE_DATA_CLEAR_SUBTITLE": @"Lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của tất cả tài khoản.",
+            @"MESSAGE_DATA_CLEAR_CONFIRM": @"Xóa lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của TGExtra cho tất cả tài khoản, kể cả kho lưu trữ cũ? Không thể hoàn tác. Các cuộc trò chuyện Telegram và cài đặt tweak sẽ được giữ lại.",
+            @"MESSAGE_DATA_CLEARING": @"Đang xóa dữ liệu tin nhắn…",
+            @"MESSAGE_DATA_CLEARED": @"Đã xóa cơ sở dữ liệu tin nhắn",
         };
     }
     return nil;

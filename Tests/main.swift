@@ -565,3 +565,54 @@ check(parseString(voiceReader) == "caption" && voiceReader.readInt64() == 999, "
 flags()
 check(TLParser.rewriteVoiceUpload(request.makeData() as NSData) == nil, "Video-to-voice toggle disables rewriting")
 print("PASS TL updates (including opaque peer metadata), auto-delete, disappearing media, edits, gzip, containers and voice uploads")
+
+flags("TGExtraAntiEdit", "TGExtraAntiAutoDelete", "TGExtraAntiSelfDestruct")
+_ = patch(message(900, text: "Pending original before clearing"))
+TLParser.addDeletedId(900, peer: 42)
+_ = patch(message(901, ttl: 60))
+_ = patch(message(902, media: photo))
+check(TLParser.isDeleted(900, peer: 42), "Prepare an in-memory deletion marker")
+check(TLParser.isMessageSelfDestructing(902, peer: 42), "Prepare an in-memory disappearing marker")
+check(history(forId: 137, peer: 42, account: "account-2") != nil, "Prepare a second account's history")
+defaults.set(["1": ["Old", "Edited"]], forKey: "TGExtraEditHistory")
+defaults.set(["1": NSNumber(value: 42)], forKey: "TGExtraEditHistoryPeers")
+let messageStorageKeys = ["TGExtraEditHistoryByAccount", "TGExtraEditHistoryByPeer", "TGExtraEditHistory",
+    "TGExtraEditHistoryPeers", "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"]
+let preferencesBeforeClear = defaults.dictionaryRepresentation().filter { !messageStorageKeys.contains($0.key) }
+var receivedClearNotification = false
+let clearObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name("TGExtraMessageDataCleared"), object: nil, queue: nil) { _ in
+    check(Thread.isMainThread, "Message clearing notifies UI on the main thread")
+    receivedClearNotification = true
+}
+DispatchQueue.global().sync { TLParser.clearMessageData() }
+RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+check(receivedClearNotification, "Clearing notifies visible message nodes")
+NotificationCenter.default.removeObserver(clearObserver)
+check(history(forId: 40, peer: 42) == nil, "Clearing removes the first account's in-memory history")
+check(history(forId: 137, peer: 42, account: "account-2") == nil, "Clearing removes every account's history")
+check(!TLParser.isDeleted(900, peer: 42), "Clearing removes in-memory deletion markers")
+check(!TLParser.isMessageSelfDestructing(902, peer: 42), "Clearing removes in-memory disappearing markers")
+check(patch(deletion([901, 902])) == nil, "Cleared timer classifications cannot protect stale message IDs")
+for key in messageStorageKeys { check(defaults.object(forKey: key) == nil, "Remove persisted message data and legacy archives") }
+let preferencesAfterClear = defaults.dictionaryRepresentation().filter { !messageStorageKeys.contains($0.key) }
+check(NSDictionary(dictionary: preferencesBeforeClear).isEqual(to: preferencesAfterClear), "Message clearing preserves all unrelated preferences")
+TLParser.loadPersistedIds()
+check(history(forId: 40, peer: 42) == nil, "Reloading cannot restore cleared history")
+// Let a pre-clear coalesced write reach its original deadline.
+Thread.sleep(forTimeInterval: 6.0)
+for key in messageStorageKeys { check(defaults.object(forKey: key) == nil, "Delayed writes cannot recreate cleared storage") }
+_ = patch(message(134, text: "Fresh original"))
+// Dispatch timers can be coalesced; await the write instead of assuming that
+// five seconds plus a small margin is a strict upper bound on execution.
+let persistenceDeadline = Date(timeIntervalSinceNow: 10)
+while defaults.dictionary(forKey: "TGExtraEditHistoryByAccount") == nil && Date() < persistenceDeadline {
+    Thread.sleep(forTimeInterval: 0.05)
+}
+let freshSaved = defaults.dictionary(forKey: "TGExtraEditHistoryByAccount") as? [String: [String: Any]]
+check(freshSaved?["account-1:42:134"]?["versions"] as? [String] == ["Fresh original"], "Original persistence resumes after clearing")
+_ = patch(message(134, text: "Fresh edit", edit: 100))
+check(history(forId: 134, peer: 42) == ["Fresh original", "Fresh edit"], "Clearing removes stale date metadata and tracking resumes")
+TLParser.clearMessageData()
+TLParser.clearMessageData()
+check(defaults.object(forKey: "TGExtraEditHistoryByAccount") == nil, "Repeated clearing is safe")
+print("PASS message database clearing, legacy removal, delayed writes, notifications and preserved settings")

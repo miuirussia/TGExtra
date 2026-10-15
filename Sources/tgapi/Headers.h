@@ -7,6 +7,7 @@
 + (NSData *)handleResponse:(NSData *)data functionID:(NSNumber *)ios account:(NSString *)account;
 + (void)addDeletedId:(int32_t)msgId peer:(int64_t)peer;
 + (void)loadPersistedIds;
++ (void)clearMessageData;
 + (NSNumber *)getMessageId:(id)item;
 + (NSNumber *)getCurrentUserId;
 + (NSDictionary<NSString *, NSString *> *)getPeerDisplayInfoFromNode:(id)node;

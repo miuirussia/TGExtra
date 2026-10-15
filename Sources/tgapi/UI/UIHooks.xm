@@ -863,8 +863,22 @@ static NSHashTable *activeMessageNodes = nil;
         // run again on its own just because a message changed underneath.
         [[NSNotificationCenter defaultCenter] addObserver:instance selector:@selector(handleMessagesChanged:) name:@"TGExtraMessageDeletedRealtime" object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:instance selector:@selector(handleMessagesChanged:) name:@"TGExtraMessageEditedRealtime" object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:instance selector:@selector(handleMessageDataCleared:) name:@"TGExtraMessageDataCleared" object:nil];
     });
     return instance;
+}
+- (void)handleMessageDataCleared:(NSNotification *)note {
+    NSHashTable *nodesCopy = nil;
+    @synchronized(activeMessageNodes) {
+        nodesCopy = [activeMessageNodes copy];
+    }
+    for (ASDisplayNode *node in nodesCopy) {
+        for (UIView *view in node.view.subviews) {
+            if (view.tag == 8898 || view.tag == 8899) view.hidden = YES;
+        }
+        [node setNeedsLayout];
+        [node.view setNeedsLayout];
+    }
 }
 - (void)handleMessagesChanged:(NSNotification *)note {
     NSArray *deletedIds = note.userInfo[@"ids"];
@@ -1153,11 +1167,10 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
 
     NSNumber *msgId = [TLParser getMessageIdFromNode:self];
     NSNumber *nodePeerKey = msgId ? [TLParser getMessagePeerKeyFromNode:self] : nil;
-    BOOL isDeletedMsg = (msgId && [TLParser isDeleted:msgId peer:nodePeerKey]);
-    BOOL isSelfDestructMsg = (msgId && [TLParser isMessageSelfDestructing:msgId peer:nodePeerKey]);
-
     ASDisplayNode *node = (ASDisplayNode *)self;
     dispatch_async(dispatch_get_main_queue(), ^{
+        BOOL isDeletedMsg = (msgId && [TLParser isDeleted:msgId peer:nodePeerKey]);
+        BOOL isSelfDestructMsg = (msgId && [TLParser isMessageSelfDestructing:msgId peer:nodePeerKey]);
         if (isDeletedMsg || isSelfDestructMsg) {
             UIImageView *statusIcon = nil;
             for (UIView *v in node.view.subviews) {

@@ -149,3 +149,11 @@
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
 "IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "Bỏ qua hạn chế sao chép trong trò chuyện riêng";
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Cho phép sao chép trong trò chuyện riêng có hạn chế chia sẻ. Mở lại hồ sơ của người đó sau khi thay đổi tùy chọn này.";
+
+/* Message data */
+"MESSAGE_DATA_SECTION_HEADER" = "Dữ liệu tin nhắn";
+"MESSAGE_DATA_CLEAR_TITLE" = "Xóa cơ sở dữ liệu tin nhắn";
+"MESSAGE_DATA_CLEAR_SUBTITLE" = "Lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của tất cả tài khoản.";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "Xóa lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của TGExtra cho tất cả tài khoản, kể cả kho lưu trữ cũ? Không thể hoàn tác. Các cuộc trò chuyện Telegram và cài đặt tweak sẽ được giữ lại.";
+"MESSAGE_DATA_CLEARING" = "Đang xóa dữ liệu tin nhắn…";
+"MESSAGE_DATA_CLEARED" = "Đã xóa cơ sở dữ liệu tin nhắn";

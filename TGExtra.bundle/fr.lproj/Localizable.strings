@@ -149,3 +149,11 @@
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
 "IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "Ignorer la protection contre la copie en privé";
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Autoriser la copie dans les discussions privées avec restrictions de partage. Rouvrez le profil de la personne après avoir modifié cette option.";
+
+/* Message data */
+"MESSAGE_DATA_SECTION_HEADER" = "Données des messages";
+"MESSAGE_DATA_CLEAR_TITLE" = "Vider la base de messages";
+"MESSAGE_DATA_CLEAR_SUBTITLE" = "Historiques des modifications, textes originaux et marqueurs de suppression/minuteur pour tous les comptes.";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "Supprimer les historiques des modifications, les textes originaux et les marqueurs de suppression/minuteur de TGExtra pour tous les comptes, y compris les anciennes archives ? Cette action est irréversible. Les discussions Telegram et les réglages du tweak seront conservés.";
+"MESSAGE_DATA_CLEARING" = "Suppression des données des messages…";
+"MESSAGE_DATA_CLEARED" = "Base de messages vidée";
