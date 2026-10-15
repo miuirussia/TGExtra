@@ -850,6 +850,27 @@ static void injectGhostExceptionButton(ASDisplayNode *headerNode, long long peer
 
 static NSHashTable *activeMessageNodes = nil;
 
+static void trackTGExtraMessageNode(ASDisplayNode *node) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        activeMessageNodes = [NSHashTable weakObjectsHashTable];
+    });
+    @synchronized(activeMessageNodes) {
+        [activeMessageNodes addObject:node];
+    }
+}
+
+static void scheduleTGExtraEditBadgeUpdate(ASDisplayNode *node) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        trackTGExtraMessageNode(node);
+        // The item can be assigned or reused before this block runs. Resolve
+        // its identity here, together with the account and the view geometry.
+        NSNumber *msgId = [TLParser getMessageIdFromNode:node];
+        NSNumber *peerKey = msgId ? [TLParser getMessagePeerKeyFromNode:node] : nil;
+        updateTGExtraEditBadge(node, msgId, peerKey);
+    });
+}
+
 @interface TGExtraAntiRevokeUpdater : NSObject
 @end
 @implementation TGExtraAntiRevokeUpdater
@@ -858,9 +879,8 @@ static NSHashTable *activeMessageNodes = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         instance = [self new];
-        // Both notifications carry the same payload and need the same reaction:
-        // the badge for those ids is drawn during -layout, and layout will not
-        // run again on its own just because a message changed underneath.
+        // Both notifications refresh matching message badges directly: a
+        // message change need not trigger another -layout call.
         [[NSNotificationCenter defaultCenter] addObserver:instance selector:@selector(handleMessagesChanged:) name:@"TGExtraMessageDeletedRealtime" object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:instance selector:@selector(handleMessagesChanged:) name:@"TGExtraMessageEditedRealtime" object:nil];
         [[NSNotificationCenter defaultCenter] addObserver:instance selector:@selector(handleMessageDataCleared:) name:@"TGExtraMessageDataCleared" object:nil];
@@ -904,12 +924,7 @@ static NSHashTable *activeMessageNodes = nil;
         // reuses a cached layout when the size has not changed, so -layout —
         // where the badge is drawn — never ran again and the badge only turned
         // up after the chat was reopened. Draw it here instead.
-        ASDisplayNode *n = node;
-        NSNumber *identifier = msgId;
-        NSNumber *peerKey = [TLParser getMessagePeerKeyFromNode:node];
-        dispatch_async(dispatch_get_main_queue(), ^{
-            updateTGExtraEditBadge(n, identifier, peerKey);
-        });
+        scheduleTGExtraEditBadgeUpdate(node);
     }
 }
 @end
@@ -1080,6 +1095,18 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
 }
 
 %hook ASDisplayNode
+- (void)didEnterHierarchy {
+    %orig;
+
+    NSString *className = NSStringFromClass([self class]);
+    if ([className containsString:@"ChatMessage"] && [className containsString:@"ItemNode"]) {
+        // Telegram 13.0 can apply a message's frames without calling -layout.
+        // Register and draw when it is attached too, including cached history
+        // whose notification arrived before the message was on screen.
+        scheduleTGExtraEditBadgeUpdate((ASDisplayNode *)self);
+    }
+}
+
 - (void)layout {
     %orig;
 
@@ -1156,19 +1183,12 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
         return;
     }
 
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        activeMessageNodes = [NSHashTable weakObjectsHashTable];
-    });
+    trackTGExtraMessageNode((ASDisplayNode *)self);
 
-    @synchronized(activeMessageNodes) {
-        [activeMessageNodes addObject:self];
-    }
-
-    NSNumber *msgId = [TLParser getMessageIdFromNode:self];
-    NSNumber *nodePeerKey = msgId ? [TLParser getMessagePeerKeyFromNode:self] : nil;
     ASDisplayNode *node = (ASDisplayNode *)self;
     dispatch_async(dispatch_get_main_queue(), ^{
+        NSNumber *msgId = [TLParser getMessageIdFromNode:node];
+        NSNumber *nodePeerKey = msgId ? [TLParser getMessagePeerKeyFromNode:node] : nil;
         BOOL isDeletedMsg = (msgId && [TLParser isDeleted:msgId peer:nodePeerKey]);
         BOOL isSelfDestructMsg = (msgId && [TLParser isMessageSelfDestructing:msgId peer:nodePeerKey]);
         if (isDeletedMsg || isSelfDestructMsg) {

@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 python3 Tests/check_resources.py
+python3 Tests/edit_badge_refresh.py
 test_build_dir=$(mktemp -d /private/tmp/tgextra-tests.XXXXXX)
 trap 'rm -rf "$test_build_dir"' EXIT
 # Compile a stable snapshot so concurrent edits cannot invalidate compiler inputs.
