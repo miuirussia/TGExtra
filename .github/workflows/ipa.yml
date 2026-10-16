@@ -1,5 +1,8 @@
 name: Build and Release IPA
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -13,13 +16,25 @@ jobs:
     name: Prepare Dependencies
     runs-on: macos-14
     outputs:
+      release_tag: ${{ steps.release.outputs.tag }}
       ipa_app_name: ${{ steps.extractIPA.outputs.ipa_app_name }}
       ipa_bundle_id: ${{ steps.extractIPA.outputs.ipa_bundle_id }}
       ipa_version: ${{ steps.extractIPA.outputs.ipa_version }}
       tgextra_version: ${{ steps.extractTGExtra.outputs.tgextra_version }}
     steps:
+      - name: Resolve latest TGExtra release
+        id: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TAG=$(gh release view --json tagName --jq .tagName)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Fetch TGExtra.bundle
         uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
 
       - name: Download decrypted IPA
         env:
@@ -41,11 +56,13 @@ jobs:
           echo "ipa_bundle_id=$IPA_BUNDLE_ID" >> "$GITHUB_OUTPUT"
           echo "ipa_version=$IPA_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Download latest TGExtra
+      - name: Download TGExtra release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
-          gh release download release --repo miuirussia/TGExtra --pattern 'com.choco.tg_*_iphoneos-arm.deb' --dir .
+          gh release download "$RELEASE_TAG" --pattern 'com.choco.tg_*_iphoneos-arm.deb' --dir .
 
       - name: Extract TGExtra version
         id: extractTGExtra
@@ -227,6 +244,7 @@ jobs:
     runs-on: macos-14
     env:
       IPA_APP_NAME: ${{ needs.prepareDependencies.outputs.ipa_app_name }}
+      RELEASE_TAG: ${{ needs.prepareDependencies.outputs.release_tag }}
     steps:
       - name: Download injected IPA
         uses: actions/download-artifact@v4
@@ -239,7 +257,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view release --repo ${{ github.repository }} --json body --jq .body > release_body.md
+          gh release view "$RELEASE_TAG" --repo ${{ github.repository }} --json body --jq .body > release_body.md
 
       - name: Generate Checksums
         id: metadata
@@ -282,15 +300,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: release
-          name: ${{ github.event.repository.name }}
+          tag_name: ${{ needs.prepareDependencies.outputs.release_tag }}
+          name: ${{ github.event.repository.name }} ${{ needs.prepareDependencies.outputs.release_tag }}
           body_path: release_body.md
           files: |
             artifacts/*.ipa
             artifacts/*.tipa
           draft: false
           prerelease: false
-          make_latest: true
+          make_latest: false
   cleanup:
     name: Cleanup
     needs: updateRelease
