@@ -5,24 +5,27 @@ permissions:
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]
+    inputs:
+      tag:
+        description: "Existing tag to build and release"
+        required: true
+        type: string
+  push:
+    branches:
+      - main
+    tags:
+      - '**'
+
+concurrency:
+  group: release-${{ inputs.tag || (github.ref == 'refs/heads/main' && 'prerelease') || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: ${{ inputs.tag || (github.ref == 'refs/heads/main' && 'prerelease') || github.ref_name }}
+  BUILD_REF: ${{ inputs.tag || github.sha }}
 
 jobs:
-  cleanup:
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Cleaning up existing releases and tags
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release delete release --yes || true
-          git push origin :refs/tags/release || true
-
   build:
-    needs: cleanup
     runs-on: macos-14
     strategy:
       matrix:
@@ -36,6 +39,8 @@ jobs:
             scheme_arg: "THEOS_PACKAGE_SCHEME=roothide"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
 
       - name: Install Theos dependencies
         shell: bash
@@ -77,6 +82,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
 
       - name: Download all packages
         uses: actions/download-artifact@v4
@@ -109,6 +116,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
 
       - name: Download all packages
         uses: actions/download-artifact@v4
@@ -164,20 +173,25 @@ jobs:
             fi
           done
 
+      - name: Update prerelease tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: git push --force origin "$GITHUB_SHA:refs/tags/prerelease"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: release
-          name: ${{ github.event.repository.name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ env.BUILD_REF }}
+          name: ${{ github.event.repository.name }} ${{ env.RELEASE_TAG }}
           body_path: release_body.md
           files: |
             packages/*.deb
             packages/*.cyan
           draft: false
-          prerelease: false
-          make_latest: true
+          prerelease: ${{ env.RELEASE_TAG == 'prerelease' }}
+          make_latest: ${{ env.RELEASE_TAG != 'prerelease' }}
 
       - name: Delete build artifacts
         uses: geekyeggo/delete-artifact@v5
