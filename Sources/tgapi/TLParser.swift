@@ -1359,6 +1359,44 @@ class TLParser: NSObject {
         return unwrapString(child.value)
     }
 
+    private static let ownUserIdsKey = "TGExtraOwnUserIdsByAccount"
+
+    /// Resolve the account belonging to this screen, even when another account
+    /// last opened a chat or delivered a background response.
+    @objc static func getOwnUserIdFromNode(_ node: Any) -> NSNumber? {
+        processingLock.lock()
+        defer { processingLock.unlock() }
+        let account = getHistoryAccountFromNode(node)
+        if let id = findNodeAccountPeerId(node, depth: 0) {
+            if let account = account { rememberOwnUserId(id.int64Value, account: account) }
+            return id
+        }
+        guard let account = account else { return nil }
+        return UserDefaults.standard.dictionary(forKey: ownUserIdsKey)?[account] as? NSNumber
+    }
+
+    private static func findNodeAccountPeerId(_ wrapped: Any, depth: Int) -> NSNumber? {
+        guard depth <= 6 else { return nil }
+        var mirror: Mirror? = Mirror(reflecting: unwrapOptional(wrapped))
+        while let current = mirror {
+            for child in current.children {
+                if child.label == "account", let id = findOwnPeerId(child.value, depth: 0) { return id }
+                if ["item", "context"].contains(child.label ?? ""),
+                   let id = findNodeAccountPeerId(child.value, depth: depth + 1) { return id }
+            }
+            mirror = current.superclassMirror
+        }
+        return nil
+    }
+
+    // Called under processingLock by both the UI and response parser.
+    private static func rememberOwnUserId(_ id: Int64, account: String) {
+        var saved = UserDefaults.standard.dictionary(forKey: ownUserIdsKey) ?? [:]
+        guard (saved[account] as? NSNumber)?.int64Value != id else { return }
+        saved[account] = NSNumber(value: id)
+        UserDefaults.standard.set(saved, forKey: ownUserIdsKey)
+    }
+
     @objc static func getCurrentUserId() -> NSNumber? {
         if let context = sharedContext, let id = findOwnPeerId(context, depth: 0) {
             // Cached the moment it resolves, so the answer survives a launch
@@ -1381,26 +1419,23 @@ class TLParser: NSObject {
 
     /// Learns your own user id from the wire.
     ///
-    /// Reflecting over the shared context turned out to be a dead end — on this
-    /// host the context never reaches the tweak at all, so both it and the
-    /// cached value stayed empty and every profile looked like a stranger's.
-    /// Every users vector the server sends marks you with `self` at flags bit
-    /// 10, which needs no cooperation from the app.
+    /// Every users vector marks the requesting account with `self` at flags
+    /// bit 10. Keep each account separately; background replies cannot identify
+    /// the account currently visible on screen.
     private static func noteOwnUser(in users: [Api.User]) {
-        guard UserDefaults.standard.integer(forKey: "TGExtraLastKnownUserId") == 0 else { return }
+        guard let account = processingHistoryAccount else { return }
         for user in users {
             guard case let .user(data) = user else { continue }
             guard (Int(data.flags) & Int(1 << 10)) != 0 else { continue }
-            UserDefaults.standard.set(data.id, forKey: "TGExtraLastKnownUserId")
-            diag("own-id LEARNED \(data.id) from the self flag")
+            rememberOwnUserId(data.id, account: account)
             return
         }
     }
 
-    /// True once the id above is on file. Used to keep the response parser
-    /// running until it has been learned, and no longer after that.
+    /// Keep parsing until the requesting account's own id has been learned.
     private static var isOwnIdKnown: Bool {
-        return UserDefaults.standard.integer(forKey: "TGExtraLastKnownUserId") != 0
+        guard let account = processingHistoryAccount else { return true }
+        return UserDefaults.standard.dictionary(forKey: ownUserIdsKey)?[account] as? NSNumber != nil
     }
 
     /// Pulls the users vector out of whatever just parsed, without having to
@@ -2488,7 +2523,12 @@ class TLParser: NSObject {
 
     @objc(handleResponse:functionID:account:requestPayload:) static func handleResponse(_ data: NSData, functionID: NSNumber, account: String?, requestPayload: NSData? = nil) -> NSData? {
         processingLock.lock()
-        defer { processingLock.unlock() }
+        let previousAccount = processingHistoryAccount
+        processingHistoryAccount = account
+        defer {
+            processingHistoryAccount = previousAccount
+            processingLock.unlock()
+        }
         let previousIds = requestedMessageIds
         let previousPeer = requestedMessagePeer
         let previousOutgoing = outgoingOriginal

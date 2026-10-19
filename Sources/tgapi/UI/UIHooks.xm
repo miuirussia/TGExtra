@@ -498,15 +498,6 @@ static BOOL injectBadgeToNode(ASDisplayNode *textNode, ASDisplayNode *headerNode
     @try {
         if (!textNode.view || !headerNode.view) return NO;
 
-        if (peerId == 0) {
-            NSString *cls = NSStringFromClass([headerNode class]);
-            if ([cls containsString:@"Settings"] || [cls containsString:@"Profile"]) {
-                peerId = [[NSUserDefaults standardUserDefaults] integerForKey:@"TGExtraLastKnownUserId"];
-            }
-        }
-
-        if (peerId == 0) return NO;
-
         NSString *prefix = nil;
         UIColor *badgeColor = [UIColor colorWithRed:0.0 green:0.5 blue:1.0 alpha:1.0]; // TGExtra Blue
 
@@ -515,7 +506,7 @@ static BOOL injectBadgeToNode(ASDisplayNode *textNode, ASDisplayNode *headerNode
             prefix = @"👑 TGExtra Owner";
             badgeColor = [UIColor colorWithRed:1.0 green:0.75 blue:0.0 alpha:1.0]; // Gold
         } else {
-            NSNumber *currId = [NSClassFromString(@"TLParser") performSelector:@selector(getCurrentUserId)];
+            NSNumber *currId = [TLParser getOwnUserIdFromNode:headerNode];
             if (currId && [currId longLongValue] == peerId) {
                 prefix = @"✨ TGExtra User";
             }
@@ -800,7 +791,7 @@ static void injectGhostExceptionButton(ASDisplayNode *headerNode, long long peer
         BOOL isOwnProfile = NO;
         BOOL ownIdKnown = NO;
         if (peerId > 0) {
-            NSNumber *currentUserId = [TLParser getCurrentUserId];
+            NSNumber *currentUserId = [TLParser getOwnUserIdFromNode:headerNode];
             ownIdKnown = (currentUserId != nil);
             isOwnProfile = (ownIdKnown && currentUserId.longLongValue == peerId);
             tgextraDiag("ghost-button peer=%lld me=%lld own=%d",
@@ -1267,7 +1258,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
             headerHasNoPeer = (getPeer(self, peerSel) == nil);
         }
         if (peerId == 0 && headerHasNoPeer) {
-            peerId = [[NSUserDefaults standardUserDefaults] integerForKey:@"TGExtraLastKnownUserId"];
+            peerId = [[TLParser getOwnUserIdFromNode:self] longLongValue];
         }
         recursiveSearchAndInject(self, self, peerId);
 

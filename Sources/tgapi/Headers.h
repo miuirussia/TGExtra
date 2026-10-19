@@ -10,6 +10,7 @@
 + (void)clearMessageData;
 + (NSNumber *)getMessageId:(id)item;
 + (NSNumber *)getCurrentUserId;
++ (NSNumber *)getOwnUserIdFromNode:(id)node;
 + (NSDictionary<NSString *, NSString *> *)getPeerDisplayInfoFromNode:(id)node;
 + (NSDictionary<NSString *, NSString *> *)cachedPeerInfoForId:(NSNumber *)peerId;
 + (NSString *)debugPeerCandidates:(id)node;

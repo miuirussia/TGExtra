@@ -22,6 +22,7 @@ func isMessageSelfDestructing(_ id: NSNumber, peer: NSNumber?, account: String? 
 let defaults = TGExtraUseTestDefaults()!
 precondition(UserDefaults.standard === defaults, "Tests must use in-memory defaults")
 if CommandLine.arguments.contains("--restore") {
+    testRestoredOwnUserAccounts()
     var saved: [String: [String: Any]] = [
         "account-1:42:40": ["versions": ["Before", "After"], "editDate": 2000],
         "account-1:42:41": ["versions": ["", "Caption", ""], "editDate": 2001],
@@ -82,6 +83,8 @@ func parsed<T>(_ bytes: NSData, as type: T.Type) -> T {
     check(reader.offset == UInt(bytes.length), "Parse consumed the whole response")
     return value
 }
+testOwnUserAccounts()
+
 func message(_ id: Int32, peer: Api.Peer = .peerUser(.init(userId: 42)), text: String = "Original 😀", ttl: Int32? = nil, media: Api.MessageMedia? = nil, edit: Int32? = nil) -> Api.Message {
     var bits: Int32 = 1 << 7
     if ttl != nil { bits |= 1 << 25 }
