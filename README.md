@@ -1,8 +1,13 @@
 # TGExtra
 A simple Telegram iOS Tweak.
 
-Open the tweak menu by long-pressing **Ask a Question** in Telegram Settings,
-long-pressing the screen with three fingers, or tapping the Chats tab five times.
+Open **Settings** in Telegram, scroll to the bottom and tap **TGExtra**.
+The entry uses Objective-C AsyncDisplayKit/UIKit hooks checked against Telegram
+[`release-13.0.0`](https://github.com/TelegramMessenger/Telegram-iOS/tree/f1dd7a2dbd02cbbf513e75d5695d8d36d1cf5838); it does not
+patch Swift methods. It is hidden while editing the profile and is not added to
+other people's profiles. The original support action is preserved.
+You can also long-press **Ask a Question**, long-press the screen with three
+fingers, or tap the Chats tab five times.
 
 ## Screenshots
 
@@ -101,6 +106,18 @@ settings migration, account/namespace isolation, formatting/media revisions,
 TTL paths, validation recovery and persisted history. Tests use in-memory
 preferences.
 UI interaction, video extraction and installation still require an iOS device.
+
+For basic menu checks in Docker:
+
+```sh
+docker build -f Tests/Dockerfile -t tgextra-menu-tests .
+docker run --rm -v "$PWD:/work:ro" tgextra-menu-tests
+```
+
+This checks resources and support-row detection, preprocesses all Logos hooks,
+and compiles the Settings entry for arm64/arm64e against iOS 16.5 with a 14.0
+deployment target. It does not run UIKit or replace the macOS protocol tests.
+
 Run `Tests/story_video_export.sh` on macOS with FFmpeg installed to check story
 video frame rate, duration, audio, rotation and export failure handling.
 Set `THEOS` or `LOGOS_PL` to also test the Photos hooks and temporary-file

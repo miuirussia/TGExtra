@@ -81,6 +81,23 @@ static BOOL tgextraLabelMatchesLocalizedKey(NSString *lower, NSString *key, BOOL
     return needle.length >= 6 && [lower containsString:needle];
 }
 
+// Shared with the visible Settings entry. Do not include fork names or gift
+// labels here: those can also occur on another person's profile.
+BOOL TGExtraIsTelegramSupportLabel(NSString *label) {
+    if (label.length == 0) return NO;
+    NSString *lower = label.lowercaseString;
+    NSString *localized = [getActiveTGLocalization() get:@"Settings.Support"];
+    if (localized.length && ![localized isEqualToString:@"Settings.Support"] &&
+        [lower isEqualToString:localized.lowercaseString]) return YES;
+    for (NSString *text in @[@"ask a question", @"задать вопрос",
+         @"hacer una pregunta", @"poser une question", @"stellen sie eine frage",
+         @"fai una domanda", @"bir soru sor", @"질문하기", @"提问", @"提問",
+         @"質問する", @"đặt câu hỏi"]) {
+        if ([lower isEqualToString:text]) return YES;
+    }
+    return NO;
+}
+
 // Is this accessibility label the "Ask a Question" row in Settings?
 //
 // That row is the one and only way into the tweak's own menu, so a label this
