@@ -497,6 +497,19 @@ class TLParser: NSObject {
                                    editDate: Int32?, allowUndatedEdit: Bool = false, content: [String: Data] = [:]) -> Bool {
         guard id != 0, peer != 0, let account = processingHistoryAccount else { return false }
         let key = EditKey(account: account, peer: peer, id: id, namespace: processingNamespace)
+        return recordText(text, key: key, editDate: editDate, allowUndatedEdit: allowUndatedEdit, content: content)
+    }
+
+    private static func contentDiffers(_ lhs: [String: Data], _ rhs: [String: Data], fields: [String]) -> Bool {
+        return fields.contains { field in
+            guard let before = lhs[field], let after = rhs[field] else { return false }
+            return before != after
+        }
+    }
+
+    private static func recordText(_ text: String, key: EditKey, editDate: Int32?,
+                                   allowUndatedEdit: Bool = false, content: [String: Data],
+                                   localSnapshot: Bool = false) -> Bool {
         return editQueue.sync(flags: .barrier) {
             guard var entry = _editHistory[key] else {
                 _editHistory[key] = EditEntry(versions: [text], editDate: editDate, contents: [content])
@@ -507,17 +520,24 @@ class TLParser: NSObject {
             }
             guard editDate != nil || allowUndatedEdit else { return false }
             if let date = editDate, let latestDate = entry.editDate, date < latestDate { return false }
+            let previousContent = entry.contents.last ?? [:]
+            let contentChanged = contentDiffers(previousContent, content, fields: ["entities", "mediaIdentity", "rich"])
+            // UI can still display the previous item while a network edit is
+            // already recorded. Equal second-resolution dates cannot establish
+            // that a different cache snapshot is newer. Network updates retain
+            // their existing arrival-order handling for equal dates.
+            if localSnapshot, let latestDate = entry.editDate {
+                guard let date = editDate else { return false }
+                if date <= latestDate && (entry.versions.last != text || contentChanged) { return false }
+            }
             let dateChanged = editDate != nil && entry.editDate != editDate
             if let date = editDate { entry.editDate = date }
-            let previousContent = entry.contents.last ?? [:]
-            let contentChanged = !previousContent.isEmpty && !content.isEmpty &&
-                ["entities", "mediaIdentity", "rich"].contains { previousContent[$0] != content[$0] }
             guard entry.versions.last != text || contentChanged else {
-                let learnedContent = previousContent.isEmpty && !content.isEmpty
-                if learnedContent { entry.contents[entry.contents.count - 1] = content }
+                let merged = previousContent.merging(content) { _, observed in observed }
+                let learnedContent = merged != previousContent
+                if learnedContent { entry.contents[entry.contents.count - 1] = merged }
                 if dateChanged || learnedContent {
                     _editHistory[key] = entry
-                    // Keep ordering metadata as durable as the edited history.
                     if entry.versions.count > 1 { writeEditHistoryLocked() }
                     else { scheduleEditPersistLocked() }
                 }
@@ -566,11 +586,11 @@ class TLParser: NSObject {
             guard let entry = _editHistory[key], entry.versions.count > 1 else { return nil }
             return entry.contents.enumerated().map { index, content in
                 let previous = index > 0 ? entry.contents[index - 1] : content
-                let comparable = !previous.isEmpty && !content.isEmpty
-                let richFormattingChanged = index > 0 && entry.versions[index] == entry.versions[index - 1] && previous["rich"] != content["rich"]
+                let richFormattingChanged = index > 0 && entry.versions[index] == entry.versions[index - 1] &&
+                    contentDiffers(previous, content, fields: ["rich"])
                 return ["text": entry.versions[index], "content": content,
-                        "mediaChanged": comparable && previous["mediaIdentity"] != content["mediaIdentity"],
-                        "formatChanged": comparable && (previous["entities"] != content["entities"] || richFormattingChanged)]
+                        "mediaChanged": contentDiffers(previous, content, fields: ["mediaIdentity"]),
+                        "formatChanged": contentDiffers(previous, content, fields: ["entities"]) || richFormattingChanged]
             }
         }
     }
@@ -578,7 +598,7 @@ class TLParser: NSObject {
     private static func revisionContent(entities: [Api.MessageEntity]?, media: Api.MessageMedia?, rich: Api.RichMessage?) -> [String: Data] {
         let entityBuffer = Buffer()
         for entity in entities ?? [] { entity.serialize(entityBuffer, true) }
-        var content = ["entities": entityBuffer.makeData(), "mediaIdentity": Data()]
+        var content = ["entities": entityBuffer.makeData(), "mediaIdentity": Data(), "rich": Data()]
         if let media = media {
             content["media"] = serializeBoxed(media) as Data
             let identity: String
@@ -664,18 +684,7 @@ class TLParser: NSObject {
               let account = processingHistoryAccount else { return }
         diag("anti-edit VERSION id=\(data.id) peer=\(peer) account=\(account)")
 
-        // The badge is drawn during -layout, and an edit arriving while the chat
-        // is already on screen triggers no layout pass of its own. Without this
-        // nudge the pencil only turned up after leaving and reopening the app.
-        let id = data.id
-        let namespace = processingNamespace
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(
-                name: NSNotification.Name("TGExtraMessageEditedRealtime"),
-                object: nil,
-                userInfo: ["ids": [NSNumber(value: id)], "account": account, "peer": NSNumber(value: peer), "namespace": NSNumber(value: namespace)]
-            )
-        }
+        notifyMessageEdited(EditKey(account: account, peer: peer, id: data.id, namespace: processingNamespace))
     }
 
     /// Applied to every batch of loaded messages. Records only; the batch is
@@ -709,133 +718,233 @@ class TLParser: NSObject {
         return (final, newChats, restored || changedChats || changedTTL)
     }
 
-    /// Dynamically extracts message.id.id from a ChatMessageItem using string description parsing.
-    /// This is safer than Mirror because it bypasses computed properties and layout differences.
+    /// Look up stored fields only, including Optional values and base classes.
+    /// Never asks Telegram for its computed message/firstMessage properties.
+    private static func storedField(_ name: String, in value: Any) -> Any? {
+        var mirror: Mirror? = Mirror(reflecting: unwrapOptional(value))
+        while let current = mirror {
+            if let field = current.children.first(where: { $0.label == name }) { return field.value }
+            mirror = current.superclassMirror
+        }
+        return nil
+    }
+
+    private struct RenderedMessage {
+        let value: Any
+        let id: Int32
+        let peer: Int64
+        let namespace: Int32
+    }
+
+    private static func renderedMessage(_ value: Any) -> RenderedMessage? {
+        let message = unwrapOptional(value)
+        guard let messageId = storedField("id", in: message),
+              let idValue = storedField("id", in: messageId), let rawId = rawNumber(idValue),
+              let id = Int32(exactly: rawId), id != 0,
+              let namespaceValue = storedField("namespace", in: messageId),
+              let rawNamespace = rawNumber(namespaceValue), let namespace = Int32(exactly: rawNamespace),
+              let peerId = storedField("peerId", in: messageId),
+              let peer = peerKey(fromPeerId: peerId), peer != 0 else { return nil }
+        return RenderedMessage(value: message, id: id, peer: peer, namespace: namespace)
+    }
+
+    private static func tupleMessage(_ value: Any) -> Any? {
+        let value = unwrapOptional(value)
+        if Mirror(reflecting: value).displayStyle == .tuple {
+            return storedField("message", in: value) ?? storedField(".0", in: value)
+        }
+        return value
+    }
+
+    /// ChatMessageItemContent.message(message:read:selection:attributes:location:)
+    /// and .group(messages: [(Message, Bool, Selection, Attributes, Location?)]).
+    private static func renderedMessages(from item: Any) -> [RenderedMessage] {
+        guard let content = storedField("content", in: item) else { return [] }
+        let mirror = Mirror(reflecting: unwrapOptional(content))
+        guard mirror.displayStyle == .enum, let payload = mirror.children.first else { return [] }
+        switch payload.label {
+        case "message":
+            guard let value = tupleMessage(payload.value), let message = renderedMessage(value) else { return [] }
+            return [message]
+        case "group":
+            let group = storedField("messages", in: payload.value) ?? payload.value
+            let collection = Mirror(reflecting: unwrapOptional(group))
+            guard collection.displayStyle == .collection else { return [] }
+            // Do not choose a later member when the leading message is unknown.
+            // That would bind the pencil to a different message from firstMessage.
+            var result = [RenderedMessage]()
+            for row in collection.children {
+                guard let value = tupleMessage(row.value), let message = renderedMessage(value) else { return [] }
+                result.append(message)
+            }
+            return result
+        default: return []
+        }
+    }
+
+    private static func renderedMessagesFromNode(_ node: Any) -> [RenderedMessage] {
+        guard let item = storedField("item", in: node) else { return [] }
+        return renderedMessages(from: item)
+    }
+
     @objc static func getMessageId(from item: Any) -> NSNumber? {
-        let description = String(describing: item)
+        return renderedMessages(from: item).first.map { NSNumber(value: $0.id) }
+    }
 
-        let pattern = "MessageId\\(peerId: [^,]+, namespace: [^,]+, id: (\\d+)\\)"
-        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
-            let nsRange = NSRange(description.startIndex..<description.endIndex, in: description)
-            if let match = regex.firstMatch(in: description, options: [], range: nsRange) {
-                if let idRange = Range(match.range(at: 1), in: description), let id = Int32(description[idRange]) {
-                    return NSNumber(value: id)
-                }
+    @objc static func getMessageIdFromNode(_ node: Any) -> NSNumber? {
+        return renderedMessagesFromNode(node).first.map { NSNumber(value: $0.id) }
+    }
+
+    @objc static func getMessagePeerKeyFromNode(_ node: Any) -> NSNumber? {
+        return renderedMessagesFromNode(node).first.map { NSNumber(value: $0.peer) }
+    }
+
+    @objc static func getMessageNamespaceFromNode(_ node: Any) -> NSNumber? {
+        return renderedMessagesFromNode(node).first.map { NSNumber(value: $0.namespace) }
+    }
+
+    /// TGExtra-internal bridge. One read supplies every component of identity.
+    /// Observations use explicit keys and never change the network parser's scope.
+    @objc(messageStateFromNode:observe:) static func messageState(from node: Any, observe: Bool) -> [String: Any]? {
+        guard let item = storedField("item", in: node) else { return nil }
+        let messages = renderedMessages(from: item)
+        guard let first = messages.first, let account = findHistoryAccount(in: item, depth: 0) else { return nil }
+        if observe && isAntiEditEnabled {
+            for message in messages {
+                recordRenderedMessage(message, account: account)
             }
         }
+        return ["id": NSNumber(value: first.id), "peer": NSNumber(value: first.peer),
+                "namespace": NSNumber(value: first.namespace), "account": account]
+    }
 
-        // NEW PATTERN: Matches "id: 0:id(rawValue: 8310923053):0_11639"
-        let rawValuePattern = "rawValue: \\d+\\):\\d+_(\\d+)"
-        if let regex = try? NSRegularExpression(pattern: rawValuePattern, options: []) {
-            let nsRange = NSRange(description.startIndex..<description.endIndex, in: description)
-            if let match = regex.firstMatch(in: description, options: [], range: nsRange) {
-                if let idRange = Range(match.range(at: 1), in: description), let id = Int32(description[idRange]) {
-                    return NSNumber(value: id)
-                }
-            }
+    @objc static func hasAdMessageFromNode(_ node: Any) -> Bool {
+        return renderedMessagesFromNode(node).contains { message in
+            let attributes = storedField("attributes", in: message.value) as? [Any] ?? []
+            return attributes.contains { String(reflecting: type(of: $0)).split(separator: ".").last == "AdMessageAttribute" }
         }
+    }
 
-        let fallbackPattern = "messageId: (\\d+)"
-        if let regex = try? NSRegularExpression(pattern: fallbackPattern, options: []) {
-            let nsRange = NSRange(description.startIndex..<description.endIndex, in: description)
-            if let match = regex.firstMatch(in: description, options: [], range: nsRange) {
-                if let idRange = Range(match.range(at: 1), in: description), let id = Int32(description[idRange]) {
-                    return NSNumber(value: id)
-                }
+    private struct EntityValue: Encodable {
+        let value: Encodable
+        func encode(to encoder: Encoder) throws { try value.encode(to: encoder) }
+    }
+
+    /// MessageTextEntity is a Codable value in Telegram 13.0. Encode that
+    /// stored value, then normalize its documented fields to our wire format.
+    /// Unknown entity kinds make entities unknown, rather than an empty list.
+    private static func storedEntities(_ values: [Any]) -> Data? {
+        let buffer = Buffer()
+        for value in values {
+            guard let value = value as? Encodable,
+                  let data = try? JSONEncoder().encode(EntityValue(value: value)),
+                  let fields = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+                  let kind = fields["_rawValue"] as? NSNumber,
+                  let start = fields["start"] as? NSNumber, let end = fields["end"] as? NSNumber,
+                  let offset = Int32(exactly: start.int64Value),
+                  let endOffset = Int32(exactly: end.int64Value), offset >= 0, endOffset >= offset,
+                  let length = Int32(exactly: Int64(endOffset) - Int64(offset)) else { return nil }
+            let entity: Api.MessageEntity
+            switch kind.intValue {
+            case 1: entity = .messageEntityMention(.init(offset: offset, length: length))
+            case 2: entity = .messageEntityHashtag(.init(offset: offset, length: length))
+            case 3: entity = .messageEntityBotCommand(.init(offset: offset, length: length))
+            case 4: entity = .messageEntityUrl(.init(offset: offset, length: length))
+            case 5: entity = .messageEntityEmail(.init(offset: offset, length: length))
+            case 6: entity = .messageEntityBold(.init(offset: offset, length: length))
+            case 7: entity = .messageEntityItalic(.init(offset: offset, length: length))
+            case 8: entity = .messageEntityCode(.init(offset: offset, length: length))
+            case 9: entity = .messageEntityPre(.init(offset: offset, length: length, language: fields["language"] as? String ?? ""))
+            case 10:
+                guard let url = fields["url"] as? String else { return nil }
+                entity = .messageEntityTextUrl(.init(offset: offset, length: length, url: url))
+            case 11:
+                guard let peer = fields["peerId"] as? NSNumber else { return nil }
+                entity = .messageEntityMentionName(.init(offset: offset, length: length, userId: peer.int64Value))
+            case 12: entity = .messageEntityPhone(.init(offset: offset, length: length))
+            case 13: entity = .messageEntityStrike(.init(offset: offset, length: length))
+            case 14:
+                guard let collapsed = fields["cl"] as? Bool else { return nil }
+                entity = .messageEntityBlockquote(.init(flags: collapsed ? 1 : 0, offset: offset, length: length))
+            case 15: entity = .messageEntityUnderline(.init(offset: offset, length: length))
+            case 16: entity = .messageEntityBankCard(.init(offset: offset, length: length))
+            case 17: entity = .messageEntitySpoiler(.init(offset: offset, length: length))
+            case 18:
+                guard let id = fields["f"] as? NSNumber else { return nil }
+                entity = .messageEntityCustomEmoji(.init(offset: offset, length: length, documentId: id.int64Value))
+            default: return nil
             }
+            entity.serialize(buffer, true)
         }
+        return buffer.makeData()
+    }
 
-        // Also try standard mirror reflection
-        let mirror = Mirror(reflecting: item)
-        for child in mirror.children {
-            if child.label == "message" || child.label == "firstMessage" || child.label == "content" {
-                if child.label == "content" {
-                    let contentMirror = Mirror(reflecting: child.value)
-                    for cChild in contentMirror.children {
-                        if cChild.label == "firstMessage" || cChild.label == "message" {
-                            if let id = extractId(fromMessage: cChild.value) { return id }
-                        }
-                    }
-                }
-                if let id = extractId(fromMessage: child.value) { return id }
-            }
+    private static func storedMediaIdentity(_ media: [Any]) -> Data? {
+        guard !media.isEmpty else { return Data() }
+        // A wire message has one primary attachment. Extra local media (for
+        // example an unsupported wrapper) must not masquerade as its absence.
+        guard media.count == 1, let value = media.first else { return nil }
+        if let image = storedField("imageId", in: value),
+           let id = storedField("id", in: image).flatMap({ rawNumber($0) }) {
+            return Data("photo:\(id)".utf8)
         }
-
-        // Safe shallow dump. Limits depth to 5 to completely avoid the infinite recursion lag,
-        // but goes deep enough to print the MessageId which is usually at depth 1 to 4.
-        var dumpStr = ""
-        dump(item, to: &dumpStr, maxDepth: 5, maxItems: 200)
-
-        let dumpPattern = "MessageId.*?id: (\\d+)"
-        if let regex = try? NSRegularExpression(pattern: dumpPattern, options: [.dotMatchesLineSeparators]) {
-            let nsRange = NSRange(dumpStr.startIndex..<dumpStr.endIndex, in: dumpStr)
-            if let match = regex.firstMatch(in: dumpStr, options: [], range: nsRange) {
-                if let idRange = Range(match.range(at: 1), in: dumpStr), let id = Int32(dumpStr[idRange]) {
-                    return NSNumber(value: id)
-                }
-            }
+        if let file = storedField("fileId", in: value),
+           let id = storedField("id", in: file).flatMap({ rawNumber($0) }) {
+            return Data("document:\(id)".utf8)
         }
-
-        let dumpRawValuePattern = "rawValue: \\d+\\):\\d+_(\\d+)"
-        if let regex = try? NSRegularExpression(pattern: dumpRawValuePattern, options: []) {
-            let nsRange = NSRange(dumpStr.startIndex..<dumpStr.endIndex, in: dumpStr)
-            if let match = regex.firstMatch(in: dumpStr, options: [], range: nsRange) {
-                if let idRange = Range(match.range(at: 1), in: dumpStr), let id = Int32(dumpStr[idRange]) {
-                    return NSNumber(value: id)
-                }
-            }
-        }
-
         return nil
     }
 
-    private static func extractId(fromMessage msg: Any) -> NSNumber? {
-        let msgMirror = Mirror(reflecting: msg)
-        for msgChild in msgMirror.children {
-            if msgChild.label == "id" {
-                let idMirror = Mirror(reflecting: msgChild.value)
-                for idChild in idMirror.children {
-                    if idChild.label == "id", let idVal = idChild.value as? Int32 {
-                        return NSNumber(value: idVal)
-                    }
+    private static func recordRenderedMessage(_ message: RenderedMessage, account: String) {
+        guard let text = storedField("text", in: message.value) as? String else { return }
+        var editDate: Int32?
+        var content = [String: Data]()
+        if let attributes = storedField("attributes", in: message.value) as? [Any] {
+            // Attributes are stored, unlike Message.editedTime / item.message.
+            var entities: [Any]? = []
+            for attribute in attributes {
+                let name = String(reflecting: type(of: attribute)).split(separator: ".").last
+                if name == "EditedMessageAttribute" {
+                    guard let date = storedField("date", in: attribute).flatMap({ rawNumber($0) }),
+                          let parsedDate = Int32(exactly: date) else { return }
+                    editDate = parsedDate
+                }
+                if name == "TextEntitiesMessageAttribute" {
+                    entities = storedField("entities", in: attribute) as? [Any]
                 }
             }
+            if let entities = entities { content["entities"] = storedEntities(entities) }
         }
-        return nil
+        if let media = storedField("media", in: message.value) as? [Any] {
+            content["mediaIdentity"] = storedMediaIdentity(media)
+        }
+        let key = EditKey(account: account, peer: message.peer, id: message.id, namespace: message.namespace)
+        if recordText(text, key: key, editDate: editDate, content: content, localSnapshot: true) {
+            notifyMessageEdited(key)
+        }
     }
 
-    /// The conversation a rendered message belongs to, in the same encoding
-    /// peerKey(_:) produces from the wire.
-    ///
-    /// Recording the peer alongside each tracked id was only half the fix: the
-    /// badge asked for history by message id alone, so a message in one chat
-    /// still lit up for an entry belonging to another, and tapping it showed
-    /// that other chat's text.
-    ///
-    /// A first attempt read the peer out of the node's printed description and
-    /// missed forty times out of forty. A one-shot structural probe settled it:
-    /// the node's `item` is an `Optional<ChatMessageItemImpl>`, and nothing on
-    /// it prints a MessageId at all. Everything below works off the declared
-    /// shape in release-12.9.2 instead of a guess at the printed form.
+    private static func notifyMessageEdited(_ key: EditKey) {
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: NSNotification.Name("TGExtraMessageEditedRealtime"),
+                object: nil, userInfo: ["ids": [NSNumber(value: key.id)], "account": key.account,
+                                       "peer": NSNumber(value: key.peer), "namespace": NSNumber(value: key.namespace)])
+        }
+    }
 
-    /// Unwraps a Postbox PeerId.Namespace / PeerId.Id, which each wrap a single
-    /// stored `rawValue`. Older builds stored the numbers directly, so a plain
-    /// integer is accepted as well.
+    /// Unwrap Postbox's PeerId.Namespace / PeerId.Id stored rawValue fields.
     private static func rawNumber(_ value: Any) -> Int64? {
+        let value = unwrapOptional(value)
         if let v = value as? Int64 { return v }
         if let v = value as? Int32 { return Int64(v) }
         if let v = value as? UInt32 { return Int64(v) }
-        for child in Mirror(reflecting: value).children where child.label == "rawValue" {
-            if let v = child.value as? Int64 { return v }
-            if let v = child.value as? Int32 { return Int64(v) }
-            if let v = child.value as? UInt32 { return Int64(v) }
-        }
+        guard let raw = storedField("rawValue", in: value) else { return nil }
+        if let v = raw as? Int64 { return v }
+        if let v = raw as? Int32 { return Int64(v) }
+        if let v = raw as? UInt32 { return Int64(v) }
         return nil
     }
 
-    /// Reflection stops dead at an Optional: its only child is labelled "some".
-    /// The node's `item` is an `Optional<ChatMessageItem>`, so every lookup that
-    /// went straight for "message" saw nothing and gave up.
     private static func unwrapOptional(_ value: Any) -> Any {
         var current = value
         while true {
@@ -846,99 +955,16 @@ class TLParser: NSObject {
         }
     }
 
-    /// A Postbox PeerId, as the key peerKey(_:) produces from the wire.
-    ///
-    /// A MessageId also has `namespace` and `id` children, so a value carrying a
-    /// `peerId` is descended into rather than read directly — otherwise a
-    /// MessageId would be misread as the peer it belongs to.
     private static func peerKey(fromPeerId value: Any) -> Int64? {
-        var namespace: Int64?
-        var identifier: Int64?
-        for child in Mirror(reflecting: unwrapOptional(value)).children {
-            switch child.label {
-            case "peerId": return peerKey(fromPeerId: child.value)
-            case "namespace": namespace = rawNumber(child.value)
-            case "id": identifier = rawNumber(child.value)
-            default: break
-            }
-        }
-        guard let namespace = namespace, let identifier = identifier else { return nil }
-        // TelegramCore SyncCore_Namespaces.swift: 0 user, 1 group, 2 channel.
+        guard let nsValue = storedField("namespace", in: value), let namespace = rawNumber(nsValue),
+              let idValue = storedField("id", in: value), let id = rawNumber(idValue),
+              id > 0, id <= Int64.max - 1_000_000_000_000 else { return nil }
         switch namespace {
-        case 0: return identifier
-        case 1: return -identifier
-        case 2: return -(1_000_000_000_000 + identifier)
+        case 0: return id
+        case 1: return -id
+        case 2: return -(1_000_000_000_000 + id)
         default: return nil
         }
-    }
-
-    /// Depth-limited walk down to the first MessageId, following only the labels
-    /// that lead to one. Left unbounded this would reflect over the whole item —
-    /// context, controller interaction, closures and all.
-    private static func findPeerKey(in value: Any, depth: Int) -> Int64? {
-        guard depth <= 6 else { return nil }
-        let mirror = Mirror(reflecting: unwrapOptional(value))
-        var children = [(label: String, value: Any)]()
-        var peerIdValue: Any?
-        var hasNamespace = false
-        var hasId = false
-        for child in mirror.children {
-            let label = child.label ?? ""
-            switch label {
-            case "peerId": peerIdValue = child.value
-            case "namespace": hasNamespace = true
-            case "id": hasId = true
-            default: break
-            }
-            children.append((label, child.value))
-        }
-        // The signature of a MessageId: a peer, a namespace and a number.
-        if let peerIdValue = peerIdValue, hasNamespace, hasId {
-            return peerKey(fromPeerId: peerIdValue)
-        }
-        let followable: Set<String> = ["content", "message", "firstMessage", "some", "id", ""]
-        for child in children where followable.contains(child.label) || child.label.hasPrefix(".") {
-            if let key = findPeerKey(in: child.value, depth: depth + 1) { return key }
-        }
-        return nil
-    }
-
-    /// ChatMessageItemImpl carries the chat it is being drawn in as
-    /// `chatLocation`, a ChatLocation whose .peer case holds the PeerId
-    /// (AccountContext.swift). That is the shortest honest answer to "which
-    /// conversation is this message in"; the MessageId walk is the fallback for
-    /// item shapes that do not have it.
-    private static func peerKey(fromItem wrapped: Any) -> Int64? {
-        let item = unwrapOptional(wrapped)
-        for child in Mirror(reflecting: item).children where child.label == "chatLocation" {
-            for inner in Mirror(reflecting: unwrapOptional(child.value)).children
-            where inner.label == "peer" {
-                if let key = peerKey(fromPeerId: inner.value) { return key }
-            }
-        }
-        return findPeerKey(in: item, depth: 0)
-    }
-
-    @objc static func getMessageNamespaceFromNode(_ node: Any) -> NSNumber? {
-        func find(_ value: Any, depth: Int) -> Int32? {
-            guard depth <= 9 else { return nil }
-            var mirror: Mirror? = Mirror(reflecting: unwrapOptional(value))
-            while let current = mirror {
-                let children = Array(current.children)
-                if children.contains(where: { $0.label == "peerId" }),
-                   let namespace = children.first(where: { $0.label == "namespace" }),
-                   let raw = rawNumber(namespace.value), let result = Int32(exactly: raw) { return result }
-                for child in children {
-                    let label = child.label ?? ""
-                    if ["item", "content", "message", "firstMessage", "id", "some", ""].contains(label) || label.hasPrefix(".") {
-                        if let result = find(child.value, depth: depth + 1) { return result }
-                    }
-                }
-                mirror = current.superclassMirror
-            }
-            return nil
-        }
-        return find(node, depth: 0).map { NSNumber(value: $0) }
     }
 
     /// Walk only the node -> item -> context -> account chain, never the
@@ -959,121 +985,6 @@ class TLParser: NSObject {
             }
             mirror = current.superclassMirror
         }
-        return nil
-    }
-
-    /// Capped so a failing extraction cannot flood the log from -layout.
-    private static var peerKeyReports = 0
-
-    @objc static func getMessagePeerKeyFromNode(_ node: Any) -> NSNumber? {
-        var currentMirror: Mirror? = Mirror(reflecting: node)
-        var foundItem: Any?
-        while let mirror = currentMirror {
-            for child in mirror.children where child.label == "item" {
-                if let key = peerKey(fromItem: child.value) {
-                    reportPeerKey(key)
-                    return NSNumber(value: key)
-                }
-                if foundItem == nil { foundItem = child.value }
-            }
-            currentMirror = mirror.superclassMirror
-        }
-        // No dump() anywhere on this path. The previous attempt fell back to
-        // dumping the item when reflection missed, and the probe measured that
-        // dump at 103 KB — produced per message node, on the main thread,
-        // during layout. That is what made the app hang on opening a chat.
-        probePeerShape(item: foundItem, node: node)
-        reportPeerKey(nil, node: node)
-        return nil
-    }
-
-    private static var peerShapeProbed = false
-
-    /// One-shot structural probe: the labels reflection can see. Cheap by
-    /// construction — labels only, no dump, diagnostic builds only.
-    private static func probePeerShape(item: Any?, node: Any) {
-        guard diagEnabled else { return }
-        var shouldRun = false
-        signatureQueue.sync {
-            if !peerShapeProbed { peerShapeProbed = true; shouldRun = true }
-        }
-        guard shouldRun else { return }
-
-        guard let wrapped = item else {
-            diag("peer-probe: no 'item' child on \(type(of: node))")
-            return
-        }
-        let item = unwrapOptional(wrapped)
-        let labels = Mirror(reflecting: item).children.compactMap { $0.label }
-        diag("peer-probe: item is \(type(of: item)); children = \(labels.prefix(24).joined(separator: ","))")
-        for child in Mirror(reflecting: item).children
-        where child.label == "chatLocation" || child.label == "content" {
-            let inner = Mirror(reflecting: unwrapOptional(child.value))
-            let innerLabels = inner.children.compactMap { $0.label }
-            diag("peer-probe: \(child.label ?? "?") is \(type(of: child.value)); cases = \(innerLabels.prefix(8).joined(separator: ","))")
-        }
-    }
-
-    /// Successes were capped at eight, which is enough to prove extraction works
-    /// at all and useless for a symptom that comes and goes. Failures are what
-    /// matter now — a nil key makes the edit-history lookup answer nil, which is
-    /// indistinguishable from a message that was never edited — so they are
-    /// counted separately, allowed further, and say which node they came from.
-    private static func reportPeerKey(_ key: Int64?, node: Any? = nil) {
-        guard diagEnabled else { return }
-        signatureQueue.sync {
-            if let key = key {
-                guard peerKeyReports < 8 else { return }
-                peerKeyReports += 1
-                diag("node peer-key \(key)")
-            } else {
-                guard peerKeyFailureReports < 40 else { return }
-                peerKeyFailureReports += 1
-                let kind = node.map { String(describing: type(of: $0)) } ?? "?"
-                diag("node peer-key NOT FOUND on \(kind)")
-            }
-        }
-    }
-
-    private static var peerKeyFailureReports = 0
-
-    /// Dynamically extracts message ID from a ChatMessageBubbleItemNode
-    @objc static func getMessageIdFromNode(_ node: Any) -> NSNumber? {
-        var currentMirror: Mirror? = Mirror(reflecting: node)
-        while let mirror = currentMirror {
-            for child in mirror.children {
-                if child.label == "item" {
-                    if let id = getMessageId(from: child.value) {
-                        return id
-                    }
-                }
-            }
-            currentMirror = mirror.superclassMirror
-        }
-
-        // If reflection completely fails to find 'item', try parsing the node's string description.
-        // This is 100% safe (unlike dump) and might reveal the message ID if the node implements CustomStringConvertible.
-        let nodeDesc = String(describing: node)
-        let pattern = "MessageId\\(peerId: [^,]+, namespace: [^,]+, id: (\\d+)\\)"
-        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
-            let nsRange = NSRange(nodeDesc.startIndex..<nodeDesc.endIndex, in: nodeDesc)
-            if let match = regex.firstMatch(in: nodeDesc, options: [], range: nsRange) {
-                if let idRange = Range(match.range(at: 1), in: nodeDesc), let id = Int32(nodeDesc[idRange]) {
-                    return NSNumber(value: id)
-                }
-            }
-        }
-
-        let fallbackPattern = "messageId: (\\d+)"
-        if let regex = try? NSRegularExpression(pattern: fallbackPattern, options: []) {
-            let nsRange = NSRange(nodeDesc.startIndex..<nodeDesc.endIndex, in: nodeDesc)
-            if let match = regex.firstMatch(in: nodeDesc, options: [], range: nsRange) {
-                if let idRange = Range(match.range(at: 1), in: nodeDesc), let id = Int32(nodeDesc[idRange]) {
-                    return NSNumber(value: id)
-                }
-            }
-        }
-
         return nil
     }
 

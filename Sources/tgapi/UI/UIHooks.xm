@@ -196,7 +196,8 @@ void showUI();
 // Defined further down, next to the rest of the edit-history code. Declared
 // here so the notification observer above it can refresh a badge directly
 // instead of asking for a layout pass that AsyncDisplayKit may never schedule.
-static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peerKey);
+static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peerKey, NSString *account, NSNumber *messageNamespace);
+static void clearTGExtraEditBadgeBinding(UIButton *badge);
 
 %group TGExtraCopyProtectionUI
 %hook _TtC10TelegramUI30ChatPresentationInterfaceState
@@ -856,9 +857,7 @@ static void injectGhostExceptionButton(ASDisplayNode *headerNode, long long peer
     } @catch (NSException *e) {}
 }
 
-static void updateTGExtraStatusBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *nodePeerKey) {
-        NSString *account = [TLParser getHistoryAccountFromNode:node];
-        NSNumber *messageNamespace = [TLParser getMessageNamespaceFromNode:node];
+static void updateTGExtraStatusBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *nodePeerKey, NSString *account, NSNumber *messageNamespace) {
         BOOL isDeletedMsg = (msgId && messageNamespace && [TLParser isDeleted:msgId peer:nodePeerKey account:account messageNamespace:messageNamespace]);
         BOOL isSelfDestructMsg = (msgId && messageNamespace && [TLParser isMessageSelfDestructing:msgId peer:nodePeerKey account:account messageNamespace:messageNamespace]);
         if (isDeletedMsg || isSelfDestructMsg) {
@@ -936,17 +935,65 @@ static void trackTGExtraMessageNode(ASDisplayNode *node) {
     }
 }
 
+static NSHashTable *pendingMessageNodes = nil;
+static BOOL messageBadgeUpdateScheduled = NO;
+
 static void scheduleTGExtraEditBadgeUpdate(ASDisplayNode *node) {
+    if (!NSThread.isMainThread) {
+        dispatch_async(dispatch_get_main_queue(), ^{ scheduleTGExtraEditBadgeUpdate(node); });
+        return;
+    }
+    trackTGExtraMessageNode(node);
+    if (!pendingMessageNodes) pendingMessageNodes = [NSHashTable weakObjectsHashTable];
+    [pendingMessageNodes addObject:node];
+    if (messageBadgeUpdateScheduled) return;
+    messageBadgeUpdateScheduled = YES;
     dispatch_async(dispatch_get_main_queue(), ^{
-        trackTGExtraMessageNode(node);
-        // The item can be assigned or reused before this block runs. Resolve
-        // its identity here, together with the account and the view geometry.
-        NSNumber *msgId = [TLParser getMessageIdFromNode:node];
-        NSNumber *peerKey = msgId ? [TLParser getMessagePeerKeyFromNode:node] : nil;
-        updateTGExtraStatusBadge(node, msgId, peerKey);
-        updateTGExtraEditBadge(node, msgId, peerKey);
+        NSArray *nodes = pendingMessageNodes.allObjects;
+        [pendingMessageNodes removeAllObjects];
+        messageBadgeUpdateScheduled = NO;
+        for (ASDisplayNode *current in nodes) {
+            // Resolve the current item after reuse, then observe and draw from
+            // that same read. No ASDisplayNode.layout call is needed.
+            NSDictionary *state = [TLParser messageStateFromNode:current observe:YES];
+            updateTGExtraStatusBadge(current, state[@"id"], state[@"peer"], state[@"account"], state[@"namespace"]);
+            updateTGExtraEditBadge(current, state[@"id"], state[@"peer"], state[@"account"], state[@"namespace"]);
+        }
     });
 }
+
+@interface UIView (TGExtraMessageNode)
+- (ASDisplayNode *)asyncdisplaykit_node;
+@end
+
+static ASDisplayNode *tgextraMessageNodeForView(UIView *view) {
+    if (![view respondsToSelector:@selector(asyncdisplaykit_node)]) return nil;
+    ASDisplayNode *node = [view asyncdisplaykit_node];
+    NSString *name = NSStringFromClass([node class]);
+    return [name containsString:@"ChatMessage"] && [name containsString:@"ItemNode"] ? node : nil;
+}
+
+// _ASDisplayView's UIKit lifecycle remains Objective-C in Telegram 13.0.0.
+// layoutSubviews is inherited; didMoveToWindow is implemented by the view.
+%group TGExtraMessageViewLayout
+%hook _ASDisplayView
+- (void)layoutSubviews {
+    %orig;
+    ASDisplayNode *node = tgextraMessageNodeForView((UIView *)self);
+    if (node) scheduleTGExtraEditBadgeUpdate(node);
+}
+%end
+%end
+
+%group TGExtraMessageViewWindow
+%hook _ASDisplayView
+- (void)didMoveToWindow {
+    %orig;
+    ASDisplayNode *node = tgextraMessageNodeForView((UIView *)self);
+    if (node) scheduleTGExtraEditBadgeUpdate(node);
+}
+%end
+%end
 
 @interface TGExtraAntiRevokeUpdater : NSObject
 @end
@@ -971,10 +1018,9 @@ static void scheduleTGExtraEditBadgeUpdate(ASDisplayNode *node) {
     }
     for (ASDisplayNode *node in nodesCopy) {
         for (UIView *view in node.view.subviews) {
-            if (view.tag == 8898 || view.tag == 8899) view.hidden = YES;
+            if (view.tag == 8898) view.hidden = YES;
+            if (view.tag == 8899) clearTGExtraEditBadgeBinding((UIButton *)view);
         }
-        [node setNeedsLayout];
-        [node.view setNeedsLayout];
     }
 }
 - (void)handleMessagesChanged:(NSNotification *)note {
@@ -988,24 +1034,18 @@ static void scheduleTGExtraEditBadgeUpdate(ASDisplayNode *node) {
     }
 
     for (ASDisplayNode *node in nodesCopy) {
-        NSNumber *msgId = [TLParser getMessageIdFromNode:node];
+        NSDictionary *state = [TLParser messageStateFromNode:node observe:NO];
+        NSNumber *msgId = state[@"id"];
         if (!msgId || (![deletedIds containsObject:msgId] && !(maxId && msgId.intValue > 0 && msgId.intValue <= maxId.intValue))) continue;
         NSString *account = note.userInfo[@"account"];
-        if (account && ![account isEqualToString:[TLParser getHistoryAccountFromNode:node]]) continue;
+        if (account && ![account isEqualToString:state[@"account"]]) continue;
         NSNumber *changedPeer = note.userInfo[@"peer"];
         NSNumber *messageNamespace = note.userInfo[@"namespace"];
-        if (messageNamespace && ![messageNamespace isEqual:[TLParser getMessageNamespaceFromNode:node]]) continue;
-        NSNumber *nodePeer = [TLParser getMessagePeerKeyFromNode:node];
+        if (messageNamespace && ![messageNamespace isEqual:state[@"namespace"]]) continue;
+        NSNumber *nodePeer = state[@"peer"];
         if (changedPeer && changedPeer.longLongValue != 0 && ![changedPeer isEqual:nodePeer]) continue;
         if (changedPeer && changedPeer.longLongValue == 0 && (!nodePeer || nodePeer.longLongValue <= -1000000000000LL)) continue;
 
-        [node setNeedsLayout];
-        [node.view setNeedsLayout];
-
-        // setNeedsLayout alone was not enough for the pencil: AsyncDisplayKit
-        // reuses a cached layout when the size has not changed, so -layout —
-        // where the badge is drawn — never ran again and the badge only turned
-        // up after the chat was reopened. Draw it here instead.
         scheduleTGExtraEditBadgeUpdate(node);
     }
 }
@@ -1013,14 +1053,23 @@ static void scheduleTGExtraEditBadgeUpdate(ASDisplayNode *node) {
 
 // ============================================================
 // Edit history: a pencil badge on any message Anti-Edit has more than one
-// recorded version of. Tapping it lists every version, oldest first, so the
-// original stays in the bubble while the edits remain reachable.
+// recorded version of. Tapping it lists every version, oldest first, while
+// the bubble continues to display Telegram's current message.
 // ============================================================
 static const NSInteger kTGExtraEditBadgeTag = 8899;
 static char kTGExtraEditMsgIdKey;
 static char kTGExtraEditPeerKey;
 static char kTGExtraEditAccountKey;
 static char kTGExtraEditNamespaceKey;
+
+static void clearTGExtraEditBadgeBinding(UIButton *badge) {
+    if (!badge) return;
+    badge.hidden = YES;
+    objc_setAssociatedObject(badge, &kTGExtraEditMsgIdKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(badge, &kTGExtraEditPeerKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(badge, &kTGExtraEditAccountKey, nil, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    objc_setAssociatedObject(badge, &kTGExtraEditNamespaceKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
 
 @interface TGExtraEditHistoryButtonTarget : NSObject
 + (instancetype)shared;
@@ -1041,6 +1090,15 @@ static char kTGExtraEditNamespaceKey;
     NSNumber *peerKey = objc_getAssociatedObject(sender, &kTGExtraEditPeerKey);
     NSString *account = objc_getAssociatedObject(sender, &kTGExtraEditAccountKey);
     NSNumber *messageNamespace = objc_getAssociatedObject(sender, &kTGExtraEditNamespaceKey);
+
+    ASDisplayNode *node = tgextraMessageNodeForView(sender.superview);
+    NSDictionary *current = node ? [TLParser messageStateFromNode:node observe:NO] : nil;
+    if (![msgId isEqual:current[@"id"]] || ![peerKey isEqual:current[@"peer"]] ||
+        ![account isEqual:current[@"account"]] || ![messageNamespace isEqual:current[@"namespace"]]) {
+        clearTGExtraEditBadgeBinding(sender);
+        if (node) scheduleTGExtraEditBadgeUpdate(node);
+        return;
+    }
 
     NSArray<NSString *> *versions = [TLParser editHistoryForId:msgId peer:peerKey account:account messageNamespace:messageNamespace];
     if (versions.count < 2) return;
@@ -1080,23 +1138,29 @@ static char kTGExtraEditNamespaceKey;
                   style:UIAlertActionStyleCancel
                 handler:nil]];
 
-    UIWindow *window = UIApplication.sharedApplication.keyWindow;
-    UIViewController *top = window.rootViewController;
+    UIViewController *top = sender.window.rootViewController;
     while (top.presentedViewController) top = top.presentedViewController;
-    [top presentViewController:sheet animated:YES completion:nil];
+    if (top) [top presentViewController:sheet animated:YES completion:nil];
 }
 
 @end
 
+static CGRect tgextraEditBadgeFrame(CGRect bounds, CGRect statusFrame, BOOL hasStatus) {
+    CGFloat side = MIN(44.0, MIN(CGRectGetWidth(bounds), CGRectGetHeight(bounds)));
+    CGFloat x = hasStatus ? CGRectGetMaxX(statusFrame) + 4.0 : CGRectGetMaxX(bounds) - side;
+    CGFloat y = hasStatus ? CGRectGetMidY(statusFrame) - side / 2.0 : CGRectGetMaxY(bounds) - side;
+    x = MAX(CGRectGetMinX(bounds), MIN(x, CGRectGetMaxX(bounds) - side));
+    y = MAX(CGRectGetMinY(bounds), MIN(y, CGRectGetMaxY(bounds) - side));
+    return CGRectMake(x, y, side, side);
+}
+
 /// Places, or hides, the pencil badge on one message node.
-static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peerKey) {
+static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peerKey, NSString *account, NSNumber *messageNamespace) {
     UIButton *badge = nil;
     for (UIView *v in node.view.subviews) {
         if (v.tag == kTGExtraEditBadgeTag) { badge = (UIButton *)v; break; }
     }
 
-    NSString *account = [TLParser getHistoryAccountFromNode:node];
-    NSNumber *messageNamespace = [TLParser getMessageNamespaceFromNode:node];
     NSUInteger versions = (msgId != nil && messageNamespace != nil)
         ? [TLParser editHistoryForId:msgId peer:peerKey account:account messageNamespace:messageNamespace].count
         : 0;
@@ -1130,8 +1194,8 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     }
 #endif
 
-    if (!hasHistory) {
-        badge.hidden = YES;
+    if (!hasHistory || CGRectIsEmpty(node.view.bounds)) {
+        clearTGExtraEditBadgeBinding(badge);
         return;
     }
 
@@ -1159,29 +1223,15 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     // their backing view, which would swallow every touch aimed at the badge.
     node.view.userInteractionEnabled = YES;
 
-    // Placed just past the trailing edge of the bubble rather than inside it.
-    // The status node sits at the bubble's bottom corner, so clearing its width
-    // puts the badge in empty row space: nothing to compete with for touches,
-    // and no crowding of the timestamp.
-    static const CGFloat kBadgeSide = 44.0;
+    // Clamp the full touch target on both axes. UIKit rejects touches outside
+    // an ancestor's bounds even when clipsToBounds is disabled.
     ASDisplayNode *statusNode = findNodeByClassNamePrefix(node, @"ChatMessageDateAndStatusNode");
-    if (statusNode && statusNode.view) {
-        CGRect statusFrame = [node.view convertRect:statusNode.view.bounds fromView:statusNode.view];
-        CGFloat x = CGRectGetMaxX(statusFrame) + 4.0;
-        // Keep it on screen even for a bubble that already reaches the edge.
-        CGFloat maxX = node.view.bounds.size.width - kBadgeSide;
-        if (maxX > 0 && x > maxX) x = maxX;
-        badge.frame = CGRectMake(x,
-                                 CGRectGetMidY(statusFrame) - (kBadgeSide / 2.0),
-                                 kBadgeSide, kBadgeSide);
-        badge.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin |
-                                 UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
-    } else {
-        badge.frame = CGRectMake(node.view.bounds.size.width - kBadgeSide,
-                                 node.view.bounds.size.height - kBadgeSide - 4,
-                                 kBadgeSide, kBadgeSide);
-        badge.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleTopMargin;
-    }
+    BOOL hasStatus = statusNode && statusNode.view;
+    CGRect statusFrame = hasStatus ? [node.view convertRect:statusNode.view.bounds fromView:statusNode.view] : CGRectZero;
+    badge.frame = tgextraEditBadgeFrame(node.view.bounds, statusFrame, hasStatus);
+    badge.autoresizingMask = UIViewAutoresizingNone;
+    CGFloat inset = MAX(0.0, (CGRectGetWidth(badge.frame) - 26.0) / 2.0);
+    badge.contentEdgeInsets = UIEdgeInsetsMake(inset, inset, inset, inset);
 
     badge.accessibilityLabel = TGExtraLoc(@"EDIT_HISTORY_TITLE");
     badge.hidden = NO;
@@ -1189,42 +1239,17 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
 }
 
 %hook ASDisplayNode
-- (void)didEnterHierarchy {
-    %orig;
-
-    NSString *className = NSStringFromClass([self class]);
-    if ([className containsString:@"ChatMessage"] && [className containsString:@"ItemNode"]) {
-        // Telegram 13.0 can apply a message's frames without calling -layout.
-        // Register and draw when it is attached too, including cached history
-        // whose notification arrived before the message was on screen.
-        scheduleTGExtraEditBadgeUpdate((ASDisplayNode *)self);
-    }
-}
-
 - (void)layout {
     %orig;
 
     if ([[NSUserDefaults standardUserDefaults] boolForKey:kDisableAllAds]) {
         @try {
             NSString *className = NSStringFromClass([self class]);
-            if ([className containsString:@"ChatSponsoredMessage"] || [className containsString:@"ChatChannelAdItemNode"]) {
+            if ([className containsString:@"ChatSponsoredMessage"] || [className containsString:@"ChatChannelAdItemNode"] ||
+                [TLParser hasAdMessageFromNode:self]) {
                 self.view.hidden = YES;
                 self.view.alpha = 0.0;
                 return;
-            }
-
-            if ([self respondsToSelector:NSSelectorFromString(@"item")]) {
-                id item = [self valueForKey:@"item"];
-                if (item && [item respondsToSelector:NSSelectorFromString(@"message")]) {
-                    id message = [item valueForKey:@"message"];
-                    if (message && [message respondsToSelector:NSSelectorFromString(@"adAttribute")]) {
-                        if ([message valueForKey:@"adAttribute"] != nil) {
-                            self.view.hidden = YES;
-                            self.view.alpha = 0.0;
-                            return;
-                        }
-                    }
-                }
             }
         } @catch (NSException *e) {}
     }
@@ -1271,22 +1296,6 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
         injectGhostExceptionButton(self, peerId);
     }
 
-
-    NSString *className = NSStringFromClass([self class]);
-    if (![className containsString:@"ChatMessage"] || ![className containsString:@"ItemNode"]) {
-        return;
-    }
-
-    trackTGExtraMessageNode((ASDisplayNode *)self);
-
-    ASDisplayNode *node = (ASDisplayNode *)self;
-    dispatch_async(dispatch_get_main_queue(), ^{
-        NSNumber *msgId = [TLParser getMessageIdFromNode:node];
-        NSNumber *nodePeerKey = msgId ? [TLParser getMessagePeerKeyFromNode:node] : nil;
-        updateTGExtraStatusBadge(node, msgId, nodePeerKey);
-
-        updateTGExtraEditBadge(node, msgId, nodePeerKey);
-    });
 }
 %end
 
@@ -1358,6 +1367,18 @@ static void hook() {
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         %init;
+        Class displayView = objc_getClass("_ASDisplayView");
+        Method nodeGetter = class_getInstanceMethod(displayView, @selector(asyncdisplaykit_node));
+        if (nodeGetter && method_getNumberOfArguments(nodeGetter) == 2) {
+            Method layout = class_getInstanceMethod(displayView, @selector(layoutSubviews));
+            if (layout && method_getNumberOfArguments(layout) == 2) {
+                %init(TGExtraMessageViewLayout, _ASDisplayView = displayView);
+            }
+            Method moved = class_getInstanceMethod(displayView, @selector(didMoveToWindow));
+            if (moved && method_getNumberOfArguments(moved) == 2) {
+                %init(TGExtraMessageViewWindow, _ASDisplayView = displayView);
+            }
+        }
         Class uiState = objc_getClass("_TtC10TelegramUI30ChatPresentationInterfaceState");
         Method uiMethod = class_getInstanceMethod(uiState, @selector(copyProtectionEnabled));
         if (uiMethod && method_getNumberOfArguments(uiMethod) == 2) {

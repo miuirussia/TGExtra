@@ -29,6 +29,9 @@
 + (NSNumber *)getMessagePeerKeyFromNode:(id)node;
 + (NSString *)getHistoryAccountFromNode:(id)node;
 + (NSNumber *)getMessageNamespaceFromNode:(id)node;
+// Internal message UI bridge; existing public selectors remain available.
++ (NSDictionary<NSString *, id> *)messageStateFromNode:(id)node observe:(BOOL)observe;
++ (BOOL)hasAdMessageFromNode:(id)node;
 @end
 
 @interface MTRpcError : NSObject

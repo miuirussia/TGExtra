@@ -43,7 +43,10 @@ Private UI hooks depend on the host app exposing the corresponding methods.
 New features default to off; existing preferences are preserved on upgrade.
 
 Edit history keeps versions observed while Anti-Edit is enabled, including
-outgoing messages and empty media captions. Compact send replies use the
+outgoing messages and empty media captions. Displaying a cached message also
+records its stored text, available formatting entities and photo/document
+identity, without scanning Telegram's database. Unrecognized fields stay unknown;
+unknown accounts or message structures are skipped. Compact send replies use the
 original request text when its chat can be resolved. Rich-message text,
 formatting entities and attachment metadata are retained; the history labels
 formatting and media changes even when the caption stays the same. It does not
@@ -58,7 +61,14 @@ chat, message ID and message namespace. Ordinary, scheduled, quick-reply and
 ephemeral messages cannot share a history accidentally. Sending a scheduled
 message still removes it from the scheduled queue normally. Responses with an
 older `editDate` cannot append a stale version; the latest date is persisted even when the text stays the same. Different edits bearing
-the same second-resolution date are retained in arrival order.
+the same second-resolution date are retained in network arrival order. A differing
+cache snapshot with an equal or older edit date cannot overwrite the latest
+version; an undated cache observation cannot roll back a recorded edit.
+The pencil refreshes after the backing view's `layoutSubviews` and
+`didMoveToWindow`, and on history notifications, without relying on
+`ASDisplayNode.layout`. Repeated events share one main-queue pass, which reads
+the current item after reuse. Its touch target stays within the message view,
+and history opens from the button's own window.
 Account identity comes from the connection's account directory and the message
 node's account context. If it cannot be resolved, history recording and lookup
 are skipped. The same rule applies to marker recording and lookup. Older
@@ -102,8 +112,10 @@ After changing translations, run `python3 generate_langs.py` to regenerate the
 embedded fallback translations.
 
 Run `Tests/run.sh` on macOS to check protocol transformations, ghost exceptions,
-settings migration, account/namespace isolation, formatting/media revisions,
-TTL paths, validation recovery and persisted history. Tests use in-memory
+settings migration, stored message reflection (including inherited optional
+items and albums), cache/network history merging, account/namespace isolation,
+formatting/media revisions, backing-view refresh coalescing and reuse, button
+bindings and bounds, TTL paths, validation recovery and persisted history. Tests use in-memory
 preferences.
 UI interaction, video extraction and installation still require an iOS device.
 
@@ -115,7 +127,7 @@ docker run --rm -v "$PWD:/work:ro" tgextra-menu-tests
 ```
 
 This checks resources and support-row detection, preprocesses all Logos hooks,
-and compiles the Settings entry for arm64/arm64e against iOS 16.5 with a 14.0
+and compiles the Settings entry and message UI hooks for arm64/arm64e against iOS 16.5 with a 14.0
 deployment target. It does not run UIKit or replace the macOS protocol tests.
 
 Run `Tests/story_video_export.sh` on macOS with FFmpeg installed to check story

@@ -15,11 +15,17 @@ while IFS= read -r source; do
     perl "$LOGOS_PL" -c generator=internal "$source" > "$test_build_dir/$(basename "$source").mm"
 done < <(find Sources -name '*.xm' -print)
 
-# Compile the real new hook against UIKit, rather than a UIKit test double.
-# Linux can generate Mach-O objects, but cannot link/run an iOS application.
+# Compile the actual hooks against UIKit. UIHooks includes roothide.h through
+# its shared header but uses none of its definitions; packaging provides the
+# real header. Linux can generate Mach-O objects but cannot run UIKit.
+: > "$test_build_dir/roothide.h"
 for arch in arm64 arm64e; do
     clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations -c \
         "$test_build_dir/SettingsMenu.xm.mm" -o "$test_build_dir/SettingsMenu-$arch.o"
+    clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+        -fobjc-arc -Werror -Wno-deprecated-declarations \
+        -I "$test_build_dir" -I Sources/tgapi/UI -I Sources/tgapiC/include -c \
+        "$test_build_dir/UIHooks.xm.mm" -o "$test_build_dir/UIHooks-$arch.o"
 done
-echo 'PASS Logos preprocessing and iOS Settings menu hook compilation (arm64, arm64e)'
+echo 'PASS Logos preprocessing and Settings/message UI hook compilation (arm64, arm64e)'

@@ -28,6 +28,7 @@ if CommandLine.arguments.contains("--restore") {
         "account-1:42:41": ["versions": ["", "Caption", ""], "editDate": 2001],
         "account-2:42:40": ["versions": ["Other before", "Other after"], "editDate": 3000]
     ]
+    saved["account-1:42:82000"] = renderedHistoryRestoreFixture()
     for id in 10_000...12_100 { saved["account-1:42:\(id)"] = ["versions": ["Unedited"]] }
     defaults.set(saved, forKey: "TGExtraEditHistoryByAccount")
     defaults.set(["account-1:0:10": 1, "account-1:0:20": 4], forKey: "TGExtraMessageMarkersByAccount")
@@ -57,7 +58,8 @@ if CommandLine.arguments.contains("--restore") {
     let recovered = TLParser.handleResponse(emptyRestore, functionID: -1383294429, account: testAccount, requestPayload: restoreRequest)!
     guard case let .messages(recoveredMessages) = parsed(recovered, as: Api.messages.Messages.self) else { fatalError("Expected restored snapshot") }
     precondition(messageData(recoveredMessages.messages[0]).message == "Persisted snapshot")
-    print("PASS persisted edit history, deletion markers and timer classification")
+    testRestoredRenderedMessages()
+    print("PASS persisted edit history, cache snapshots, deletion markers and timer classification")
     exit(0)
 }
 TGExtraTestHandlersAndMigration()
@@ -508,6 +510,8 @@ for (index, reply) in historyReplies.enumerated() {
 for id in Int32(10_000)...Int32(12_100) { _ = patch(message(id, text: "Unedited")) }
 check(history(forId: 40, peer: 42) == ["Original 😀", "New text"], "Unrelated message traffic never evicts recorded edits")
 _ = patch(message(12_100, text: "Edited after cache churn", edit: 1235))
+testRenderedMessages()
+
 let savedHistories = defaults.dictionary(forKey: "TGExtraEditHistoryByAccount") as! [String: [String: Any]]
 check(savedHistories["account-1:42:40"]?["versions"] as? [String] == ["Original 😀", "New text"], "Protected histories remain persisted after cache churn")
 check(savedHistories["account-1:42:10000"] == nil, "Unedited original cache stays bounded")
