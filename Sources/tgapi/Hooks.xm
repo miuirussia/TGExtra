@@ -1,4 +1,5 @@
 #import "Headers.h"
+#import "ForwardCopy.h"
 
 #define kChannelsReadHistory -871347913
 
@@ -7,6 +8,10 @@
 %property(nonatomic, strong) NSNumber *functionID;
 
 - (void)setPayload:(NSData *)payload metadata:(id)metadata shortMetadata:(id)shortMetadata responseParser:(id (^)(NSData *))responseParser {
+    if (TGExtraIsInternalCopyRequest(self)) {
+        %orig;
+        return;
+    }
     self.fakeData = nil;
     TGExtraSetHistoryRequestService(self, nil);
     if (payload.length < 4 || !responseParser) {
@@ -49,7 +54,12 @@
 
 %hook MTRequestMessageService
 - (void)addRequest:(MTRequest *)request {
+    if (TGExtraIsInternalCopyRequest(request)) {
+        %orig;
+        return;
+    }
     TGExtraSetHistoryRequestService(request, self);
+    TGExtraWrapForwardRequest(request, self);
     if (request.fakeData && request.completed && request.responseParser) {
         MTRequestResponseInfo *info = [[%c(MTRequestResponseInfo) alloc]
             initWithNetworkType:1 timestamp:NSDate.date.timeIntervalSince1970 duration:0.045];
@@ -57,6 +67,16 @@
         request.completed(result, info, nil);
         return;
     }
+    %orig;
+}
+
+- (void)removeRequestByInternalId:(id)internalId {
+    TGExtraCancelForwardRequest(internalId, self);
+    %orig;
+}
+
+- (void)removeRequestByInternalId:(id)internalId askForReconnectionOnDrop:(bool)askForReconnectionOnDrop {
+    TGExtraCancelForwardRequest(internalId, self);
     %orig;
 }
 %end

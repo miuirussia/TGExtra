@@ -4,9 +4,13 @@ func testMessageProtection() {
     struct PeerIdentifier { let namespace: Int32; let id: Int64 }
     struct MessageIdentifier { let peerId: PeerIdentifier; let namespace: Int32; let id: Int32 }
     struct NodeMessage { let id: MessageIdentifier }
-    struct NodeItem { let message: NodeMessage }
+    enum NodeContent {
+        case message(message: NodeMessage, read: Bool, selection: Int, attributes: Int, location: Int?)
+    }
+    struct NodeItem { let content: NodeContent }
     class Node { let item: NodeItem?; init(_ namespace: Int32) {
-        item = NodeItem(message: NodeMessage(id: MessageIdentifier(peerId: PeerIdentifier(namespace: 2, id: 77), namespace: namespace, id: 10)))
+        item = NodeItem(content: .message(message: NodeMessage(id: MessageIdentifier(peerId: PeerIdentifier(namespace: 2, id: 77), namespace: namespace, id: 10)),
+            read: false, selection: 0, attributes: 0, location: nil))
     } }
     final class InheritedNode: Node {}
     for namespace: Int32 in [0, 3, 5, 7, 8, 9] {

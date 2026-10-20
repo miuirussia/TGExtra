@@ -21,6 +21,13 @@ done < <(find Sources -name '*.xm' -print)
 : > "$test_build_dir/roothide.h"
 for arch in arm64 arm64e; do
     clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+        -fobjc-arc -Werror -Wno-deprecated-declarations \
+        -I Sources/tgapi -I Sources/tgapiC/include -c \
+        "$test_build_dir/Hooks.xm.mm" -o "$test_build_dir/Hooks-$arch.o"
+    clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+        -fobjc-arc -Werror -Wno-deprecated-declarations \
+        -I Sources/tgapiC/include -c Sources/tgapi/ForwardCopy.m -o "$test_build_dir/ForwardCopy-$arch.o"
+    clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations -c \
         "$test_build_dir/SettingsMenu.xm.mm" -o "$test_build_dir/SettingsMenu-$arch.o"
     clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
@@ -28,4 +35,4 @@ for arch in arm64 arm64e; do
         -I "$test_build_dir" -I Sources/tgapi/UI -I Sources/tgapiC/include -c \
         "$test_build_dir/UIHooks.xm.mm" -o "$test_build_dir/UIHooks-$arch.o"
 done
-echo 'PASS Logos preprocessing and Settings/message UI hook compilation (arm64, arm64e)'
+echo 'PASS Logos preprocessing and Settings/message UI/network hook compilation (arm64, arm64e)'

@@ -32,6 +32,7 @@ NSUserDefaults *TGExtraUseTestDefaults(void) {
 }
 
 @implementation MTRequest
+- (instancetype)init { if ((self = [super init])) _internalId = NSUUID.UUID; return self; }
 - (void)setPayload:(NSData *)payload metadata:(id)metadata shortMetadata:(id)shortMetadata responseParser:(id (^)(NSData *))responseParser {
     _payload = payload; _metadata = metadata; _shortMetadata = shortMetadata; _responseParser = [responseParser copy];
 }

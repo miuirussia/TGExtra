@@ -641,3 +641,4 @@ print("PASS message database clearing, legacy removal, delayed writes, notificat
 
 
 testMessageProtection()
+testForwardCopies()

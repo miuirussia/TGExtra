@@ -35,6 +35,8 @@
 @end
 
 @interface MTRpcError : NSObject
+@property (nonatomic, readonly) int32_t errorCode;
+@property (nonatomic, strong, readonly) NSString *errorDescription;
 - (id)initWithErrorCode:(int)code errorDescription:(id)desc;
 @end
 
@@ -43,10 +45,13 @@
 @end
 
 @interface MTRequest : NSObject
+@property (nonatomic, strong, readonly) id internalId;
 @property (nonatomic, strong) NSNumber *functionID;
 @property (nonatomic, strong) NSData *fakeData;
 @property (nonatomic, strong) NSData *payload;
 @property (nonatomic, copy) void (^completed)(id boxedResponse, MTRequestResponseInfo *info, MTRpcError *error);
+@property (nonatomic) bool needsTimeoutTimer;
+@property (nonatomic, copy) bool (^shouldContinueExecutionWithErrorContext)(id context);
 @property (nonatomic, strong, readonly) id (^responseParser)(NSData *);
 @property (nonatomic, copy) id metadata;
 @property (nonatomic, copy) id shortMetadata;
@@ -54,7 +59,10 @@
 @end
 
 @interface MTRequestMessageService : NSObject
+@property (nonatomic, weak) id delegate;
 - (void)addRequest:(MTRequest *)request;
+- (void)removeRequestByInternalId:(id)internalId;
+- (void)removeRequestByInternalId:(id)internalId askForReconnectionOnDrop:(bool)askForReconnectionOnDrop;
 @end
 
 // Function Handlers

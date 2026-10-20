@@ -22,6 +22,17 @@ fingers, or tap the Chats tab five times.
 - Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
   apply to typing and read receipts; online status remains hidden globally.
 - Save and forward protected content
+  - When Telegram rejects a forward with `CHAT_FORWARDS_RESTRICTED`, TGExtra
+    sends a new copy through Objective-C MtProtoKit hooks. Text formatting,
+    captions and album grouping are retained; photos, videos, documents, audio
+    and voice messages are downloaded and uploaded again. The copy has no
+    forwarded-author header. This uses the existing protected-content toggle.
+    It does not patch Telegram's Swift code.
+  - Copies require access to the original message and media, permission to send
+    in the destination, and enough temporary disk space. Files are streamed in
+    512 KiB parts, with a 4000-part limit. Polls, stickers, custom emoji media,
+    paid/expiring media, rich-message bodies and unsupported forward options
+    remain unsupported. Server and transfer errors are reported normally.
 - Normalize high-frame-rate videos (including 60 fps video messages and 120 fps
   stories) to H.264/AAC at 30 fps before saving to Photos, preserving duration
   and audio. Works independently of the protected-content bypass.
@@ -41,6 +52,21 @@ fingers, or tap the Chats tab five times.
 The integration uses the Telegram API 13.0 sources already in this repository.
 Private UI hooks depend on the host app exposing the corresponding methods.
 New features default to off; existing preferences are preserved on upgrade.
+
+Protected-copy recovery journals are account-scoped and stored separately in
+Application Support/TGExtra/ForwardCopies. They retain the planned requests and
+real server acknowledgements, so retries skip confirmed sends, including when
+a compact send reply's follow-up lookup failed. Completed journals expire after
+seven days; unfinished journals remain for recovery. At most 128 journals are
+retained before new copy operations are refused. Temporary media files are
+removed after completion/cancellation and stale transfer files are removed when
+the next transfer starts. These outgoing recovery journals are separate from
+the edit-history/deletion database cleared by the menu.
+
+The protected-copy protocol and request lifecycle are covered by mocked network
+tests; installation and compatibility with Telegram's actual pending-message
+queue still require an iOS device. The implementation targets the Objective-C
+MtProtoKit transport used by the existing tweak hooks.
 
 Edit history keeps versions observed while Anti-Edit is enabled, including
 outgoing messages and empty media captions. Displaying a cached message also
@@ -117,6 +143,9 @@ items and albums), cache/network history merging, account/namespace isolation,
 formatting/media revisions, backing-view refresh coalescing and reuse, button
 bindings and bounds, TTL paths, validation recovery and persisted history. Tests use in-memory
 preferences.
+The same suite checks protected-copy requests, chunked media transfers, account
+isolation, cancellation, file-reference refresh, compact acknowledgements and
+partial-send recovery with a mock MtProtoKit server and temporary journals.
 UI interaction, video extraction and installation still require an iOS device.
 
 For basic menu checks in Docker:

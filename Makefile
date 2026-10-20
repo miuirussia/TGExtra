@@ -11,7 +11,7 @@ $(TWEAK_NAME)_CFLAGS = -fobjc-arc -ISources/tgapiC/include -Wno-deprecated-decla
 # Global CCFLAGS also reach Swift's Objective-C importer; scope this to Photos users.
 Sources/tgapi/VideoToVoice.xm_CFLAGS = -std=c++11
 Sources/tgapi/StoryVideoSave.xm_CFLAGS = -std=c++11
-$(TWEAK_NAME)_FRAMEWORKS = CoreServices UIKit CoreLocation MapKit AVFoundation Photos Intents
+$(TWEAK_NAME)_FRAMEWORKS = CoreServices UIKit CoreLocation MapKit AVFoundation Photos Intents CryptoKit
 $(TWEAK_NAME)_LIBRARIES = z
 $(TWEAK_NAME)_LOGOS_DEFAULT_GENERATOR = internal
 
