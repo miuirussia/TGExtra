@@ -105,7 +105,8 @@ jobs:
       
           TGEXTRA_VERSION="$(basename "$TWEAK" | sed -E 's/com\.choco\.tg_([0-9.]+)_.+\.deb/\1/')"
           mkdir -p ./packages
-      
+          
+          pip install --force-reinstall https://github.com/iOSDecrypted/pyzule-rw/archive/main.zip
           cgen \
             -o "./packages/com.choco.tg_${TGEXTRA_VERSION}.cyan" \
             -dqg \
