@@ -197,9 +197,27 @@ jobs:
           files: |
             packages/*.deb
             packages/*.cyan
+          fail_on_unmatched_files: true
           draft: false
           prerelease: ${{ env.RELEASE_TAG == 'prerelease' }}
           make_latest: ${{ env.RELEASE_TAG != 'prerelease' }}
+
+      - name: Delete outdated release packages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          gh release view "$RELEASE_TAG" --json assets \
+            --jq '.assets[].name | select(endswith(".deb") or endswith(".cyan"))' > release_assets.txt
+
+          while IFS= read -r asset; do
+            if [ ! -f "packages/$asset" ]; then
+              gh release delete-asset "$RELEASE_TAG" "$asset" --yes
+            fi
+          done < release_assets.txt
 
       - name: Delete build artifacts
         uses: geekyeggo/delete-artifact@v5
