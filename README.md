@@ -17,6 +17,8 @@ fingers, or tap the Chats tab five times.
 ## Features
 
 - Disable Ads
+- Remove iOS content restrictions on channels, users and messages, independently
+  of the protected-content forwarding toggle
 - Ghost Mode
 - No Read Receipt for messages and Stories
 - Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
@@ -54,6 +56,8 @@ The integration bundles a standalone Swift codec generated from the Telegram
 It supports the host's new channel/profile constructors, wallet cards, share
 themes and rich reply quotes. The host now uses an Objective-C TL engine;
 TGExtra keeps its own Swift codec to avoid registering duplicate runtime classes.
+The replaced Telegram 13.0 constructors remain supported, and responses retain
+their original constructor IDs so the same tweak works with 13.0 and 13.1 hosts.
 Private UI hooks depend on the host app exposing the corresponding methods.
 New features default to off; existing preferences are preserved on upgrade.
 
@@ -166,6 +170,9 @@ isolation, cancellation, file-reference refresh, compact acknowledgements and
 partial-send recovery with a mock MtProtoKit server and temporary journals.
 Telegram 13.1 wire fixtures check channel pins, full-user wallet/share-theme
 fields, rich reply quotes and their preservation through TTL and copy rewrites.
+The suite also checks the seven replaced 13.0 constructors and always-on iOS
+content access, including channel lookups and bare user vectors, with every
+optional feature disabled. Content-only rewrites preserve forwarding flags.
 UI interaction, video extraction and installation still require an iOS device.
 
 For basic menu checks in Docker:

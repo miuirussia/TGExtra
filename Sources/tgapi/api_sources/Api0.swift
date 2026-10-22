@@ -1780,6 +1780,41 @@ fileprivate let parsers: [Int32 : (BufferReader) -> Any?] = {
     dict[236939414] = { return Api.wallet.TonConnectSessions.parse_tonConnectSessions($0) }
     dict[1126356389] = { return Api.wallet.Transactions.parse_transactions($0) }
     dict[-1836156075] = { return Api.wallet.UserAddresses.parse_userAddresses($0) }
+    dict[-727763770] = { reader in
+        guard case let .channel(value)? = Api.Chat.parse_channel(reader) else { return nil }
+        value.tgextraConstructorId = -727763770
+        return Api.Chat.channel(value)
+    }
+    dict[-1605464774] = { reader in
+        guard case let .channelFull(value)? = Api.ChatFull.parse_channelFull(reader) else { return nil }
+        value.tgextraConstructorId = -1605464774
+        return Api.ChatFull.channelFull(value)
+    }
+    dict[1003796418] = { reader in
+        guard case let .inputReplyToMessage(value)? = Api.InputReplyTo.parse_inputReplyToMessage(reader) else { return nil }
+        value.tgextraConstructorId = 1003796418
+        return Api.InputReplyTo.inputReplyToMessage(value)
+    }
+    dict[462937446] = { reader in
+        guard case let .messageReplyHeader(value)? = Api.MessageReplyHeader.parse_messageReplyHeader(reader) else { return nil }
+        value.tgextraConstructorId = 462937446
+        return Api.MessageReplyHeader.messageReplyHeader(value)
+    }
+    dict[1020666860] = { reader in
+        guard case let .urlAuthResultRequest(value)? = Api.UrlAuthResult.parse_urlAuthResultRequest(reader) else { return nil }
+        value.tgextraConstructorId = 1020666860
+        return Api.UrlAuthResult.urlAuthResultRequest(value)
+    }
+    dict[114026053] = { reader in
+        guard case let .userFull(value)? = Api.UserFull.parse_userFull(reader) else { return nil }
+        value.tgextraConstructorId = 114026053
+        return Api.UserFull.userFull(value)
+    }
+    dict[876739868] = { reader in
+        guard case let .nftItem(value)? = Api.wallet.NftItem.parse_nftItem(reader) else { return nil }
+        value.tgextraConstructorId = 876739868
+        return Api.wallet.NftItem.nftItem(value)
+    }
     return dict
 }()
 

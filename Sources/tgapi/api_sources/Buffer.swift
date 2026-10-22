@@ -321,6 +321,7 @@ public class Buffer: CustomStringConvertible {
 public class BufferReader {
     private let buffer: Buffer
     public private(set) var offset: UInt = 0
+    private var contentRestrictionEdits: [(Range<Int>, Data)] = []
     
     public init(_ buffer: Buffer) {
         self.buffer = buffer
@@ -328,6 +329,7 @@ public class BufferReader {
     
     public func reset() {
         self.offset = 0
+        self.contentRestrictionEdits.removeAll()
     }
     
     public func skip(_ count: Int) {
@@ -392,6 +394,31 @@ public class BufferReader {
             return f(Buffer(memory: self.buffer.data!.advanced(by: Int(self.offset)), size: count, capacity: count, freeWhenDone: false))
         }
         return nil
+    }
+}
+
+extension BufferReader {
+    // Record wire edits separately from the generated payload mutations. This
+    // lets the always-on content bypass preserve unrelated forwarding flags.
+    func removeContentRestriction(bit: Int, flagsOffset: UInt, vectorStart: UInt) {
+        let start = Int(flagsOffset)
+        guard start + 4 <= buffer.size, let bytes = buffer.data else { return }
+        var flags: Int32 = 0
+        memcpy(&flags, bytes.advanced(by: start), 4)
+        var cleared = (Int32(littleEndian: flags) & ~(1 << bit)).littleEndian
+        contentRestrictionEdits.append((start..<start + 4, withUnsafeBytes(of: &cleared) { Data($0) }))
+        contentRestrictionEdits.append((Int(vectorStart)..<Int(offset), Data()))
+    }
+
+    func dataWithoutContentRestrictions(in range: Range<Int>? = nil) -> NSData? {
+        let range = range ?? 0..<Int(buffer.size)
+        let edits = contentRestrictionEdits.filter { range.lowerBound <= $0.0.lowerBound && $0.0.upperBound <= range.upperBound }
+        guard !edits.isEmpty else { return nil }
+        var output = buffer.makeData().subdata(in: range)
+        for (span, replacement) in edits.sorted(by: { $0.0.lowerBound > $1.0.lowerBound }) {
+            output.replaceSubrange((span.lowerBound - range.lowerBound)..<(span.upperBound - range.lowerBound), with: replacement)
+        }
+        return output as NSData
     }
 }
 

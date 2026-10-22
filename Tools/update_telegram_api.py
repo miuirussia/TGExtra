@@ -15,6 +15,51 @@ ROOT = Path(__file__).resolve().parent.parent
 # Last class-based SwiftTL generator. The host now uses an ObjC-backed engine;
 # keeping the standalone Swift codec avoids duplicate ObjC classes in the app.
 GENERATOR_REVISION = "8947c9971fd4c494aaa6b864a637ed14a07d5a4a"
+# Telegram 13.0 constructors replaced by 13.1. Their field layouts are prefixes
+# of the new layouts; the added fields are optional and absent in 13.0 replies.
+LEGACY_CONSTRUCTORS = [
+    ("Chat", "channel", -727763770, 2060538432),
+    ("ChatFull", "channelFull", -1605464774, -993731264),
+    ("InputReplyTo", "inputReplyToMessage", 1003796418, 1975627120),
+    ("MessageReplyHeader", "messageReplyHeader", 462937446, -575296651),
+    ("UrlAuthResult", "urlAuthResultRequest", 1020666860, -1110810265),
+    ("UserFull", "userFull", 114026053, -1190384899),
+    ("wallet.NftItem", "nftItem", 876739868, 389937907),
+]
+
+
+def patch_legacy_constructors(files):
+    files = dict(files)
+    for typename, constructor, old_id, new_id in LEGACY_CONSTRUCTORS:
+        namespace, _, name = typename.rpartition(".")
+        namespace = "Api" + ("." + namespace if namespace else "")
+        pattern = (r"^public extension " + re.escape(namespace) + r" \{\n    (?:indirect )?enum " +
+                   re.escape(name) + r":.*?(?=^public extension Api|\Z)")
+        matches = 0
+        for filename, contents in files.items():
+            def patch(match):
+                body = match[0]
+                anchor = f"public class Cons_{constructor}: TypeConstructorDescription {{\n"
+                assert body.count(anchor) == 1
+                body = body.replace(anchor, anchor + "            var tgextraConstructorId: Int32?\n")
+                anchor = f"buffer.appendInt32({new_id})"
+                assert body.count(anchor) == 1, f"Update the 13.0 compatibility mapping for {typename}"
+                return body.replace(anchor, f"buffer.appendInt32(_data.tgextraConstructorId ?? {new_id})")
+
+            files[filename], count = re.subn(pattern, patch, contents, flags=re.M | re.S)
+            matches += count
+        assert matches == 1, typename
+    aliases = ""
+    for typename, constructor, old_id, _ in LEGACY_CONSTRUCTORS:
+        aliases += f"""    dict[{old_id}] = {{ reader in
+        guard case let .{constructor}(value)? = Api.{typename}.parse_{constructor}(reader) else {{ return nil }}
+        value.tgextraConstructorId = {old_id}
+        return Api.{typename}.{constructor}(value)
+    }}
+"""
+    assert files["Api0.swift"].count("    return dict\n") == 1
+    files["Api0.swift"] = files["Api0.swift"].replace("    return dict\n", aliases + "    return dict\n")
+    return files
 
 
 def patch_content_flags(contents):
@@ -32,17 +77,23 @@ def patch_content_flags(contents):
                 f"            _1 = _1.map {{ $0 & ~(1 << {bit}) }} // TGExtra: clear noforwards:flags.{bit}\n")
         if name in restrictions:
             bit = restrictions[name]
+            anchor = "            _1 = reader.readInt32()\n"
+            assert body.count(anchor) == 1
+            body = body.replace(anchor, "            let restrictionFlagsOffset = reader.offset\n" + anchor)
             pattern = r"( +)(_(\d+)) = Api.parseVector\(reader, elementSignature: 0, elementType: Api.RestrictionReason.self\)\n"
 
             def clear_reason(field):
                 indent, variable = field.group(1), field.group(2)
-                return field.group(0) + (
+                return f"{indent}let restrictionVectorStart = reader.offset - 4\n" + field.group(0) + (
                     f"{indent}if {variable} != nil {{\n"
+                    f"{indent}    reader.removeContentRestriction(bit: {bit}, flagsOffset: restrictionFlagsOffset, vectorStart: restrictionVectorStart)\n"
                     f"{indent}    _1 = _1.map {{ $0 & ~(1 << {bit}) }} // TGExtra: clear restriction_reason after reading it\n"
                     f"{indent}    {variable} = nil\n{indent}}}\n")
 
             body, count = re.subn(pattern, clear_reason, body)
             assert count == 1
+            body = body.replace("if let _ = reader.readInt32() {\n                    let restrictionVectorStart",
+                                "if reader.readInt32() == 481674261 {\n                    let restrictionVectorStart")
         return body
 
     return re.sub(r"public static func parse_(\w+)\(_ reader: BufferReader\).*?\n        }",
@@ -131,8 +182,8 @@ def update(checkout):
         registry.write_text(contents)
         destination = ROOT / "Sources/tgapi/api_sources"
         previous = {p.name: p.read_text() for p in destination.glob("Api*.swift")}
-        generated = arrange_sources(
-            {p.name: patch_content_flags(p.read_text()) for p in output.glob("Api*.swift")}, previous)
+        generated = patch_legacy_constructors(arrange_sources(
+            {p.name: patch_content_flags(p.read_text()) for p in output.glob("Api*.swift")}, previous))
         assert len(generated) > 1 and "Api0.swift" in generated
         assert "enum UserFull" in "".join(generated.values())
 

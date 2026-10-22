@@ -513,6 +513,7 @@ public extension Api {
 public extension Api {
     indirect enum MessageReplyHeader: TypeConstructorDescription {
         public class Cons_messageReplyHeader: TypeConstructorDescription {
+            var tgextraConstructorId: Int32?
             public var flags: Int32
             public var replyToMsgId: Int32?
             public var replyToPeerId: Api.Peer?
@@ -561,7 +562,7 @@ public extension Api {
             switch self {
             case .messageReplyHeader(let _data):
                 if boxed {
-                    buffer.appendInt32(-575296651)
+                    buffer.appendInt32(_data.tgextraConstructorId ?? -575296651)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 if Int(_data.flags) & Int(1 << 4) != 0 {

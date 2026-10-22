@@ -757,6 +757,7 @@ public extension Api {
 public extension Api {
     indirect enum Chat: TypeConstructorDescription {
         public class Cons_channel: TypeConstructorDescription {
+            var tgextraConstructorId: Int32?
             public var flags: Int32
             public var flags2: Int32
             public var id: Int64
@@ -929,7 +930,7 @@ public extension Api {
             switch self {
             case .channel(let _data):
                 if boxed {
-                    buffer.appendInt32(2060538432)
+                    buffer.appendInt32(_data.tgextraConstructorId ?? 2060538432)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 serializeInt32(_data.flags2, buffer: buffer, boxed: false)
@@ -1104,6 +1105,7 @@ public extension Api {
 
         public static func parse_channel(_ reader: BufferReader) -> Chat? {
             var _1: Int32?
+            let restrictionFlagsOffset = reader.offset
             _1 = reader.readInt32()
             _1 = _1.map { $0 & ~(1 << 27) } // TGExtra: clear noforwards:flags.27
             var _2: Int32?
@@ -1128,9 +1130,11 @@ public extension Api {
             _8 = reader.readInt32()
             var _9: [Api.RestrictionReason]?
             if Int(_1 ?? 0) & Int(1 << 9) != 0 {
-                if let _ = reader.readInt32() {
+                if reader.readInt32() == 481674261 {
+                    let restrictionVectorStart = reader.offset - 4
                     _9 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                     if _9 != nil {
+                        reader.removeContentRestriction(bit: 9, flagsOffset: restrictionFlagsOffset, vectorStart: restrictionVectorStart)
                         _1 = _1.map { $0 & ~(1 << 9) } // TGExtra: clear restriction_reason after reading it
                         _9 = nil
                     }
@@ -1575,6 +1579,7 @@ public extension Api {
 public extension Api {
     indirect enum ChatFull: TypeConstructorDescription {
         public class Cons_channelFull: TypeConstructorDescription {
+            var tgextraConstructorId: Int32?
             public var flags: Int32
             public var flags2: Int32
             public var id: Int64
@@ -1753,7 +1758,7 @@ public extension Api {
             switch self {
             case .channelFull(let _data):
                 if boxed {
-                    buffer.appendInt32(-993731264)
+                    buffer.appendInt32(_data.tgextraConstructorId ?? -993731264)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 serializeInt32(_data.flags2, buffer: buffer, boxed: false)

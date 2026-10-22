@@ -369,6 +369,7 @@ public extension Api {
 
         public static func parse_message(_ reader: BufferReader) -> Message? {
             var _1: Int32?
+            let restrictionFlagsOffset = reader.offset
             _1 = reader.readInt32()
             _1 = _1.map { $0 & ~(1 << 26) } // TGExtra: clear noforwards:flags.26
             var _2: Int32?
@@ -481,9 +482,11 @@ public extension Api {
             }
             var _26: [Api.RestrictionReason]?
             if Int(_1 ?? 0) & Int(1 << 22) != 0 {
-                if let _ = reader.readInt32() {
+                if reader.readInt32() == 481674261 {
+                    let restrictionVectorStart = reader.offset - 4
                     _26 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                     if _26 != nil {
+                        reader.removeContentRestriction(bit: 22, flagsOffset: restrictionFlagsOffset, vectorStart: restrictionVectorStart)
                         _1 = _1.map { $0 & ~(1 << 22) } // TGExtra: clear restriction_reason after reading it
                         _26 = nil
                     }

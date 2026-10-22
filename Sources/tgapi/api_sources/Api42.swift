@@ -151,6 +151,7 @@ public extension Api.wallet {
 public extension Api.wallet {
     enum NftItem: TypeConstructorDescription {
         public class Cons_nftItem: TypeConstructorDescription {
+            var tgextraConstructorId: Int32?
             public var flags: Int32
             public var collectionAddress: String?
             public var address: String
@@ -191,7 +192,7 @@ public extension Api.wallet {
             switch self {
             case .nftItem(let _data):
                 if boxed {
-                    buffer.appendInt32(389937907)
+                    buffer.appendInt32(_data.tgextraConstructorId ?? 389937907)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 if Int(_data.flags) & Int(1 << 0) != 0 {

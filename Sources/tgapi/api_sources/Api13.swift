@@ -326,6 +326,7 @@ public extension Api {
             }
         }
         public class Cons_inputReplyToMessage: TypeConstructorDescription {
+            var tgextraConstructorId: Int32?
             public var flags: Int32
             public var replyToMsgId: Int32
             public var topMsgId: Int32?
@@ -389,7 +390,7 @@ public extension Api {
                 break
             case .inputReplyToMessage(let _data):
                 if boxed {
-                    buffer.appendInt32(1975627120)
+                    buffer.appendInt32(_data.tgextraConstructorId ?? 1975627120)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 serializeInt32(_data.replyToMsgId, buffer: buffer, boxed: false)

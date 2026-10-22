@@ -1929,7 +1929,9 @@ class TLParser: NSObject {
                              suffixBytes: suffixBytes) else { return nil }
         let batch = patchMessageBatch(messages, chats: [])
         let (patchedUpdates, changedUpdates) = stripTTLUpdates(updates)
-        guard batch.changed || changedUpdates || UserDefaults.standard.bool(forKey: "disableForwardRestriction") else { return nil }
+        guard batch.changed || changedUpdates || UserDefaults.standard.bool(forKey: "disableForwardRestriction") else {
+            return reader.dataWithoutContentRestrictions()
+        }
         func boxedVector(_ values: [Any]) -> Data {
             let buffer = Buffer()
             buffer.appendInt32(481674261)
@@ -1987,7 +1989,8 @@ class TLParser: NSObject {
             // Generated Message parsers clear noforwards/restriction flags
             // while reading. Their changes need serialization even when the
             // TTL helper reports no additional change.
-            let bytes = changed || noForwardsBypass ? serializeBoxed(patched) : nil
+            let bytes = changed || noForwardsBypass ? serializeBoxed(patched)
+                : reader.dataWithoutContentRestrictions(in: entry.start..<entry.start + entry.length)
             let original = data.subdata(with: NSRange(location: entry.start, length: entry.length))
             if let bytes = bytes, bytes as Data != original {
                 output.appendBytes(bytes.bytes, length: UInt(bytes.length))
@@ -2027,14 +2030,11 @@ class TLParser: NSObject {
         let isAntiSelfDestruct = UserDefaults.standard.bool(forKey: "TGExtraAntiSelfDestruct")
         let isNoForwardsBypass = UserDefaults.standard.bool(forKey: "disableForwardRestriction")
         let ignorePrivateCopyProtection = UserDefaults.standard.bool(forKey: "TGExtraIgnorePrivateChatCopyProtection")
-
-        // The last clause keeps the parser running while your own user id is
-        // still unknown, so it can be picked off a users vector. It stops
-        // applying the moment the id is learned, which takes a few seconds.
         let isAntiRevoke = UserDefaults.standard.bool(forKey: "TGExtraAntiRevoke")
         let isAntiAutoDelete = UserDefaults.standard.bool(forKey: "TGExtraAntiAutoDelete")
-        guard isAntiSelfDestruct || isNoForwardsBypass || isAntiEditEnabled
-                || ignorePrivateCopyProtection || isAntiAutoDelete || isAntiRevoke || !isOwnIdKnown else { return nil }
+
+        // iOS content restrictions are always removed, independently of the
+        // optional message/forwarding features and account-id discovery.
         let buffer = Buffer(data: data as Data)
         let reader = BufferReader(buffer)
         guard let signature = reader.readInt32() else { return nil }
@@ -2078,6 +2078,13 @@ class TLParser: NSObject {
 
             return modifiedContainer ? (outBuf.makeData() as NSData) : nil
         }
+        if signature == 481674261 {
+            guard let users = Api.parseVector(reader, elementSignature: 0, elementType: Api.User.self),
+                  reader.offset == UInt(data.length) else { return nil }
+            noteOwnUser(in: users)
+            notePeerNames(in: users)
+            return reader.dataWithoutContentRestrictions()
+        }
         // Do not reset the reader, because Api.parse(reader, signature:) expects the reader to be at offset 4
         guard let result = Api.parse(reader, signature: signature) else {
             // The host may know a peer constructor that the bundled schema
@@ -2089,6 +2096,10 @@ class TLParser: NSObject {
 
         guard reader.offset == UInt(data.length) else { return nil }
         noteUsersAnywhere(result)
+        guard isAntiSelfDestruct || isNoForwardsBypass || isAntiEditEnabled
+                || ignorePrivateCopyProtection || isAntiAutoDelete || isAntiRevoke || !isOwnIdKnown else {
+            return reader.dataWithoutContentRestrictions()
+        }
 
         if ignorePrivateCopyProtection {
             // CachedUserData derives both private-chat restrictions
@@ -2108,8 +2119,8 @@ class TLParser: NSObject {
             }
             if let offset = flagsOffset, let flags = privateFlags {
                 var cleared = (flags & ~((1 << 23) | (1 << 24))).littleEndian
-                guard cleared != flags.littleEndian else { return nil }
-                let patched = NSMutableData(data: data as Data)
+                guard cleared != flags.littleEndian else { return reader.dataWithoutContentRestrictions() }
+                let patched = NSMutableData(data: (reader.dataWithoutContentRestrictions() ?? data) as Data)
                 patched.replaceBytes(in: NSRange(location: offset, length: 4), withBytes: &cleared)
                 return patched
             }
@@ -2383,7 +2394,7 @@ class TLParser: NSObject {
             Api.serializeObject(newResult, buffer: outBuf, boxed: true)
             return outBuf.makeData() as NSData
         }
-        return nil
+        return reader.dataWithoutContentRestrictions()
     }
 
     /// users.getFullUser, users.getUsers, contacts.resolveUsername — the three
@@ -2392,11 +2403,8 @@ class TLParser: NSObject {
 
     /// Parses a reply purely to file the names in it.
     ///
-    /// stripAntiSelfDestruct refuses to parse at all unless a rewriting feature
-    /// is on, which is the right default — it runs on every response. These
-    /// three replies are rare enough to always be worth reading, and without
-    /// them a Ghost Exception added while every rewrite feature is off would
-    /// still be filed nameless.
+    /// Also handles peer lookups independently of the optional message features.
+    /// Names are learned even when there is no content restriction to rewrite.
     private static func harvestPeerNames(_ data: NSData) {
         let reader = BufferReader(Buffer(data: data as Data))
         guard let signature = reader.readInt32() else { return }

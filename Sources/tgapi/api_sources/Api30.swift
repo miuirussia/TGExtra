@@ -570,6 +570,7 @@ public extension Api {
             }
         }
         public class Cons_urlAuthResultRequest: TypeConstructorDescription {
+            var tgextraConstructorId: Int32?
             public var flags: Int32
             public var bot: Api.User
             public var domain: String
@@ -622,7 +623,7 @@ public extension Api {
                 break
             case .urlAuthResultRequest(let _data):
                 if boxed {
-                    buffer.appendInt32(-1110810265)
+                    buffer.appendInt32(_data.tgextraConstructorId ?? -1110810265)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 _data.bot.serialize(buffer, true)
@@ -925,6 +926,7 @@ public extension Api {
 
         public static func parse_user(_ reader: BufferReader) -> User? {
             var _1: Int32?
+            let restrictionFlagsOffset = reader.offset
             _1 = reader.readInt32()
             var _2: Int32?
             _2 = reader.readInt32()
@@ -968,9 +970,11 @@ public extension Api {
             }
             var _12: [Api.RestrictionReason]?
             if Int(_1 ?? 0) & Int(1 << 18) != 0 {
-                if let _ = reader.readInt32() {
+                if reader.readInt32() == 481674261 {
+                    let restrictionVectorStart = reader.offset - 4
                     _12 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                     if _12 != nil {
+                        reader.removeContentRestriction(bit: 18, flagsOffset: restrictionFlagsOffset, vectorStart: restrictionVectorStart)
                         _1 = _1.map { $0 & ~(1 << 18) } // TGExtra: clear restriction_reason after reading it
                         _12 = nil
                     }
@@ -1076,6 +1080,7 @@ public extension Api {
 public extension Api {
     indirect enum UserFull: TypeConstructorDescription {
         public class Cons_userFull: TypeConstructorDescription {
+            var tgextraConstructorId: Int32?
             public var flags: Int32
             public var flags2: Int32
             public var id: Int64
@@ -1172,7 +1177,7 @@ public extension Api {
             switch self {
             case .userFull(let _data):
                 if boxed {
-                    buffer.appendInt32(-1190384899)
+                    buffer.appendInt32(_data.tgextraConstructorId ?? -1190384899)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 serializeInt32(_data.flags2, buffer: buffer, boxed: false)
