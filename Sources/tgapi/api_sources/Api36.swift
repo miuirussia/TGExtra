@@ -722,7 +722,7 @@ public extension Api.messages {
     }
 }
 public extension Api.messages {
-    enum ChatFull: TypeConstructorDescription {
+    indirect enum ChatFull: TypeConstructorDescription {
         public class Cons_chatFull: TypeConstructorDescription {
             public var fullChat: Api.ChatFull
             public var chats: [Api.Chat]

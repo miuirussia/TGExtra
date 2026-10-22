@@ -580,7 +580,9 @@ public extension Api {
             public var matchCodes: [String]?
             public var userIdHint: Int64?
             public var verifiedAppName: String?
-            public init(flags: Int32, bot: Api.User, domain: String, browser: String?, platform: String?, ip: String?, region: String?, matchCodes: [String]?, userIdHint: Int64?, verifiedAppName: String?) {
+            public var tcSessionId: Int64?
+            public var tcClientId: String?
+            public init(flags: Int32, bot: Api.User, domain: String, browser: String?, platform: String?, ip: String?, region: String?, matchCodes: [String]?, userIdHint: Int64?, verifiedAppName: String?, tcSessionId: Int64?, tcClientId: String?) {
                 self.flags = flags
                 self.bot = bot
                 self.domain = domain
@@ -591,9 +593,11 @@ public extension Api {
                 self.matchCodes = matchCodes
                 self.userIdHint = userIdHint
                 self.verifiedAppName = verifiedAppName
+                self.tcSessionId = tcSessionId
+                self.tcClientId = tcClientId
             }
             public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
-                return ("urlAuthResultRequest", [("flags", ConstructorParameterDescription(self.flags)), ("bot", ConstructorParameterDescription(self.bot)), ("domain", ConstructorParameterDescription(self.domain)), ("browser", ConstructorParameterDescription(self.browser)), ("platform", ConstructorParameterDescription(self.platform)), ("ip", ConstructorParameterDescription(self.ip)), ("region", ConstructorParameterDescription(self.region)), ("matchCodes", ConstructorParameterDescription(self.matchCodes)), ("userIdHint", ConstructorParameterDescription(self.userIdHint)), ("verifiedAppName", ConstructorParameterDescription(self.verifiedAppName))])
+                return ("urlAuthResultRequest", [("flags", ConstructorParameterDescription(self.flags)), ("bot", ConstructorParameterDescription(self.bot)), ("domain", ConstructorParameterDescription(self.domain)), ("browser", ConstructorParameterDescription(self.browser)), ("platform", ConstructorParameterDescription(self.platform)), ("ip", ConstructorParameterDescription(self.ip)), ("region", ConstructorParameterDescription(self.region)), ("matchCodes", ConstructorParameterDescription(self.matchCodes)), ("userIdHint", ConstructorParameterDescription(self.userIdHint)), ("verifiedAppName", ConstructorParameterDescription(self.verifiedAppName)), ("tcSessionId", ConstructorParameterDescription(self.tcSessionId)), ("tcClientId", ConstructorParameterDescription(self.tcClientId))])
             }
         }
         case urlAuthResultAccepted(Cons_urlAuthResultAccepted)
@@ -618,7 +622,7 @@ public extension Api {
                 break
             case .urlAuthResultRequest(let _data):
                 if boxed {
-                    buffer.appendInt32(1020666860)
+                    buffer.appendInt32(-1110810265)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 _data.bot.serialize(buffer, true)
@@ -648,6 +652,12 @@ public extension Api {
                 if Int(_data.flags) & Int(1 << 7) != 0 {
                     serializeString(_data.verifiedAppName!, buffer: buffer, boxed: false)
                 }
+                if Int(_data.flags) & Int(1 << 9) != 0 {
+                    serializeInt64(_data.tcSessionId!, buffer: buffer, boxed: false)
+                }
+                if Int(_data.flags) & Int(1 << 10) != 0 {
+                    serializeString(_data.tcClientId!, buffer: buffer, boxed: false)
+                }
                 break
             }
         }
@@ -659,7 +669,7 @@ public extension Api {
             case .urlAuthResultDefault:
                 return ("urlAuthResultDefault", [])
             case .urlAuthResultRequest(let _data):
-                return ("urlAuthResultRequest", [("flags", ConstructorParameterDescription(_data.flags)), ("bot", ConstructorParameterDescription(_data.bot)), ("domain", ConstructorParameterDescription(_data.domain)), ("browser", ConstructorParameterDescription(_data.browser)), ("platform", ConstructorParameterDescription(_data.platform)), ("ip", ConstructorParameterDescription(_data.ip)), ("region", ConstructorParameterDescription(_data.region)), ("matchCodes", ConstructorParameterDescription(_data.matchCodes)), ("userIdHint", ConstructorParameterDescription(_data.userIdHint)), ("verifiedAppName", ConstructorParameterDescription(_data.verifiedAppName))])
+                return ("urlAuthResultRequest", [("flags", ConstructorParameterDescription(_data.flags)), ("bot", ConstructorParameterDescription(_data.bot)), ("domain", ConstructorParameterDescription(_data.domain)), ("browser", ConstructorParameterDescription(_data.browser)), ("platform", ConstructorParameterDescription(_data.platform)), ("ip", ConstructorParameterDescription(_data.ip)), ("region", ConstructorParameterDescription(_data.region)), ("matchCodes", ConstructorParameterDescription(_data.matchCodes)), ("userIdHint", ConstructorParameterDescription(_data.userIdHint)), ("verifiedAppName", ConstructorParameterDescription(_data.verifiedAppName)), ("tcSessionId", ConstructorParameterDescription(_data.tcSessionId)), ("tcClientId", ConstructorParameterDescription(_data.tcClientId))])
             }
         }
 
@@ -721,6 +731,14 @@ public extension Api {
             if Int(_1 ?? 0) & Int(1 << 7) != 0 {
                 _10 = parseString(reader)
             }
+            var _11: Int64?
+            if Int(_1 ?? 0) & Int(1 << 9) != 0 {
+                _11 = reader.readInt64()
+            }
+            var _12: String?
+            if Int(_1 ?? 0) & Int(1 << 10) != 0 {
+                _12 = parseString(reader)
+            }
             let _c1 = _1 != nil
             let _c2 = _2 != nil
             let _c3 = _3 != nil
@@ -731,8 +749,10 @@ public extension Api {
             let _c8 = (Int(_1 ?? 0) & Int(1 << 3) == 0) || _8 != nil
             let _c9 = (Int(_1 ?? 0) & Int(1 << 4) == 0) || _9 != nil
             let _c10 = (Int(_1 ?? 0) & Int(1 << 7) == 0) || _10 != nil
-            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 {
-                return Api.UrlAuthResult.urlAuthResultRequest(Cons_urlAuthResultRequest(flags: _1!, bot: _2!, domain: _3!, browser: _4, platform: _5, ip: _6, region: _7, matchCodes: _8, userIdHint: _9, verifiedAppName: _10))
+            let _c11 = (Int(_1 ?? 0) & Int(1 << 9) == 0) || _11 != nil
+            let _c12 = (Int(_1 ?? 0) & Int(1 << 10) == 0) || _12 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 {
+                return Api.UrlAuthResult.urlAuthResultRequest(Cons_urlAuthResultRequest(flags: _1!, bot: _2!, domain: _3!, browser: _4, platform: _5, ip: _6, region: _7, matchCodes: _8, userIdHint: _9, verifiedAppName: _10, tcSessionId: _11, tcClientId: _12))
             }
             else {
                 return nil
@@ -951,7 +971,7 @@ public extension Api {
                 if let _ = reader.readInt32() {
                     _12 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                     if _12 != nil {
-                        _1 = _1.map { $0 & ~(1 << 18) } // TGExtra: clear restricted and restriction_reason:flags.18 after reading it
+                        _1 = _1.map { $0 & ~(1 << 18) } // TGExtra: clear restriction_reason after reading it
                         _12 = nil
                     }
                 }
@@ -1054,7 +1074,7 @@ public extension Api {
     }
 }
 public extension Api {
-    enum UserFull: TypeConstructorDescription {
+    indirect enum UserFull: TypeConstructorDescription {
         public class Cons_userFull: TypeConstructorDescription {
             public var flags: Int32
             public var flags2: Int32
@@ -1096,7 +1116,9 @@ public extension Api {
             public var savedMusic: Api.Document?
             public var note: Api.TextWithEntities?
             public var botManagerId: Int64?
-            public init(flags: Int32, flags2: Int32, id: Int64, about: String?, settings: Api.PeerSettings, personalPhoto: Api.Photo?, profilePhoto: Api.Photo?, fallbackPhoto: Api.Photo?, notifySettings: Api.PeerNotifySettings, botInfo: Api.BotInfo?, pinnedMsgId: Int32?, commonChatsCount: Int32, folderId: Int32?, ttlPeriod: Int32?, theme: Api.ChatTheme?, privateForwardName: String?, botGroupAdminRights: Api.ChatAdminRights?, botBroadcastAdminRights: Api.ChatAdminRights?, wallpaper: Api.WallPaper?, stories: Api.PeerStories?, businessWorkHours: Api.BusinessWorkHours?, businessLocation: Api.BusinessLocation?, businessGreetingMessage: Api.BusinessGreetingMessage?, businessAwayMessage: Api.BusinessAwayMessage?, businessIntro: Api.BusinessIntro?, birthday: Api.Birthday?, personalChannelId: Int64?, personalChannelMessage: Int32?, stargiftsCount: Int32?, starrefProgram: Api.StarRefProgram?, botVerification: Api.BotVerification?, sendPaidMessagesStars: Int64?, disallowedGifts: Api.DisallowedGiftsSettings?, starsRating: Api.StarsRating?, starsMyPendingRating: Api.StarsRating?, starsMyPendingRatingDate: Int32?, mainTab: Api.ProfileTab?, savedMusic: Api.Document?, note: Api.TextWithEntities?, botManagerId: Int64?) {
+            public var walletCard: Api.wallet.Card?
+            public var shareTheme: Api.ShareTheme?
+            public init(flags: Int32, flags2: Int32, id: Int64, about: String?, settings: Api.PeerSettings, personalPhoto: Api.Photo?, profilePhoto: Api.Photo?, fallbackPhoto: Api.Photo?, notifySettings: Api.PeerNotifySettings, botInfo: Api.BotInfo?, pinnedMsgId: Int32?, commonChatsCount: Int32, folderId: Int32?, ttlPeriod: Int32?, theme: Api.ChatTheme?, privateForwardName: String?, botGroupAdminRights: Api.ChatAdminRights?, botBroadcastAdminRights: Api.ChatAdminRights?, wallpaper: Api.WallPaper?, stories: Api.PeerStories?, businessWorkHours: Api.BusinessWorkHours?, businessLocation: Api.BusinessLocation?, businessGreetingMessage: Api.BusinessGreetingMessage?, businessAwayMessage: Api.BusinessAwayMessage?, businessIntro: Api.BusinessIntro?, birthday: Api.Birthday?, personalChannelId: Int64?, personalChannelMessage: Int32?, stargiftsCount: Int32?, starrefProgram: Api.StarRefProgram?, botVerification: Api.BotVerification?, sendPaidMessagesStars: Int64?, disallowedGifts: Api.DisallowedGiftsSettings?, starsRating: Api.StarsRating?, starsMyPendingRating: Api.StarsRating?, starsMyPendingRatingDate: Int32?, mainTab: Api.ProfileTab?, savedMusic: Api.Document?, note: Api.TextWithEntities?, botManagerId: Int64?, walletCard: Api.wallet.Card?, shareTheme: Api.ShareTheme?) {
                 self.flags = flags
                 self.flags2 = flags2
                 self.id = id
@@ -1137,9 +1159,11 @@ public extension Api {
                 self.savedMusic = savedMusic
                 self.note = note
                 self.botManagerId = botManagerId
+                self.walletCard = walletCard
+                self.shareTheme = shareTheme
             }
             public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
-                return ("userFull", [("flags", ConstructorParameterDescription(self.flags)), ("flags2", ConstructorParameterDescription(self.flags2)), ("id", ConstructorParameterDescription(self.id)), ("about", ConstructorParameterDescription(self.about)), ("settings", ConstructorParameterDescription(self.settings)), ("personalPhoto", ConstructorParameterDescription(self.personalPhoto)), ("profilePhoto", ConstructorParameterDescription(self.profilePhoto)), ("fallbackPhoto", ConstructorParameterDescription(self.fallbackPhoto)), ("notifySettings", ConstructorParameterDescription(self.notifySettings)), ("botInfo", ConstructorParameterDescription(self.botInfo)), ("pinnedMsgId", ConstructorParameterDescription(self.pinnedMsgId)), ("commonChatsCount", ConstructorParameterDescription(self.commonChatsCount)), ("folderId", ConstructorParameterDescription(self.folderId)), ("ttlPeriod", ConstructorParameterDescription(self.ttlPeriod)), ("theme", ConstructorParameterDescription(self.theme)), ("privateForwardName", ConstructorParameterDescription(self.privateForwardName)), ("botGroupAdminRights", ConstructorParameterDescription(self.botGroupAdminRights)), ("botBroadcastAdminRights", ConstructorParameterDescription(self.botBroadcastAdminRights)), ("wallpaper", ConstructorParameterDescription(self.wallpaper)), ("stories", ConstructorParameterDescription(self.stories)), ("businessWorkHours", ConstructorParameterDescription(self.businessWorkHours)), ("businessLocation", ConstructorParameterDescription(self.businessLocation)), ("businessGreetingMessage", ConstructorParameterDescription(self.businessGreetingMessage)), ("businessAwayMessage", ConstructorParameterDescription(self.businessAwayMessage)), ("businessIntro", ConstructorParameterDescription(self.businessIntro)), ("birthday", ConstructorParameterDescription(self.birthday)), ("personalChannelId", ConstructorParameterDescription(self.personalChannelId)), ("personalChannelMessage", ConstructorParameterDescription(self.personalChannelMessage)), ("stargiftsCount", ConstructorParameterDescription(self.stargiftsCount)), ("starrefProgram", ConstructorParameterDescription(self.starrefProgram)), ("botVerification", ConstructorParameterDescription(self.botVerification)), ("sendPaidMessagesStars", ConstructorParameterDescription(self.sendPaidMessagesStars)), ("disallowedGifts", ConstructorParameterDescription(self.disallowedGifts)), ("starsRating", ConstructorParameterDescription(self.starsRating)), ("starsMyPendingRating", ConstructorParameterDescription(self.starsMyPendingRating)), ("starsMyPendingRatingDate", ConstructorParameterDescription(self.starsMyPendingRatingDate)), ("mainTab", ConstructorParameterDescription(self.mainTab)), ("savedMusic", ConstructorParameterDescription(self.savedMusic)), ("note", ConstructorParameterDescription(self.note)), ("botManagerId", ConstructorParameterDescription(self.botManagerId))])
+                return ("userFull", [("flags", ConstructorParameterDescription(self.flags)), ("flags2", ConstructorParameterDescription(self.flags2)), ("id", ConstructorParameterDescription(self.id)), ("about", ConstructorParameterDescription(self.about)), ("settings", ConstructorParameterDescription(self.settings)), ("personalPhoto", ConstructorParameterDescription(self.personalPhoto)), ("profilePhoto", ConstructorParameterDescription(self.profilePhoto)), ("fallbackPhoto", ConstructorParameterDescription(self.fallbackPhoto)), ("notifySettings", ConstructorParameterDescription(self.notifySettings)), ("botInfo", ConstructorParameterDescription(self.botInfo)), ("pinnedMsgId", ConstructorParameterDescription(self.pinnedMsgId)), ("commonChatsCount", ConstructorParameterDescription(self.commonChatsCount)), ("folderId", ConstructorParameterDescription(self.folderId)), ("ttlPeriod", ConstructorParameterDescription(self.ttlPeriod)), ("theme", ConstructorParameterDescription(self.theme)), ("privateForwardName", ConstructorParameterDescription(self.privateForwardName)), ("botGroupAdminRights", ConstructorParameterDescription(self.botGroupAdminRights)), ("botBroadcastAdminRights", ConstructorParameterDescription(self.botBroadcastAdminRights)), ("wallpaper", ConstructorParameterDescription(self.wallpaper)), ("stories", ConstructorParameterDescription(self.stories)), ("businessWorkHours", ConstructorParameterDescription(self.businessWorkHours)), ("businessLocation", ConstructorParameterDescription(self.businessLocation)), ("businessGreetingMessage", ConstructorParameterDescription(self.businessGreetingMessage)), ("businessAwayMessage", ConstructorParameterDescription(self.businessAwayMessage)), ("businessIntro", ConstructorParameterDescription(self.businessIntro)), ("birthday", ConstructorParameterDescription(self.birthday)), ("personalChannelId", ConstructorParameterDescription(self.personalChannelId)), ("personalChannelMessage", ConstructorParameterDescription(self.personalChannelMessage)), ("stargiftsCount", ConstructorParameterDescription(self.stargiftsCount)), ("starrefProgram", ConstructorParameterDescription(self.starrefProgram)), ("botVerification", ConstructorParameterDescription(self.botVerification)), ("sendPaidMessagesStars", ConstructorParameterDescription(self.sendPaidMessagesStars)), ("disallowedGifts", ConstructorParameterDescription(self.disallowedGifts)), ("starsRating", ConstructorParameterDescription(self.starsRating)), ("starsMyPendingRating", ConstructorParameterDescription(self.starsMyPendingRating)), ("starsMyPendingRatingDate", ConstructorParameterDescription(self.starsMyPendingRatingDate)), ("mainTab", ConstructorParameterDescription(self.mainTab)), ("savedMusic", ConstructorParameterDescription(self.savedMusic)), ("note", ConstructorParameterDescription(self.note)), ("botManagerId", ConstructorParameterDescription(self.botManagerId)), ("walletCard", ConstructorParameterDescription(self.walletCard)), ("shareTheme", ConstructorParameterDescription(self.shareTheme))])
             }
         }
         case userFull(Cons_userFull)
@@ -1148,7 +1172,7 @@ public extension Api {
             switch self {
             case .userFull(let _data):
                 if boxed {
-                    buffer.appendInt32(114026053)
+                    buffer.appendInt32(-1190384899)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 serializeInt32(_data.flags2, buffer: buffer, boxed: false)
@@ -1258,6 +1282,12 @@ public extension Api {
                 if Int(_data.flags2) & Int(1 << 25) != 0 {
                     serializeInt64(_data.botManagerId!, buffer: buffer, boxed: false)
                 }
+                if Int(_data.flags2) & Int(1 << 19) != 0 {
+                    _data.walletCard!.serialize(buffer, true)
+                }
+                if Int(_data.flags2) & Int(1 << 27) != 0 {
+                    _data.shareTheme!.serialize(buffer, true)
+                }
                 break
             }
         }
@@ -1265,7 +1295,7 @@ public extension Api {
         public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
             switch self {
             case .userFull(let _data):
-                return ("userFull", [("flags", ConstructorParameterDescription(_data.flags)), ("flags2", ConstructorParameterDescription(_data.flags2)), ("id", ConstructorParameterDescription(_data.id)), ("about", ConstructorParameterDescription(_data.about)), ("settings", ConstructorParameterDescription(_data.settings)), ("personalPhoto", ConstructorParameterDescription(_data.personalPhoto)), ("profilePhoto", ConstructorParameterDescription(_data.profilePhoto)), ("fallbackPhoto", ConstructorParameterDescription(_data.fallbackPhoto)), ("notifySettings", ConstructorParameterDescription(_data.notifySettings)), ("botInfo", ConstructorParameterDescription(_data.botInfo)), ("pinnedMsgId", ConstructorParameterDescription(_data.pinnedMsgId)), ("commonChatsCount", ConstructorParameterDescription(_data.commonChatsCount)), ("folderId", ConstructorParameterDescription(_data.folderId)), ("ttlPeriod", ConstructorParameterDescription(_data.ttlPeriod)), ("theme", ConstructorParameterDescription(_data.theme)), ("privateForwardName", ConstructorParameterDescription(_data.privateForwardName)), ("botGroupAdminRights", ConstructorParameterDescription(_data.botGroupAdminRights)), ("botBroadcastAdminRights", ConstructorParameterDescription(_data.botBroadcastAdminRights)), ("wallpaper", ConstructorParameterDescription(_data.wallpaper)), ("stories", ConstructorParameterDescription(_data.stories)), ("businessWorkHours", ConstructorParameterDescription(_data.businessWorkHours)), ("businessLocation", ConstructorParameterDescription(_data.businessLocation)), ("businessGreetingMessage", ConstructorParameterDescription(_data.businessGreetingMessage)), ("businessAwayMessage", ConstructorParameterDescription(_data.businessAwayMessage)), ("businessIntro", ConstructorParameterDescription(_data.businessIntro)), ("birthday", ConstructorParameterDescription(_data.birthday)), ("personalChannelId", ConstructorParameterDescription(_data.personalChannelId)), ("personalChannelMessage", ConstructorParameterDescription(_data.personalChannelMessage)), ("stargiftsCount", ConstructorParameterDescription(_data.stargiftsCount)), ("starrefProgram", ConstructorParameterDescription(_data.starrefProgram)), ("botVerification", ConstructorParameterDescription(_data.botVerification)), ("sendPaidMessagesStars", ConstructorParameterDescription(_data.sendPaidMessagesStars)), ("disallowedGifts", ConstructorParameterDescription(_data.disallowedGifts)), ("starsRating", ConstructorParameterDescription(_data.starsRating)), ("starsMyPendingRating", ConstructorParameterDescription(_data.starsMyPendingRating)), ("starsMyPendingRatingDate", ConstructorParameterDescription(_data.starsMyPendingRatingDate)), ("mainTab", ConstructorParameterDescription(_data.mainTab)), ("savedMusic", ConstructorParameterDescription(_data.savedMusic)), ("note", ConstructorParameterDescription(_data.note)), ("botManagerId", ConstructorParameterDescription(_data.botManagerId))])
+                return ("userFull", [("flags", ConstructorParameterDescription(_data.flags)), ("flags2", ConstructorParameterDescription(_data.flags2)), ("id", ConstructorParameterDescription(_data.id)), ("about", ConstructorParameterDescription(_data.about)), ("settings", ConstructorParameterDescription(_data.settings)), ("personalPhoto", ConstructorParameterDescription(_data.personalPhoto)), ("profilePhoto", ConstructorParameterDescription(_data.profilePhoto)), ("fallbackPhoto", ConstructorParameterDescription(_data.fallbackPhoto)), ("notifySettings", ConstructorParameterDescription(_data.notifySettings)), ("botInfo", ConstructorParameterDescription(_data.botInfo)), ("pinnedMsgId", ConstructorParameterDescription(_data.pinnedMsgId)), ("commonChatsCount", ConstructorParameterDescription(_data.commonChatsCount)), ("folderId", ConstructorParameterDescription(_data.folderId)), ("ttlPeriod", ConstructorParameterDescription(_data.ttlPeriod)), ("theme", ConstructorParameterDescription(_data.theme)), ("privateForwardName", ConstructorParameterDescription(_data.privateForwardName)), ("botGroupAdminRights", ConstructorParameterDescription(_data.botGroupAdminRights)), ("botBroadcastAdminRights", ConstructorParameterDescription(_data.botBroadcastAdminRights)), ("wallpaper", ConstructorParameterDescription(_data.wallpaper)), ("stories", ConstructorParameterDescription(_data.stories)), ("businessWorkHours", ConstructorParameterDescription(_data.businessWorkHours)), ("businessLocation", ConstructorParameterDescription(_data.businessLocation)), ("businessGreetingMessage", ConstructorParameterDescription(_data.businessGreetingMessage)), ("businessAwayMessage", ConstructorParameterDescription(_data.businessAwayMessage)), ("businessIntro", ConstructorParameterDescription(_data.businessIntro)), ("birthday", ConstructorParameterDescription(_data.birthday)), ("personalChannelId", ConstructorParameterDescription(_data.personalChannelId)), ("personalChannelMessage", ConstructorParameterDescription(_data.personalChannelMessage)), ("stargiftsCount", ConstructorParameterDescription(_data.stargiftsCount)), ("starrefProgram", ConstructorParameterDescription(_data.starrefProgram)), ("botVerification", ConstructorParameterDescription(_data.botVerification)), ("sendPaidMessagesStars", ConstructorParameterDescription(_data.sendPaidMessagesStars)), ("disallowedGifts", ConstructorParameterDescription(_data.disallowedGifts)), ("starsRating", ConstructorParameterDescription(_data.starsRating)), ("starsMyPendingRating", ConstructorParameterDescription(_data.starsMyPendingRating)), ("starsMyPendingRatingDate", ConstructorParameterDescription(_data.starsMyPendingRatingDate)), ("mainTab", ConstructorParameterDescription(_data.mainTab)), ("savedMusic", ConstructorParameterDescription(_data.savedMusic)), ("note", ConstructorParameterDescription(_data.note)), ("botManagerId", ConstructorParameterDescription(_data.botManagerId)), ("walletCard", ConstructorParameterDescription(_data.walletCard)), ("shareTheme", ConstructorParameterDescription(_data.shareTheme))])
             }
         }
 
@@ -1468,6 +1498,18 @@ public extension Api {
             if Int(_2 ?? 0) & Int(1 << 25) != 0 {
                 _40 = reader.readInt64()
             }
+            var _41: Api.wallet.Card?
+            if Int(_2 ?? 0) & Int(1 << 19) != 0 {
+                if let signature = reader.readInt32() {
+                    _41 = Api.parse(reader, signature: signature) as? Api.wallet.Card
+                }
+            }
+            var _42: Api.ShareTheme?
+            if Int(_2 ?? 0) & Int(1 << 27) != 0 {
+                if let signature = reader.readInt32() {
+                    _42 = Api.parse(reader, signature: signature) as? Api.ShareTheme
+                }
+            }
             let _c1 = _1 != nil
             let _c2 = _2 != nil
             let _c3 = _3 != nil
@@ -1508,8 +1550,10 @@ public extension Api {
             let _c38 = (Int(_2 ?? 0) & Int(1 << 21) == 0) || _38 != nil
             let _c39 = (Int(_2 ?? 0) & Int(1 << 22) == 0) || _39 != nil
             let _c40 = (Int(_2 ?? 0) & Int(1 << 25) == 0) || _40 != nil
-            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 && _c14 && _c15 && _c16 && _c17 && _c18 && _c19 && _c20 && _c21 && _c22 && _c23 && _c24 && _c25 && _c26 && _c27 && _c28 && _c29 && _c30 && _c31 && _c32 && _c33 && _c34 && _c35 && _c36 && _c37 && _c38 && _c39 && _c40 {
-                return Api.UserFull.userFull(Cons_userFull(flags: _1!, flags2: _2!, id: _3!, about: _4, settings: _5!, personalPhoto: _6, profilePhoto: _7, fallbackPhoto: _8, notifySettings: _9!, botInfo: _10, pinnedMsgId: _11, commonChatsCount: _12!, folderId: _13, ttlPeriod: _14, theme: _15, privateForwardName: _16, botGroupAdminRights: _17, botBroadcastAdminRights: _18, wallpaper: _19, stories: _20, businessWorkHours: _21, businessLocation: _22, businessGreetingMessage: _23, businessAwayMessage: _24, businessIntro: _25, birthday: _26, personalChannelId: _27, personalChannelMessage: _28, stargiftsCount: _29, starrefProgram: _30, botVerification: _31, sendPaidMessagesStars: _32, disallowedGifts: _33, starsRating: _34, starsMyPendingRating: _35, starsMyPendingRatingDate: _36, mainTab: _37, savedMusic: _38, note: _39, botManagerId: _40))
+            let _c41 = (Int(_2 ?? 0) & Int(1 << 19) == 0) || _41 != nil
+            let _c42 = (Int(_2 ?? 0) & Int(1 << 27) == 0) || _42 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 && _c14 && _c15 && _c16 && _c17 && _c18 && _c19 && _c20 && _c21 && _c22 && _c23 && _c24 && _c25 && _c26 && _c27 && _c28 && _c29 && _c30 && _c31 && _c32 && _c33 && _c34 && _c35 && _c36 && _c37 && _c38 && _c39 && _c40 && _c41 && _c42 {
+                return Api.UserFull.userFull(Cons_userFull(flags: _1!, flags2: _2!, id: _3!, about: _4, settings: _5!, personalPhoto: _6, profilePhoto: _7, fallbackPhoto: _8, notifySettings: _9!, botInfo: _10, pinnedMsgId: _11, commonChatsCount: _12!, folderId: _13, ttlPeriod: _14, theme: _15, privateForwardName: _16, botGroupAdminRights: _17, botBroadcastAdminRights: _18, wallpaper: _19, stories: _20, businessWorkHours: _21, businessLocation: _22, businessGreetingMessage: _23, businessAwayMessage: _24, businessIntro: _25, birthday: _26, personalChannelId: _27, personalChannelMessage: _28, stargiftsCount: _29, starrefProgram: _30, botVerification: _31, sendPaidMessagesStars: _32, disallowedGifts: _33, starsRating: _34, starsMyPendingRating: _35, starsMyPendingRatingDate: _36, mainTab: _37, savedMusic: _38, note: _39, botManagerId: _40, walletCard: _41, shareTheme: _42))
             }
             else {
                 return nil

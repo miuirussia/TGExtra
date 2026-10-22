@@ -164,7 +164,8 @@ public extension Api.wallet {
             public var lottie: Api.WebDocument?
             public var attributes: [Api.wallet.NftAttribute]?
             public var extra: Api.DataJSON?
-            public init(flags: Int32, collectionAddress: String?, address: String, ownerAddress: String, index: String, name: String?, description: String?, image: Api.WebDocument?, imageSmall: Api.WebDocument?, contentUrl: Api.WebDocument?, lottie: Api.WebDocument?, attributes: [Api.wallet.NftAttribute]?, extra: Api.DataJSON?) {
+            public var gift: Api.StarGift?
+            public init(flags: Int32, collectionAddress: String?, address: String, ownerAddress: String, index: String, name: String?, description: String?, image: Api.WebDocument?, imageSmall: Api.WebDocument?, contentUrl: Api.WebDocument?, lottie: Api.WebDocument?, attributes: [Api.wallet.NftAttribute]?, extra: Api.DataJSON?, gift: Api.StarGift?) {
                 self.flags = flags
                 self.collectionAddress = collectionAddress
                 self.address = address
@@ -178,9 +179,10 @@ public extension Api.wallet {
                 self.lottie = lottie
                 self.attributes = attributes
                 self.extra = extra
+                self.gift = gift
             }
             public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
-                return ("nftItem", [("flags", ConstructorParameterDescription(self.flags)), ("collectionAddress", ConstructorParameterDescription(self.collectionAddress)), ("address", ConstructorParameterDescription(self.address)), ("ownerAddress", ConstructorParameterDescription(self.ownerAddress)), ("index", ConstructorParameterDescription(self.index)), ("name", ConstructorParameterDescription(self.name)), ("description", ConstructorParameterDescription(self.description)), ("image", ConstructorParameterDescription(self.image)), ("imageSmall", ConstructorParameterDescription(self.imageSmall)), ("contentUrl", ConstructorParameterDescription(self.contentUrl)), ("lottie", ConstructorParameterDescription(self.lottie)), ("attributes", ConstructorParameterDescription(self.attributes)), ("extra", ConstructorParameterDescription(self.extra))])
+                return ("nftItem", [("flags", ConstructorParameterDescription(self.flags)), ("collectionAddress", ConstructorParameterDescription(self.collectionAddress)), ("address", ConstructorParameterDescription(self.address)), ("ownerAddress", ConstructorParameterDescription(self.ownerAddress)), ("index", ConstructorParameterDescription(self.index)), ("name", ConstructorParameterDescription(self.name)), ("description", ConstructorParameterDescription(self.description)), ("image", ConstructorParameterDescription(self.image)), ("imageSmall", ConstructorParameterDescription(self.imageSmall)), ("contentUrl", ConstructorParameterDescription(self.contentUrl)), ("lottie", ConstructorParameterDescription(self.lottie)), ("attributes", ConstructorParameterDescription(self.attributes)), ("extra", ConstructorParameterDescription(self.extra)), ("gift", ConstructorParameterDescription(self.gift))])
             }
         }
         case nftItem(Cons_nftItem)
@@ -189,7 +191,7 @@ public extension Api.wallet {
             switch self {
             case .nftItem(let _data):
                 if boxed {
-                    buffer.appendInt32(876739868)
+                    buffer.appendInt32(389937907)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 if Int(_data.flags) & Int(1 << 0) != 0 {
@@ -226,6 +228,9 @@ public extension Api.wallet {
                 if Int(_data.flags) & Int(1 << 8) != 0 {
                     _data.extra!.serialize(buffer, true)
                 }
+                if Int(_data.flags) & Int(1 << 9) != 0 {
+                    _data.gift!.serialize(buffer, true)
+                }
                 break
             }
         }
@@ -233,7 +238,7 @@ public extension Api.wallet {
         public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
             switch self {
             case .nftItem(let _data):
-                return ("nftItem", [("flags", ConstructorParameterDescription(_data.flags)), ("collectionAddress", ConstructorParameterDescription(_data.collectionAddress)), ("address", ConstructorParameterDescription(_data.address)), ("ownerAddress", ConstructorParameterDescription(_data.ownerAddress)), ("index", ConstructorParameterDescription(_data.index)), ("name", ConstructorParameterDescription(_data.name)), ("description", ConstructorParameterDescription(_data.description)), ("image", ConstructorParameterDescription(_data.image)), ("imageSmall", ConstructorParameterDescription(_data.imageSmall)), ("contentUrl", ConstructorParameterDescription(_data.contentUrl)), ("lottie", ConstructorParameterDescription(_data.lottie)), ("attributes", ConstructorParameterDescription(_data.attributes)), ("extra", ConstructorParameterDescription(_data.extra))])
+                return ("nftItem", [("flags", ConstructorParameterDescription(_data.flags)), ("collectionAddress", ConstructorParameterDescription(_data.collectionAddress)), ("address", ConstructorParameterDescription(_data.address)), ("ownerAddress", ConstructorParameterDescription(_data.ownerAddress)), ("index", ConstructorParameterDescription(_data.index)), ("name", ConstructorParameterDescription(_data.name)), ("description", ConstructorParameterDescription(_data.description)), ("image", ConstructorParameterDescription(_data.image)), ("imageSmall", ConstructorParameterDescription(_data.imageSmall)), ("contentUrl", ConstructorParameterDescription(_data.contentUrl)), ("lottie", ConstructorParameterDescription(_data.lottie)), ("attributes", ConstructorParameterDescription(_data.attributes)), ("extra", ConstructorParameterDescription(_data.extra)), ("gift", ConstructorParameterDescription(_data.gift))])
             }
         }
 
@@ -294,6 +299,12 @@ public extension Api.wallet {
                     _13 = Api.parse(reader, signature: signature) as? Api.DataJSON
                 }
             }
+            var _14: Api.StarGift?
+            if Int(_1 ?? 0) & Int(1 << 9) != 0 {
+                if let signature = reader.readInt32() {
+                    _14 = Api.parse(reader, signature: signature) as? Api.StarGift
+                }
+            }
             let _c1 = _1 != nil
             let _c2 = (Int(_1 ?? 0) & Int(1 << 0) == 0) || _2 != nil
             let _c3 = _3 != nil
@@ -307,8 +318,9 @@ public extension Api.wallet {
             let _c11 = (Int(_1 ?? 0) & Int(1 << 6) == 0) || _11 != nil
             let _c12 = (Int(_1 ?? 0) & Int(1 << 7) == 0) || _12 != nil
             let _c13 = (Int(_1 ?? 0) & Int(1 << 8) == 0) || _13 != nil
-            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 {
-                return Api.wallet.NftItem.nftItem(Cons_nftItem(flags: _1!, collectionAddress: _2, address: _3!, ownerAddress: _4!, index: _5!, name: _6, description: _7, image: _8, imageSmall: _9, contentUrl: _10, lottie: _11, attributes: _12, extra: _13))
+            let _c14 = (Int(_1 ?? 0) & Int(1 << 9) == 0) || _14 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 && _c13 && _c14 {
+                return Api.wallet.NftItem.nftItem(Cons_nftItem(flags: _1!, collectionAddress: _2, address: _3!, ownerAddress: _4!, index: _5!, name: _6, description: _7, image: _8, imageSmall: _9, contentUrl: _10, lottie: _11, attributes: _12, extra: _13, gift: _14))
             }
             else {
                 return nil

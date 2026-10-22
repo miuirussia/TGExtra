@@ -164,7 +164,9 @@ let privateUser = Api.UserFull.userFull(.init(
     mainTab: nil,
     savedMusic: nil,
     note: nil,
-    botManagerId: nil))
+    botManagerId: nil,
+    walletCard: nil,
+    shareTheme: nil))
 let protectedGroup = Api.Chat.chat(.init(flags: 1 << 25, id: 77, title: "Protected group",
     photo: .chatPhotoEmpty, participantsCount: 2, date: 1234, version: 1,
     migratedTo: nil, adminRights: nil, defaultBannedRights: nil))
@@ -670,3 +672,4 @@ print("PASS message database clearing, legacy removal, delayed writes, notificat
 
 testMessageProtection()
 testForwardCopies()
+testUpdatedApi()

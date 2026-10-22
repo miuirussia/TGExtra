@@ -524,7 +524,8 @@ public extension Api {
             public var quoteOffset: Int32?
             public var todoItemId: Int32?
             public var pollOption: Buffer?
-            public init(flags: Int32, replyToMsgId: Int32?, replyToPeerId: Api.Peer?, replyFrom: Api.MessageFwdHeader?, replyMedia: Api.MessageMedia?, replyToTopId: Int32?, quoteText: String?, quoteEntities: [Api.MessageEntity]?, quoteOffset: Int32?, todoItemId: Int32?, pollOption: Buffer?) {
+            public var quoteRich: [Api.RichText]?
+            public init(flags: Int32, replyToMsgId: Int32?, replyToPeerId: Api.Peer?, replyFrom: Api.MessageFwdHeader?, replyMedia: Api.MessageMedia?, replyToTopId: Int32?, quoteText: String?, quoteEntities: [Api.MessageEntity]?, quoteOffset: Int32?, todoItemId: Int32?, pollOption: Buffer?, quoteRich: [Api.RichText]?) {
                 self.flags = flags
                 self.replyToMsgId = replyToMsgId
                 self.replyToPeerId = replyToPeerId
@@ -536,9 +537,10 @@ public extension Api {
                 self.quoteOffset = quoteOffset
                 self.todoItemId = todoItemId
                 self.pollOption = pollOption
+                self.quoteRich = quoteRich
             }
             public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
-                return ("messageReplyHeader", [("flags", ConstructorParameterDescription(self.flags)), ("replyToMsgId", ConstructorParameterDescription(self.replyToMsgId)), ("replyToPeerId", ConstructorParameterDescription(self.replyToPeerId)), ("replyFrom", ConstructorParameterDescription(self.replyFrom)), ("replyMedia", ConstructorParameterDescription(self.replyMedia)), ("replyToTopId", ConstructorParameterDescription(self.replyToTopId)), ("quoteText", ConstructorParameterDescription(self.quoteText)), ("quoteEntities", ConstructorParameterDescription(self.quoteEntities)), ("quoteOffset", ConstructorParameterDescription(self.quoteOffset)), ("todoItemId", ConstructorParameterDescription(self.todoItemId)), ("pollOption", ConstructorParameterDescription(self.pollOption))])
+                return ("messageReplyHeader", [("flags", ConstructorParameterDescription(self.flags)), ("replyToMsgId", ConstructorParameterDescription(self.replyToMsgId)), ("replyToPeerId", ConstructorParameterDescription(self.replyToPeerId)), ("replyFrom", ConstructorParameterDescription(self.replyFrom)), ("replyMedia", ConstructorParameterDescription(self.replyMedia)), ("replyToTopId", ConstructorParameterDescription(self.replyToTopId)), ("quoteText", ConstructorParameterDescription(self.quoteText)), ("quoteEntities", ConstructorParameterDescription(self.quoteEntities)), ("quoteOffset", ConstructorParameterDescription(self.quoteOffset)), ("todoItemId", ConstructorParameterDescription(self.todoItemId)), ("pollOption", ConstructorParameterDescription(self.pollOption)), ("quoteRich", ConstructorParameterDescription(self.quoteRich))])
             }
         }
         public class Cons_messageReplyStoryHeader: TypeConstructorDescription {
@@ -559,7 +561,7 @@ public extension Api {
             switch self {
             case .messageReplyHeader(let _data):
                 if boxed {
-                    buffer.appendInt32(462937446)
+                    buffer.appendInt32(-575296651)
                 }
                 serializeInt32(_data.flags, buffer: buffer, boxed: false)
                 if Int(_data.flags) & Int(1 << 4) != 0 {
@@ -596,6 +598,13 @@ public extension Api {
                 if Int(_data.flags) & Int(1 << 12) != 0 {
                     serializeBytes(_data.pollOption!, buffer: buffer, boxed: false)
                 }
+                if Int(_data.flags) & Int(1 << 14) != 0 {
+                    buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(_data.quoteRich!.count))
+                    for item in _data.quoteRich! {
+                        item.serialize(buffer, true)
+                    }
+                }
                 break
             case .messageReplyStoryHeader(let _data):
                 if boxed {
@@ -610,7 +619,7 @@ public extension Api {
         public func descriptionFields() -> (String, [(String, ConstructorParameterDescription)]) {
             switch self {
             case .messageReplyHeader(let _data):
-                return ("messageReplyHeader", [("flags", ConstructorParameterDescription(_data.flags)), ("replyToMsgId", ConstructorParameterDescription(_data.replyToMsgId)), ("replyToPeerId", ConstructorParameterDescription(_data.replyToPeerId)), ("replyFrom", ConstructorParameterDescription(_data.replyFrom)), ("replyMedia", ConstructorParameterDescription(_data.replyMedia)), ("replyToTopId", ConstructorParameterDescription(_data.replyToTopId)), ("quoteText", ConstructorParameterDescription(_data.quoteText)), ("quoteEntities", ConstructorParameterDescription(_data.quoteEntities)), ("quoteOffset", ConstructorParameterDescription(_data.quoteOffset)), ("todoItemId", ConstructorParameterDescription(_data.todoItemId)), ("pollOption", ConstructorParameterDescription(_data.pollOption))])
+                return ("messageReplyHeader", [("flags", ConstructorParameterDescription(_data.flags)), ("replyToMsgId", ConstructorParameterDescription(_data.replyToMsgId)), ("replyToPeerId", ConstructorParameterDescription(_data.replyToPeerId)), ("replyFrom", ConstructorParameterDescription(_data.replyFrom)), ("replyMedia", ConstructorParameterDescription(_data.replyMedia)), ("replyToTopId", ConstructorParameterDescription(_data.replyToTopId)), ("quoteText", ConstructorParameterDescription(_data.quoteText)), ("quoteEntities", ConstructorParameterDescription(_data.quoteEntities)), ("quoteOffset", ConstructorParameterDescription(_data.quoteOffset)), ("todoItemId", ConstructorParameterDescription(_data.todoItemId)), ("pollOption", ConstructorParameterDescription(_data.pollOption)), ("quoteRich", ConstructorParameterDescription(_data.quoteRich))])
             case .messageReplyStoryHeader(let _data):
                 return ("messageReplyStoryHeader", [("peer", ConstructorParameterDescription(_data.peer)), ("storyId", ConstructorParameterDescription(_data.storyId))])
             }
@@ -667,6 +676,12 @@ public extension Api {
             if Int(_1 ?? 0) & Int(1 << 12) != 0 {
                 _11 = parseBytes(reader)
             }
+            var _12: [Api.RichText]?
+            if Int(_1 ?? 0) & Int(1 << 14) != 0 {
+                if let _ = reader.readInt32() {
+                    _12 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RichText.self)
+                }
+            }
             let _c1 = _1 != nil
             let _c2 = (Int(_1 ?? 0) & Int(1 << 4) == 0) || _2 != nil
             let _c3 = (Int(_1 ?? 0) & Int(1 << 0) == 0) || _3 != nil
@@ -678,8 +693,9 @@ public extension Api {
             let _c9 = (Int(_1 ?? 0) & Int(1 << 10) == 0) || _9 != nil
             let _c10 = (Int(_1 ?? 0) & Int(1 << 11) == 0) || _10 != nil
             let _c11 = (Int(_1 ?? 0) & Int(1 << 12) == 0) || _11 != nil
-            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 {
-                return Api.MessageReplyHeader.messageReplyHeader(Cons_messageReplyHeader(flags: _1!, replyToMsgId: _2, replyToPeerId: _3, replyFrom: _4, replyMedia: _5, replyToTopId: _6, quoteText: _7, quoteEntities: _8, quoteOffset: _9, todoItemId: _10, pollOption: _11))
+            let _c12 = (Int(_1 ?? 0) & Int(1 << 14) == 0) || _12 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 && _c8 && _c9 && _c10 && _c11 && _c12 {
+                return Api.MessageReplyHeader.messageReplyHeader(Cons_messageReplyHeader(flags: _1!, replyToMsgId: _2, replyToPeerId: _3, replyFrom: _4, replyMedia: _5, replyToTopId: _6, quoteText: _7, quoteEntities: _8, quoteOffset: _9, todoItemId: _10, pollOption: _11, quoteRich: _12))
             }
             else {
                 return nil

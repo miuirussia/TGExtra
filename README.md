@@ -49,7 +49,11 @@ fingers, or tap the Chats tab five times.
 - Fix the Files picker and clear its temporary cache
 - Fake location and ten interface languages
 
-The integration uses the Telegram API 13.0 sources already in this repository.
+The integration bundles a standalone Swift codec generated from the Telegram
+13.1 TL schema at [`1dd3e7f4ed`](https://github.com/TelegramMessenger/Telegram-iOS/commit/1dd3e7f4ed5d72caed1caa04033832c28a5920f5).
+It supports the host's new channel/profile constructors, wallet cards, share
+themes and rich reply quotes. The host now uses an Objective-C TL engine;
+TGExtra keeps its own Swift codec to avoid registering duplicate runtime classes.
 Private UI hooks depend on the host app exposing the corresponding methods.
 New features default to off; existing preferences are preserved on upgrade.
 
@@ -138,6 +142,19 @@ rootless and roothide packaging schemes are retained.
 After changing translations, run `python3 generate_langs.py` to regenerate the
 embedded fallback translations.
 
+To update the bundled API from a local Telegram-iOS checkout, run:
+
+```sh
+python3 Tools/update_telegram_api.py ~/Projects/Telegram-iOS
+```
+
+This requires Python 3.12+ and Swift. The script uses the last class-based
+SwiftTL generator pinned in the script (Git may fetch missing objects), preserves
+the tweak's codec patches and existing file layout, and records the source
+revision and schema checksum in `Tools/TelegramApi/version.json`. The schema
+snapshot is checked against all generated constructor/function IDs and fields
+by `Tests/check_api_schema.py`.
+
 Run `Tests/run.sh` on macOS to check protocol transformations, ghost exceptions,
 settings migration, stored message reflection (including inherited optional
 items and albums), cache/network history merging, account/namespace isolation,
@@ -147,6 +164,8 @@ preferences.
 The same suite checks protected-copy requests, chunked media transfers, account
 isolation, cancellation, file-reference refresh, compact acknowledgements and
 partial-send recovery with a mock MtProtoKit server and temporary journals.
+Telegram 13.1 wire fixtures check channel pins, full-user wallet/share-theme
+fields, rich reply quotes and their preservation through TTL and copy rewrites.
 UI interaction, video extraction and installation still require an iOS device.
 
 For basic menu checks in Docker:
@@ -168,7 +187,7 @@ cleanup. Pass a video path to additionally verify export of a real sample.
 ## Acknowledgements
 
 The additional functions and menu are adapted from the local **mxgram / Mx**
-fork, with its networking code adapted to TGExtra's API 13.0 and branding.
+fork, with its networking code adapted to TGExtra's bundled API and branding.
 
 
 ## Disclaimer

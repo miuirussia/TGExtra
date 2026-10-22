@@ -1799,7 +1799,7 @@ public extension Api.users {
     }
 }
 public extension Api.users {
-    enum UserFull: TypeConstructorDescription {
+    indirect enum UserFull: TypeConstructorDescription {
         public class Cons_userFull: TypeConstructorDescription {
             public var fullUser: Api.UserFull
             public var chats: [Api.Chat]

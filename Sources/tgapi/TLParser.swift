@@ -1502,7 +1502,7 @@ class TLParser: NSObject {
     }
 
     private static func stripNoForwardsFromFullChat(_ chatFull: Api.ChatFull) -> (Api.ChatFull, Bool) {
-        // ChatFull has no noforwards field in API 13.0.
+        // ChatFull has no noforwards field in the bundled schema.
         return (chatFull, false)
     }
 
@@ -2091,7 +2091,7 @@ class TLParser: NSObject {
         noteUsersAnywhere(result)
 
         if ignorePrivateCopyProtection {
-            // API 13.0's CachedUserData derives both private-chat restrictions
+            // CachedUserData derives both private-chat restrictions
             // from userFull.flags2 bits 23 and 24. Patch this field in place:
             // reserializing a whole users.UserFull would also apply the existing
             // generated noforwards patches to unrelated chats in its vectors.

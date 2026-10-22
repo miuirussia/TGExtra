@@ -484,7 +484,7 @@ public extension Api {
                 if let _ = reader.readInt32() {
                     _26 = Api.parseVector(reader, elementSignature: 0, elementType: Api.RestrictionReason.self)
                     if _26 != nil {
-                        _1 = _1.map { $0 & ~(1 << 22) } // TGExtra: clear restriction_reason:flags.22 after reading it
+                        _1 = _1.map { $0 & ~(1 << 22) } // TGExtra: clear restriction_reason after reading it
                         _26 = nil
                     }
                 }
@@ -1530,6 +1530,7 @@ public extension Api {
         case messageActionNewCreatorPending(Cons_messageActionNewCreatorPending)
         case messageActionNoForwardsRequest(Cons_messageActionNoForwardsRequest)
         case messageActionNoForwardsToggle(Cons_messageActionNoForwardsToggle)
+        case messageActionNoPaidMessagesTokenUsed
         case messageActionPaidMessagesPrice(Cons_messageActionPaidMessagesPrice)
         case messageActionPaidMessagesRefunded(Cons_messageActionPaidMessagesRefunded)
         case messageActionPaymentRefunded(Cons_messageActionPaymentRefunded)
@@ -1891,6 +1892,11 @@ public extension Api {
                 }
                 _data.prevValue.serialize(buffer, true)
                 _data.newValue.serialize(buffer, true)
+                break
+            case .messageActionNoPaidMessagesTokenUsed:
+                if boxed {
+                    buffer.appendInt32(-1043140154)
+                }
                 break
             case .messageActionPaidMessagesPrice(let _data):
                 if boxed {
@@ -2362,6 +2368,8 @@ public extension Api {
                 return ("messageActionNoForwardsRequest", [("flags", ConstructorParameterDescription(_data.flags)), ("prevValue", ConstructorParameterDescription(_data.prevValue)), ("newValue", ConstructorParameterDescription(_data.newValue))])
             case .messageActionNoForwardsToggle(let _data):
                 return ("messageActionNoForwardsToggle", [("prevValue", ConstructorParameterDescription(_data.prevValue)), ("newValue", ConstructorParameterDescription(_data.newValue))])
+            case .messageActionNoPaidMessagesTokenUsed:
+                return ("messageActionNoPaidMessagesTokenUsed", [])
             case .messageActionPaidMessagesPrice(let _data):
                 return ("messageActionPaidMessagesPrice", [("flags", ConstructorParameterDescription(_data.flags)), ("stars", ConstructorParameterDescription(_data.stars))])
             case .messageActionPaidMessagesRefunded(let _data):
@@ -3027,6 +3035,9 @@ public extension Api {
             else {
                 return nil
             }
+        }
+        public static func parse_messageActionNoPaidMessagesTokenUsed(_ reader: BufferReader) -> MessageAction? {
+            return Api.MessageAction.messageActionNoPaidMessagesTokenUsed
         }
         public static func parse_messageActionPaidMessagesPrice(_ reader: BufferReader) -> MessageAction? {
             var _1: Int32?

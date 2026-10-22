@@ -40,7 +40,7 @@ for constant, function in {
 }.items():
     value = re.search(r'^#define ' + constant + r' (-?\d+)', constants, re.M)[1]
     constructors = re.findall(r'static func ' + function + r'\([^\n]*\n        let buffer = Buffer\(\)\n        buffer.appendInt32\((-?\d+)\)', api)
-    assert value in constructors, f'{constant} is out of date with API 13.0'
+    assert value in constructors, f'{constant} is out of date with the bundled API'
 for path in (ROOT / 'Sources').rglob('*'):
     if path.suffix in ('.h', '.m', '.xm', '.swift') and 'api_sources' not in path.parts:
         assert not re.search(r'kConfirmCalls|kDownloadSpeedBoost|kCustomStars|CONFIRM_CALLS|DOWNLOAD_BOOST|CUSTOM_STARS|MxApiCompat', path.read_text()), f'Excluded feature in {path}'
@@ -48,4 +48,4 @@ with tempfile.TemporaryDirectory() as tmp:
     output = Path(tmp) / 'EmbeddedLangs.h'
     subprocess.run(['python3', str(ROOT / 'generate_langs.py'), '--output', str(output)], check=True, capture_output=True)
     assert output.read_bytes() == (ROOT / 'Sources/tgapi/UI/EmbeddedLangs.h').read_bytes(), 'Embedded translations are stale'
-print('PASS menu coverage, ten languages, API 13.0 request IDs and excluded features')
+print('PASS menu coverage, ten languages, bundled API request IDs and excluded features')

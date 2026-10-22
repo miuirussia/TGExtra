@@ -93,7 +93,7 @@ final class ForwardCopyPlan: NSObject {
             } else if reply == nil {
                 reply = .inputReplyToMessage(.init(flags: 1, replyToMsgId: topId, topMsgId: topId,
                     replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil,
-                    monoforumPeerId: nil, todoItemId: nil, pollOption: nil))
+                    monoforumPeerId: nil, todoItemId: nil, pollOption: nil, quoteRich: nil))
             } else { return nil }
         }
         let schedule = flags & (1 << 10) != 0 ? reader.readInt32() : nil
