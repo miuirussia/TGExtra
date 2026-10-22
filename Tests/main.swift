@@ -383,8 +383,36 @@ _ = strip(updatesWithOpaquePeer([.updateNewMessage(.init(message: outgoing, pts:
 let outgoingEdit = message(115, text: "My revised message", edit: 1235)
 messageData(outgoingEdit).flags |= 1 << 1
 let outgoingBytes = updatesWithOpaquePeer([.updateEditMessage(.init(message: outgoingEdit, pts: 51, ptsCount: 1))])
-check(strip(outgoingBytes) == nil, "Recording an outgoing edit preserves host editing behavior")
-check(history(forId: 115, peer: 42) == ["My message", "My revised message"], "Track outgoing originals and edits")
+check(strip(outgoingBytes) == nil, "Excluding an outgoing edit preserves host editing behavior")
+check(history(forId: 115, peer: 42) == nil, "Never track outgoing originals or edits")
+check((defaults.dictionary(forKey: "TGExtraEditHistoryByAccount")?["account-1:42:115"]) == nil, "Do not persist outgoing originals")
+for outgoing in [false, true] {
+    let id: Int32 = outgoing ? 117 : 116
+    let compact = Api.Updates.updateShortMessage(.init(flags: outgoing ? 1 << 1 : 0, id: id,
+        userId: 42, message: "Compact original", pts: 52, ptsCount: 1, date: 1234,
+        fwdFrom: nil, viaBotId: nil, replyTo: nil, entities: nil, ttlPeriod: nil))
+    check(strip(serialized(compact)) == nil, "Compact history observation preserves response bytes")
+    let revised = message(id, text: "Compact revision", edit: 2000)
+    if outgoing { messageData(revised).flags |= 1 << 1 }
+    _ = strip(serialized(revised))
+    check(history(forId: NSNumber(value: id), peer: 42) == (outgoing ? nil : ["Compact original", "Compact revision"]),
+          "Compact updates record incoming messages and exclude outgoing ones")
+}
+let ownAuthored = message(118, text: "Own author without outgoing flag")
+messageData(ownAuthored).flags |= 1 << 8
+messageData(ownAuthored).fromId = .peerUser(.init(userId: 101))
+_ = strip(serialized(ownAuthored), account: "account-101")
+_ = strip(serialized(ownAuthored), account: "account-202")
+messageData(ownAuthored).flags |= 1 << 15
+messageData(ownAuthored).editDate = 2000
+messageData(ownAuthored).message = "Own authored revision"
+_ = strip(serialized(ownAuthored), account: "account-101")
+_ = strip(serialized(ownAuthored), account: "account-202")
+check(history(forId: 118, peer: 42, account: "account-101") == nil, "Own author identity also excludes revisions")
+check(history(forId: 118, peer: 42, account: "account-202") == ["Own author without outgoing flag", "Own authored revision"],
+      "The same author remains another person's message for a different account")
+check(defaults.dictionary(forKey: "TGExtraEditHistoryByAccount")?["account-101:42:118"] == nil,
+      "An own authored message leaves no persisted original")
 
 flags("TGExtraAntiEdit")
 for (id, texts) in [(Int32(130), ["A", "B", "A", "C"]),

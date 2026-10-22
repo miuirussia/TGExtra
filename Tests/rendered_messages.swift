@@ -36,6 +36,7 @@ private struct CachedMessage {
     let text: String
     let attributes: [Any]
     let media: [Any]
+    var flags = CachedNumber32(rawValue: 1 << 2)
 }
 private enum CachedContent {
     case message(message: CachedMessage, read: Bool, selection: Int, attributes: Int, location: Int?)
@@ -182,6 +183,17 @@ func renderedHistoryRestoreFixture() -> [String: Any] {
 }
 
 func testRestoredRenderedMessages() {
+    var own = cachedMessage(40, text: "My current text", edit: 2002)
+    own.flags = CachedNumber32(rawValue: 0)
+    _ = TLParser.messageState(from: cachedNode(own), observe: true)
+    check(history(forId: 40, peer: 42) == nil, "Rendering an own message removes its legacy history and badge")
+    check(defaultsForRenderedTests()["account-1:42:40"] == nil, "Remove own legacy history from persistent storage")
+    check(history(forId: 40, peer: 42, account: "account-2") == ["Other before", "Other after"], "Purging own history preserves other accounts")
+    _ = TLParser.messageState(from: cachedNode(own), observe: true)
+    own = cachedMessage(40, text: "My next edit", edit: 2003)
+    own.flags = CachedNumber32(rawValue: 0)
+    _ = TLParser.messageState(from: cachedNode(own), observe: true)
+    check(history(forId: 40, peer: 42) == nil, "Rendering own edits cannot recreate history")
     check(history(forId: 82000, peer: 42) == ["Cached original", "Network edit"], "Reload cache-origin history in the existing storage format")
     _ = TLParser.messageState(from: cachedNode(cachedMessage(82000)), observe: true)
     _ = TLParser.messageState(from: cachedNode(cachedMessage(82000, text: "Stale cache", edit: 2000)), observe: true)

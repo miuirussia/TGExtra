@@ -115,6 +115,20 @@ func testMessageProtection() {
             topMsgId: nil, date: 1234, message: text, entities: nil, media: nil, replyMarkup: nil,
             replyTo: nil, richMessage: nil, chatInstance: nil, anchorMsgId: anchored ? 12 : nil))
     }
+    var ownIds = defaults.dictionary(forKey: "TGExtraOwnUserIdsByAccount") ?? [:]
+    ownIds[testAccount] = 42
+    defaults.set(ownIds, forKey: "TGExtraOwnUserIdsByAccount")
+    for text in ["Own ephemeral original", "Own ephemeral edit"] {
+        guard case let .ephemeralMessage(own) = ephemeral(text) else { fatalError("Expected ephemeral message") }
+        own.fromId = .peerUser(.init(userId: 42))
+        _ = patch(Api.Update.updateEditEphemeralMessage(.init(message: .ephemeralMessage(own))))
+    }
+    check(history(forId: 81301, peer: 42, namespace: 7) == nil, "Own ephemeral edits are excluded by account author identity")
+    for text in ["Unknown original", "Unknown edit"] {
+        _ = strip(serialized(Api.Update.updateEditEphemeralMessage(.init(message: ephemeral(text)))), account: "account-unknown")
+    }
+    check(history(forId: 81301, peer: 42, account: "account-unknown", namespace: 7) == nil,
+          "Do not record ephemeral edits before the account's own identity is known")
     for anchored in [false, true] {
         _ = patch(Api.Update.updateNewEphemeralMessage(.init(message: ephemeral("Before", anchored: anchored))))
         _ = patch(Api.Update.updateEditEphemeralMessage(.init(message: ephemeral("After", anchored: anchored))))
@@ -159,12 +173,13 @@ func testMessageProtection() {
         replyTo: nil, message: "Sent original", randomId: 1, replyMarkup: nil, entities: nil, scheduleDate: nil,
         scheduleRepeatPeriod: nil, sendAs: nil, quickReplyShortcut: nil, effect: nil, allowPaidStars: nil, suggestedPost: nil, richMessage: nil).1.makeData() as NSData
     let compactSent = Api.Updates.updateShortSentMessage(.init(flags: 0, id: 81404, pts: 52, ptsCount: 1, date: 1234, media: nil, entities: nil, ttlPeriod: nil))
-    check(TLParser.handleResponse(serialized(compactSent), functionID: -17526942, account: testAccount, requestPayload: sendRequest) == nil, "Recording a compact send preserves response bytes")
+    check(TLParser.handleResponse(serialized(compactSent), functionID: -17526942, account: testAccount, requestPayload: sendRequest) == nil, "Skipping a compact send preserves response bytes")
     let sentRevision = message(81404, text: "Sent revision", edit: 2000)
     messageData(sentRevision).entities = nil
     messageData(sentRevision).flags &= ~(1 << 7)
+    messageData(sentRevision).flags |= 1 << 1
     _ = patch(Api.Update.updateEditMessage(.init(message: sentRevision, pts: 53, ptsCount: 1)))
-    check(history(forId: 81404, peer: 42) == ["Sent original", "Sent revision"], "Compact send replies retain the outgoing original")
+    check(history(forId: 81404, peer: 42) == nil, "Compact send replies and outgoing edits never retain revisions")
 
     // Revalidation requests can restore only the requested account/chat/id.
     flags("TGExtraAntiRevoke")

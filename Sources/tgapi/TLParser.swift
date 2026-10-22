@@ -224,56 +224,6 @@ class TLParser: NSObject {
         return (ids, peer)
     }
 
-    private struct OutgoingOriginal {
-        let peer: Int64
-        let text: String
-        let entities: [Api.MessageEntity]?
-    }
-    private static var outgoingOriginal: OutgoingOriginal?
-
-    private static func outgoingRequest(_ payload: NSData?, function: Int32) -> OutgoingOriginal? {
-        guard function == -17526942 || function == 53536639, let payload = payload else { return nil }
-        let reader = BufferReader(Buffer(nsData: payload))
-        func object<T>(_ type: T.Type) -> T? {
-            guard let constructor = reader.readInt32() else { return nil }
-            return Api.parse(reader, signature: constructor) as? T
-        }
-        guard reader.readInt32() == function, let flags = reader.readInt32(),
-              let peer = object(Api.InputPeer.self) else { return nil }
-        let peerId: Int64
-        switch peer {
-        case let .inputPeerUser(data): peerId = data.userId
-        case let .inputPeerChat(data): peerId = -data.chatId
-        case let .inputPeerChannel(data): peerId = -(1_000_000_000_000 + data.channelId)
-        case let .inputPeerUserFromMessage(data): peerId = data.userId
-        case let .inputPeerChannelFromMessage(data): peerId = -(1_000_000_000_000 + data.channelId)
-        default: return nil // inputPeerSelf needs an account-scoped self id.
-        }
-        if flags & 1 != 0 && object(Api.InputReplyTo.self) == nil { return nil }
-        if function == 53536639 && object(Api.InputMedia.self) == nil { return nil }
-        guard let text = parseString(reader), reader.readInt64() != nil else { return nil }
-        if flags & (1 << 2) != 0 && object(Api.ReplyMarkup.self) == nil { return nil }
-        var entities: [Api.MessageEntity]?
-        if flags & (1 << 3) != 0 {
-            guard reader.readInt32() == 481674261, let count = reader.readInt32(), count >= 0,
-                  Int(count) <= (payload.length - Int(reader.offset)) / 4 else { return nil }
-            var values = [Api.MessageEntity]()
-            for _ in 0..<count {
-                guard let value = object(Api.MessageEntity.self) else { return nil }
-                values.append(value)
-            }
-            entities = values
-        }
-        for bit in [10, 24] where flags & (1 << bit) != 0 { guard reader.readInt32() != nil else { return nil } }
-        if flags & (1 << 13) != 0 && object(Api.InputPeer.self) == nil { return nil }
-        if flags & (1 << 17) != 0 && object(Api.InputQuickReplyShortcut.self) == nil { return nil }
-        for bit in [18, 21] where flags & (1 << bit) != 0 { guard reader.readInt64() != nil else { return nil } }
-        if flags & (1 << 22) != 0 && object(Api.SuggestedPost.self) == nil { return nil }
-        if function == -17526942 && flags & (1 << 23) != 0 && object(Api.InputRichMessage.self) == nil { return nil }
-        guard reader.offset == UInt(payload.length) else { return nil }
-        return OutgoingOriginal(peer: peerId, text: text, entities: entities)
-    }
-
     // MARK: - Anti-Edit
 
     /// Every text version of a message we have seen, oldest first. Element 0 is
@@ -500,6 +450,26 @@ class TLParser: NSObject {
         return recordText(text, key: key, editDate: editDate, allowUndatedEdit: allowUndatedEdit, content: content)
     }
 
+    /// Old archives did not record direction. Remove a message's saved versions
+    /// as soon as either the network or the rendered item identifies it as ours.
+    private static func discardOwnEditHistory(id: Int32, peer: Int64, account: String?, namespace: Int32) {
+        guard let account = account else { return }
+        let key = EditKey(account: account, peer: peer, id: id, namespace: namespace)
+        let removed = editQueue.sync(flags: .barrier) { () -> Bool in
+            guard _editHistory.removeValue(forKey: key) != nil else { return false }
+            _originalOrder.removeAll { $0 == key }
+            writeEditHistoryLocked()
+            return true
+        }
+        if removed { notifyMessageEdited(key) }
+    }
+
+    private static func isOwnAuthor(_ author: Api.Peer?, account: String?) -> Bool {
+        guard let account = account, case let .peerUser(data)? = author,
+              let ownId = UserDefaults.standard.dictionary(forKey: ownUserIdsKey)?[account] as? NSNumber else { return false }
+        return data.userId == ownId.int64Value
+    }
+
     private static func contentDiffers(_ lhs: [String: Data], _ rhs: [String: Data], fields: [String]) -> Bool {
         return fields.contains { field in
             guard let before = lhs[field], let after = rhs[field] else { return false }
@@ -654,9 +624,12 @@ class TLParser: NSObject {
     /// updateShortMessage / updateShortChatMessage, which carry the text inline.
     /// Those are the ones an ordinary conversation actually arrives as, so
     /// missing them meant Anti-Edit never recorded anything in the very case it
-    /// exists for. Outgoing versions are safe to record too: tracking never
-    /// rewrites the message sent to the host.
-    private static func recordShortFormOriginal(id: Int32, text: String, peer: Int64, entities: [Api.MessageEntity]?) {
+    /// exists for. Outgoing messages are excluded from edit history.
+    private static func recordShortFormOriginal(id: Int32, text: String, peer: Int64, entities: [Api.MessageEntity]?, outgoing: Bool) {
+        if outgoing {
+            discardOwnEditHistory(id: id, peer: peer, account: processingHistoryAccount, namespace: processingNamespace)
+            return
+        }
         guard isAntiEditEnabled else { return }
         guard id != 0 else { return }
         diag("anti-edit RECORD id=\(id) peer=\(peer) \(text.count) chars")
@@ -672,11 +645,15 @@ class TLParser: NSObject {
     /// bubble instead, as this used to, meant the reader could see that an edit
     /// had happened but never what it said.
     private static func trackMessageVersions(_ apiMsg: Api.Message, allowUndatedEdit: Bool = false) {
-        guard isAntiEditEnabled else { return }
         guard case let .message(data) = apiMsg else { return }
         guard data.id != 0 else { return }
 
         let peer = peerKey(data.peerId)
+        if data.flags & (1 << 1) != 0 || isOwnAuthor(data.fromId, account: processingHistoryAccount) {
+            discardOwnEditHistory(id: data.id, peer: peer, account: processingHistoryAccount, namespace: processingNamespace)
+            return
+        }
+        guard isAntiEditEnabled else { return }
         let text = data.richMessage.map { richText($0) }.flatMap { $0.isEmpty ? nil : $0 } ?? data.message
         let content = revisionContent(entities: data.entities, media: data.media, rich: data.richMessage)
         guard recordText(text, forId: data.id, peer: peer, editDate: data.editDate,
@@ -690,7 +667,6 @@ class TLParser: NSObject {
     /// Applied to every batch of loaded messages. Records only; the batch is
     /// handed back untouched, so this never marks the response as modified.
     private static func trackVersions(in msgs: [Api.Message]) {
-        guard isAntiEditEnabled else { return }
         msgs.forEach { trackMessageVersions($0) }
     }
 
@@ -809,7 +785,7 @@ class TLParser: NSObject {
         guard let item = storedField("item", in: node) else { return nil }
         let messages = renderedMessages(from: item)
         guard let first = messages.first, let account = findHistoryAccount(in: item, depth: 0) else { return nil }
-        if observe && isAntiEditEnabled {
+        if observe {
             for message in messages {
                 recordRenderedMessage(message, account: account)
             }
@@ -896,6 +872,13 @@ class TLParser: NSObject {
     }
 
     private static func recordRenderedMessage(_ message: RenderedMessage, account: String) {
+        // Postbox MessageFlags.Incoming is bit 2 (wire Message.out is bit 1).
+        guard let flags = storedField("flags", in: message.value).flatMap({ rawNumber($0) }) else { return }
+        if flags & (1 << 2) == 0 {
+            discardOwnEditHistory(id: message.id, peer: message.peer, account: account, namespace: message.namespace)
+            return
+        }
+        guard isAntiEditEnabled else { return }
         guard let text = storedField("text", in: message.value) as? String else { return }
         var editDate: Int32?
         var content = [String: Data]()
@@ -1751,7 +1734,11 @@ class TLParser: NSObject {
         }
         let namespace: Int32 = data.flags & (1 << 5) != 0 ? 9 : (data.anchorMsgId == nil ? 7 : 8)
         return withNamespace(namespace) {
-            if isAntiEditEnabled {
+            let own = isOwnAuthor(data.fromId, account: processingHistoryAccount)
+            if own {
+                discardOwnEditHistory(id: data.id, peer: peerKey(peer), account: processingHistoryAccount, namespace: namespace)
+            }
+            if isAntiEditEnabled && isOwnIdKnown && !own {
                 let text = data.richMessage.map { richText($0) }.flatMap { $0.isEmpty ? nil : $0 } ?? data.message
                 if recordText(text, forId: data.id, peer: peerKey(peer), editDate: nil, allowUndatedEdit: isEdit,
                               content: revisionContent(entities: data.entities, media: data.media, rich: data.richMessage)),
@@ -2150,7 +2137,7 @@ class TLParser: NSObject {
                 // A private chat is identified by the other user, which is what
                 // userId holds here and what peerUser carries in the full form.
                 recordShortFormOriginal(id: data.id, text: data.message,
-                                        peer: data.userId, entities: data.entities)
+                                        peer: data.userId, entities: data.entities, outgoing: data.flags & (1 << 1) != 0)
                 var isDestructing = false
                 if data.ttlPeriod != nil {
                     recordTimedId(data.id, scope: cloudScope, disappearing: false)
@@ -2182,7 +2169,8 @@ class TLParser: NSObject {
                 }
             case let .updateShortChatMessage(data):
                 recordShortFormOriginal(id: data.id, text: data.message,
-                                        peer: -data.chatId, entities: data.entities)
+                                        peer: -data.chatId, entities: data.entities,
+                                        outgoing: data.flags & (1 << 1) != 0 || isOwnAuthor(.peerUser(.init(userId: data.fromId)), account: processingHistoryAccount))
                 var isDestructing = false
                 if data.ttlPeriod != nil {
                     recordTimedId(data.id, scope: cloudScope, disappearing: false)
@@ -2211,10 +2199,6 @@ class TLParser: NSObject {
                     modified = true
                 }
             case let .updateShortSentMessage(data):
-                if isAntiEditEnabled, let original = outgoingOriginal {
-                    _ = recordText(original.text, forId: data.id, peer: original.peer, editDate: nil,
-                        content: revisionContent(entities: data.entities ?? original.entities, media: data.media, rich: nil))
-                }
                 let before = serializeBoxed(updates)
                 if data.ttlPeriod != nil { recordTimedId(data.id, scope: cloudScope, disappearing: false) }
                 let newMedia = data.media.map { stripTTLMedia($0, messageId: data.id, scope: cloudScope) }
@@ -2442,15 +2426,12 @@ class TLParser: NSObject {
         }
         let previousIds = requestedMessageIds
         let previousPeer = requestedMessagePeer
-        let previousOutgoing = outgoingOriginal
-        outgoingOriginal = outgoingRequest(requestPayload, function: functionID.int32Value)
         let validation = validationRequest(requestPayload, function: functionID.int32Value)
         requestedMessageIds = validation?.ids
         requestedMessagePeer = validation?.peer
         defer {
             requestedMessageIds = previousIds
             requestedMessagePeer = previousPeer
-            outgoingOriginal = previousOutgoing
         }
         if peerLookupFunctions.contains(functionID.int32Value) {
             harvestPeerNames(data)

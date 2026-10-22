@@ -68,12 +68,13 @@ tests; installation and compatibility with Telegram's actual pending-message
 queue still require an iOS device. The implementation targets the Objective-C
 MtProtoKit transport used by the existing tweak hooks.
 
-Edit history keeps versions observed while Anti-Edit is enabled, including
-outgoing messages and empty media captions. Displaying a cached message also
+Edit history keeps versions of other people's messages observed while Anti-Edit
+is enabled, including empty media captions. Your own messages are excluded;
+previously saved revisions are removed when a message is identified as yours
+from the network or displayed from cache. Displaying a cached incoming message also
 records its stored text, available formatting entities and photo/document
 identity, without scanning Telegram's database. Unrecognized fields stay unknown;
-unknown accounts or message structures are skipped. Compact send replies use the
-original request text when its chat can be resolved. Rich-message text,
+unknown accounts or message structures are skipped. Rich-message text,
 formatting entities and attachment metadata are retained; the history labels
 formatting and media changes even when the caption stays the same. It does not
 archive attachment file bytes or provide playback of replaced attachments.
