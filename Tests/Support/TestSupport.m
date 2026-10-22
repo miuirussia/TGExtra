@@ -31,6 +31,23 @@ NSUserDefaults *TGExtraUseTestDefaults(void) {
     return defaults;
 }
 
+void TGExtraSetTestHostVersion(NSString *version) {
+    static NSString *hostVersion;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        SEL selector = @selector(objectForInfoDictionaryKey:);
+        Method method = class_getInstanceMethod(NSBundle.class, selector);
+        id (*original)(id, SEL, NSString *) = (void *)method_getImplementation(method);
+        method_setImplementation(method, imp_implementationWithBlock(^id(NSBundle *bundle, NSString *key) {
+            if (bundle == NSBundle.mainBundle && [key isEqualToString:@"CFBundleShortVersionString"] && hostVersion != nil) {
+                return hostVersion;
+            }
+            return original(bundle, selector, key);
+        }));
+    });
+    hostVersion = [version copy];
+}
+
 @implementation MTRequest
 - (instancetype)init { if ((self = [super init])) _internalId = NSUUID.UUID; return self; }
 - (void)setPayload:(NSData *)payload metadata:(id)metadata shortMetadata:(id)shortMetadata responseParser:(id (^)(NSData *))responseParser {

@@ -322,6 +322,8 @@ public class BufferReader {
     private let buffer: Buffer
     public private(set) var offset: UInt = 0
     private var contentRestrictionEdits: [(Range<Int>, Data)] = []
+    // Network objects retain their wire IDs; restored snapshots may target 13.1.
+    var preserveLegacyConstructorIds = true
     
     public init(_ buffer: Buffer) {
         self.buffer = buffer
@@ -410,15 +412,21 @@ extension BufferReader {
         contentRestrictionEdits.append((Int(vectorStart)..<Int(offset), Data()))
     }
 
-    func dataWithoutContentRestrictions(in range: Range<Int>? = nil) -> NSData? {
+    func dataWithoutContentRestrictions(in range: Range<Int>? = nil,
+                                        replacing replacements: [(Range<Int>, Data)] = []) -> NSData? {
         let range = range ?? 0..<Int(buffer.size)
-        let edits = contentRestrictionEdits.filter { range.lowerBound <= $0.0.lowerBound && $0.0.upperBound <= range.upperBound }
+        // A reserialized object already includes its content edits. Keep edits
+        // outside those objects in the same original coordinate space.
+        let edits = (contentRestrictionEdits.filter { edit in
+            !replacements.contains { $0.0.overlaps(edit.0) }
+        } + replacements).filter { range.lowerBound <= $0.0.lowerBound && $0.0.upperBound <= range.upperBound }
         guard !edits.isEmpty else { return nil }
-        var output = buffer.makeData().subdata(in: range)
+        let original = buffer.makeData().subdata(in: range)
+        var output = original
         for (span, replacement) in edits.sorted(by: { $0.0.lowerBound > $1.0.lowerBound }) {
             output.replaceSubrange((span.lowerBound - range.lowerBound)..<(span.upperBound - range.lowerBound), with: replacement)
         }
-        return output as NSData
+        return output == original ? nil : output as NSData
     }
 }
 

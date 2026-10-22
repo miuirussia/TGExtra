@@ -53,7 +53,7 @@ def patch_legacy_constructors(files):
     for typename, constructor, old_id, _ in LEGACY_CONSTRUCTORS:
         aliases += f"""    dict[{old_id}] = {{ reader in
         guard case let .{constructor}(value)? = Api.{typename}.parse_{constructor}(reader) else {{ return nil }}
-        value.tgextraConstructorId = {old_id}
+        value.tgextraConstructorId = reader.preserveLegacyConstructorIds ? {old_id} : nil
         return Api.{typename}.{constructor}(value)
     }}
 """

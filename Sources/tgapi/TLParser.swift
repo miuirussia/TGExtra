@@ -120,8 +120,12 @@ class TLParser: NSObject {
         }
     }
 
-    private static func decodedSnapshot(_ bytes: Data) -> Api.Message? {
+    private static func decodedSnapshot(_ bytes: Data, forHost: Bool = false) -> Api.Message? {
         let reader = BufferReader(Buffer(data: bytes))
+        if forHost, let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+           version.compare("13.1", options: .numeric) != .orderedAscending {
+            reader.preserveLegacyConstructorIds = false
+        }
         guard let constructor = reader.readInt32(),
               let message = Api.parse(reader, signature: constructor) as? Api.Message,
               reader.offset == UInt(bytes.count) else { return nil }
@@ -183,7 +187,7 @@ class TLParser: NSObject {
                 return key.peer > -1_000_000_000_000
             }
             guard matches.count == 1, let key = matches.first, let bytes = snapshots[key],
-                  let snapshot = decodedSnapshot(bytes),
+                  let snapshot = decodedSnapshot(bytes, forHost: true),
                   neutralizeDeletions([id], peer: key.peer) != nil else { continue }
             recovered[id] = snapshot
         }
@@ -1942,14 +1946,12 @@ class TLParser: NSObject {
         var replacements = [(Range<Int>, Data)]()
         replacements.append((messageStart..<messageEnd, boxedVector(batch.messages)))
         if hasUpdates { replacements.append((updateStart..<updateEnd, boxedVector(patchedUpdates))) }
-        var output = data as Data
-        for (range, bytes) in replacements.reversed() { output.replaceSubrange(range, with: bytes) }
-        return output == data as Data ? nil : output as NSData
+        return reader.dataWithoutContentRestrictions(replacing: replacements)
     }
 
     /// A newer User or Chat constructor must not disable protection for the
-    /// updates that precede it. Decode only the Updates vector, then leave the
-    /// peer vectors and synchronization trailer for the host to parse.
+    /// updates that precede it. Keep unknown peer bytes and the synchronization
+    /// trailer intact while applying content edits to known peers.
     private static func patchUpdateVector(_ data: NSData, signature: Int32) -> NSData? {
         guard signature == 1957577280 || signature == 1918567619 else { return nil }
         let reader = BufferReader(Buffer(nsData: data))
@@ -1980,27 +1982,15 @@ class TLParser: NSObject {
         guard hasUnknownPeer(reader, length: data.length, usersFirst: true,
                              suffixBytes: signature == 1918567619 ? 12 : 8) else { return nil }
 
-        let output = Buffer()
-        output.appendBytes(data.bytes, length: 12)
         let noForwardsBypass = UserDefaults.standard.bool(forKey: "disableForwardRestriction")
-        var modified = false
+        var replacements = [(Range<Int>, Data)]()
         for entry in updates {
             let (patched, changed) = stripTTLUpdate(entry.update)
-            // Generated Message parsers clear noforwards/restriction flags
-            // while reading. Their changes need serialization even when the
-            // TTL helper reports no additional change.
-            let bytes = changed || noForwardsBypass ? serializeBoxed(patched)
-                : reader.dataWithoutContentRestrictions(in: entry.start..<entry.start + entry.length)
-            let original = data.subdata(with: NSRange(location: entry.start, length: entry.length))
-            if let bytes = bytes, bytes as Data != original {
-                output.appendBytes(bytes.bytes, length: UInt(bytes.length))
-                modified = true
-            } else {
-                output.appendBytes(data.bytes.advanced(by: entry.start), length: UInt(entry.length))
+            if changed || noForwardsBypass {
+                replacements.append((entry.start..<entry.start + entry.length, serializeBoxed(patched) as Data))
             }
         }
-        output.appendBytes(data.bytes.advanced(by: tail), length: UInt(data.length - tail))
-        return modified ? output.makeData() as NSData : nil
+        return reader.dataWithoutContentRestrictions(replacing: replacements)
     }
 
     // Protected by processingLock, including recursive parsing of containers.

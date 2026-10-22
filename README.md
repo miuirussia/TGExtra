@@ -56,8 +56,9 @@ The integration bundles a standalone Swift codec generated from the Telegram
 It supports the host's new channel/profile constructors, wallet cards, share
 themes and rich reply quotes. The host now uses an Objective-C TL engine;
 TGExtra keeps its own Swift codec to avoid registering duplicate runtime classes.
-The replaced Telegram 13.0 constructors remain supported, and responses retain
-their original constructor IDs so the same tweak works with 13.0 and 13.1 hosts.
+The replaced Telegram 13.0 constructors remain supported, and network objects
+retain their original constructor IDs so the same tweak works with 13.0 and 13.1
+hosts. Restored message snapshots upgrade legacy IDs for hosts running 13.1 or later.
 Private UI hooks depend on the host app exposing the corresponding methods.
 New features default to off; existing preferences are preserved on upgrade.
 

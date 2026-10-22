@@ -1,4 +1,5 @@
 import Foundation
+import TestSupport
 
 func testContentRestrictions() {
     flags()
@@ -72,6 +73,67 @@ func testContentRestrictions() {
     check(response(blockedUsers, functionID: 227648840) == allowedUsers,
           "Bare users.getUsers vectors strip every user's iOS restriction")
 
+    func append(_ data: Data, to buffer: Buffer) {
+        data.withUnsafeBytes { buffer.appendBytes($0.baseAddress!, length: UInt($0.count)) }
+    }
+    func opaquePeer(_ buffer: Buffer) {
+        buffer.appendInt32(481674261); buffer.appendInt32(1)
+        buffer.appendInt32(1234567); buffer.appendInt32(0)
+    }
+    func history(_ channel: Data, messages: [Api.Message]) -> NSData {
+        let buffer = Buffer()
+        buffer.appendInt32(494135274) // messages.messages
+        buffer.appendInt32(481674261); buffer.appendInt32(Int32(messages.count))
+        for message in messages { message.serialize(buffer, true) }
+        buffer.appendInt32(481674261); buffer.appendInt32(0) // topics
+        buffer.appendInt32(481674261); buffer.appendInt32(1); append(channel, to: buffer)
+        opaquePeer(buffer) // unknown User after the known restricted Chat
+        return buffer.makeData() as NSData
+    }
+    for legacy in [false, true] {
+        for timed in [false, true] {
+            if timed { flags("TGExtraAntiAutoDelete") } else { flags() }
+            let source = message(89100, ttl: timed ? 60 : nil)
+            let bytes = history(channel(restricted: true, legacy: legacy), messages: [source])
+            let patched = strip(bytes)!
+            let reader = BufferReader(Buffer(nsData: patched))
+            reader.skip(12)
+            let result = Api.parse(reader, signature: reader.readInt32()!) as! Api.Message
+            check(messageData(result).ttlPeriod == nil, "Opaque history still removes message timers")
+            check(patched == history(channel(restricted: false, legacy: legacy), messages: [result]),
+                  "Content edits in known chats survive message rewrites and preserve unknown users, wire IDs and forwarding flags")
+        }
+    }
+    func updates(_ values: [Api.Update], restricted: Bool, combined: Bool) -> NSData {
+        let buffer = Buffer()
+        buffer.appendInt32(combined ? 1918567619 : 1957577280)
+        buffer.appendInt32(481674261); buffer.appendInt32(Int32(values.count))
+        for value in values { value.serialize(buffer, true) }
+        append((restricted ? blockedUsers : allowedUsers) as Data, to: buffer)
+        opaquePeer(buffer) // unknown Chat after the known restricted Users
+        buffer.appendInt32(1234)
+        if combined { buffer.appendInt32(7) }
+        buffer.appendInt32(8)
+        return buffer.makeData() as NSData
+    }
+    for combined in [false, true] {
+        flags()
+        check(strip(updates([], restricted: true, combined: combined)) == updates([], restricted: false, combined: combined),
+              "Opaque updates remove user restrictions even without a rewritten update")
+        flags("TGExtraAntiAutoDelete")
+        let source = message(89101, ttl: 60)
+        messageData(source).flags |= 1 << 22
+        messageData(source).restrictionReason = [.restrictionReason(.init(platform: "ios", reason: "sensitive", text: "Blocked"))]
+        let update = Api.Update.updateNewMessage(.init(message: source, pts: 5, ptsCount: 1))
+        let expected = parsed(patch(update)!, as: Api.Update.self)
+        check(strip(updates([update], restricted: true, combined: combined)) == updates([expected], restricted: false, combined: combined),
+              "Overlapping message content edits apply once; user edits and the opaque trailer survive shrinking updates")
+        flags("TGExtraAntiRevoke")
+        check(strip(updates([deletion([89102])], restricted: true, combined: combined)) == updates([deletion([0])], restricted: false, combined: combined),
+              "User content edits compose with deletion rewrites in opaque updates")
+    }
+    flags()
+
     let packed = Buffer()
     packed.appendInt32(0x3072cfa1)
     serializeBytes(Buffer(data: gzip(blocked)), buffer: packed, boxed: false)
@@ -81,6 +143,56 @@ func testContentRestrictions() {
     }
     check(strip((blocked + Data([0, 0, 0, 0])) as NSData) == nil, "Unknown channel trailers remain untouched")
     print("PASS always-on iOS content access, known/unknown accounts, channel lookups, bare user vectors and malformed data")
+}
+
+func testSnapshotApiCompatibility() {
+    flags("TGExtraAntiRevoke")
+    defer {
+        TGExtraSetTestHostVersion(nil)
+        flags()
+        TLParser.clearMessageData()
+    }
+    let reply = Buffer()
+    reply.appendInt32(462937446) // Telegram 13.0 messageReplyHeader
+    reply.appendInt32(1 << 4); reply.appendInt32(7)
+    let oldReply = parsed(reply.makeData() as NSData, as: Api.MessageReplyHeader.self)
+    let versions = ["13.0", "13.0.9", "13.1", "13.1.2", "13.10"]
+    for (index, version) in versions.enumerated() {
+        TGExtraSetTestHostVersion(version)
+        check(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String == version,
+              "Snapshot tests use the requested host version")
+        for service in [false, true] {
+            let id = Int32(89200 + index * 2 + (service ? 1 : 0))
+            let cached: Api.Message
+            if service {
+                cached = .messageService(.init(flags: 1 << 3, id: id, fromId: nil,
+                    peerId: .peerUser(.init(userId: 42)), savedPeerId: nil, replyTo: oldReply,
+                    date: 1234, action: .messageActionEmpty, reactions: nil, ttlPeriod: nil))
+            } else {
+                cached = message(id)
+                messageData(cached).flags |= 1 << 3
+                messageData(cached).replyTo = oldReply
+            }
+            check(strip(serialized(cached)) == nil, "Observing a message preserves its original wire IDs")
+            let request = Api.functions.messages.getMessages(id: [.inputMessageID(.init(id: id))]).1.makeData() as NSData
+            let empty = serialized(Api.messages.Messages.messages(.init(messages: [], topics: [], chats: [], users: [])))
+            let bytes = TLParser.handleResponse(empty, functionID: 1673946374, account: testAccount, requestPayload: request)!
+            guard case let .messages(result) = parsed(bytes, as: Api.messages.Messages.self) else { fatalError("Expected restored snapshot") }
+            let header: Api.MessageReplyHeader
+            switch result.messages[0] {
+            case let .message(data): header = data.replyTo!
+            case let .messageService(data): header = data.replyTo!
+            default: fatalError("Expected restored message")
+            }
+            let reader = BufferReader(Buffer(nsData: serialized(header)))
+            let expected: Int32 = index < 2 ? 462937446 : -575296651
+            check(reader.readInt32() == expected, "Restored replies use the host's schema: \(version)")
+            guard case let .messageReplyHeader(data) = header else { fatalError("Expected reply header") }
+            check(data.replyToMsgId == 7, "Snapshot normalization retains reply fields")
+        }
+    }
+    check(serialized(oldReply) == reply.makeData() as NSData, "Restoring snapshots never mutates live API objects")
+    print("PASS snapshot reply compatibility across Telegram 13.0 and 13.1 hosts")
 }
 
 func testLegacyApiConstructors() {
@@ -124,6 +236,16 @@ func testLegacyApiConstructors() {
         guard let value = Api.parse(reader, signature: id) else { fatalError("Could not decode Telegram 13.0 constructor \(id)") }
         check(reader.offset == UInt(bytes.length) && serialized(value) == bytes,
               "Telegram 13.0 constructor \(id) round-trips without upgrading its wire format")
+    }
+    let currentIds: [Int32] = [2060538432, -993731264, 1975627120, -575296651, -1110810265, -1190384899, 389937907]
+    for (bytes, currentId) in zip(fixtures, currentIds) {
+        let reader = BufferReader(Buffer(nsData: bytes))
+        reader.preserveLegacyConstructorIds = false
+        let value = Api.parse(reader, signature: reader.readInt32()!)!
+        var expected = currentId.littleEndian
+        let current = NSMutableData(data: bytes as Data)
+        current.replaceBytes(in: NSRange(location: 0, length: 4), withBytes: &expected)
+        check(serialized(value) == current, "Snapshot decoding upgrades only the legacy constructor ID")
     }
     print("PASS all seven replaced Telegram 13.0 constructors and original wire IDs")
 }
