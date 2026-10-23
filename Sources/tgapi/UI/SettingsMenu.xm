@@ -12,6 +12,12 @@ BOOL TGExtraIsTelegramSupportLabel(NSString *label);
 @property (nonatomic, readonly) NSString *accessibilityLabel;
 @property (nonatomic, readonly, getter=isHidden) BOOL hidden;
 @property (nonatomic, readonly) CGFloat alpha;
+@property (nonatomic, readonly) CGRect frame;
+@property (nonatomic, readonly) UIColor *backgroundColor;
+@end
+
+@interface ASImageNode : ASDisplayNode
+@property (nonatomic, readonly) UIImage *image;
 @end
 
 @interface ASScrollView : UIScrollView
@@ -37,6 +43,13 @@ static ASDisplayNode *TGExtraFindSupportRow(ASDisplayNode *node) {
 }
 
 @interface TGExtraSettingsButton : UIButton
+@property (nonatomic, strong) UIView *iconTile;
+@property (nonatomic, strong) CAGradientLayer *iconGradient;
+@property (nonatomic, strong) UIImageView *disclosureView;
+@property (nonatomic) CGRect referenceTitleFrame;
+@property (nonatomic) CGRect referenceIconFrame;
+@property (nonatomic) CGRect referenceArrowFrame;
+- (void)matchSupportRow:(ASDisplayNode *)row;
 @end
 
 @implementation TGExtraSettingsButton
@@ -44,18 +57,94 @@ static ASDisplayNode *TGExtraFindSupportRow(ASDisplayNode *node) {
     if ((self = [super initWithFrame:frame])) {
         [self setTitle:@"TGExtra" forState:UIControlStateNormal];
         [self setTitleColor:UIColor.labelColor forState:UIControlStateNormal];
-        [self setImage:[UIImage systemImageNamed:@"gearshape"] forState:UIControlStateNormal];
+        UIImageSymbolConfiguration *symbol = [UIImageSymbolConfiguration configurationWithPointSize:22.0 weight:UIImageSymbolWeightRegular];
+        [self setImage:[UIImage systemImageNamed:@"gearshape.fill" withConfiguration:symbol] forState:UIControlStateNormal];
+        self.tintColor = UIColor.whiteColor;
         self.contentHorizontalAlignment = UIControlContentHorizontalAlignmentLeading;
-        self.contentEdgeInsets = UIEdgeInsetsMake(0.0, 16.0, 0.0, 16.0);
-        self.titleEdgeInsets = UIEdgeInsetsMake(0.0, 12.0, 0.0, -12.0);
         self.titleLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
         self.titleLabel.adjustsFontForContentSizeCategory = YES;
+        self.iconTile = [[UIView alloc] initWithFrame:CGRectZero];
+        self.iconTile.userInteractionEnabled = NO;
+        self.iconTile.layer.cornerRadius = 7.0;
+        self.iconTile.layer.masksToBounds = YES;
+        self.iconGradient = [CAGradientLayer layer];
+        self.iconGradient.colors = @[(id)UIColor.systemTealColor.CGColor, (id)UIColor.systemBlueColor.CGColor];
+        [self.iconTile.layer addSublayer:self.iconGradient];
+        [self insertSubview:self.iconTile belowSubview:self.imageView];
+        self.disclosureView = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"chevron.right"]];
+        self.disclosureView.tintColor = UIColor.tertiaryLabelColor;
+        [self addSubview:self.disclosureView];
         self.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
         self.layer.cornerRadius = 11.0;
+        self.layer.cornerCurve = kCACornerCurveContinuous;
+        self.clipsToBounds = YES;
+        self.isAccessibilityElement = YES;
+        self.accessibilityLabel = @"TGExtra";
         self.accessibilityIdentifier = @"TGExtra.Settings";
         [self addTarget:self action:@selector(openMenu) forControlEvents:UIControlEventTouchUpInside];
     }
     return self;
+}
+- (void)matchSupportRow:(ASDisplayNode *)row {
+    CGFloat width = row.view.bounds.size.width;
+    CGFloat height = row.view.bounds.size.height;
+    self.referenceTitleFrame = CGRectMake(61.0, 0.0, 0.0, 0.0);
+    self.referenceIconFrame = CGRectMake(16.0, (height - 30.0) / 2.0, 30.0, 30.0);
+    self.referenceArrowFrame = CGRectMake(width - 22.0, (height - 13.0) / 2.0, 7.0, 13.0);
+    // Read public ASDisplayNode geometry, including layer-backed icons. Swift
+    // text properties are not exposed to Objective-C and are left untouched.
+    for (ASDisplayNode *node in row.subnodes) {
+        CGRect frame = node.frame;
+        if ([NSStringFromClass(node.class) containsString:@"ImmediateTextNode"] &&
+            frame.size.width > 0.0 && frame.size.height > 0.0 && frame.origin.x < width / 2.0) {
+            self.referenceTitleFrame = frame;
+            UIFont *baseFont = [UIFont systemFontOfSize:17.0];
+            // Telegram floors its single-line Core Text height.
+            self.titleLabel.font = [UIFont systemFontOfSize:ceil(17.0 * frame.size.height / baseFont.lineHeight)];
+        }
+        if ([node respondsToSelector:@selector(image)]) {
+            UIImage *image = [(ASImageNode *)node image];
+            if (!image || frame.size.width <= 0.0 || frame.size.height <= 0.0) continue;
+            if (frame.origin.x > width / 2.0 && frame.size.width < 20.0) {
+                self.referenceArrowFrame = frame;
+                self.disclosureView.image = image;
+            } else if (frame.size.width <= 40.0 && frame.size.height <= 40.0 && frame.origin.x < width / 2.0) {
+                self.referenceIconFrame = frame;
+            }
+        }
+    }
+    // The section background is layer-backed too. Use its host theme color.
+    self.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
+    for (ASDisplayNode *node in row.supernode.supernode.subnodes) {
+        if (node.backgroundColor && node.frame.size.height > 1.0 && node.alpha > 0.0) {
+            self.backgroundColor = node.backgroundColor;
+            break;
+        }
+    }
+    if (@available(iOS 26.0, *)) {
+        self.layer.cornerRadius = 26.0;
+    }
+    [self setNeedsLayout];
+}
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    CGFloat height = self.bounds.size.height;
+    self.iconTile.frame = self.referenceIconFrame;
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    self.iconGradient.frame = self.iconTile.bounds;
+    [CATransaction commit];
+    self.imageView.frame = CGRectInset(self.iconTile.frame, 4.0, 4.0);
+    self.imageView.contentMode = UIViewContentModeScaleAspectFit;
+    self.disclosureView.frame = self.referenceArrowFrame;
+    CGFloat titleX = self.referenceTitleFrame.origin.x;
+    CGFloat titleHeight = MAX(self.referenceTitleFrame.size.height, self.titleLabel.font.lineHeight);
+    self.titleLabel.frame = CGRectMake(titleX, floor((height - titleHeight) / 2.0),
+                                      MAX(0.0, CGRectGetMinX(self.disclosureView.frame) - 16.0 - titleX), titleHeight);
+}
+- (void)setHighlighted:(BOOL)highlighted {
+    [super setHighlighted:highlighted];
+    self.alpha = highlighted ? 0.65 : 1.0;
 }
 - (void)openMenu {
     showUI();
@@ -83,7 +172,8 @@ static CGSize TGExtraSettingsContentSize(ASScrollView *scrollView, CGSize hostSi
     }
     // Match the real section's insets, including the narrower layout on iPad.
     CGRect rowFrame = [supportRow.view convertRect:supportRow.view.bounds toView:scrollView];
-    CGFloat height = MAX(44.0, button.titleLabel.font.lineHeight + 24.0);
+    [button matchSupportRow:supportRow];
+    CGFloat height = MAX(44.0, rowFrame.size.height);
     button.frame = CGRectMake(rowFrame.origin.x, hostSize.height + 8.0, rowFrame.size.width, height);
     button.hidden = NO;
     // Always extend the size supplied by Telegram, never our previous result.
