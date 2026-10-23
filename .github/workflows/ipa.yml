@@ -2,17 +2,13 @@ name: Build and Release IPA
 
 permissions:
   contents: write
-  actions: read
 
 on:
-  workflow_run:
-    workflows: [Build and Release Tweak]
-    types: [completed]
   workflow_dispatch:
     inputs:
       decrypted_ipa_url:
         description: "Direct URL of the decrypted IPA"
-        required: false
+        required: true
         type: string
       release_tag:
         description: "Release tag (empty selects the latest stable release)"
@@ -25,11 +21,6 @@ concurrency:
 
 jobs:
   prepareDependencies:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_repository.full_name == github.repository &&
-       vars.DECRYPTED_IPA_URL != '')
     name: Prepare Dependencies
     runs-on: macos-14
     outputs:
@@ -45,33 +36,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
-          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
           REQUESTED_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
-          if [ -n "$UPSTREAM_RUN_ID" ]; then
-            gh run download "$UPSTREAM_RUN_ID" --name release-metadata --dir release-meta
+          if [ -n "$REQUESTED_TAG" ]; then
+            TAG=$(gh release view "$REQUESTED_TAG" --json tagName --jq .tagName)
           else
-            mkdir -p release-meta
-            if [ -n "$REQUESTED_TAG" ]; then
-              gh release view "$REQUESTED_TAG" --json tagName --jq .tagName > release-meta/tag
-            else
-              gh release view --json tagName --jq .tagName > release-meta/tag
-            fi
+            TAG=$(gh release view --json tagName --jq .tagName)
           fi
-          python3 - <<'PYMETA'
-          import json, os, pathlib
-          path = pathlib.Path('release-meta/release.json')
-          if path.exists():
-              meta = json.loads(path.read_text())
-          else:
-              tag = pathlib.Path('release-meta/tag').read_text().strip()
-              meta = {'tag': tag, 'sha': tag, 'deb': 'com.choco.tg_*_iphoneos-arm.deb'}
-          if any(not isinstance(meta[k], str) or not meta[k] or '\n' in meta[k] for k in ('tag', 'sha', 'deb')):
-              raise ValueError('Invalid release identity')
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
-              output.write(f"tag={meta['tag']}\nref={meta['sha']}\ndeb={meta['deb']}\ndeb_sha256={meta.get('deb_sha256', '')}\n")
-          PYMETA
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "ref=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Fetch TGExtra.bundle
         uses: actions/checkout@v4
@@ -80,7 +54,7 @@ jobs:
 
       - name: Download decrypted IPA
         env:
-          IPA_URL: ${{ inputs.decrypted_ipa_url || vars.DECRYPTED_IPA_URL }}
+          IPA_URL: ${{ inputs.decrypted_ipa_url }}
         run: |
           test -n "$IPA_URL"
           curl --fail -L -A "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" -o decrypted.ipa "$IPA_URL"
@@ -109,18 +83,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
-          DEB_PATTERN: ${{ steps.release.outputs.deb }}
-          DEB_SHA256: ${{ steps.release.outputs.deb_sha256 }}
         run: |
-          gh release download "$RELEASE_TAG" --pattern "$DEB_PATTERN" --pattern '*.cyan' --dir .
-          python3 - <<'PYCHECK'
-          import glob, hashlib, os, pathlib
-          expected = os.environ['DEB_SHA256']
-          if expected:
-              files = glob.glob('com.choco.tg_*_iphoneos-arm.deb')
-              if len(files) != 1 or hashlib.sha256(pathlib.Path(files[0]).read_bytes()).hexdigest() != expected:
-                  raise ValueError('Published DEB changed since the triggering release')
-          PYCHECK
+          gh release download "$RELEASE_TAG" --pattern 'com.choco.tg_*_iphoneos-arm.deb' --pattern '*.cyan' --dir .
 
       - name: Extract TGExtra version
         id: extractTGExtra

@@ -195,16 +195,13 @@ one cyan containing TGExtra and all committed client patch sets to `prerelease`.
 Tags publish a versioned release. SideloadFix and NSEFix are no longer downloaded,
 included or injected.
 
-Set the repository Actions variable `DECRYPTED_IPA_URL` to enable automatic IPA
-building after a successful tweak release. The downstream workflow uses the
-triggering release's tag, checked-out revision and verified DEB digest. It applies
-the Rust bridge before signing, publishes IPA/TIPA assets and merges the generated
-client set into the universal release cyan. Other client sets are retained.
-
-The IPA workflow can also be dispatched manually with `decrypted_ipa_url` and an
-optional `release_tag`. Run it for additional clients to collect their sets in
-the same cyan. Clients without Rust keep the ordinary MtProtoKit path. GitHub
-must have the workflows enabled and the normal `GITHUB_TOKEN` release permission.
+The IPA workflow runs only through manual dispatch with a required
+`decrypted_ipa_url` and an optional `release_tag`. It applies the Rust bridge
+before signing, publishes IPA/TIPA assets and merges the generated client set
+into the universal release cyan. Other client sets are retained. Run it for
+additional clients to collect their sets in the same cyan. Clients without Rust
+keep the ordinary MtProtoKit path. GitHub must have the workflows enabled and
+the normal `GITHUB_TOKEN` release permission.
 
 ## Building and checks
 

@@ -6,7 +6,7 @@
 #if __has_feature(ptrauth_calls)
 #import <ptrauth.h>
 #define TGE_IMPORT(pointer, type) ((type)ptrauth_sign_unauthenticated((pointer), ptrauth_key_function_pointer, 0))
-#define TGE_EXPORT(pointer) ptrauth_strip((pointer), ptrauth_key_function_pointer)
+#define TGE_EXPORT(pointer) ptrauth_strip((void *)(pointer), ptrauth_key_function_pointer)
 #else
 #define TGE_IMPORT(pointer, type) ((type)(pointer))
 #define TGE_EXPORT(pointer) ((void *)(pointer))

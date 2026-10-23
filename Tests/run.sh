@@ -17,6 +17,7 @@ clang -fobjc-arc -DTGEXTRA_TESTING -c Tests/Support/TestSupport.m -o "$test_buil
 clang -fobjc-arc -DTGEXTRA_TESTING -c Sources/tgapi/DefaultsMigration.m -o "$test_build_dir/migration.o"
 clang -fobjc-arc -c Sources/tgapi/FunctionHandler.m -o "$test_build_dir/handlers.o"
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -c Sources/tgapi/RustBridge.m -o "$test_build_dir/rust-bridge.o"
+clang -arch arm64e -fobjc-arc -Werror -DTGEXTRA_TESTING -fsyntax-only Sources/tgapi/RustBridge.m
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -c Tests/rust_bridge.m -o "$test_build_dir/rust-bridge-tests.o"
 clang -fobjc-arc -c Sources/tgapi/GhostExceptions.m -o "$test_build_dir/exceptions.o"
 clang -fobjc-arc -c Sources/tgapiC/Gzip.m -o "$test_build_dir/gzip.o"
