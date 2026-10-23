@@ -12,7 +12,7 @@ func testContentRestrictions() {
     func reason(_ buffer: Buffer) {
         buffer.appendInt32(481674261)
         buffer.appendInt32(1)
-        Api.RestrictionReason.restrictionReason(.init(platform: "ios", reason: "sensitive", text: "Unavailable on iOS")).serialize(buffer, true)
+        Api.RestrictionReason.restrictionReason(.init(platform: "ios", reason: "appleterms-ios", text: "Unavailable on iOS")).serialize(buffer, true)
     }
     func channel(restricted: Bool, legacy: Bool = false, forwarding: Bool = true) -> Data {
         let buffer = Buffer()
@@ -123,7 +123,7 @@ func testContentRestrictions() {
         flags("TGExtraAntiAutoDelete")
         let source = message(89101, ttl: 60)
         messageData(source).flags |= 1 << 22
-        messageData(source).restrictionReason = [.restrictionReason(.init(platform: "ios", reason: "sensitive", text: "Blocked"))]
+        messageData(source).restrictionReason = [.restrictionReason(.init(platform: "ios", reason: "appleterms-ios", text: "Blocked"))]
         let update = Api.Update.updateNewMessage(.init(message: source, pts: 5, ptsCount: 1))
         let expected = parsed(patch(update)!, as: Api.Update.self)
         check(strip(updates([update], restricted: true, combined: combined)) == updates([expected], restricted: false, combined: combined),

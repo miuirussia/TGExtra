@@ -19,6 +19,9 @@ fingers, or tap the Chats tab five times.
 - Disable Ads
 - Remove iOS content restrictions on channels, users and messages, independently
   of the protected-content forwarding toggle
+  - Apple message rules (`appleterms`, `appleterms-ios`) are also added to the
+    client's ignored reasons, covering messages already stored in Telegram.
+    Restart Telegram after installing the update to refresh this configuration.
 - Ghost Mode
 - No Read Receipt for messages and Stories
 - Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
@@ -174,6 +177,8 @@ fields, rich reply quotes and their preservation through TTL and copy rewrites.
 The suite also checks the seven replaced 13.0 constructors and always-on iOS
 content access, including channel lookups and bare user vectors, with every
 optional feature disabled. Content-only rewrites preserve forwarding flags.
+Apple-rule tests cover the client configuration, full-config requests, existing
+server exceptions, compressed replies and live/history message text and media.
 UI interaction, video extraction and installation still require an iOS device.
 
 For basic menu checks in Docker:

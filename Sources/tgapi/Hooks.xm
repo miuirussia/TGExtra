@@ -21,6 +21,9 @@
     int32_t functionID = 0;
     [payload getBytes:&functionID length:4];
     self.functionID = @(functionID);
+    if (functionID == kGetAppConfig) {
+        payload = [TLParser rewriteAppConfigRequest:payload] ?: payload;
+    }
     if (functionID == kMessagesSendMedia || functionID == kMessagesSendMultiMedia ||
         functionID == kMessagesUploadMedia) {
         payload = [TLParser rewriteVoiceUpload:payload] ?: payload;

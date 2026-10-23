@@ -2015,6 +2015,45 @@ class TLParser: NSObject {
         return patchResponse(data, depth: 0)
     }
 
+    private static let appleContentRestrictionReasons = ["appleterms", "appleterms-ios"]
+
+    // Telegram's renderer checks ContentSettings even for messages already in
+    // Postbox. Retain the server configuration and extend its supported ignore
+    // list so these messages do not depend on another history download.
+    private static func patchContentSettings(_ config: Api.help.AppConfig) -> NSData? {
+        guard case let .appConfig(data) = config,
+              case let .jsonObject(object) = data.config else { return nil }
+        let key = "ignore_restriction_reasons"
+        var entries = object.value
+        let index = entries.lastIndex { entry in
+            if case let .jsonObjectValue(field) = entry { return field.key == key }
+            return false
+        }
+        var values: [Api.JSONValue] = []
+        if let index = index, case let .jsonObjectValue(field) = entries[index],
+           case let .jsonArray(array) = field.value { values = array.value }
+        let existing = Set(values.compactMap { value -> String? in
+            if case let .jsonString(string) = value { return string.value }
+            return nil
+        })
+        let missing = appleContentRestrictionReasons.filter { !existing.contains($0) }
+        guard !missing.isEmpty else { return nil }
+        values += missing.map { .jsonString(.init(value: $0)) }
+        let entry = Api.JSONObjectValue.jsonObjectValue(.init(key: key, value: .jsonArray(.init(value: values))))
+        if let index = index { entries[index] = entry } else { entries.append(entry) }
+        data.config = .jsonObject(.init(value: entries))
+        return serializeBoxed(config)
+    }
+
+    @objc static func rewriteAppConfigRequest(_ payload: NSData) -> NSData? {
+        // A cached server hash would produce appConfigNotModified and leave
+        // the renderer's old ignore list in place after installing the tweak.
+        guard payload.length == 8 else { return nil }
+        let reader = BufferReader(Buffer(nsData: payload))
+        guard reader.readInt32() == 0x61e3f854, let hash = reader.readInt32(), hash != 0 else { return nil }
+        return Api.functions.help.getAppConfig(hash: 0).1.makeData() as NSData
+    }
+
     private static func patchResponse(_ data: NSData, depth: Int) -> NSData? {
         guard data.length >= 4, depth < 16 else { return nil }
         let isAntiSelfDestruct = UserDefaults.standard.bool(forKey: "TGExtraAntiSelfDestruct")
@@ -2085,6 +2124,9 @@ class TLParser: NSObject {
         }
 
         guard reader.offset == UInt(data.length) else { return nil }
+        if let config = result as? Api.help.AppConfig {
+            return patchContentSettings(config)
+        }
         noteUsersAnywhere(result)
         guard isAntiSelfDestruct || isNoForwardsBypass || isAntiEditEnabled
                 || ignorePrivateCopyProtection || isAntiAutoDelete || isAntiRevoke || !isOwnIdKnown else {

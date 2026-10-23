@@ -37,6 +37,7 @@ for constant, function in {
     'kChannelsReadMessageContents': 'readMessageContents', 'kGetSponsoredMessages': 'getSponsoredMessages',
     'kMessagesSetTypingAction': 'setTyping', 'kMessagesReadHistory': 'readHistory',
     'kStoriesReadStories': 'readStories', 'kSendScreenshotNotification': 'sendScreenshotNotification',
+    'kGetAppConfig': 'getAppConfig',
 }.items():
     value = re.search(r'^#define ' + constant + r' (-?\d+)', constants, re.M)[1]
     constructors = re.findall(r'static func ' + function + r'\([^\n]*\n        let buffer = Buffer\(\)\n        buffer.appendInt32\((-?\d+)\)', api)

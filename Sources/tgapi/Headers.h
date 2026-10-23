@@ -24,6 +24,7 @@
 + (BOOL)isMessageSelfDestructing:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSData *)fakeUpdatesResponse;
 + (NSData *)rewriteVoiceUpload:(NSData *)data;
++ (NSData *)rewriteAppConfigRequest:(NSData *)data;
 + (NSArray<NSString *> *)editHistoryForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSArray<NSDictionary *> *)editRevisionDetailsForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSNumber *)getMessagePeerKeyFromNode:(id)node;
