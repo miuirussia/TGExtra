@@ -28,7 +28,7 @@ fingers, or tap the Chats tab five times.
   apply to typing and read receipts; online status remains hidden globally.
 - Save and forward protected content
   - When Telegram rejects a forward with `CHAT_FORWARDS_RESTRICTED`, TGExtra
-    sends a new copy through Objective-C MtProtoKit hooks. Text formatting,
+    sends a new copy through the active transport adapter. Text formatting,
     captions and album grouping are retained; photos, videos, documents, audio
     and voice messages are downloaded and uploaded again. The copy has no
     forwarded-author header. This uses the existing protected-content toggle.
@@ -75,10 +75,56 @@ removed after completion/cancellation and stale transfer files are removed when
 the next transfer starts. These outgoing recovery journals are separate from
 the edit-history/deletion database cleared by the menu.
 
+Telegram 13.1's optional Rust MTProto transport has a separate C ABI bridge.
+It applies the same outgoing request policy, app-config/voice rewrites and
+incoming TL transformations as MtProtoKit, including account-scoped history
+and deletion/timer markers. The bridge preserves Rust's cancellation, retries,
+request dependencies and callback context. Suppressed activity is replaced by
+`help.getNearestDc`; the real successful completion supplies the expected
+synthetic response, so this path still needs a network connection.
+
+Release binaries strip the Rust FFI symbols. The GitHub release cyan includes
+all client patch sets under `Patches/`. Updated iOSPatchingEngine selects sets
+whose original binary SHA-256 values match the input IPA, with optional bundle
+ID filtering. Client-specific metadata is installed only for matched sets.
+Multiple independent sets can apply together; conflicting edits fail the job.
+There is no fixed number of client sets, binaries or edits. The existing archive,
+manifest, binary and replaced-byte size limits still apply.
+
+Generate a standalone patch cyan, optionally exporting its set for future releases:
+
+```sh
+python3 Tools/prepare_rust_patch.py Client.ipa TGExtra-Rust.cyan --patch-set-dir Patches
+```
+
+The generator derives addresses from reviewed C ABI 5 instruction fingerprints,
+without depending on the client bundle ID or framework name. Relinked clients
+such as Swiftgram can use the same generator when they contain the reviewed
+engine implementation. Unknown code, encrypted images, unsupported slices and
+insufficient header padding are rejected. Each set pins its input SHA-256 and
+byte preimages. The current reference is Telegram 13.1.1 (35634), whose patched
+IPA and signature page hashes were checked. Swiftgram 12.3 has no Rust runtime
+and continues to use MtProtoKit. Swiftgram with Rust and installation on an iOS
+device remain to be tested.
+
+The offline thunks use the registered Objective-C bridge when TGExtra is loaded
+and call the original functions when it is absent. No executable memory is
+rewritten at runtime. The generator currently supports thin generic arm64
+images. The tweak itself still compiles for arm64 and arm64e.
+Protected-forward recovery also runs when the original request uses Rust.
+The refused forward is not resent. Source lookups, uploads and replacement
+sends use the active Rust session; foreign-DC media downloads use the existing
+MtProtoKit media workers with that session's account context. Both transports
+share the same preflight, journals, acknowledgements, account isolation and
+cancellation. Dependent requests wait until recovery finishes. The host receives
+one completed request only after the copied sends are confirmed by the server.
+Regenerate older Rust bridge archives: recovery needs the added context binding
+and request-ID allocator metadata.
+
 The protected-copy protocol and request lifecycle are covered by mocked network
 tests; installation and compatibility with Telegram's actual pending-message
-queue still require an iOS device. The implementation targets the Objective-C
-MtProtoKit transport used by the existing tweak hooks.
+queue still require an iOS device. The same copy protocol is exercised through
+both MtProtoKit and the Rust FFI adapter.
 
 Edit history keeps versions of other people's messages observed while Anti-Edit
 is enabled, including empty media captions. Your own messages are excluded;
@@ -130,7 +176,7 @@ delay; deletion pins are saved immediately. This cannot restore an unobserved
 or evicted message, a failed validation RPC, or media no longer available from
 the server/cache.
 
-This remains an injected tweak with Objective-C networking/UI hooks. Secret
+This remains an injected tweak with Objective-C UI hooks and transport bridges. Secret
 chat decryption, explicit local history clearing, local media expiry and other
 Postbox operations performed without a network response are not intercepted.
 Timers already stored before enabling protection are not retroactively removed.
@@ -141,6 +187,24 @@ edit histories, cached originals and snapshots, deletion/timer markers and
 older history archives for all accounts after confirmation. Telegram chats and
 tweak settings are preserved. Recording continues for subsequently received messages while the
 corresponding features are enabled.
+
+## GitHub releases
+
+Pushes to `main` run checks and publish rootful/rootless/roothide packages plus
+one cyan containing TGExtra and all committed client patch sets to `prerelease`.
+Tags publish a versioned release. SideloadFix and NSEFix are no longer downloaded,
+included or injected.
+
+Set the repository Actions variable `DECRYPTED_IPA_URL` to enable automatic IPA
+building after a successful tweak release. The downstream workflow uses the
+triggering release's tag, checked-out revision and verified DEB digest. It applies
+the Rust bridge before signing, publishes IPA/TIPA assets and merges the generated
+client set into the universal release cyan. Other client sets are retained.
+
+The IPA workflow can also be dispatched manually with `decrypted_ipa_url` and an
+optional `release_tag`. Run it for additional clients to collect their sets in
+the same cyan. Clients without Rust keep the ordinary MtProtoKit path. GitHub
+must have the workflows enabled and the normal `GITHUB_TOKEN` release permission.
 
 ## Building and checks
 
@@ -171,7 +235,9 @@ bindings and bounds, TTL paths, validation recovery and persisted history. Tests
 preferences.
 The same suite checks protected-copy requests, chunked media transfers, account
 isolation, cancellation, file-reference refresh, compact acknowledgements and
-partial-send recovery with a mock MtProtoKit server and temporary journals.
+partial-send recovery through mock MtProtoKit and Rust FFI servers with
+temporary journals. Rust tests also check dependent-request chains, 406 refusals,
+missing account contexts, session destruction and liveness bookkeeping.
 Telegram 13.1 wire fixtures check channel pins, full-user wallet/share-theme
 fields, rich reply quotes and their preservation through TTL and copy rewrites.
 The suite also checks the seven replaced 13.0 constructors and always-on iOS
@@ -179,6 +245,8 @@ content access, including channel lookups and bare user vectors, with every
 optional feature disabled. Content-only rewrites preserve forwarding flags.
 Apple-rule tests cover the client configuration, full-config requests, existing
 server exceptions, compressed replies and live/history message text and media.
+Rust bridge tests also cover account isolation, push/RPC transformations, cancellation,
+buffer ownership and native execution of the generated arm64 call thunks.
 UI interaction, video extraction and installation still require an iOS device.
 
 For basic menu checks in Docker:

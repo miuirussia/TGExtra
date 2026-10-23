@@ -1,0 +1,48 @@
+{
+  "source": "TelegramMessenger/mtproto-engine@da4b2170210aab0430c4ff18c032991f3030cf45",
+  "reference": "Telegram 13.1.1 (35634), arm64",
+  "functions": {
+    "bufferData": {
+      "size": 12,
+      "sha256": "60a21d2c34b2fb1cf7e0b830d47bf34e442110f476b0b282b8560b56aaab58ce",
+      "exact": "400000b4000440f9c0035fd6"
+    },
+    "bufferLength": {
+      "size": 12,
+      "sha256": "90ad07507580478ece4b47aefa32807a46c37d71e812ee6aeca534852aed299c",
+      "exact": "400000b4000840f9c0035fd6"
+    },
+    "bufferFree": {
+      "size": 140,
+      "sha256": "a0a1fb7ca2c000561b70ee415ec9cabc91e1f9676dbd802c390cf9e74ea8b8fe"
+    },
+    "abi": {
+      "size": 8,
+      "sha256": "94152e462f3e98d8d99662739e87c91ff06eb16d5afefc0047346c214bd99ac8"
+    },
+    "engineCreate": {
+      "size": 4640,
+      "sha256": "d142b27ed16b2fdde87dfd53d90cdb2977a2a52d6a18ac548d9e677197349a91"
+    },
+    "sessionCreate": {
+      "size": 2120,
+      "sha256": "a18b9313e54da49d272acefe140ba9681f3e7daa4f7adbc7c2b7f8a1c21c73c8"
+    },
+    "sessionDestroy": {
+      "size": 52,
+      "sha256": "fc0f1d1525e26790559264862d1b91084ffb8367db2b59370df3c802b84b64fb"
+    },
+    "send": {
+      "size": 288,
+      "sha256": "1a4950949f14d9a5d68b7bf508b8a3167895e23c4dfcb6f380fce6664e60b5b5"
+    },
+    "cancel": {
+      "size": 52,
+      "sha256": "335182aa13c07e53d158df998a3431d2f0ff9ddebf901baaace2913b431dfe02"
+    },
+    "nextRequestID": {
+      "size": 32,
+      "sha256": "5fc5b49272e13185ed39f5213f46fecbb722883d4ef94ee3f14b4ebeb44c156b"
+    }
+  }
+}

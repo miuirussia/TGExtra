@@ -7,3 +7,5 @@ xcuserdata/
 .vscode/
 .theos
 /packages
+
+__pycache__/

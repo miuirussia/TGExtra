@@ -42,6 +42,9 @@
 @end
 
 @interface MTRequestResponseInfo : NSObject
+@property(nonatomic, readonly) int32_t networkType;
+@property(nonatomic, readonly) double timestamp;
+@property(nonatomic, readonly) double duration;
 - (id)initWithNetworkType:(int)a  timestamp:(CGFloat)b  duration:(CGFloat)c;
 @end
 
@@ -78,6 +81,8 @@ void handleGetSponsoredMessages(MTRequest *request, NSData *payload);
 void handleChannelsReadReceipt(MTRequest *request, NSData *payload);
 void handleSendScreenshotNotification(MTRequest *request, NSData *payload);
 void handleReadMessageContents(MTRequest *request, NSData *payload);
+NSData *TGExtraFakeResponseForPayload(NSData *payload);
+NSData *TGExtraRewriteRequestPayload(NSData *payload);
 NSData *decompressGzip(const void *input, size_t inputLen);
 #ifdef __cplusplus
 }

@@ -1,8 +1,6 @@
 #import "Headers.h"
 #import "ForwardCopy.h"
 
-#define kChannelsReadHistory -871347913
-
 %hook MTRequest
 %property(nonatomic, strong) NSData *fakeData;
 %property(nonatomic, strong) NSNumber *functionID;
@@ -21,29 +19,8 @@
     int32_t functionID = 0;
     [payload getBytes:&functionID length:4];
     self.functionID = @(functionID);
-    if (functionID == kGetAppConfig) {
-        payload = [TLParser rewriteAppConfigRequest:payload] ?: payload;
-    }
-    if (functionID == kMessagesSendMedia || functionID == kMessagesSendMultiMedia ||
-        functionID == kMessagesUploadMedia) {
-        payload = [TLParser rewriteVoiceUpload:payload] ?: payload;
-    }
-    switch (functionID) {
-        case kAccountUpdateOnlineStatus: handleOnlineStatus(self, payload); break;
-        case kMessagesSetTypingAction: handleSetTyping(self, payload); break;
-        case kMessagesReadHistory: handleMessageReadReceipt(self, payload); break;
-        case kStoriesReadStories: handleStoriesReadReceipt(self, payload); break;
-        case kGetSponsoredMessages: handleGetSponsoredMessages(self, payload); break;
-        case kChannelsReadHistory: handleChannelsReadReceipt(self, payload); break;
-        case kSendScreenshotNotification: handleSendScreenshotNotification(self, payload); break;
-        case kChannelsReadMessageContents:
-            if ([[NSUserDefaults standardUserDefaults] boolForKey:kAntiSelfDestruct]) {
-                uint32_t value = 0x997275b5;
-                self.fakeData = [NSData dataWithBytes:&value length:4];
-            }
-            break;
-        case kMessagesReadMessageContents: handleReadMessageContents(self, payload); break;
-    }
+    payload = TGExtraRewriteRequestPayload(payload);
+    self.fakeData = TGExtraFakeResponseForPayload(payload);
     __weak MTRequest *weakRequest = self;
     id (^wrappedParser)(NSData *) = ^id(NSData *data) {
         NSData *patched = [TLParser handleResponse:data functionID:@(functionID)

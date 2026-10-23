@@ -27,6 +27,9 @@ for arch in arm64 arm64e; do
         "$test_build_dir/Hooks.xm.mm" -o "$test_build_dir/Hooks-$arch.o"
     clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations \
+        -I Sources/tgapiC/include -c Sources/tgapi/RustBridge.m -o "$test_build_dir/RustBridge-$arch.o"
+    clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+        -fobjc-arc -Werror -Wno-deprecated-declarations \
         -I Sources/tgapiC/include -c Sources/tgapi/ForwardCopy.m -o "$test_build_dir/ForwardCopy-$arch.o"
     clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations -c \

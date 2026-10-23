@@ -47,13 +47,13 @@ private func copyFile(_ bytes: Data) -> Data {
 
 private func copyConstructor(_ bytes: Data) -> Int32 { BufferReader(Buffer(data: bytes)).readInt32()! }
 
-func testForwardCopies() {
+func testForwardCopies(rust: Bool = false) {
     flags("disableForwardRestriction")
     let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("tgextra-copy-tests-\(UUID().uuidString)")
     defer { try? FileManager.default.removeItem(at: directory) }
     func run(_ payload: Data, _ replies: [String: [Any]], initial: String? = nil, cancel: Bool = false,
              account: String = "account-1", subdirectory: String = UUID().uuidString) -> [String: Any] {
-        var fixture: [String: Any] = ["payload": payload, "replies": replies, "cancel": cancel, "account": account]
+        var fixture: [String: Any] = ["payload": payload, "replies": replies, "cancel": cancel, "account": account, "rust": rust]
         if let initial = initial { fixture["initialError"] = initial }
         return TGExtraRunForwardCopyScenario(fixture, directory.appendingPathComponent(subdirectory)) as! [String: Any]
     }
@@ -131,6 +131,27 @@ func testForwardCopies() {
     let copied = run(payload, ["1673946374": [history], "-17526942": [sent]])
     check(calls(copied) == [1673946374, -17526942] && copied["error"] as! String == "" && copied["completions"] as! Int == 1,
           "Objective-C hook replaces the failed forward with a confirmed text send")
+
+    if rust {
+        func rustCase(_ options: [String: Any], _ replies: [String: [Any]]) -> [String: Any] {
+            var fixture = options
+            fixture["rust"] = true; fixture["payload"] = payload; fixture["replies"] = replies
+            return TGExtraRunForwardCopyScenario(fixture, directory.appendingPathComponent(UUID().uuidString)) as! [String: Any]
+        }
+        let denied406 = rustCase(["initialCode": 406], ["1673946374": [history], "-17526942": [sent]])
+        check(denied406["error"] as! String == "" && calls(denied406) == [1673946374, -17526942], "Rust also recovers a 406 forward refusal")
+        let dependent = rustCase(["dependent": true], ["1673946374": [history], "-17526942": [sent]])
+        check(dependent["sequence"] as! [String] == ["completed", "dependent"], "Rust dependents wait until the reconstructed forward completes")
+        check((dependent["activity"] as! Int) >= 2, "Rust helpers keep the host's liveness bookkeeping current")
+        let chain = rustCase(["chain": true], ["1673946374": [history], "-17526942": [sent]])
+        check(chain["sequence"] as! [String] == ["completed", "dependent", "grandchild"], "Transitive Rust dependencies preserve completion order")
+        let cancelledDependent = rustCase(["dependent": true, "cancelDependent": true], ["1673946374": [history], "-17526942": [sent]])
+        check(cancelledDependent["sequence"] as! [String] == ["completed"], "Cancellation removes a held dependency before it reaches Rust")
+        let destroyed = rustCase(["destroy": true], ["1673946374": [["hold": true]]])
+        check(destroyed["completions"] as! Int == 0 && destroyed["cancellations"] as! Int == 1, "Rust session destruction cancels recovery and its active helper")
+        let noContext = rustCase(["noContext": true], [:])
+        check(noContext["error"] as! String == "CHAT_FORWARDS_RESTRICTED" && calls(noContext).isEmpty, "Rust recovery cannot borrow a missing account context")
+    }
 
     // A compact ACK is durable even if the following getMessages fails. Retry
     // confirms the existing message and never issues sendMessage again.
@@ -233,5 +254,5 @@ func testForwardCopies() {
     let expiring = copyPhoto()
     if case let .messageMediaPhoto(p) = expiring { p.flags |= 4; p.ttlSeconds = 10 }
     check(!photoPlan.prepare(response: copyHistory([message(1, media: expiring)])), "Disappearing media is not copied")
-    print("PASS protected-forward copy protocol, ObjC request lifecycle, chunks, accounts, cancellation, compact ACKs and partial retries")
+    print("PASS protected-forward copies via \(rust ? "Rust FFI" : "MtProtoKit"): text, media, albums, accounts, cancellation, compact ACKs and partial retries")
 }

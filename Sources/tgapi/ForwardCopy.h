@@ -29,6 +29,11 @@ extern "C" {
 BOOL TGExtraIsInternalCopyRequest(MTRequest *request);
 void TGExtraWrapForwardRequest(MTRequest *request, MTRequestMessageService *service);
 void TGExtraCancelForwardRequest(id internalId, MTRequestMessageService *service);
+// Starts the same recovery from a transport that has already received the
+// server's refusal. No original forward is resent. Cancel using the returned ID.
+MTRequest *TGExtraRecoverForwardRequest(NSData *payload, MTRequestMessageService *service,
+    MTRequestResponseInfo *info, MTRpcError *error,
+    void (^completion)(id result, MTRequestResponseInfo *info, MTRpcError *error));
 #ifdef __cplusplus
 }
 #endif

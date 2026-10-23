@@ -1,6 +1,47 @@
 #import "Headers.h"
 #import "GhostExceptions.h"
 
+NSData *boolTrue(void);
+
+// Both transports use the same request policy. The carrier only needs fakeData;
+// it must not allocate a host MTRequest or invoke its payload hooks recursively.
+@interface TGExtraRequestDecision : NSObject
+@property(nonatomic, strong) NSData *fakeData;
+@end
+@implementation TGExtraRequestDecision
+@end
+
+NSData *TGExtraFakeResponseForPayload(NSData *payload) {
+    if (payload.length < 4) return nil;
+    int32_t function = 0;
+    [payload getBytes:&function length:4];
+    MTRequest *decision = (MTRequest *)(id)[TGExtraRequestDecision new];
+    switch (function) {
+        case kAccountUpdateOnlineStatus: handleOnlineStatus(decision, payload); break;
+        case kMessagesSetTypingAction: handleSetTyping(decision, payload); break;
+        case kMessagesReadHistory: handleMessageReadReceipt(decision, payload); break;
+        case kStoriesReadStories: handleStoriesReadReceipt(decision, payload); break;
+        case kGetSponsoredMessages: handleGetSponsoredMessages(decision, payload); break;
+        case -871347913: handleChannelsReadReceipt(decision, payload); break;
+        case kSendScreenshotNotification: handleSendScreenshotNotification(decision, payload); break;
+        case kChannelsReadMessageContents:
+            if ([[NSUserDefaults standardUserDefaults] boolForKey:kAntiSelfDestruct]) decision.fakeData = boolTrue();
+            break;
+        case kMessagesReadMessageContents: handleReadMessageContents(decision, payload); break;
+    }
+    return decision.fakeData;
+}
+
+NSData *TGExtraRewriteRequestPayload(NSData *payload) {
+    if (payload.length < 4) return payload;
+    int32_t function = 0;
+    [payload getBytes:&function length:4];
+    if (function == kGetAppConfig) return [TLParser rewriteAppConfigRequest:payload] ?: payload;
+    if (function == kMessagesSendMedia || function == kMessagesSendMultiMedia || function == kMessagesUploadMedia)
+        return [TLParser rewriteVoiceUpload:payload] ?: payload;
+    return payload;
+}
+
 NSData *boolTrue() {
     uint8_t bytes[] = {0xB5, 0x75, 0x72, 0x99}; // boolTrue#997275b5
     return [NSData dataWithBytes:bytes length:sizeof(bytes)];

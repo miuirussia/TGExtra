@@ -451,6 +451,35 @@ void TGExtraWrapForwardRequest(MTRequest *request, MTRequestMessageService *serv
     });
 }
 
+MTRequest *TGExtraRecoverForwardRequest(NSData *payload, MTRequestMessageService *service,
+    MTRequestResponseInfo *info, MTRpcError *error,
+    void (^completion)(id result, MTRequestResponseInfo *info, MTRpcError *error)) {
+    if (!service || !completion || !TGExtraHistoryAccountForRequestService(service) ||
+        ![NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] ||
+        (error.errorCode != 400 && error.errorCode != 406) ||
+        ![error.errorDescription isEqualToString:@"CHAT_FORWARDS_RESTRICTED"]) return nil;
+    TGExtraForwardCopyPlan *plan = [[TGExtraForwardCopyPlan alloc] initWithPayload:payload];
+    if (!plan.sourceRequest) return nil;
+    MTRequest *request = [NSClassFromString(@"MTRequest") new];
+    // Keep reconstructed replies raw until the original transport's codec runs.
+    objc_setAssociatedObject(request, internalCopyKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [request setPayload:payload metadata:nil shortMetadata:@"TGExtra.copy.recovery"
+         responseParser:^id(NSData *bytes) { return bytes; }];
+    TGExtraForwardOperation *operation = [TGExtraForwardOperation new];
+    operation.original = request; operation.service = service; operation.plan = plan;
+    operation.completion = completion;
+    dispatch_async(copyQueue(), ^{
+        NSMapTable *operations = [copyOperations() objectForKey:service];
+        if (!operations) {
+            operations = [NSMapTable strongToStrongObjectsMapTable];
+            [copyOperations() setObject:operations forKey:service];
+        }
+        [operations setObject:operation forKey:request.internalId];
+        [operation receiveOriginal:nil info:info error:error];
+    });
+    return request;
+}
+
 void TGExtraCancelForwardRequest(id internalId, MTRequestMessageService *service) {
     if (!internalId) return;
     dispatch_async(copyQueue(), ^{

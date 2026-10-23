@@ -63,6 +63,7 @@ if CommandLine.arguments.contains("--restore") {
     exit(0)
 }
 TGExtraTestHandlersAndMigration()
+TGExtraTestRustBridge()
 defaults.set(999, forKey: "TGExtraLastKnownUserId")
 let legacyHistory = ["42:900": ["Unassigned original", "Unassigned edit"]]
 defaults.set(legacyHistory, forKey: "TGExtraEditHistoryByPeer")
@@ -672,6 +673,7 @@ print("PASS message database clearing, legacy removal, delayed writes, notificat
 
 testMessageProtection()
 testForwardCopies()
+testForwardCopies(rust: true)
 testUpdatedApi()
 testContentRestrictions()
 testAppleContentSettings()

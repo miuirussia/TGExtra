@@ -25,7 +25,17 @@ env:
   BUILD_REF: ${{ inputs.tag || github.sha }}
 
 jobs:
+  checks:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
+      - name: Protocol, patch packaging and release checks
+        run: bash Tests/run.sh
+
   build:
+    needs: checks
     runs-on: macos-14
     strategy:
       matrix:
@@ -97,21 +107,21 @@ jobs:
         run: |
           set -euxo pipefail
       
-          gh release download release --repo TheWinner02/SideloadFix --pattern 'SideloadFix.dylib' --dir .
-          gh release download release --repo TheWinner02/NSEFix --pattern 'NSEFix.dylib' --dir .
-      
           TWEAK="$(find ./packages -type f -name 'com.choco.tg_*_iphoneos-arm.deb' | head -n 1)"
           test -n "$TWEAK"
       
           TGEXTRA_VERSION="$(basename "$TWEAK" | sed -E 's/com\.choco\.tg_([0-9.]+)_.+\.deb/\1/')"
           mkdir -p ./packages
           
-          pip install --force-reinstall https://github.com/iOSDecrypted/pyzule-rw/archive/main.zip
-          cgen \
-            -o "./packages/com.choco.tg_${TGEXTRA_VERSION}.cyan" \
+          python3 -m venv "$RUNNER_TEMP/cyan-tools"
+          "$RUNNER_TEMP/cyan-tools/bin/pip" install https://github.com/iOSDecrypted/pyzule-rw/archive/main.zip
+          "$RUNNER_TEMP/cyan-tools/bin/cgen" \
+            -o "$RUNNER_TEMP/base.cyan" \
             -dqg \
-            -f ./SideloadFix.dylib ./NSEFix.dylib \
-            "$TWEAK"
+            -f "$TWEAK"
+          python3 Tools/package_cyan.py \
+            --base "$RUNNER_TEMP/base.cyan" --patches Patches \
+            --output "./packages/com.choco.tg_${TGEXTRA_VERSION}.cyan"
 
       - name: Upload cyan
         uses: actions/upload-artifact@v4
@@ -122,6 +132,9 @@ jobs:
   release:
     needs: cyan
     runs-on: macos-14
+    permissions:
+      contents: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -218,6 +231,29 @@ jobs:
               gh release delete-asset "$RELEASE_TAG" "$asset" --yes
             fi
           done < release_assets.txt
+
+      - name: Record published release
+        shell: bash
+        run: |
+          python3 - <<'PYMETA'
+          import hashlib, json, os, pathlib, subprocess
+          packages = pathlib.Path('packages')
+          deb = next(packages.glob('*_iphoneos-arm.deb'))
+          cyan = next(packages.glob('*.cyan'))
+          metadata = {'tag': os.environ['RELEASE_TAG'],
+                      'sha': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                      'deb': deb.name, 'deb_sha256': hashlib.sha256(deb.read_bytes()).hexdigest(),
+                      'cyan': cyan.name}
+          pathlib.Path('release.json').write_text(json.dumps(metadata))
+          PYMETA
+
+      - name: Upload release identity for IPA automation
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-metadata
+          overwrite: true
+          path: release.json
+          retention-days: 7
 
       - name: Delete build artifacts
         uses: geekyeggo/delete-artifact@v5
