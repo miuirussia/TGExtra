@@ -1944,7 +1944,8 @@ class TLParser: NSObject {
     private static func hasUnknownPeer(_ reader: BufferReader, length: Int,
                                        usersFirst: Bool, suffixBytes: Int) -> Bool {
         guard length - Int(reader.offset) >= 16 + suffixBytes else { return false }
-        for (index, isUsers) in (usersFirst ? [true, false] : [false, true]).enumerated() {
+        let peerOrder: [Bool] = [usersFirst, !usersFirst]
+        for (index, isUsers) in peerOrder.enumerated() {
             let minimumSuffix = suffixBytes + (index == 0 ? 8 : 0)
             guard reader.readInt32() == 481674261,
                   let count = reader.readInt32(), count >= 0,
