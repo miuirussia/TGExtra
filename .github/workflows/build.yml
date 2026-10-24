@@ -26,9 +26,9 @@ env:
 
 jobs:
   checks:
-    runs-on: macos-14
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.BUILD_REF }}
       - name: Protocol, patch packaging and release checks
@@ -36,7 +36,7 @@ jobs:
 
   build:
     needs: checks
-    runs-on: macos-14
+    runs-on: macos-26
     strategy:
       matrix:
         scheme: [rootful, rootless, roothide]
@@ -48,7 +48,7 @@ jobs:
           - scheme: roothide
             scheme_arg: "THEOS_PACKAGE_SCHEME=roothide"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.BUILD_REF }}
 
@@ -61,7 +61,7 @@ jobs:
 
       # Check out the selected branches directly; the cached updater expects origin/master.
       - name: Set up Theos
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: waruhachi/theos
           ref: main
@@ -69,7 +69,7 @@ jobs:
           path: theos
 
       - name: Set up iOS SDKs
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: waruhachi/sdks
           ref: main
@@ -82,21 +82,21 @@ jobs:
           make clean package FINALPACKAGE=1 ${{ matrix.scheme_arg }}
 
       - name: Upload DEB
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.scheme }}-package
           path: packages/*.deb
 
   cyan:
     needs: build
-    runs-on: macos-14
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.BUILD_REF }}
 
       - name: Download all packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: packages
           merge-multiple: true
@@ -124,24 +124,24 @@ jobs:
             --output "./packages/com.choco.tg_${TGEXTRA_VERSION}.cyan"
 
       - name: Upload cyan
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cyan-package
           path: packages/*.cyan
 
   release:
     needs: cyan
-    runs-on: macos-14
+    runs-on: macos-26
     permissions:
       contents: write
       actions: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ env.BUILD_REF }}
 
       - name: Download all packages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: packages
           merge-multiple: true
@@ -199,7 +199,7 @@ jobs:
         run: git push --force origin "$GITHUB_SHA:refs/tags/prerelease"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -233,7 +233,7 @@ jobs:
           done < release_assets.txt
 
       - name: Delete build artifacts
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: |
             rootful-package

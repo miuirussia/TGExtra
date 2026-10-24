@@ -22,7 +22,7 @@ concurrency:
 jobs:
   prepareDependencies:
     name: Prepare Dependencies
-    runs-on: macos-14
+    runs-on: macos-26
     outputs:
       release_tag: ${{ steps.release.outputs.tag }}
       build_ref: ${{ steps.release.outputs.ref }}
@@ -48,7 +48,7 @@ jobs:
           echo "ref=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Fetch TGExtra.bundle
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.release.outputs.ref }}
 
@@ -95,7 +95,7 @@ jobs:
           echo "tgextra_version=$TGEXTRA_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Upload Dependencies
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dependencies
           path: |
@@ -107,18 +107,18 @@ jobs:
   inject:
     name: Inject TGExtra and Rust bridge
     needs: prepareDependencies
-    runs-on: macos-14
+    runs-on: macos-26
     env:
       IPA_BUNDLE_ID: ${{ needs.prepareDependencies.outputs.ipa_bundle_id }}
       IPA_VERSION: ${{ needs.prepareDependencies.outputs.ipa_version }}
       TGEXTRA_VERSION: ${{ needs.prepareDependencies.outputs.tgextra_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepareDependencies.outputs.build_ref }}
 
       - name: Download dependencies
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dependencies
           name: dependencies
@@ -188,7 +188,7 @@ jobs:
           rm -rf deb-extract "$TMP_DIR"
 
       - name: Upload injected IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: injected-artifacts
           path: |
@@ -199,21 +199,21 @@ jobs:
   patch:
     name: Patch injected IPA
     needs: [prepareDependencies, inject]
-    runs-on: macos-14
+    runs-on: macos-26
     env:
       IPA_BUNDLE_ID: ${{ needs.prepareDependencies.outputs.ipa_bundle_id }}
       IPA_VERSION: ${{ needs.prepareDependencies.outputs.ipa_version }}
       TGEXTRA_VERSION: ${{ needs.prepareDependencies.outputs.tgextra_version }}
     steps:
       - name: Download dependencies
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: dependencies
           name: dependencies
           merge-multiple: true
 
       - name: Download injected IPA
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           name: injected-artifacts
@@ -248,7 +248,7 @@ jobs:
           ipapatch --input "$INJECTED_TIPA" --inplace --noconfirm
 
       - name: Upload injected IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: patched-artifacts
           path: |
@@ -259,17 +259,17 @@ jobs:
   updateRelease:
     name: Update GitHub Release
     needs: [prepareDependencies, inject, patch]
-    runs-on: macos-14
+    runs-on: macos-26
     env:
       IPA_APP_NAME: ${{ needs.prepareDependencies.outputs.ipa_app_name }}
       RELEASE_TAG: ${{ needs.prepareDependencies.outputs.release_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepareDependencies.outputs.build_ref }}
 
       - name: Download injected IPA
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
           name: patched-artifacts
@@ -335,7 +335,7 @@ jobs:
           done
 
       - name: Update GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -353,12 +353,12 @@ jobs:
   cleanup:
     name: Cleanup
     needs: updateRelease
-    runs-on: macos-14
+    runs-on: macos-26
     permissions:
       actions: write
     steps:
       - name: Delete build artifacts
-        uses: geekyeggo/delete-artifact@v5
+        uses: geekyeggo/delete-artifact@v6
         with:
           name: |
             injected-artifacts
