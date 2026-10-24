@@ -84,7 +84,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
-          gh release download "$RELEASE_TAG" --pattern 'com.choco.tg_*_iphoneos-arm.deb' --pattern '*.cyan' --dir .
+          gh release download "$RELEASE_TAG" --pattern 'com.choco.tg_*_iphoneos-arm.deb' --dir .
 
       - name: Extract TGExtra version
         id: extractTGExtra
@@ -102,7 +102,6 @@ jobs:
             decrypted.ipa
             TGExtra.bundle
             com.choco.tg_*_iphoneos-arm.deb
-            com.choco.tg_*.cyan
 
   inject:
     name: Inject TGExtra and Rust bridge
@@ -166,7 +165,7 @@ jobs:
           DYLIB_PATH=$(find deb-extract -name "*.dylib" | head -n 1)
           cp "$DYLIB_PATH" "$APP_PATH/Frameworks/$DYLIB_NAME"
 
-          python3 Tools/prepare_rust_patch.py "$DECRYPTED_IPA" artifacts/client-patches.cyan \
+          python3 Tools/prepare_rust_patch.py "$DECRYPTED_IPA" artifacts/client-patches.ipatch \
             --apply-app "$APP_PATH" --patched-paths-file rust-binaries.txt --allow-no-rust
           while IFS= read -r binary; do
             ldid -S "$binary"
@@ -194,7 +193,7 @@ jobs:
           path: |
             artifacts/*.ipa
             artifacts/*.tipa
-            artifacts/client-patches.cyan
+            artifacts/client-patches.ipatch
 
   patch:
     name: Patch injected IPA
@@ -254,7 +253,7 @@ jobs:
           path: |
             artifacts/*.ipa
             artifacts/*.tipa
-            artifacts/client-patches.cyan
+            artifacts/client-patches.ipatch
 
   updateRelease:
     name: Update GitHub Release
@@ -275,17 +274,21 @@ jobs:
           name: patched-artifacts
           merge-multiple: true
 
-      - name: Merge this client into the universal cyan
+      - name: Merge this client into every release ipatch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          gh release download "$RELEASE_TAG" --pattern 'com.choco.tg_*.cyan' --dir cyan-base
-          BASE=$(find cyan-base -maxdepth 1 -name '*.cyan' -print -quit)
-          test -n "$BASE"
-          python3 Tools/package_cyan.py --base "$BASE" --merge artifacts/client-patches.cyan \
-            --output "artifacts/$(basename "$BASE")"
+          gh release download "$RELEASE_TAG" --pattern 'com.choco.tg_*.ipatch' --dir ipatch-base
+          for base in ipatch-base/*.ipatch; do
+            if [ -f artifacts/client-patches.ipatch ]; then
+              python3 Tools/package_ipatch.py --base "$base" --merge artifacts/client-patches.ipatch \
+                --output "artifacts/$(basename "$base")"
+            else
+              cp "$base" artifacts/
+            fi
+          done
 
       - name: Fetch existing release body
         env:
@@ -300,8 +303,8 @@ jobs:
             awk -v sideload="### $IPA_APP_NAME (Sideload)" -v troll="### $IPA_APP_NAME (TrollStore)" '
               BEGIN { skip=0 }
               {
-                if ($0 == sideload || $0 == troll || $0 == "### Cyan Package") { skip=1 }
-                if (skip && /^### / && $0 != sideload && $0 != troll && $0 != "### Cyan Package") { skip=0 }
+                if ($0 == sideload || $0 == troll || $0 ~ /^### ipatch: /) { skip=1 }
+                if (skip && /^### / && $0 != sideload && $0 != troll && $0 !~ /^### ipatch: /) { skip=0 }
                 if (!skip) print $0
               }
             ' release_body.md > release_body.tmp && mv release_body.tmp release_body.md
@@ -329,9 +332,9 @@ jobs:
             fi
           done
 
-          for cyan in artifacts/com.choco.tg_*.cyan; do
-            echo "### Cyan Package" >> release_body.md
-            echo "* SHA256: $(shasum -a 256 "$cyan" | awk '{ print $1 }')" >> release_body.md
+          for ipatch in artifacts/com.choco.tg_*.ipatch; do
+            echo "### ipatch: $(basename "$ipatch")" >> release_body.md
+            echo "* SHA256: $(shasum -a 256 "$ipatch" | awk '{ print $1 }')" >> release_body.md
           done
 
       - name: Update GitHub Release
@@ -345,7 +348,7 @@ jobs:
           files: |
             artifacts/*.ipa
             artifacts/*.tipa
-            artifacts/com.choco.tg_*.cyan
+            artifacts/com.choco.tg_*.ipatch
           fail_on_unmatched_files: true
           draft: false
           prerelease: ${{ needs.prepareDependencies.outputs.release_tag == 'prerelease' }}

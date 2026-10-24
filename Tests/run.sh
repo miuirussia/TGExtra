@@ -7,7 +7,7 @@ python3 Tests/settings_support_labels.py
 python3 Tests/edit_badge_refresh.py
 python3 Tests/rust_thunks.py
 python3 Tests/rust_patching.py
-python3 Tests/cyan_packaging.py
+python3 Tests/ipatch_packaging.py
 test_build_dir=$(mktemp -d /private/tmp/tgextra-tests.XXXXXX)
 trap 'rm -rf "$test_build_dir"' EXIT
 # Compile a stable snapshot so concurrent edits cannot invalidate compiler inputs.

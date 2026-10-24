@@ -10,7 +10,7 @@ without Rust keep the existing MtProtoKit hooks.
 
 No application bundle ID, framework name, UUID or file offset is used for
 recognition. Each generated set pins the input SHA-256, exact preimages and
-UUID. Generate a set for each different binary; one cyan can collect all sets
+UUID. Generate a set for each different binary; one ipatch can collect all sets
 and the engine selects those matching the original application. Use
 `--patch-set-dir Patches` to include a set in future GitHub releases.
 

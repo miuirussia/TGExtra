@@ -87,7 +87,7 @@ jobs:
           name: ${{ matrix.scheme }}-package
           path: packages/*.deb
 
-  cyan:
+  ipatch:
     needs: build
     runs-on: macos-26
     steps:
@@ -101,36 +101,24 @@ jobs:
           path: packages
           merge-multiple: true
 
-      - name: Generate cyan package
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate ipatch for every DEB
+        shell: bash
         run: |
-          set -euxo pipefail
-      
-          TWEAK="$(find ./packages -type f -name 'com.choco.tg_*_iphoneos-arm.deb' | head -n 1)"
-          test -n "$TWEAK"
-      
-          TGEXTRA_VERSION="$(basename "$TWEAK" | sed -E 's/com\.choco\.tg_([0-9.]+)_.+\.deb/\1/')"
-          mkdir -p ./packages
-          
-          python3 -m venv "$RUNNER_TEMP/cyan-tools"
-          "$RUNNER_TEMP/cyan-tools/bin/pip" install https://github.com/iOSDecrypted/pyzule-rw/archive/main.zip
-          "$RUNNER_TEMP/cyan-tools/bin/cgen" \
-            -o "$RUNNER_TEMP/base.cyan" \
-            -dqg \
-            -f "$TWEAK"
-          python3 Tools/package_cyan.py \
-            --base "$RUNNER_TEMP/base.cyan" --patches Patches \
-            --output "./packages/com.choco.tg_${TGEXTRA_VERSION}.cyan"
+          set -euo pipefail
+          for deb in packages/*.deb; do
+            python3 Tools/package_ipatch.py --deb "$deb" --patches Patches \
+              --output "${deb%.deb}.ipatch"
+          done
 
-      - name: Upload cyan
+      - name: Upload ipatch packages
         uses: actions/upload-artifact@v7
         with:
-          name: cyan-package
-          path: packages/*.cyan
+          name: ipatch-packages
+          path: packages/*.ipatch
+          if-no-files-found: error
 
   release:
-    needs: cyan
+    needs: ipatch
     runs-on: macos-26
     permissions:
       contents: write
@@ -183,14 +171,13 @@ jobs:
             fi
           done
 
-          for pkg in packages/*.cyan; do
+          for pkg in packages/*.ipatch; do
             if [ -f "$pkg" ]; then
-              echo "### Cyan Package" >> release_body.md
+              echo "### ipatch: $(basename "$pkg")" >> release_body.md
               echo "* MD5: $(md5 -q $pkg)" >> release_body.md
               echo "* SHA1: $(shasum -a 1 $pkg | awk '{ print $1 }')" >> release_body.md
               echo "* SHA256: $(shasum -a 256 $pkg | awk '{ print $1 }')" >> release_body.md
               echo "" >> release_body.md
-              break
             fi
           done
 
@@ -209,7 +196,7 @@ jobs:
           body_path: release_body.md
           files: |
             packages/*.deb
-            packages/*.cyan
+            packages/*.ipatch
           fail_on_unmatched_files: true
           draft: false
           prerelease: ${{ env.RELEASE_TAG == 'prerelease' }}
@@ -224,7 +211,7 @@ jobs:
           set -euo pipefail
 
           gh release view "$RELEASE_TAG" --json assets \
-            --jq '.assets[].name | select(endswith(".deb") or endswith(".cyan"))' > release_assets.txt
+            --jq '.assets[].name | select(endswith(".deb") or endswith(".cyan") or endswith(".ipatch"))' > release_assets.txt
 
           while IFS= read -r asset; do
             if [ ! -f "packages/$asset" ]; then
@@ -239,5 +226,5 @@ jobs:
             rootful-package
             rootless-package
             roothide-package
-            cyan-package
+            ipatch-packages
           failOnError: false

@@ -78,14 +78,15 @@ and also reads Telegram 13.0 message formats. UI hooks depend on the host app's
 private interfaces.
 
 Telegram 13.1's optional Rust MTProto transport requires a binary patch. Release
-cyan packages include the client patch sets in [`Patches/`](Patches/README.md).
-Updated iOSPatchingEngine selects sets by the input binaries' SHA-256 hashes.
+ipatch packages include the client patch sets in [`Patches/`](Patches/README.md).
+iOSPatchingEngine selects sets by the original bundle ID and input binaries'
+SHA-256 hashes.
 Clients without Rust use MtProtoKit.
 
 To generate a patch for another IPA and save its set for future releases:
 
 ```sh
-python3 Tools/prepare_rust_patch.py Client.ipa TGExtra-Rust.cyan --patch-set-dir Patches
+python3 Tools/prepare_rust_patch.py Client.ipa TGExtra-Rust.ipatch --patch-set-dir Patches
 ```
 
 The generator supports unencrypted, thin arm64 images matching its C ABI 5
@@ -104,13 +105,17 @@ use MtProtoKit workers for the same account.
 ## Releases
 
 Pushes to `main` run checks and publish rootful, rootless and roothide packages,
-plus a cyan with all committed client patch sets, to `prerelease`. Tags publish
-versioned releases.
+plus a matching `.ipatch` for each DEB, to `prerelease`. Each ipatch embeds its
+corresponding DEB and all committed client patch sets. Tags publish versioned
+releases. Install either the DEB or its ipatch; the ipatch requires a matching
+Rust client build.
 
 The manual IPA workflow takes a required `decrypted_ipa_url` and optional
 `release_tag`. It applies the Rust bridge before signing, publishes IPA/TIPA
-assets and adds the generated client set to the release cyan. Existing client
-sets are retained. The workflows require `GITHUB_TOKEN` release permissions.
+assets and adds the generated client set to every release ipatch. Existing client
+sets and the DEB embedded in each variant are retained. Clients without Rust
+produce no new patch set and keep the existing release ipatches. The workflows
+require `GITHUB_TOKEN` release permissions.
 
 ## Building and checks
 

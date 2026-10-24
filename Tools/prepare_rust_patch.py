@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a reviewed Rust FFI bridge .cyan archive for one decrypted IPA."""
+"""Generate a reviewed Rust FFI bridge .ipatch archive for one decrypted IPA."""
 import argparse
 import hashlib
 import json
@@ -13,6 +13,7 @@ import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'RustBridge'))
 from macho import MachO, signed
+from package_ipatch import write_archive
 
 SELECTORS = {
     'engineCreate': ('engineCreate:context:event:log:original:', 4),
@@ -202,12 +203,13 @@ def apply_prepared(patch, metadata, app):
         raise ValueError('extracted binary differs from input IPA')
     for edit in patch['edits']:
         expected = bytes.fromhex(edit['expected'])
-        offset = edit['offset']
+        offset = edit['target']['offset']
         if data[offset:offset+len(expected)] != expected:
             raise ValueError(f'patch preimage mismatch at {offset:#x}')
     for edit in patch['edits']:
         replacement = bytes.fromhex(edit['replacement'])
-        data[edit['offset']:edit['offset']+len(replacement)] = replacement
+        offset = edit['target']['offset']
+        data[offset:offset+len(replacement)] = replacement
     with tempfile.NamedTemporaryFile(dir=target.parent, delete=False) as temporary:
         temporary.write(data)
         staged = Path(temporary.name)
@@ -246,6 +248,8 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
                 continue
             patch, metadata = make_patch(data, profile)
             patch['path'] = relative
+            for edit in patch['edits']:
+                edit['target'] = {'type': 'offset', 'offset': edit.pop('offset')}
             found.append((patch, metadata))
     if not found and not allow_no_rust:
         raise ValueError('no Rust MTProto runtime: this client uses the existing MtProtoKit hooks')
@@ -253,27 +257,29 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
         raise ValueError('multiple Rust runtimes require separate verified account bindings')
     if paths_file:
         paths_file.write_text('')
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
-        archive.writestr('config.json', json.dumps({'patch_sets': True} if found else {})+'\n')
-        if found:
-            patch, metadata = found[0]
-            name = f"{info.get('CFBundleDisplayName', info.get('CFBundleName', 'Client'))} {info.get('CFBundleShortVersionString', '')} ({info.get('CFBundleVersion', '')})"
-            manifest = (json.dumps({'name': name, 'binary_patches': [patch], 'f': True}, indent=2)+'\n').encode()
-            files = {'patch.json': manifest, 'inject/TGExtraRustBridge.plist': plistlib.dumps(metadata)}
-            for name, data in files.items():
-                archive.writestr('patches/rust-'+patch['sha256'][:16]+'/'+name, data)
-                if export:
-                    destination = export/('rust-'+patch['sha256'][:16])/name
-                    destination.parent.mkdir(parents=True, exist_ok=True)
-                    destination.write_bytes(data)
-            if apply_app:
-                target = apply_prepared(patch, metadata, apply_app)
-                if paths_file:
-                    paths_file.write_text(str(target)+'\n')
-            print(f'Created {output}: {patch["path"]}, {len(patch["edits"])-1} call sites')
-        else:
-            print('No Rust runtime; existing MtProtoKit hooks apply')
+    if not found:
+        output.unlink(missing_ok=True)
+        print('No Rust runtime; existing MtProtoKit hooks apply (no ipatch generated)')
+        return
+    patch, metadata = found[0]
+    name = f"{info.get('CFBundleDisplayName', info.get('CFBundleName', 'Client'))} {info.get('CFBundleShortVersionString', '')} ({info.get('CFBundleVersion', '')})"
+    resource = 'resources/TGExtraRustBridge.plist'
+    item = {'name': name, 'bundle_ids': [info['CFBundleIdentifier']], 'binary_patches': [patch],
+            'resources': [{'source': resource, 'destination': 'TGExtraRustBridge.plist'}]}
+    prefix = 'patches/rust-'+patch['sha256'][:16]+'/'
+    if export:
+        for relative, data in {'patch.json': (json.dumps(item, indent=2)+'\n').encode(), resource: plistlib.dumps(metadata)}.items():
+            destination = export/('rust-'+patch['sha256'][:16])/relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
+    item['resources'][0]['source'] = prefix+resource
+    write_archive(output, {'format': 'ipatch', 'version': 1, 'name': name, 'patch_sets': [item]},
+                  {prefix+resource: plistlib.dumps(metadata)})
+    if apply_app:
+        target = apply_prepared(patch, metadata, apply_app)
+        if paths_file:
+            paths_file.write_text(str(target)+'\n')
+    print(f'Created {output}: {patch["path"]}, {len(patch["edits"])-1} call sites')
 
 
 if __name__ == '__main__':
