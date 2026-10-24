@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Generate a reviewed Rust FFI bridge .ipatch archive for one decrypted IPA."""
+"""Generate a portable Rust FFI bridge ipatch v2 from a reviewed decrypted IPA."""
 import argparse
+import base64
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -10,10 +12,11 @@ import sys
 import zipfile
 import os
 import tempfile
+import subprocess
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'RustBridge'))
 from macho import MachO, signed
-from package_ipatch import write_archive
+from package_ipatch import write_archive, sources, package_source
 
 SELECTORS = {
     'engineCreate': ('engineCreate:context:event:log:original:', 4),
@@ -125,7 +128,7 @@ def identify(macho, profile):
     return result
 
 
-def make_patch(data, profile):
+def inspect_runtime(data, profile):
     macho = MachO(data)
     functions = identify(macho, profile)
     imports = macho.imports()
@@ -155,6 +158,12 @@ def make_patch(data, profile):
     # can be inlined temporary-key probes; only bind the always-executed one.
     auth_info = auth_info[:1]
     functions['authInfo'] = auth_info[0][1]
+    return macho, functions, imports, branches, usage, auth_info, (constructor, end), marker_address
+
+
+def make_patch(data, profile):
+    """Keep the verified offline application path for the standalone IPA workflow."""
+    macho, functions, imports, branches, usage, auth_info, _, _ = inspect_runtime(data, profile)
     # Keep substantial load-command growth room; the code lives in executable
     # __TEXT header padding. Existing sections/segments never move or grow.
     cave_offset = (macho.command_end+0xFFFF) & ~0xFFFF
@@ -187,6 +196,12 @@ def make_patch(data, profile):
                 'Send': functions['send']-text_segment[1],
                 'Cancel': functions['cancel']-text_segment[1]}
     return {'sha256': hashlib.sha256(data).hexdigest(), 'edits': edits}, metadata
+
+
+def make_portable_patch(data, profile):
+    from portable import build_profile
+    runtime = inspect_runtime(data, profile)
+    return build_profile(*runtime, selectors=SELECTORS, thunk=thunk)
 
 
 def apply_prepared(patch, metadata, app):
@@ -222,9 +237,44 @@ def apply_prepared(patch, metadata, app):
     return target
 
 
-def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_rust=False):
+def engine_plan(engine, ipa, output, plan_file=None):
+    if plan_file and plan_file.resolve() in (ipa.resolve(), output.resolve()):
+        raise ValueError('plan file must differ from the input IPA and output package')
+    result = subprocess.run([str(engine.resolve()), '-dry-run', '-ipa', str(ipa.resolve()),
+                             '-package', str(output.resolve())], capture_output=True, text=True, timeout=180)
+    if result.stderr:
+        print(result.stderr, end='', file=sys.stderr)
+    if plan_file:
+        plan_file.write_text(result.stdout)
+    report = json.loads(result.stdout)
+    if result.returncode or report.get('error'):
+        raise ValueError('v2 engine validation failed: '+report.get('error', f'exit {result.returncode}'))
+    return report['plan']
+
+
+def apply_engine_plan(plan, app, expected_path):
+    patches = plan.get('patches', [])
+    if len(patches) != 1 or patches[0]['path'] != expected_path:
+        raise ValueError('unexpected binary in engine plan')
+    generated = {'TGExtraRustBridge.plist'}
+    if (plan.get('tweaks') or set(plan.get('resources') or {}) - generated or
+            set(plan.get('generated_resources', {})) != generated):
+        raise ValueError('unexpected resources in bridge engine plan')
+    metadata = plistlib.loads(base64.b64decode(plan['generated_resources']['TGExtraRustBridge.plist'], validate=True))
+    patch = copy.deepcopy(patches[0])
+    for edit in patch['edits']:
+        edit['target'] = {'type': 'offset', 'offset': edit.pop('offset')}
+    return apply_prepared(patch, metadata, app)
+
+
+def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_rust=False,
+            legacy=False, engine=None, plan_file=None):
     if ipa.resolve() == output.resolve():
         raise ValueError('output archive must differ from the input IPA')
+    if plan_file and not engine:
+        raise ValueError('--plan-file requires --engine')
+    if plan_file and plan_file.resolve() in (ipa.resolve(), output.resolve()):
+        raise ValueError('plan file must differ from the input IPA and output package')
     profile = json.loads((Path(__file__).parent/'RustBridge/abi5.json').read_text())
     found = []
     with zipfile.ZipFile(ipa) as archive:
@@ -246,11 +296,15 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
             data = archive.read(entry)
             if b'[MTProtoRust] mt_engine_create failed' not in data:
                 continue
-            patch, metadata = make_patch(data, profile)
-            patch['path'] = relative
-            for edit in patch['edits']:
-                edit['target'] = {'type': 'offset', 'offset': edit.pop('offset')}
-            found.append((patch, metadata))
+            if legacy:
+                patch, metadata = make_patch(data, profile)
+                patch['path'] = relative
+                for edit in patch['edits']:
+                    edit['target'] = {'type': 'offset', 'offset': edit.pop('offset')}
+                files = {'resources/TGExtraRustBridge.plist': plistlib.dumps(metadata)}
+            else:
+                patch, files = make_portable_patch(data, profile)
+            found.append((patch, files, relative, data))
     if not found and not allow_no_rust:
         raise ValueError('no Rust MTProto runtime: this client uses the existing MtProtoKit hooks')
     if len(found) > 1:
@@ -259,27 +313,54 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
         paths_file.write_text('')
     if not found:
         output.unlink(missing_ok=True)
+        if plan_file:
+            plan_file.unlink(missing_ok=True)
         print('No Rust runtime; existing MtProtoKit hooks apply (no ipatch generated)')
         return
-    patch, metadata = found[0]
+    patch, files, binary_path, original = found[0]
     name = f"{info.get('CFBundleDisplayName', info.get('CFBundleName', 'Client'))} {info.get('CFBundleShortVersionString', '')} ({info.get('CFBundleVersion', '')})"
-    resource = 'resources/TGExtraRustBridge.plist'
-    item = {'name': name, 'bundle_ids': [info['CFBundleIdentifier']], 'binary_patches': [patch],
-            'resources': [{'source': resource, 'destination': 'TGExtraRustBridge.plist'}]}
-    prefix = 'patches/rust-'+patch['sha256'][:16]+'/'
+    item = {'name': name, 'bundle_ids': [info['CFBundleIdentifier']], 'binary_patches': [patch]}
+    if legacy:
+        identifier = 'rust-'+patch['sha256'][:16]
+        item['resources'] = [{'source': 'resources/TGExtraRustBridge.plist', 'destination': 'TGExtraRustBridge.plist'}]
+    else:
+        identity = {'patch': patch, 'payloads': {source: hashlib.sha256(data).hexdigest() for source, data in files.items()}}
+        digest = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        identifier = 'rust-abi5-'+digest[:16]
+        item['name'] = 'Rust MTProto ABI 5 / '+digest[:16]
     if export:
-        for relative, data in {'patch.json': (json.dumps(item, indent=2)+'\n').encode(), resource: plistlib.dumps(metadata)}.items():
-            destination = export/('rust-'+patch['sha256'][:16])/relative
+        previous_path = export/identifier/'patch.json'
+        if not legacy and previous_path.exists():
+            previous = json.loads(previous_path.read_text())
+            if previous['binary_patches'] != item['binary_patches']:
+                raise ValueError('existing profile identity has different binary instructions')
+            item['bundle_ids'] = sorted(set(item['bundle_ids']) | set(previous['bundle_ids']))
+        for relative, data in {'patch.json': (json.dumps(item, indent=2)+'\n').encode(), **files}.items():
+            destination = export/identifier/relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(data)
-    item['resources'][0]['source'] = prefix+resource
-    write_archive(output, {'format': 'ipatch', 'version': 1, 'name': name, 'patch_sets': [item]},
-                  {prefix+resource: plistlib.dumps(metadata)})
+    for reference in sources(item):
+        reference['source'] = package_source(identifier, reference['source'])
+    write_archive(output, {'format': 'ipatch', 'version': 1 if legacy else 2, 'name': name, 'patch_sets': [item]},
+                  {package_source(identifier, source): data for source, data in files.items()})
+    plan = engine_plan(engine, ipa, output, plan_file) if engine else None
     if apply_app:
-        target = apply_prepared(patch, metadata, apply_app)
+        if plan and not legacy:
+            target = apply_engine_plan(plan, apply_app, binary_path)
+        elif legacy:
+            target = apply_prepared(patch, plistlib.loads(files['resources/TGExtraRustBridge.plist']), apply_app)
+        else:
+            # Keep standalone IPA builds independent of a private engine checkout.
+            # This applies the same reviewed hooks locally; the release package
+            # itself contains portable v2 operations, not these fixed offsets.
+            offline, metadata = make_patch(original, profile)
+            offline['path'] = binary_path
+            for edit in offline['edits']:
+                edit['target'] = {'type': 'offset', 'offset': edit.pop('offset')}
+            target = apply_prepared(offline, metadata, apply_app)
         if paths_file:
             paths_file.write_text(str(target)+'\n')
-    print(f'Created {output}: {patch["path"]}, {len(patch["edits"])-1} call sites')
+    print(f'Created {output}: ipatch v{1 if legacy else 2}, {binary_path}')
 
 
 if __name__ == '__main__':
@@ -290,8 +371,12 @@ if __name__ == '__main__':
     parser.add_argument('--apply-app', type=Path)
     parser.add_argument('--patched-paths-file', type=Path)
     parser.add_argument('--allow-no-rust', action='store_true')
+    parser.add_argument('--legacy', action='store_true', help='emit a hash-pinned v1 package for older engines')
+    parser.add_argument('--engine', type=Path, help='v2 ipatch CLI binary; validate the package and use its plan for --apply-app')
+    parser.add_argument('--plan-file', type=Path, help='save the engine dry-run JSON (requires --engine)')
     args = parser.parse_args()
     try:
-        prepare(args.ipa, args.output, args.patch_set_dir, args.apply_app, args.patched_paths_file, args.allow_no_rust)
-    except (ValueError, KeyError, struct.error, zipfile.BadZipFile) as error:
+        prepare(args.ipa, args.output, args.patch_set_dir, args.apply_app, args.patched_paths_file, args.allow_no_rust,
+                args.legacy, args.engine, args.plan_file)
+    except (ValueError, KeyError, OSError, subprocess.TimeoutExpired, struct.error, zipfile.BadZipFile) as error:
         parser.exit(1, f'Rust bridge: {error}\n')

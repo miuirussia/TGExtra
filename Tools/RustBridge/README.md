@@ -8,11 +8,15 @@ It supports renamed/relinked clients such as Swiftgram when they contain the
 same reviewed Rust engine. Unrecognized machine code fails closed. Clients
 without Rust keep the existing MtProtoKit hooks.
 
-No application bundle ID, framework name, UUID or file offset is used for
-recognition. Each generated set pins the input SHA-256, exact preimages and
-UUID. Generate a set for each different binary; one ipatch can collect all sets
-and the engine selects those matching the original application. Use
-`--patch-set-dir Patches` to include a set in future GitHub releases.
+No application bundle ID, framework name, UUID or file offset is used for source
+recognition. The generator now emits ipatch v2 profiles with engine-specific
+`arm64-reloc-v1` fingerprints, counted calls, relocatable payloads and generated
+metadata. The old review fingerprints in `abi5.json` remain separate and gate
+which input code may produce a new profile. The engine can reuse a profile for
+other builds only when all its structural checks match. The profile's explicit
+bundle IDs still constrain selection. Use `--patch-set-dir Patches` to include
+a profile in future GitHub releases. See [Patches/README.md](../../Patches/README.md)
+for engine requirements, validation, offline application and v1 migration.
 
 Protected-forward recovery shares ForwardCopy's journal/transfer state machine.
 A request-service adapter sends its helpers through the active Rust session with

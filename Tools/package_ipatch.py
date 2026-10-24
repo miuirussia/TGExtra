@@ -34,9 +34,22 @@ def read_archive(path):
 
 def manifest(files):
     value = json.loads(files['manifest.json'])
-    if value.get('format') != 'ipatch' or value.get('version') != 1 or not value.get('patch_sets') or 'config.json' in files:
-        raise ValueError('expected a version 1 ipatch with nonempty patch_sets')
+    if value.get('format') != 'ipatch' or value.get('version') not in (1, 2) or not value.get('patch_sets') or 'config.json' in files:
+        raise ValueError('expected a version 1 or 2 ipatch with nonempty patch_sets')
     return value
+
+
+def sources(item):
+    yield from item.get('resources', [])
+    for binary in item['binary_patches']:
+        yield from binary.get('profile', {}).get('blocks', [])
+
+
+def package_source(identifier, source):
+    path = relative_path(source)
+    if path.parts[0] == 'payloads':
+        return f'payloads/{identifier}/'+str(PurePosixPath(*path.parts[1:]))
+    return f'patches/{identifier}/{source}'
 
 
 def repository_sets(patches):
@@ -49,14 +62,14 @@ def repository_sets(patches):
         item = json.loads((directory/'patch.json').read_text())
         if item.get('tweaks'):
             raise ValueError('client patch sets cannot include tweaks')
-        for resource in item.get('resources', []):
+        for resource in sources(item):
             source = relative_path(resource['source'])
             path = directory
             for component in source.parts:
                 path = path/component
                 if path.is_symlink():
                     raise ValueError(f'patch resources cannot be symlinks: {path}')
-            name = f'patches/{directory.name}/{source}'
+            name = package_source(directory.name, str(source))
             files[name] = path.read_bytes()
             resource['source'] = name
         sets.append(item)
@@ -64,18 +77,25 @@ def repository_sets(patches):
 
 
 def set_key(item):
+    if any('profile' in patch for patch in item['binary_patches']):
+        compatibility = copy.deepcopy(item['binary_patches'])
+        for patch in compatibility:
+            if 'profile' in patch:
+                patch['profile'] = {key: value for key, value in patch['profile'].items()
+                                    if key in ('arch', 'anchors', 'checks')}
+        return ('portable', json.dumps(compatibility, sort_keys=True, separators=(',', ':')))
     return (tuple(sorted(item['bundle_ids'])),
             tuple(sorted((patch['path'], patch.get('sha256')) for patch in item['binary_patches'])))
 
 
 def write_archive(output, value, files):
-    data = (json.dumps(value, indent=2)+'\n').encode()
+    data = (json.dumps(value, separators=(',', ':'))+'\n').encode()
     if len(data) > 1 << 20:
         raise ValueError('ipatch manifest exceeds 1 MiB')
     referenced = {'manifest.json'}
     for item in value['patch_sets']:
         referenced.update(item.get('tweaks', []))
-        referenced.update(resource['source'] for resource in item.get('resources', []))
+        referenced.update(resource['source'] for resource in sources(item))
     files = {**files, 'manifest.json': data}
     for name in referenced:
         relative_path(name)
@@ -93,7 +113,7 @@ def write_archive(output, value, files):
         staged.unlink(missing_ok=True)
 
 
-def package(output, deb=None, patches=None, base=None, merges=()):
+def package(output, deb=None, patches=None, base=None, merges=(), retire_patches=None):
     if (deb is None) == (base is None):
         raise ValueError('provide exactly one of deb or base')
     if base:
@@ -115,6 +135,7 @@ def package(output, deb=None, patches=None, base=None, merges=()):
     for archive in merges:
         entries = read_archive(archive)
         options = manifest(entries)
+        value['version'] = max(value['version'], options['version'])
         if any(item.get('tweaks') for item in options['patch_sets']):
             raise ValueError('merged client packages cannot include tweaks')
         collections.append((options['patch_sets'], entries))
@@ -123,9 +144,20 @@ def package(output, deb=None, patches=None, base=None, merges=()):
             item = copy.deepcopy(original)
             item['tweaks'] = list(tweaks)
             key = set_key(item)
+            if key[0] == 'portable':
+                item['bundle_ids'] = sorted(set(item['bundle_ids']).union(
+                    *(old['bundle_ids'] for old in value['patch_sets'] if set_key(old) == key)))
             value['patch_sets'] = [old for old in value['patch_sets'] if set_key(old) != key]
             value['patch_sets'].append(item)
         files.update({name: data for name, data in entries.items() if name != 'manifest.json'})
+    if any('profile' in patch for item in value['patch_sets'] for patch in item['binary_patches']):
+        value['version'] = 2
+        if retire_patches:
+            retired, _ = repository_sets(retire_patches)
+            portable_ids = {bundle for item in value['patch_sets']
+                            if any('profile' in patch for patch in item['binary_patches']) for bundle in item['bundle_ids']}
+            keys = {set_key(item) for item in retired if set(item['bundle_ids']) <= portable_ids}
+            value['patch_sets'] = [item for item in value['patch_sets'] if set_key(item) not in keys]
     if not value['patch_sets']:
         raise ValueError('ipatch requires at least one client patch set')
     write_archive(output, value, files)
@@ -140,8 +172,10 @@ if __name__ == '__main__':
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--patches', type=Path)
     parser.add_argument('--merge', nargs='*', type=Path, default=[])
+    parser.add_argument('--retire-patches', type=Path,
+                        help='remove these exact legacy set identities when packaging portable replacements')
     args = parser.parse_args()
     try:
-        package(args.output, args.deb, args.patches, args.base, args.merge)
+        package(args.output, args.deb, args.patches, args.base, args.merge, args.retire_patches)
     except (ValueError, KeyError, zipfile.BadZipFile) as error:
         parser.exit(1, f'ipatch packaging: {error}\n')

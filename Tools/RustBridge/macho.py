@@ -46,6 +46,37 @@ def normalized(code):
     return struct.pack('<' + 'I' * len(words), *words)
 
 
+def preserves_register(word, register):
+    """Register provenance rules of iOSPatchingEngine's arm64-reloc-v1."""
+    if word == 0xD503201F:
+        return True
+    if (word & 0x9F000000 in (0x90000000, 0x10000000) or
+            word & 0x1F000000 in (0x11000000, 0x0B000000, 0x0A000000) or
+            word & 0x1F800000 == 0x12800000):
+        return word & 31 != register
+    if word & 0x3B000000 == 0x39000000:
+        return word & 0x00C00000 == 0 or word & 0x04000000 != 0 or word & 31 != register
+    return False
+
+
+def page_low(word, register):
+    if word >> 5 & 31 == register and word & 31 != 31:
+        if word & 0xFFC00000 == 0x91000000:
+            return word >> 10 & 4095
+        if word & 0xFFC00000 == 0xF9400000:
+            return (word >> 10 & 4095)*8
+    return None
+
+
+def page_address(pc, word):
+    if word & 0x9F000000 != 0x90000000 or word & 31 == 31:
+        raise ValueError('unsupported ADRP')
+    address = (pc & ~4095) + signed(((word >> 5 & 0x7FFFF) << 2) | (word >> 29 & 3), 21)*4096
+    if not 0 <= address < 1 << 64:
+        raise ValueError('ADRP address overflow')
+    return address
+
+
 class MachO:
     def __init__(self, data):
         self.data = data
@@ -55,6 +86,7 @@ class MachO:
             raise ValueError('only generic arm64 is supported for offline Rust thunks')
         self.sections = {}
         self.segments = []
+        self.vm_segments = []
         self.starts = []
         self.encrypted = False
         self.uuid = None
@@ -69,6 +101,7 @@ class MachO:
                 name = data[pos+8:pos+24].rstrip(b'\0').decode()
                 vm, vmsize, off, filesize = struct.unpack_from('<QQQQ', data, pos+24)
                 self.segments.append((name, vm, off, filesize))
+                self.vm_segments.append((vm, vmsize, self.u32(pos+60)))
                 for i in range(self.u32(pos+64)):
                     p = pos+72+80*i
                     section = data[p:p+16].rstrip(b'\0').decode()
@@ -127,6 +160,67 @@ class MachO:
     def fingerprint(self, start, end):
         off = self.offset(start)
         return hashlib.sha256(normalized(self.data[off:off+end-start])).hexdigest()
+
+    def portable_fingerprint(self, start, end):
+        """Exact mirror of engine arm64-reloc-v1; legacy review hashes stay separate."""
+        off = self.offset(start)
+        code, pages = bytearray(self.data[off:off+end-start]), {}
+
+        def mapped(address, size, data_address=False):
+            if data_address:
+                if sum(protection != 0 and vm <= address < vm+size
+                       for vm, size, protection in self.vm_segments) != 1:
+                    raise ValueError(f'address {address:#x} has no unique VM mapping')
+                return
+            matches = [(vm, fileoff) for _, vm, fileoff, length in self.segments
+                       if vm <= address and address-vm < length and size <= length-(address-vm)
+                       and fileoff+address-vm+size <= len(self.data)]
+            if len(matches) != 1:
+                raise ValueError(f'address {address:#x} has no unique file mapping')
+
+        for i in range(0, len(code), 4):
+            word = original = struct.unpack_from('<I', code, i)[0]
+            pc, rd, rn = start+i, word & 31, word >> 5 & 31
+            if word & 0x7C000000 == 0x14000000:
+                target = pc + signed(word & 0x3FFFFFF, 26)*4
+                if not start <= target < end:
+                    mapped(target, 4)
+                    word &= 0xFC000000
+                pages.clear()
+            elif word & 0x9F000000 == 0x90000000:
+                page_address(pc, word)
+                pages[rd] = i
+                continue
+            elif rn in pages:
+                low = page_low(word, rn)
+                if low is not None:
+                    producer = pages.pop(rn)
+                    adrp = struct.unpack_from('<I', code, producer)[0]
+                    mapped(page_address(start+producer, adrp)+low, 1, data_address=True)
+                    struct.pack_into('<I', code, producer, adrp & 0x9F00001F)
+                    word &= ~0x3FFC00
+            pages = {reg: producer for reg, producer in pages.items() if preserves_register(original, reg)}
+            if (original & 0xFF000010 == 0x54000000 or original & 0x7E000000 in (0x34000000, 0x36000000) or
+                    original & 0xFFFFFC1F == 0xD65F0000):
+                pages.clear()
+            struct.pack_into('<I', code, i, word)
+        return {'algorithm': 'arm64-reloc-v1', 'size': end-start, 'sha256': hashlib.sha256(code).hexdigest()}
+
+    def portable_references(self, target, start, end, window=6):
+        for pc in range(start, end-4, 4):
+            off = self.offset(pc)
+            word = self.u32(off)
+            if word & 0x9F000000 != 0x90000000:
+                continue
+            page = page_address(pc, word)
+            for step in range(1, min(window, (end-pc-4)//4)+1):
+                consumer = self.u32(off+4*step)
+                low = page_low(consumer, word & 31)
+                if low is not None and page+low == target:
+                    yield pc
+                    break
+                if not preserves_register(consumer, word & 31):
+                    break
 
     def references(self, target):
         for off in range(self.textoff, self.textoff+self.textsize-24, 4):

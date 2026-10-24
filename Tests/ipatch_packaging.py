@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import hashlib
+import copy
 import json
 from pathlib import Path
 import plistlib
@@ -22,12 +23,23 @@ def variant(name, resource=b'metadata'):
     return item, {source: resource}
 
 
-def client_archive(path, variants):
+def client_archive(path, variants, version=1):
     sets, files = [], {}
     for item, entries in variants:
         sets.append(item)
         files.update(entries)
-    write_archive(path, {'format': 'ipatch', 'version': 1, 'name': 'Client patches', 'patch_sets': sets}, files)
+    write_archive(path, {'format': 'ipatch', 'version': version, 'name': 'Client patches', 'patch_sets': sets}, files)
+
+
+def portable_variant(name='portable'):
+    source = f'payloads/{name}/bridge.bin'
+    return {'name': name, 'bundle_ids': ['ph.telegra.Telegraph'], 'binary_patches': [{
+        'search': {'roots': ['.'], 'max_candidates': 128, 'max_bytes': 1 << 30},
+        'profile': {'arch': 'arm64', 'anchors': [{'name': 'send', 'type': 'symbol', 'target': {
+            'type': 'symbol', 'arch': 'arm64', 'name': '_send_'+name}}],
+            'blocks': [{'name': 'bridge', 'source': source, 'size': 4, 'alignment': 4, 'permissions': 'rx'}],
+            'generated_resources': [{'destination': 'TGExtraRustBridge.plist', 'arch': 'arm64',
+                                     'values': {'ABI': {'type': 'uint', 'integer': 5}}}]}}]}, {source: bytes.fromhex('00000014')}
 
 
 class IpatchPackagingTests(unittest.TestCase):
@@ -73,17 +85,25 @@ class IpatchPackagingTests(unittest.TestCase):
             package(output, deb=deb, patches=Path(__file__).resolve().parents[1]/'Patches')
             entries = read_archive(output)
             for item in json.loads(entries['manifest.json'])['patch_sets']:
-                self.assertEqual(set(item), {'name', 'bundle_ids', 'binary_patches', 'resources', 'tweaks'})
+                self.assertTrue(set(item) <= {'name', 'bundle_ids', 'binary_patches', 'resources', 'tweaks'})
                 self.assertTrue(item['name'])
                 self.assertTrue(item['bundle_ids'])
                 for binary in item['binary_patches']:
+                    if 'profile' in binary:
+                        self.assertEqual(json.loads(entries['manifest.json'])['version'], 2)
+                        self.assertNotIn('sha256', binary)
+                        self.assertEqual(binary['profile']['arch'], 'arm64')
+                        for block in binary['profile']['blocks']:
+                            self.assertTrue(block['source'].startswith('payloads/'))
+                            self.assertEqual(len(entries[block['source']]), block['size'])
+                        continue
                     self.assertEqual(len(binary['sha256']), 64)
                     for edit in binary['edits']:
                         self.assertEqual(set(edit), {'target', 'expected', 'replacement'})
                         self.assertEqual(edit['target']['type'], 'offset')
                         self.assertGreaterEqual(edit['target']['offset'], 0)
                         self.assertEqual(len(bytes.fromhex(edit['expected'])), len(bytes.fromhex(edit['replacement'])))
-                for resource in item['resources']:
+                for resource in item.get('resources', []):
                     self.assertEqual(plistlib.loads(entries[resource['source']])['ABI'], 5)
 
     def test_tweak_override_rejection_preserves_output(self):
@@ -117,7 +137,7 @@ class IpatchPackagingTests(unittest.TestCase):
                             'edits': [{'offset': 0, 'expected': original[:4].hex(), 'replacement': '00000000'}]}
             paths = root/'paths.txt'
             with mock_patch('prepare_rust_patch.make_patch', return_value=(binary_patch, {'ABI': 5})):
-                prepare(ipa, output, export=root/'Patches', apply_app=app, paths_file=paths)
+                prepare(ipa, output, export=root/'Patches', apply_app=app, paths_file=paths, legacy=True)
             entries = read_archive(output)
             item = json.loads(entries['manifest.json'])['patch_sets'][0]
             self.assertEqual(item['bundle_ids'], ['app.swiftgram'])
@@ -131,6 +151,109 @@ class IpatchPackagingTests(unittest.TestCase):
             released = json.loads(read_archive(root/'release.ipatch')['manifest.json'])['patch_sets'][0]
             self.assertEqual(released['binary_patches'], item['binary_patches'])
             self.assertEqual(released['resources'], item['resources'])
+
+    def test_v2_generation_exports_payloads_and_matches_repository_packaging(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ipa, output = root/'Client.ipa', root/'Client.ipatch'
+            with zipfile.ZipFile(ipa, 'w') as archive:
+                archive.writestr('Payload/Client.app/Info.plist', plistlib.dumps({'CFBundleIdentifier': 'app.swiftgram'}))
+                archive.writestr('Payload/Client.app/Client', b'\xcf\xfa\xed\xfe[MTProtoRust] mt_engine_create failed')
+            item, files = portable_variant()
+            binary = copy.deepcopy(item['binary_patches'][0])
+            with mock_patch('prepare_rust_patch.make_portable_patch', return_value=(binary, files)):
+                prepare(ipa, output, export=root/'Patches')
+            entries = read_archive(output)
+            value = json.loads(entries['manifest.json'])
+            self.assertEqual(value['version'], 2)
+            generated = value['patch_sets'][0]
+            self.assertNotIn('resources', generated)
+            self.assertEqual(generated['bundle_ids'], ['app.swiftgram'])
+            deb = root/'TGExtra.deb'
+            deb.write_bytes(b'!<arch>\n')
+            package(root/'release.ipatch', deb=deb, patches=root/'Patches')
+            released = read_archive(root/'release.ipatch')
+            sets = json.loads(released['manifest.json'])['patch_sets']
+            self.assertEqual(sets[0]['binary_patches'], generated['binary_patches'])
+            for block in binary['profile']['blocks']:
+                self.assertEqual(released[block['source']], entries[block['source']])
+            other = root/'Other.ipa'
+            with zipfile.ZipFile(other, 'w') as archive:
+                archive.writestr('Payload/Client.app/Info.plist', plistlib.dumps({'CFBundleIdentifier': 'ph.telegra.Telegraph'}))
+                archive.writestr('Payload/Client.app/Client', b'\xcf\xfa\xed\xfe[MTProtoRust] mt_engine_create failed')
+            shared, shared_files = portable_variant()
+            with mock_patch('prepare_rust_patch.make_portable_patch', return_value=(shared['binary_patches'][0], shared_files)):
+                prepare(other, root/'Other.ipatch', export=root/'Patches')
+            shared_sets = json.loads(read_archive(root/'Other.ipatch')['manifest.json'])['patch_sets']
+            self.assertEqual(shared_sets[0]['bundle_ids'], ['app.swiftgram', 'ph.telegra.Telegraph'])
+            self.assertEqual(len(list((root/'Patches').glob('*/patch.json'))), 1)
+
+    def test_mixing_versions_preserves_payloads_and_retires_only_known_legacy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            deb, output, update = root/'TGExtra.deb', root/'TGExtra.ipatch', root/'update.ipatch'
+            deb.write_bytes(b'!<arch>\n')
+            client_archive(root/'old.ipatch', [variant('old'), variant('other')])
+            package(output, deb=deb, merges=[root/'old.ipatch'])
+            old, files = variant('old')
+            retired = root/'Legacy'/'old'
+            retired.mkdir(parents=True)
+            (retired/'patch.json').write_text(json.dumps(old))
+            for source, data in files.items():
+                path = retired/source
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+            client_archive(update, [portable_variant()], version=2)
+            package(output, base=output, merges=[update], retire_patches=root/'Legacy')
+            entries = read_archive(output)
+            value = json.loads(entries['manifest.json'])
+            self.assertEqual(value['version'], 2)
+            self.assertEqual([item['name'] for item in value['patch_sets']], ['other', 'portable'])
+            self.assertEqual(entries['payloads/portable/bridge.bin'], bytes.fromhex('00000014'))
+            self.assertEqual(entries['tweaks/TGExtra.deb'], deb.read_bytes())
+            # Re-merging replaces the same portable profile instead of duplicating it.
+            package(output, base=output, merges=[update], retire_patches=root/'Legacy')
+            self.assertEqual(len(json.loads(read_archive(output)['manifest.json'])['patch_sets']), 2)
+
+    def test_portable_profile_identity_does_not_collapse_distinct_profiles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            deb, output = root/'TGExtra.deb', root/'TGExtra.ipatch'
+            deb.write_bytes(b'!<arch>\n')
+            client_archive(root/'profiles.ipatch', [portable_variant('first'), portable_variant('second')], version=2)
+            package(output, deb=deb, merges=[root/'profiles.ipatch'])
+            self.assertEqual(len(json.loads(read_archive(output)['manifest.json'])['patch_sets']), 2)
+
+    def test_shared_profile_unions_clients_and_updates_payload_without_duplicates(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            deb, output = root/'TGExtra.deb', root/'TGExtra.ipatch'
+            deb.write_bytes(b'!<arch>\n')
+            item, files = portable_variant()
+            client_archive(root/'first.ipatch', [(item, files)], version=2)
+            package(output, deb=deb, merges=[root/'first.ipatch'])
+            item['bundle_ids'] = ['app.swiftgram']
+            item['binary_patches'][0]['profile']['blocks'][0]['source'] = 'payloads/updated/bridge.bin'
+            client_archive(root/'second.ipatch', [(item, {'payloads/updated/bridge.bin': b'next'})], version=2)
+            package(output, base=output, merges=[root/'second.ipatch'])
+            entries = read_archive(output)
+            sets = json.loads(entries['manifest.json'])['patch_sets']
+            self.assertEqual(len(sets), 1)
+            self.assertEqual(sets[0]['bundle_ids'], ['app.swiftgram', 'ph.telegra.Telegraph'])
+            self.assertEqual(entries['payloads/updated/bridge.bin'], b'next')
+            self.assertNotIn('payloads/portable/bridge.bin', entries)
+
+    def test_plan_file_cannot_overwrite_input_or_package(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            ipa, output = root/'Client.ipa', root/'Client.ipatch'
+            ipa.write_bytes(b'input')
+            output.write_bytes(b'package')
+            for plan in (ipa, output):
+                with self.assertRaisesRegex(ValueError, 'plan file must differ'):
+                    prepare(ipa, output, engine=root/'engine', plan_file=plan)
+            self.assertEqual(ipa.read_bytes(), b'input')
+            self.assertEqual(output.read_bytes(), b'package')
 
     def test_no_rust_does_not_generate_an_invalid_empty_ipatch(self):
         with tempfile.TemporaryDirectory() as directory:

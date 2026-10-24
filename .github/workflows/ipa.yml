@@ -167,6 +167,8 @@ jobs:
 
           python3 Tools/prepare_rust_patch.py "$DECRYPTED_IPA" artifacts/client-patches.ipatch \
             --apply-app "$APP_PATH" --patched-paths-file rust-binaries.txt --allow-no-rust
+          # The release archive uses portable v2 profiles. Standalone injection
+          # applies verified hooks offline and does not need a private engine checkout.
           while IFS= read -r binary; do
             ldid -S "$binary"
           done < rust-binaries.txt
@@ -284,6 +286,7 @@ jobs:
           for base in ipatch-base/*.ipatch; do
             if [ -f artifacts/client-patches.ipatch ]; then
               python3 Tools/package_ipatch.py --base "$base" --merge artifacts/client-patches.ipatch \
+                --retire-patches PatchesV1 \
                 --output "artifacts/$(basename "$base")"
             else
               cp "$base" artifacts/

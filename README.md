@@ -79,8 +79,9 @@ private interfaces.
 
 Telegram 13.1's optional Rust MTProto transport requires a binary patch. Release
 ipatch packages include the client patch sets in [`Patches/`](Patches/README.md).
-iOSPatchingEngine selects sets by the original bundle ID and input binaries'
-SHA-256 hashes.
+iOSPatchingEngine v2 selects profiles by the original bundle ID and verified
+machine-code structure, finds the runtime, links bridge payloads and generates
+metadata for the selected image. It records input digests before applying edits.
 Clients without Rust use MtProtoKit.
 
 To generate a patch for another IPA and save its set for future releases:
@@ -89,10 +90,15 @@ To generate a patch for another IPA and save its set for future releases:
 python3 Tools/prepare_rust_patch.py Client.ipa TGExtra-Rust.ipatch --patch-set-dir Patches
 ```
 
-The generator supports unencrypted, thin arm64 images matching its C ABI 5
-instruction patterns. Unknown implementations and insufficient header padding
-are rejected. The reference client is Telegram 13.1.1 (35634); Swiftgram with Rust
-remains untested. The tweak builds for arm64 and arm64e.
+The generator supports unencrypted, thin arm64 references matching its reviewed
+C ABI 5 instruction patterns. It emits portable v2 profiles; add
+`--engine /path/to/ipatch --plan-file plan.json` to validate through the engine.
+The engine must include the zero-fill fingerprint fix in
+[`Tools/iOSPatchingEngine-v2.patch`](Tools/iOSPatchingEngine-v2.patch).
+Unknown implementations and insufficient header padding are rejected. The
+reference client is Telegram 13.1.1 (35634); Swiftgram with Rust remains untested.
+Portable operations target generic arm64; the tweak builds for arm64 and arm64e.
+Archived v1 sets remain in `PatchesV1/` for older engines.
 Regenerate older bridge archives to include the metadata needed for protected-copy
 recovery.
 
@@ -108,12 +114,15 @@ Pushes to `main` run checks and publish rootful, rootless and roothide packages,
 plus a matching `.ipatch` for each DEB, to `prerelease`. Each ipatch embeds its
 corresponding DEB and all committed client patch sets. Tags publish versioned
 releases. Install either the DEB or its ipatch; the ipatch requires a matching
-Rust client build.
+Rust compatibility profile and a v2-capable engine.
 
 The manual IPA workflow takes a required `decrypted_ipa_url` and optional
 `release_tag`. It applies the Rust bridge before signing, publishes IPA/TIPA
-assets and adds the generated client set to every release ipatch. Existing client
-sets and the DEB embedded in each variant are retained. Clients without Rust
+assets and adds the generated portable profile to every release ipatch. The
+archived legacy Telegram set is retired when its portable replacement is present;
+other client sets and the DEB embedded in each variant are retained. Standalone
+IPA injection keeps the verified offline application path and does not require a
+private engine checkout. Clients without Rust
 produce no new patch set and keep the existing release ipatches. The workflows
 require `GITHUB_TOKEN` release permissions.
 
