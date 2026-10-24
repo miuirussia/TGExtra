@@ -29,6 +29,10 @@ func testReadContents() {
     observe(91001)
     observe(91001, peer: .peerChannel(.init(channelId: 77)))
     observe(91003, account: "account-2")
+    for peer in [Api.Peer.peerUser(.init(userId: 42)), .peerChannel(.init(channelId: 77))] {
+        _ = patch(message(91002, peer: peer))
+        _ = patch(message(91004, peer: peer))
+    }
     // Chat auto-delete is independent of opening disappearing media.
     flags("TGExtraAntiSelfDestruct", "TGExtraAntiAutoDelete")
     _ = patch(message(91004, ttl: 60))
@@ -50,6 +54,12 @@ func testReadContents() {
         verify(contents([91002, 91001, 91004, 91002], channel: channelInput),
                expected: contents([91002, 91004, 91002], channel: channelInput), channel: channelInput != nil)
     }
+    verify(contents([91001]), blocked: true, account: "account-2")
+    verify(contents([91003]), blocked: true)
+    verify(contents([91001], channel: otherChannel), blocked: true, channel: true)
+    _ = strip(serialized(message(91001)), account: "account-2")
+    _ = patch(message(91003))
+    _ = patch(message(91001, peer: .peerChannel(.init(channelId: 78))))
     verify(contents([91001]), account: "account-2")
     verify(contents([91003]))
     verify(contents([91001], channel: otherChannel), channel: true)
@@ -78,6 +88,50 @@ func testReadContents() {
     flags()
     verify(contents([91001]))
     verify(contents([91001], channel: channel), channel: true)
+
+    // Media loaded before protection was enabled has no persistent TTL marker.
+    // With every tracker off, even a cached ordinary message remains unknown.
+    defaults.set(false, forKey: "TGExtraGhostModeEnabled")
+    for peer in [Api.Peer.peerUser(.init(userId: 42)), .peerChannel(.init(channelId: 77))] {
+        observe(91101, peer: peer)
+        let video = Api.MessageMedia.messageMediaDocument(.init(flags: 4, document: nil, altDocuments: nil,
+            videoCover: nil, videoTimestamp: nil, ttlSeconds: 5))
+        _ = patch(message(91102, peer: peer, media: video))
+        _ = patch(message(91103, peer: peer))
+    }
+    flags("TGExtraAntiSelfDestruct")
+    for input in [nil, channel, fromMessage] as [Api.InputChannel?] {
+        verify(contents([91101, 91102, 91103], channel: input), blocked: true, channel: input != nil)
+    }
+    for peer in [Api.Peer.peerUser(.init(userId: 42)), .peerChannel(.init(channelId: 77))] {
+        _ = patch(message(91103, peer: peer))
+        // Reaction-only updates do not classify a message's media.
+        _ = patch(Api.Update.updateMessageReactions(.init(flags: 0, peer: peer, msgId: 91104,
+            topMsgId: nil, savedPeerId: nil,
+            reactions: .messageReactions(.init(flags: 0, results: [], recentReactions: nil, topReactors: nil)))))
+    }
+    for input in [nil, channel, fromMessage] as [Api.InputChannel?] {
+        verify(contents([91101, 91103, 91102, 91104, 91103], channel: input),
+               expected: contents([91103, 91103], channel: input), channel: input != nil)
+    }
+    TGExtraTestSetGhostException(42, true)
+    verify(contents([91101]), blocked: true) // Exceptions cannot bypass unknown media protection.
+    TGExtraTestSetGhostException(42, false)
+    TLParser.clearMessageData()
+    verify(contents([91103]), blocked: true)
+    flags()
+    verify(contents([91101, 91102, 91103, 91104]))
+    defaults.set(true, forKey: "disableMentionReadReceipt")
+    observe(91105) // A privacy tracker may observe TTL media while protection is off.
+    flags("TGExtraAntiSelfDestruct")
+    verify(contents([91105]), blocked: true)
+    defaults.set(false, forKey: "disableMentionReadReceipt")
+    _ = patch(Api.Updates.updateShortMessage(.init(flags: 0, id: 91106, userId: 42, message: "Plain text", pts: 1, ptsCount: 1,
+        date: 100, fwdFrom: nil, viaBotId: nil, replyTo: nil, entities: nil, ttlPeriod: nil)))
+    _ = patch(Api.Updates.updateShortChatMessage(.init(flags: 0, id: 91107, fromId: 42, chatId: 77, message: "Plain text",
+        pts: 2, ptsCount: 1, date: 100, fwdFrom: nil, viaBotId: nil, replyTo: nil, entities: nil, ttlPeriod: nil)))
+    verify(contents([91106, 91107]))
+    flags()
 
     // Exercise each privacy switch independently, with all other features off.
     let reaction = Api.Reaction.reactionEmoji(.init(emoticon: "👍"))

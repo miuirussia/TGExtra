@@ -34,7 +34,8 @@ fingers, or tap the Chats tab five times.
   up to 4000 account-scoped observations in memory; unknown accounts, missing
   observations and incomplete states are blocked by the enabled content privacy
   switches until classified. Disappearing-media protection also blocks content
-  reads when the account cannot be resolved.
+  reads for unknown or evicted messages and unresolved accounts; only messages
+  observed without disappearing media can pass through.
 - Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
   apply to typing and read receipts; online status remains hidden globally.
 - Save and forward protected content
