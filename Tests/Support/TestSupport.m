@@ -90,6 +90,30 @@ static NSData *typingPayload(int64_t user, int32_t action) {
 @implementation TestHistoryRequestService
 @end
 
+NSDictionary *TGExtraTestReadContentsRequest(NSData *payload, NSString *account) {
+    MTRequest *request = [MTRequest new];
+    id (^parser)(NSData *) = ^id(NSData *bytes) { return bytes; };
+    [request setPayload:payload metadata:@"metadata" shortMetadata:@"short" responseParser:parser];
+    TestHistoryUsage *usage = [TestHistoryUsage new];
+    usage.filePath = account ? [NSString stringWithFormat:@"/accounts/%@/network-stats", account] : nil;
+    TestHistoryRequestService *service = [TestHistoryRequestService new];
+    service.mtProto = [[TestHistoryMTProto alloc] initWithUsage:usage];
+    TGExtraSetHistoryRequestService(request, service);
+    TGExtraPrepareReadContentsRequest(request, account);
+    NSCAssert(!TGExtraIsPreparingReadContentsRequest(request), @"Preparation guard is cleared");
+    NSCAssert([request.metadata isEqual:@"metadata"] && [request.shortMetadata isEqual:@"short"], @"Rewriting preserves request metadata");
+    NSCAssert(request.responseParser == parser, @"Rewriting preserves the existing response wrapper");
+    NSCAssert([TGExtraHistoryAccountForRequest(request) isEqual:account] || account == nil, @"Rewriting preserves the service's account binding");
+    NSMutableDictionary *result = [@{@"payload": request.payload} mutableCopy];
+    if (request.fakeData) result[@"response"] = request.responseParser(request.fakeData);
+    return result;
+}
+
+void TGExtraTestSetGhostException(int64_t peerId, BOOL enabled) {
+    if (enabled) [TGExtraGhostExceptions addPeerId:peerId name:@"Read test" username:nil];
+    else [TGExtraGhostExceptions removePeerId:peerId];
+}
+
 void TGExtraTestHandlersAndMigration(void) {
     TestHistoryUsage *usage = [TestHistoryUsage new];
     usage.filePath = @"/old-container/accounts/account-18446744073709551615/network-stats";

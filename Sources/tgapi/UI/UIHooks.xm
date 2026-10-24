@@ -1359,6 +1359,8 @@ static void hook() {
         kAntiEdit: @NO,
         kAntiSelfDestruct: @NO,
         kDisableMessageReadReceipt: @NO,
+        kDisableReactionReadReceipt: @NO,
+        kDisableMentionReadReceipt: @NO,
         kDisableStoriesReadReceipt: @NO,
         kDisableOnlineStatus: @NO,
         kDisableTypingStatus: @NO,

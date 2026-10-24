@@ -65,6 +65,11 @@
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Desactivar recibos de lectura de mensajes";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "No mostrar que has leído el mensaje.";
 
+"DISABLE_REACTION_READ_RECEIPT_TITLE" = "Ocultar lectura de reacciones";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "No marcar como leídas las reacciones vistas.";
+"DISABLE_MENTION_READ_RECEIPT_TITLE" = "Ocultar lectura de menciones";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "No marcar como leídas las menciones vistas.";
+
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "Desactivar recibos de lectura de historias";
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "No mostrar que has visto la historia.";
 

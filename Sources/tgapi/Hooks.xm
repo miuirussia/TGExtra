@@ -6,7 +6,7 @@
 %property(nonatomic, strong) NSNumber *functionID;
 
 - (void)setPayload:(NSData *)payload metadata:(id)metadata shortMetadata:(id)shortMetadata responseParser:(id (^)(NSData *))responseParser {
-    if (TGExtraIsInternalCopyRequest(self)) {
+    if (TGExtraIsInternalCopyRequest(self) || TGExtraIsPreparingReadContentsRequest(self)) {
         %orig;
         return;
     }
@@ -39,6 +39,7 @@
         return;
     }
     TGExtraSetHistoryRequestService(request, self);
+    TGExtraPrepareReadContentsRequest(request, TGExtraHistoryAccountForRequest(request));
     TGExtraWrapForwardRequest(request, self);
     if (request.fakeData && request.completed && request.responseParser) {
         MTRequestResponseInfo *info = [[%c(MTRequestResponseInfo) alloc]

@@ -10,6 +10,7 @@ NSString *TGExtraHistoryAccountForMTProto(id mtProto);
 NSString *TGExtraHistoryAccountForRequestService(id service);
 void TGExtraSetHistoryRequestService(id request, id service);
 NSString *TGExtraHistoryAccountForRequest(id request);
+BOOL TGExtraIsGhostException(int64_t userId);
 
 #ifdef __cplusplus
 }

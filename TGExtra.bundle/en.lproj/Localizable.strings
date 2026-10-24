@@ -65,6 +65,11 @@
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Disable Message Read Receipts";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Others won't see that you've read their messages.";
 
+"DISABLE_REACTION_READ_RECEIPT_TITLE" = "Hide Reaction Reads";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "Do not mark viewed reactions as read.";
+"DISABLE_MENTION_READ_RECEIPT_TITLE" = "Hide Mention Reads";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "Do not mark viewed mentions as read.";
+
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "Disable Story View Receipts";
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Others won't see that you've viewed their stories.";
 

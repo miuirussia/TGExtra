@@ -232,7 +232,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     numberOfRowsInSection:(NSInteger)section {
   switch (section) {
   case GHOST_MODE:
-    return 2 + (self.isGhostModeExpanded ? 19 : 0);
+    return 2 + (self.isGhostModeExpanded ? [TGExtra ghostSubFeatureKeys].count : 0);
   case GHOST_EXCEPTIONS:
     // Falls back to a single explanatory row when the list is empty, so the
     // section never renders as a bare header.
@@ -415,6 +415,14 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
         cell.detailTextLabel.text =
             TGLoc(@"DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE");
       } else if (ghostRow == 18) {
+        cell.textLabel.text = TGLoc(@"DISABLE_REACTION_READ_RECEIPT_TITLE");
+        cell.detailTextLabel.text =
+            TGLoc(@"DISABLE_REACTION_READ_RECEIPT_SUBTITLE");
+      } else if (ghostRow == 19) {
+        cell.textLabel.text = TGLoc(@"DISABLE_MENTION_READ_RECEIPT_TITLE");
+        cell.detailTextLabel.text =
+            TGLoc(@"DISABLE_MENTION_READ_RECEIPT_SUBTITLE");
+      } else if (ghostRow == 20) {
         cell.textLabel.text = TGLoc(@"DISABLE_STORY_READ_RECEIPT_TITLE");
         cell.detailTextLabel.text =
             TGLoc(@"DISABLE_STORY_READ_RECEIPT_SUBTITLE");
@@ -937,7 +945,8 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       kDisableRecordingRoundVideoStatus, kDisableUploadingRoundVideoStatus,
       kDisableSpeakingInGroupCallStatus, kDisableChoosingStickerStatus,
       kDisableEmojiInteractionStatus, kDisableEmojiAcknowledgementStatus,
-      kDisableMessageReadReceipt, kDisableStoriesReadReceipt
+      kDisableMessageReadReceipt, kDisableReactionReadReceipt,
+      kDisableMentionReadReceipt, kDisableStoriesReadReceipt
     ];
   });
   return keys;

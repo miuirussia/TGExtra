@@ -65,6 +65,11 @@
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Désactiver les accusés de réception de message";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Ne pas afficher que vous avez lu le message.";
 
+"DISABLE_REACTION_READ_RECEIPT_TITLE" = "Masquer la lecture des réactions";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "Ne pas marquer les réactions vues comme lues.";
+"DISABLE_MENTION_READ_RECEIPT_TITLE" = "Masquer la lecture des mentions";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "Ne pas marquer les mentions vues comme lues.";
+
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "Désactiver les accusés de réception des stories";
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Ne pas afficher que vous avez vu la story.";
 

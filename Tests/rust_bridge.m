@@ -3,6 +3,7 @@
 
 static TGERustEventCallback eventCallback;
 static void *callbackContext;
+static void *testEngine;
 static NSData *sent, *received;
 static uint64_t sentId, sentAfter, nextSession;
 static uint32_t sentFlags, sentExpected;
@@ -52,6 +53,23 @@ static uint64_t scopedSession(void *engine, NSString *path) {
     return [TGExtraRustBridge sessionCreate:engine setup:NULL original:createSession];
 }
 
+NSDictionary *TGExtraTestRustReadContentsRequest(NSData *payload, NSString *account, NSData *serverResponse) {
+    // Reuse the registered engine: a duplicate callback context intentionally
+    // bypasses the bridge and would test the raw mock instead of its policy.
+    void *engine = testEngine;
+    NSCAssert(engine != NULL, @"The Rust bridge fixture must be initialized first");
+    uint64_t session = scopedSession(engine, account ? [NSString stringWithFormat:@"/accounts/%@/network-stats", account] : nil);
+    TGERustRequest request = {700, {payload.bytes, payload.length}, 0x89, 1024, 17};
+    [TGExtraRustBridge send:engine session:session request:&request original:sendRequest];
+    NSCAssert(sentId == 700 && sentFlags == 0x89 && sentExpected == 1024 && sentAfter == 17, @"Content filtering preserves Rust scheduling metadata");
+    NSData *wire = sent;
+    emit(session, 1, 700, serverResponse);
+    NSData *result = received;
+    [TGExtraRustBridge bufferFree:(__bridge void *)serverResponse original:rawFree];
+    [TGExtraRustBridge sessionDestroy:engine session:session original:destroySession];
+    return @{@"payload": wire, @"response": result};
+}
+
 void TGExtraTestRustBridge(void) {
     NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
     NSDictionary *saved = defaults.dictionaryRepresentation;
@@ -60,6 +78,7 @@ void TGExtraTestRustBridge(void) {
     [TGExtraRustBridge setBufferData:rawData length:rawLength];
     callbackContext = (void *)0x6789;
     void *engine = [TGExtraRustBridge engineCreate:0 context:callbackContext event:hostEvent log:NULL original:createEngine];
+    testEngine = engine;
     uint64_t session = [TGExtraRustBridge sessionCreate:engine setup:NULL original:createSession];
     uint32_t online[] = {(uint32_t)kAccountUpdateOnlineStatus, 0xbc799737};
     TGERustRequest request = {41, {(const uint8_t *)online, sizeof(online)}, 0x89, 1024, 17};

@@ -1,7 +1,9 @@
 #import "Headers.h"
 #import "GhostExceptions.h"
+#import <objc/runtime.h>
 
 NSData *boolTrue(void);
+static void handleContentReadReceipt(MTRequest *request, NSData *payload, NSString *key);
 
 // Both transports use the same request policy. The carrier only needs fakeData;
 // it must not allocate a host MTRequest or invoke its payload hooks recursively.
@@ -20,14 +22,12 @@ NSData *TGExtraFakeResponseForPayload(NSData *payload) {
         case kAccountUpdateOnlineStatus: handleOnlineStatus(decision, payload); break;
         case kMessagesSetTypingAction: handleSetTyping(decision, payload); break;
         case kMessagesReadHistory: handleMessageReadReceipt(decision, payload); break;
+        case kMessagesReadMentions: handleContentReadReceipt(decision, payload, kDisableMentionReadReceipt); break;
+        case kMessagesReadReactions: handleContentReadReceipt(decision, payload, kDisableReactionReadReceipt); break;
         case kStoriesReadStories: handleStoriesReadReceipt(decision, payload); break;
         case kGetSponsoredMessages: handleGetSponsoredMessages(decision, payload); break;
         case -871347913: handleChannelsReadReceipt(decision, payload); break;
         case kSendScreenshotNotification: handleSendScreenshotNotification(decision, payload); break;
-        case kChannelsReadMessageContents:
-            if ([[NSUserDefaults standardUserDefaults] boolForKey:kAntiSelfDestruct]) decision.fakeData = boolTrue();
-            break;
-        case kMessagesReadMessageContents: handleReadMessageContents(decision, payload); break;
     }
     return decision.fakeData;
 }
@@ -239,6 +239,25 @@ void handleMessageReadReceipt(MTRequest *request, NSData *payload) {
 	}
 }
 
+static void handleContentReadReceipt(MTRequest *request, NSData *payload, NSString *key) {
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    if (![defaults boolForKey:kGhostModeEnabled] || ![defaults boolForKey:key] || payload.length < 8) return;
+    int32_t function = 0, flags = 0;
+    [payload getBytes:&function length:4];
+    [payload getBytes:&flags range:NSMakeRange(4, 4)];
+    int offset = 8;
+    int64_t peerUserId = 0;
+    if (!read_Input_Peer(payload, &offset, &peerUserId, 0) || isGhostException(peerUserId)) return;
+    int32_t supportedFlags = function == kMessagesReadMentions ? 1 : 3;
+    if (flags & ~supportedFlags) return;
+    if (flags & 1) offset += 4;
+    if ((NSUInteger)offset > payload.length) return;
+    if ((flags & 2) && !read_Input_Peer(payload, &offset, NULL, 0)) return;
+    if ((NSUInteger)offset != payload.length) return;
+    int32_t response[] = {(int32_t)0xb45c69d1, 0, 0, 0}; // messages.affectedHistory
+    request.fakeData = [NSData dataWithBytes:response length:sizeof(response)];
+}
+
 void handleStoriesReadReceipt(MTRequest *request, NSData *payload) {
     int offset = 4;
     int64_t peerUserId = 0;
@@ -278,23 +297,24 @@ void handleSendScreenshotNotification(MTRequest *request, NSData *payload) {
 	}
 }
 
-// Anti-Self-Destruct: intercept messages.readMessageContents
-// This call tells the server a TTL/disappearing message was opened.
-// Blocking it prevents the server from starting the deletion timer.
-// The media can be viewed locally without triggering server-side expiry.
-void handleReadMessageContents(MTRequest *request, NSData *payload) {
-	if ([[NSUserDefaults standardUserDefaults] boolForKey:kAntiSelfDestruct]) {
-		// Return a fake messages.affectedMessages with pts=0, pts_count=0
-		// so the client thinks the request succeeded but nothing actually happens
-		uint8_t header[] = {0x85, 0x91, 0xD1, 0x84}; // messages.affectedMessages#84d19185
-		int32_t pts = 0;
-		int32_t pts_count = 0;
+static char preparingReadContentsKey;
 
-		NSMutableData *data = [NSMutableData data];
-		[data appendBytes:&header length:sizeof(header)];
-		[data appendBytes:&pts length:sizeof(pts)];
-		[data appendBytes:&pts_count length:sizeof(pts_count)];
+BOOL TGExtraIsPreparingReadContentsRequest(MTRequest *request) {
+    return [objc_getAssociatedObject(request, &preparingReadContentsKey) boolValue];
+}
 
-		request.fakeData = data;
-	}
+// Run after the service is attached: setPayload alone has no account identity.
+void TGExtraPrepareReadContentsRequest(MTRequest *request, NSString *account) {
+    if (request.payload.length < 4) return;
+    NSDictionary *policy = [TLParser readMessageContentsPolicy:request.payload account:account];
+    if (!policy) return;
+    request.fakeData = policy[@"response"];
+    NSData *payload = policy[@"payload"];
+    if (!payload) return;
+    objc_setAssociatedObject(request, &preparingReadContentsKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    @try {
+        [request setPayload:payload metadata:request.metadata shortMetadata:request.shortMetadata responseParser:request.responseParser];
+    } @finally {
+        objc_setAssociatedObject(request, &preparingReadContentsKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
 }

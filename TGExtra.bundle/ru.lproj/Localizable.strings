@@ -65,6 +65,11 @@
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Отключить отчёты о прочтении сообщений";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Не сообщать, что вы прочитали сообщение.";
 
+"DISABLE_REACTION_READ_RECEIPT_TITLE" = "Скрыть прочтение реакций";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "Не отмечать просмотренные реакции прочитанными.";
+"DISABLE_MENTION_READ_RECEIPT_TITLE" = "Скрыть прочтение упоминаний";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "Не отмечать просмотренные упоминания прочитанными.";
+
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "Отключить отчёты о прочтении историй";
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Не сообщать, что вы просмотрели историю.";
 

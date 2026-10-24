@@ -471,6 +471,9 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         TGERustPending *pending = [TGERustPending new];
         pending.payload = TGExtraRewriteRequestPayload(payload);
         pending.fakeResponse = TGExtraFakeResponseForPayload(pending.payload);
+        NSDictionary *contentPolicy = [TLParser readMessageContentsPolicy:pending.payload account:state.account];
+        if (contentPolicy[@"payload"]) pending.payload = contentPolicy[@"payload"];
+        if (contentPolicy[@"response"]) pending.fakeResponse = contentPolicy[@"response"];
         int32_t function = 0;
         [pending.payload getBytes:&function length:4];
         pending.guardsDependency = function == 0x13704a7c && state.service &&

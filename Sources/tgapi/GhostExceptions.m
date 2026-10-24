@@ -9,6 +9,10 @@ NSString *const kTGExtraGhostExceptionCustom = @"customName";
 NSString *const kTGExtraGhostExceptionsChangedNotification =
     @"TGExtraGhostExceptionsChanged";
 
+BOOL TGExtraIsGhostException(int64_t userId) {
+  return userId > 0 && [TGExtraGhostExceptions containsPeerId:userId];
+}
+
 @implementation TGExtraGhostExceptions
 
 // One lock guards both caches. Contention is negligible: reads only happen for

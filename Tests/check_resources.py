@@ -17,6 +17,17 @@ cell = menu[menu.index('  } else if (indexPath.section == MISC)'):]
 cell = cell[:cell.index('  } else if (indexPath.section == FILE_FIXER)')]
 assert set(map(int, re.findall(r'indexPath.row == (\d+)', cell))) == set(rows), 'Switch labels and settings keys must use the same rows'
 
+ghost_keys = menu[menu.index('+ (NSArray<NSString *> *)ghostSubFeatureKeys {'):]
+ghost_keys = re.findall(r'kDisable\w+', ghost_keys[:ghost_keys.index('return keys;')])
+ghost_cells = menu[menu.index('      } else if (ghostRow == 17)'):menu.index('    UISwitch *toggle')]
+for index, (key, label) in enumerate([
+    ('kDisableMessageReadReceipt', 'MESSAGE'), ('kDisableReactionReadReceipt', 'REACTION'),
+    ('kDisableMentionReadReceipt', 'MENTION'), ('kDisableStoriesReadReceipt', 'STORY'),
+], 17):
+    assert ghost_keys[index] == key, f'{key} must have its own Ghost Mode row'
+    assert re.search(r'ghostRow == ' + str(index) + r'\).*?TGLoc\(@"DISABLE_' + label + r'_READ_RECEIPT_TITLE"', ghost_cells, re.S), f'{key} needs its own label'
+assert 'self.isGhostModeExpanded ? [TGExtra ghostSubFeatureKeys].count : 0' in menu, 'Expanded Ghost Mode rows must include every subfeature'
+
 pattern = re.compile(r'^\s*"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;\s*$', re.M)
 english = dict(pattern.findall((ROOT / 'TGExtra.bundle/en.lproj/Localizable.strings').read_text()))
 for path in (ROOT / 'TGExtra.bundle').glob('*.lproj/Localizable.strings'):
@@ -36,6 +47,7 @@ for constant, function in {
     'kMessagesUploadMedia': 'uploadMedia', 'kMessagesReadMessageContents': 'readMessageContents',
     'kChannelsReadMessageContents': 'readMessageContents', 'kGetSponsoredMessages': 'getSponsoredMessages',
     'kMessagesSetTypingAction': 'setTyping', 'kMessagesReadHistory': 'readHistory',
+    'kMessagesReadMentions': 'readMentions', 'kMessagesReadReactions': 'readReactions',
     'kStoriesReadStories': 'readStories', 'kSendScreenshotNotification': 'sendScreenshotNotification',
     'kGetAppConfig': 'getAppConfig',
 }.items():

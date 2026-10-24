@@ -24,6 +24,17 @@ fingers, or tap the Chats tab five times.
     Restart Telegram after installing the update to refresh this configuration.
 - Ghost Mode
 - No Read Receipt for messages and Stories
+- Separate Ghost Mode switches for message, reaction, mention and story read
+  receipts. The new reaction/mention switches default to off and respect user
+  exceptions. They cover both bulk and individual acknowledgements on both
+  transports. Disappearing-media protection remains independent.
+  Individual content reads acknowledge all unread content on one message at
+  once: hiding one category also suppresses other content reads on that same
+  message. Other IDs in a mixed batch still pass through. Classification uses
+  up to 4000 account-scoped observations in memory; unknown accounts, missing
+  observations and incomplete states are blocked by the enabled content privacy
+  switches until classified. Disappearing-media protection also blocks content
+  reads when the account cannot be resolved.
 - Ghost exceptions: manage users from their profile or the tweak menu. Exceptions
   apply to typing and read receipts; online status remains hidden globally.
 - Save and forward protected content

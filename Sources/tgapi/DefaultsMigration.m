@@ -15,7 +15,8 @@ void TGExtraMigrateDefaults(NSUserDefaults *defaults) {
                 kDisableChoosingContactStatus, kDisablePlayingGameStatus, kDisableRecordingRoundVideoStatus,
                 kDisableUploadingRoundVideoStatus, kDisableSpeakingInGroupCallStatus,
                 kDisableChoosingStickerStatus, kDisableEmojiInteractionStatus, kDisableEmojiAcknowledgementStatus,
-                kDisableMessageReadReceipt, kDisableStoriesReadReceipt
+                kDisableMessageReadReceipt, kDisableReactionReadReceipt,
+                kDisableMentionReadReceipt, kDisableStoriesReadReceipt
             ]) enabled |= [defaults boolForKey:key];
             [defaults setBool:enabled forKey:kGhostModeEnabled];
         }

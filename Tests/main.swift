@@ -671,6 +671,7 @@ check(defaults.object(forKey: "TGExtraEditHistoryByAccount") == nil, "Repeated c
 print("PASS message database clearing, legacy removal, delayed writes, notifications and preserved settings")
 
 
+testReadContents()
 testMessageProtection()
 testForwardCopies()
 testForwardCopies(rust: true)

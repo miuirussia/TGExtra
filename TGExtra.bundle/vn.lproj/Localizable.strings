@@ -64,6 +64,11 @@
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Tắt trạng thái đã đọc tin nhắn";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Ngăn người khác thấy bạn đã đọc tin nhắn của họ.";
 
+"DISABLE_REACTION_READ_RECEIPT_TITLE" = "Ẩn trạng thái đã đọc biểu cảm";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "Không đánh dấu biểu cảm đã xem là đã đọc.";
+"DISABLE_MENTION_READ_RECEIPT_TITLE" = "Ẩn trạng thái đã đọc lượt nhắc";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "Không đánh dấu lượt nhắc đã xem là đã đọc.";
+
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "Tắt trạng thái đã xem story";
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Ngăn người khác thấy bạn đã xem story của họ.";
 

@@ -16,6 +16,46 @@ class TLParser: NSObject {
     private static let disappearingMarker = 2
     private static let autoDeleteMarker = 4
 
+    private struct ContentReadState {
+        var peer: Int64
+        var mention: Bool?
+        var reaction: Bool?
+    }
+    // Account-scoped metadata only. Unknown/evicted entries remain blocked by
+    // enabled content privacy toggles until a network observation classifies them.
+    private static var contentReadStates = [EditKey: ContentReadState]()
+    private static var contentReadOrder = [EditKey]()
+
+    private static var tracksContentReads: Bool {
+        let defaults = UserDefaults.standard
+        return defaults.bool(forKey: "disableMentionReadReceipt") || defaults.bool(forKey: "disableReactionReadReceipt")
+    }
+
+    private static func noteContentReadState(id: Int32, peer: Int64, mention: Bool? = nil, reaction: Bool?) {
+        guard tracksContentReads, processingNamespace == 0,
+              let key = markerKey(id: id, peer: peer, account: processingHistoryAccount, namespace: 0) else { return }
+        if contentReadStates[key] == nil {
+            if contentReadOrder.count >= 4000 { contentReadStates.removeValue(forKey: contentReadOrder.removeFirst()) }
+            contentReadOrder.append(key)
+        }
+        var state = contentReadStates[key] ?? ContentReadState(peer: peer)
+        state.peer = peer
+        if let mention = mention { state.mention = mention }
+        state.reaction = reaction == nil && state.reaction == true ? true : reaction
+        contentReadStates[key] = state
+    }
+
+    private static func hasUnreadReactions(_ reactions: Api.MessageReactions?) -> Bool? {
+        guard case let .messageReactions(data)? = reactions else { return false }
+        if data.recentReactions?.contains(where: {
+            switch $0 {
+            case let .messagePeerReaction(reaction): return reaction.flags & (1 << 1) != 0
+            }
+        }) == true { return true }
+        // A min constructor does not provide a complete unread state.
+        return data.flags & 1 == 0 ? false : nil
+    }
+
     private static func loadMarkers() {
         guard !markersLoaded else { return }
         markersLoaded = true
@@ -436,6 +476,8 @@ class TLParser: NSObject {
         UserDefaults.standard.removeObject(forKey: snapshotUdKey)
         markersLoaded = true
         messageMarkers.removeAll()
+        contentReadStates.removeAll()
+        contentReadOrder.removeAll()
         for key in [markerUdKey, "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"] {
             UserDefaults.standard.removeObject(forKey: key)
         }
@@ -1451,6 +1493,72 @@ class TLParser: NSObject {
                           namespace: namespace?.int32Value ?? 0) & disappearingMarker != 0
     }
 
+    /// Content reads also acknowledge mentions, reactions and playable media.
+    /// Filter each category independently; one message ID is acknowledged atomically.
+    @objc(readMessageContentsPolicy:account:) static func readMessageContentsPolicy(_ payload: NSData, account: String?) -> [String: NSData]? {
+        guard payload.length >= 4 else { return nil }
+        var function: Int32 = 0
+        payload.getBytes(&function, length: 4)
+        function = Int32(littleEndian: function)
+        guard function == 916930423 || function == -357180360 else { return nil }
+        let defaults = UserDefaults.standard
+        let protectMedia = defaults.bool(forKey: "TGExtraAntiSelfDestruct")
+        let ghost = defaults.bool(forKey: "TGExtraGhostModeEnabled")
+        let hideMentions = ghost && defaults.bool(forKey: "disableMentionReadReceipt")
+        let hideReactions = ghost && defaults.bool(forKey: "disableReactionReadReceipt")
+        guard protectMedia || hideMentions || hideReactions else { return nil }
+        let reader = BufferReader(Buffer(nsData: payload))
+        _ = reader.readInt32()
+        var peer = cloudScope
+        if function == -357180360 {
+            guard let constructor = reader.readInt32(),
+                  let channel = Api.parse(reader, signature: constructor) as? Api.InputChannel else { return nil }
+            let channelId: Int64
+            switch channel {
+            case let .inputChannel(data): channelId = data.channelId
+            case let .inputChannelFromMessage(data): channelId = data.channelId
+            default: return nil
+            }
+            guard channelId > 0, channelId <= Int64.max - 1_000_000_000_000 else { return nil }
+            peer = -(1_000_000_000_000 + channelId)
+        }
+        let prefixLength = Int(reader.offset)
+        guard reader.readInt32() == 481674261, let count = reader.readInt32(), count > 0,
+              payload.length - Int(reader.offset) == Int(count) * 4 else { return nil }
+        var ids = [Int32]()
+        for _ in 0..<count {
+            guard let id = reader.readInt32() else { return nil }
+            ids.append(id)
+        }
+        processingLock.lock()
+        let allowed = ids.filter {
+            guard let key = markerKey(id: $0, peer: peer, account: account, namespace: 0) else { return false }
+            if protectMedia && markerBits(id: $0, peer: peer, account: account, namespace: 0) & disappearingMarker != 0 { return false }
+            guard hideMentions || hideReactions else { return true }
+            guard let state = contentReadStates[key] else { return false }
+            if TGExtraIsGhostException(state.peer) { return true }
+            return !(hideMentions && (state.mention ?? true)) && !(hideReactions && (state.reaction ?? true))
+        }
+        processingLock.unlock()
+        guard allowed.count != ids.count else { return nil }
+        if allowed.isEmpty {
+            let response = Buffer()
+            if function == -357180360 {
+                response.appendInt32(Int32(bitPattern: 0x997275b5)) // boolTrue
+            } else {
+                response.appendInt32(Int32(bitPattern: 0x84d19185)) // messages.affectedMessages
+                response.appendInt32(0)
+                response.appendInt32(0)
+            }
+            return ["response": response.makeData() as NSData]
+        }
+        let filtered = Buffer(data: payload.subdata(with: NSRange(location: 0, length: prefixLength)))
+        filtered.appendInt32(481674261)
+        filtered.appendInt32(Int32(allowed.count))
+        for id in allowed { filtered.appendInt32(id) }
+        return ["payload": filtered.makeData() as NSData]
+    }
+
     private static func recordTimedId(_ id: Int32, scope: Int64, disappearing: Bool) {
         recordMarker(disappearing ? disappearingMarker : autoDeleteMarker,
                      id: id, peer: scope, account: processingHistoryAccount, namespace: processingNamespace)
@@ -1574,6 +1682,7 @@ class TLParser: NSObject {
     private static func stripTTLMessage(_ apiMsg: Api.Message) -> (Api.Message, Bool) {
         let defaults = UserDefaults.standard
         if case let .messageService(data) = apiMsg {
+            noteContentReadState(id: data.id, peer: peerKey(data.peerId), mention: false, reaction: hasUnreadReactions(data.reactions))
             guard data.ttlPeriod != nil else { return (apiMsg, false) }
             recordTimedId(data.id, scope: deletionScope(data.peerId), disappearing: false)
             guard defaults.bool(forKey: "TGExtraAntiAutoDelete") else { return (apiMsg, false) }
@@ -1583,6 +1692,9 @@ class TLParser: NSObject {
         }
         guard case let .message(data) = apiMsg else { return (apiMsg, false) }
         let scope = deletionScope(data.peerId)
+        noteContentReadState(id: data.id, peer: scope,
+                             mention: data.flags & (1 << 4) != 0 && data.flags & (1 << 5) != 0,
+                             reaction: hasUnreadReactions(data.reactions))
         let autoDelete = data.ttlPeriod != nil
         if autoDelete { recordTimedId(data.id, scope: scope, disappearing: false) }
         let before = serializeBoxed(apiMsg)
@@ -1621,6 +1733,9 @@ class TLParser: NSObject {
 
     private static func stripTTLUpdate(_ update: Api.Update) -> (Api.Update, Bool) {
         switch update {
+        case let .updateMessageReactions(data):
+            noteContentReadState(id: data.msgId, peer: peerKey(data.peer), reaction: hasUnreadReactions(data.reactions))
+            return (update, false)
         case let .updateNewMessage(data):
             cacheMessage(data.message)
             trackMessageVersions(data.message)
@@ -2006,6 +2121,11 @@ class TLParser: NSObject {
 
     @objc static func stripAntiSelfDestruct(_ data: NSData, account: String?) -> NSData? {
         processingLock.lock()
+        if !tracksContentReads {
+            // Updates received while tracking is off invalidate older metadata.
+            contentReadStates.removeAll()
+            contentReadOrder.removeAll()
+        }
         let previousAccount = processingHistoryAccount
         processingHistoryAccount = account
         defer {
@@ -2129,7 +2249,7 @@ class TLParser: NSObject {
         }
         noteUsersAnywhere(result)
         guard isAntiSelfDestruct || isNoForwardsBypass || isAntiEditEnabled
-                || ignorePrivateCopyProtection || isAntiAutoDelete || isAntiRevoke || !isOwnIdKnown else {
+                || ignorePrivateCopyProtection || isAntiAutoDelete || isAntiRevoke || tracksContentReads || !isOwnIdKnown else {
             return reader.dataWithoutContentRestrictions()
         }
 
@@ -2177,6 +2297,8 @@ class TLParser: NSObject {
                     modified = true
                 }
             case let .updateShortMessage(data):
+                noteContentReadState(id: data.id, peer: data.userId,
+                                     mention: data.flags & (1 << 4) != 0 && data.flags & (1 << 5) != 0, reaction: false)
                 // A private chat is identified by the other user, which is what
                 // userId holds here and what peerUser carries in the full form.
                 recordShortFormOriginal(id: data.id, text: data.message,
@@ -2211,6 +2333,8 @@ class TLParser: NSObject {
                     modified = true
                 }
             case let .updateShortChatMessage(data):
+                noteContentReadState(id: data.id, peer: -data.chatId,
+                                     mention: data.flags & (1 << 4) != 0 && data.flags & (1 << 5) != 0, reaction: false)
                 recordShortFormOriginal(id: data.id, text: data.message,
                                         peer: -data.chatId, entities: data.entities,
                                         outgoing: data.flags & (1 << 1) != 0 || isOwnAuthor(.peerUser(.init(userId: data.fromId)), account: processingHistoryAccount))

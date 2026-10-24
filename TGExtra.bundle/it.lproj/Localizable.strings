@@ -66,6 +66,11 @@
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Disattiva conferme di lettura messaggi";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Impedisci agli altri di vedere che hai letto i loro messaggi.";
 
+"DISABLE_REACTION_READ_RECEIPT_TITLE" = "Nascondi lettura delle reazioni";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "Non segnare come lette le reazioni visualizzate.";
+"DISABLE_MENTION_READ_RECEIPT_TITLE" = "Nascondi lettura delle menzioni";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "Non segnare come lette le menzioni visualizzate.";
+
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "Disattiva conferme di lettura storie";
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Impedisci agli altri di vedere che hai visualizzato le loro storie.";
 

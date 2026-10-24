@@ -64,6 +64,11 @@
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "メッセージ既読通知を無効化";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "メッセージを読んだことを相手に通知しません。";
 
+"DISABLE_REACTION_READ_RECEIPT_TITLE" = "リアクションの既読を隠す";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "表示したリアクションを既読にしません。";
+"DISABLE_MENTION_READ_RECEIPT_TITLE" = "メンションの既読を隠す";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "表示したメンションを既読にしません。";
+
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "ストーリー既読通知を無効化";
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "ストーリーを見たことを相手に通知しません。";
 

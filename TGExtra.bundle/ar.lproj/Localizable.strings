@@ -64,6 +64,11 @@
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "تعطيل إيصالات قراءة الرسائل";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "عدم إظهار أنك قرأت الرسالة.";
 
+"DISABLE_REACTION_READ_RECEIPT_TITLE" = "إخفاء قراءة التفاعلات";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "عدم وضع علامة مقروء على التفاعلات التي شاهدتها.";
+"DISABLE_MENTION_READ_RECEIPT_TITLE" = "إخفاء قراءة الإشارات";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "عدم وضع علامة مقروء على الإشارات التي شاهدتها.";
+
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "تعطيل إيصالات قراءة القصص";
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "عدم إظهار أنك شاهدت القصة.";
 

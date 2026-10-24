@@ -3,12 +3,13 @@
 #define kAccountUpdateOnlineStatus 1713919532
 #define kMessagesSetTypingAction 1486110434
 #define kMessagesReadHistory 238054714
+#define kMessagesReadMentions 921026381
+#define kMessagesReadReactions -1631301741
 #define kStoriesReadStories -1521034552
 #define kGetSponsoredMessages 1030547536
 #define kGetAppConfig 1642330196
 #define kSendScreenshotNotification -1589618665
-// messages.readMessageContents#36a73f77 — sent when TTL/disappearing media is
-// opened
+// Content reads acknowledge mentions/reactions/playback and open TTL media.
 #define kMessagesReadMessageContents 916930423
 #define kChannelsReadMessageContents -357180360
 
@@ -60,6 +61,8 @@
 #define kDisableEmojiAcknowledgementStatus @"disableEmojiAcknowledgementStatus"
 
 #define kDisableMessageReadReceipt @"disableMessageReadReceipt"
+#define kDisableReactionReadReceipt @"disableReactionReadReceipt"
+#define kDisableMentionReadReceipt @"disableMentionReadReceipt"
 #define kDisableStoriesReadReceipt @"disableStoriesReadReceipt"
 #define kDisableScreenshotNotification @"TGExtraDisableScreenshotNotification"
 

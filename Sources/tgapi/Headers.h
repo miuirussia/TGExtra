@@ -25,6 +25,7 @@
 + (NSData *)fakeUpdatesResponse;
 + (NSData *)rewriteVoiceUpload:(NSData *)data;
 + (NSData *)rewriteAppConfigRequest:(NSData *)data;
++ (NSDictionary<NSString *, NSData *> *)readMessageContentsPolicy:(NSData *)payload account:(NSString *)account;
 + (NSArray<NSString *> *)editHistoryForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSArray<NSDictionary *> *)editRevisionDetailsForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSNumber *)getMessagePeerKeyFromNode:(id)node;
@@ -80,7 +81,8 @@ void handleStoriesReadReceipt(MTRequest *request, NSData *payload);
 void handleGetSponsoredMessages(MTRequest *request, NSData *payload);
 void handleChannelsReadReceipt(MTRequest *request, NSData *payload);
 void handleSendScreenshotNotification(MTRequest *request, NSData *payload);
-void handleReadMessageContents(MTRequest *request, NSData *payload);
+BOOL TGExtraIsPreparingReadContentsRequest(MTRequest *request);
+void TGExtraPrepareReadContentsRequest(MTRequest *request, NSString *account);
 NSData *TGExtraFakeResponseForPayload(NSData *payload);
 NSData *TGExtraRewriteRequestPayload(NSData *payload);
 NSData *decompressGzip(const void *input, size_t inputLen);
