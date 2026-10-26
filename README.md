@@ -30,29 +30,29 @@ the Chats tab five times.
   Duration and audio are preserved; 24/30 fps videos are unchanged.
 - Fix the Files picker and clear its temporary cache.
 - Fake location and ten interface languages.
-- Optional local Swiftgram Pro features, with a switch shown only in compatible
-  Swiftgram builds. Telegram Premium and server-provided services are separate.
+- Optional local Swiftgram Pro features through an iPatch v3 feature selected
+  when building the IPA. Telegram Premium and server-provided services are separate.
 
 New features default to off. Updates preserve existing preferences.
 
-In Swiftgram, enable **TGExtra → Privacy & Extras → Enable Swiftgram Pro**, then
-use **Apply** and reopen the app. Restart after disabling it too: Swiftgram caches
-its status in several places. A new account needs an online launch to initialize
-its status before the local override can be read.
+In iOSPatchingEngine, open the gear beside the uploaded TGExtra `.ipatch` and
+enable **Swiftgram Pro** before building the IPA. It defaults to off and is not
+part of the DEB or the in-app TGExtra menu. To disable it, rebuild from the
+original IPA with the feature off. A new account needs an online launch to
+initialize its status before the decoder patch can affect it.
 
 **We strongly recommend supporting Swiftgram's author by purchasing Pro officially.**
 
-The integration was adapted from the behavior described by Swiftgram Crack
-1.1-7 (for Swiftgram 12.2), using Swiftgram's
-[current SGStatus source](https://github.com/Swiftgram/Telegram-iOS/blob/e3a392272b182dbf975d4ac5fc33b40a5954d749/Swiftgram/SGStatus/Sources/SGStatus.swift)
-and its TelegramUIPreferences module, confirmed in the Swiftgram 13.1.1 (343)
-reference binary. TGExtra replaces only that type's Decodable initializer in
-memory, after checking its layout and its single `status: Int64` field; the
-bundled third-party dylib is not used. The switch is shown only after successful
-installation; probing it with the option off preserves the decoded status.
-Other apps and unsupported layouts are left untouched. The existing content,
-screenshot-notification and advertising switches control those features separately.
-On-device validation of the Pro integration is still required.
+The profile checks Swiftgram's `TelegramUIPreferences.SGStatus` metadata,
+its single mutable `status: Int64` field, and reviewed fingerprints of both the
+Decodable witness and its decoder body. It changes only successful decoded
+values below 2; higher statuses and the original decoder's error handling are
+preserved. It uses no injected Pro library or runtime witness-table mutation.
+The reviewed arm64 reference is Swiftgram 13.1.1 (343, `app.swiftgram.ios`).
+An enabled feature with an unsupported client fails the build; leaving it off
+does not require a compatible Pro profile. The existing content,
+screenshot-notification and advertising switches remain separate.
+See [`Patches/`](Patches/README.md) for profile details and validation limits.
 
 ## Behavior and limitations
 
@@ -137,7 +137,8 @@ Pushes to `main` run checks and publish rootful, rootless and roothide packages,
 plus a matching `.ipatch` for each DEB, to `prerelease`. Each ipatch embeds its
 corresponding DEB and all committed client patch sets. Tags publish versioned
 releases. Install either the DEB or its ipatch; the ipatch requires a matching
-Rust compatibility profile and a v2-capable engine.
+Rust compatibility profile and a v3-capable engine. Swiftgram Pro is an optional
+feature in those archives and is disabled by default.
 
 The manual IPA workflow takes a required `decrypted_ipa_url` and optional
 `release_tag`. It applies the Rust bridge before signing, publishes IPA/TIPA

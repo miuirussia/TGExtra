@@ -1,0 +1,8 @@
+[
+  {
+    "id": "swiftgram-pro",
+    "name": "Swiftgram Pro",
+    "description": "Enable local Swiftgram Pro features in compatible Swiftgram builds. Telegram Premium and server services are separate. We strongly recommend supporting Swiftgram's author by purchasing Pro officially.",
+    "default_enabled": false
+  }
+]

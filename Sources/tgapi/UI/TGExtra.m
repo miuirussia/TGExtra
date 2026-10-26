@@ -1,6 +1,5 @@
 #import "Headers.h"
 #import "../GhostExceptions.h"
-#import "../SwiftgramPro.h"
 #import "../Headers.h"
 #import "../Logger/Logger.h"
 #import "Icons.h"
@@ -245,7 +244,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     // section never renders as a bare header.
     return MAX((NSInteger)[TGExtraGhostExceptions all].count, 1);
   case MISC:
-    return TGExtraSwiftgramProAvailable() ? 11 : 10;
+    return 10;
   case FILE_FIXER:
     return 2;
   case FAKE_LOCATION:
@@ -294,9 +293,6 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   // peer, so it cannot be made visible to one person only.
   if (section == GHOST_EXCEPTIONS) {
     return TGLoc(@"GHOST_EXCEPTIONS_SECTION_FOOTER");
-  }
-  if (section == MISC && TGExtraSwiftgramProAvailable()) {
-    return TGLoc(@"SWIFTGRAM_SUPPORT_AUTHOR");
   }
   return nil;
 }
@@ -572,11 +568,6 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"IGNORE_PRIVATE_COPY_PROTECTION_TITLE");
       cell.detailTextLabel.text = TGLoc(@"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE");
-    } else if (indexPath.row == 10) {
-      cell.imageView.image = [UIImage systemImageNamed:@"star.circle.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"SWIFTGRAM_PRO_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"SWIFTGRAM_PRO_SUBTITLE");
     }
 
     UISwitch *toggle = (UISwitch *)cell.accessoryView;
@@ -1006,8 +997,6 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       return kVideoToVoice;
     case 9:
       return kIgnorePrivateChatCopyProtection;
-    case 10:
-      return kSwiftgramPro;
     default:
       return nil;
     }

@@ -23,12 +23,15 @@ def variant(name, resource=b'metadata'):
     return item, {source: resource}
 
 
-def client_archive(path, variants, version=1):
+def client_archive(path, variants, version=1, features=None):
     sets, files = [], {}
     for item, entries in variants:
         sets.append(item)
         files.update(entries)
-    write_archive(path, {'format': 'ipatch', 'version': version, 'name': 'Client patches', 'patch_sets': sets}, files)
+    value = {'format': 'ipatch', 'version': version, 'name': 'Client patches', 'patch_sets': sets}
+    if features is not None:
+        value['features'] = features
+    write_archive(path, value, files)
 
 
 def portable_variant(name='portable'):
@@ -84,13 +87,22 @@ class IpatchPackagingTests(unittest.TestCase):
             deb.write_bytes(b'!<arch>\n')
             package(output, deb=deb, patches=Path(__file__).resolve().parents[1]/'Patches')
             entries = read_archive(output)
-            for item in json.loads(entries['manifest.json'])['patch_sets']:
-                self.assertTrue(set(item) <= {'name', 'bundle_ids', 'binary_patches', 'resources', 'tweaks'})
+            value = json.loads(entries['manifest.json'])
+            self.assertEqual(value['version'], 3)
+            self.assertEqual([feature['id'] for feature in value['features']], ['swiftgram-pro'])
+            self.assertFalse(value['features'][0]['default_enabled'])
+            for item in value['patch_sets']:
+                self.assertTrue(set(item) <= {'name', 'feature', 'bundle_ids', 'binary_patches', 'resources', 'tweaks'})
                 self.assertTrue(item['name'])
                 self.assertTrue(item['bundle_ids'])
+                if item.get('feature'):
+                    self.assertEqual(item['feature'], 'swiftgram-pro')
+                    self.assertEqual(item['bundle_ids'], ['app.swiftgram.ios'])
+                    self.assertNotIn('tweaks', item)
+                else:
+                    self.assertEqual(item['tweaks'], ['tweaks/TGExtra.deb'])
                 for binary in item['binary_patches']:
                     if 'profile' in binary:
-                        self.assertEqual(json.loads(entries['manifest.json'])['version'], 2)
                         self.assertNotIn('sha256', binary)
                         self.assertEqual(binary['profile']['arch'], 'arm64')
                         for block in binary['profile']['blocks']:
@@ -105,6 +117,45 @@ class IpatchPackagingTests(unittest.TestCase):
                         self.assertEqual(len(bytes.fromhex(edit['expected'])), len(bytes.fromhex(edit['replacement'])))
                 for resource in item.get('resources', []):
                     self.assertEqual(plistlib.loads(entries[resource['source']])['ABI'], 5)
+
+    def test_v3_features_survive_v2_updates_and_keep_base_components_distinct(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            deb, output = root/'TGExtra.deb', root/'TGExtra.ipatch'
+            deb.write_bytes(b'!<arch>\n')
+            base, files = portable_variant()
+            optional = copy.deepcopy(base)
+            optional['feature'] = 'pro'
+            feature = {'id': 'pro', 'name': 'Pro', 'default_enabled': False}
+            client_archive(root/'v3.ipatch', [(base, files), (optional, files)], version=3, features=[feature])
+            package(output, deb=deb, merges=[root/'v3.ipatch'])
+            client_archive(root/'update.ipatch', [portable_variant('another')], version=2)
+            package(output, base=output, merges=[root/'update.ipatch'])
+            value = json.loads(read_archive(output)['manifest.json'])
+            self.assertEqual(value['version'], 3)
+            self.assertEqual(value['features'], [feature])
+            self.assertEqual(len(value['patch_sets']), 3)
+            self.assertEqual(sum('feature' in item for item in value['patch_sets']), 1)
+            self.assertTrue(all(not item.get('tweaks') for item in value['patch_sets'] if item.get('feature')))
+            previous = output.read_bytes()
+            client_archive(root/'conflict.ipatch', [(optional, files)], version=3,
+                           features=[{**feature, 'default_enabled': True}])
+            with self.assertRaisesRegex(ValueError, 'conflicting feature'):
+                package(output, base=output, merges=[root/'conflict.ipatch'])
+            self.assertEqual(output.read_bytes(), previous)
+
+    def test_v3_feature_declarations_cannot_be_missing_or_unused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            item, files = portable_variant()
+            feature = {'id': 'pro', 'name': 'Pro'}
+            with self.assertRaisesRegex(ValueError, 'declared and referenced'):
+                client_archive(root/'unused.ipatch', [(item, files)], version=3, features=[feature])
+            item['feature'] = 'pro'
+            with self.assertRaisesRegex(ValueError, 'declared and referenced'):
+                client_archive(root/'missing.ipatch', [(item, files)], version=3)
+            with self.assertRaisesRegex(ValueError, 'require ipatch v3'):
+                client_archive(root/'v2.ipatch', [(item, files)], version=2, features=[feature])
 
     def test_tweak_override_rejection_preserves_output(self):
         with tempfile.TemporaryDirectory() as directory:

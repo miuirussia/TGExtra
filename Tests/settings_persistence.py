@@ -19,7 +19,7 @@ HARNESS = r'''
 @implementation NonpersistentDefaults
 - (instancetype)init {
     if ((self = [super init])) {
-        _values = [@{kDisableOnlineStatus: @YES, kSwiftgramPro: @NO,
+        _values = [@{kDisableOnlineStatus: @YES, kIgnorePrivateChatCopyProtection: @NO,
                      kGhostModeEnabled: @YES, kDisableTypingStatus: @YES,
                      @"TGExtraFeatureMigrationDone": @YES, @"HostSetting": @"keep",
                      @"TGExtraEditHistory": @{@"keep": @YES}} mutableCopy];
@@ -44,7 +44,7 @@ int main(int argc, const char **argv) {
         BOOL hidden = atoi(argv[2]) != 0;
         if ([mode isEqual:@"write"] || [mode isEqual:@"fail"]) {
             [defaults setBool:hidden forKey:kDisableOnlineStatus];
-            [defaults setBool:!hidden forKey:kSwiftgramPro];
+            [defaults setBool:!hidden forKey:kIgnorePrivateChatCopyProtection];
             [defaults setBool:NO forKey:kGhostModeEnabled];
             [defaults setObject:@"ru" forKey:@"TGExtraLanguage"];
             [defaults setObject:@12.34 forKey:FAKE_LATITUDE_KEY];
@@ -56,7 +56,7 @@ int main(int argc, const char **argv) {
             TGExtraRestorePreferences();
             TGExtraMigrateDefaults(defaults);
             NSCAssert([defaults boolForKey:kDisableOnlineStatus] == hidden, @"Restore an explicit online-status value");
-            NSCAssert([defaults boolForKey:kSwiftgramPro] == !hidden, @"Restore Swiftgram Pro before startup consumers");
+            NSCAssert([defaults boolForKey:kIgnorePrivateChatCopyProtection] == !hidden, @"Restore the private-chat copy option");
             NSCAssert(![defaults boolForKey:kGhostModeEnabled], @"False must override stale true defaults despite enabled subfeatures");
             NSCAssert([[defaults objectForKey:@"TGExtraLanguage"] isEqual:@"ru"], @"Preserve the selected language");
             NSCAssert([[defaults objectForKey:FAKE_LATITUDE_KEY] isEqual:@12.34], @"Preserve coordinates");
@@ -67,7 +67,7 @@ int main(int argc, const char **argv) {
         } else {
             TGExtraRestorePreferences();
             NSCAssert([defaults boolForKey:kDisableOnlineStatus], @"Missing or corrupt files preserve legacy settings");
-            NSCAssert(![defaults boolForKey:kSwiftgramPro], @"A fresh install keeps Pro off");
+            NSCAssert(![defaults boolForKey:kIgnorePrivateChatCopyProtection], @"A fresh install keeps the private-chat copy option off");
         }
         NSCAssert([[defaults objectForKey:@"HostSetting"] isEqual:@"keep"], @"Never restore the host app's settings");
         NSCAssert([[defaults objectForKey:@"TGExtraEditHistory"] isEqual:@{@"keep": @YES}], @"Never restore message data with settings");
@@ -96,7 +96,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-persistence-') as tmp:
         run('write', hidden)
         saved = plistlib.loads(settings.read_bytes())
         assert saved['disableOnlineStatus'] == hidden
-        assert saved['TGExtraSwiftgramPro'] == (not hidden)
+        assert saved['TGExtraIgnorePrivateChatCopyProtection'] == (not hidden)
         assert 'HostSetting' not in saved and 'TGExtraEditHistory' not in saved
         # Even an unexpected field in the file cannot overwrite unrelated defaults.
         saved.update(HostSetting='replace', TGExtraEditHistory={})
@@ -112,4 +112,4 @@ with tempfile.TemporaryDirectory(prefix='tgextra-persistence-') as tmp:
     settings.write_text('not a property list')
     run('legacy')
 
-print('PASS real-process settings persistence: online off/on/off, Pro on/off/on, legacy fallback, false values, isolation and failed writes')
+print('PASS real-process settings persistence: online off/on/off, private-copy on/off/on, legacy fallback, false values, isolation and failed writes')

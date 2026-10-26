@@ -6,7 +6,7 @@ python3 Tests/check_api_schema.py
 python3 Tests/settings_support_labels.py
 python3 Tests/settings_apply.py
 python3 Tests/settings_persistence.py
-python3 Tests/swiftgram_pro.py
+python3 Tests/swiftgram_pro_ipatch.py
 python3 Tests/edit_badge_refresh.py
 python3 Tests/rust_thunks.py
 python3 Tests/rust_patching.py

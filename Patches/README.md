@@ -1,4 +1,4 @@
-# Portable Rust bridge profiles
+# Portable client profiles and optional features
 
 Client profiles included in every GitHub ipatch release live in separate folders:
 
@@ -7,14 +7,53 @@ Patches/<profile-id>/patch.json
 Patches/<profile-id>/payloads/<bridge-name>.bin
 ~~~
 
-Each patch.json contains name, required bundle_ids and binary_patches with a v2
-profile. Payload sources are relative to the profile folder. Packaging rebases
-them under the archive's payloads/ root. The engine discovers exactly one
+Each patch.json contains name, required bundle_ids and binary_patches with a
+portable profile. `features.json` declares the optional iPatch v3 components;
+a set's `feature` binds it to a declaration. Sets without `feature` remain
+mandatory base functionality. Payload sources are relative to the profile
+folder. Packaging rebases them under the archive's payloads/ root.
+
+For the Rust bridge, the engine discovers exactly one
 compatible Mach-O, validates functions and call counts, allocates header padding,
 links the payloads and generates TGExtraRustBridge.plist from that image's UUID
 and function offsets. No compatibility SHA-256, fixed framework path or copied
 metadata is needed. The engine still captures a full-file digest and exact
 preimages to protect application after planning.
+
+## Swiftgram Pro feature
+
+`swiftgram-pro` is disabled by default. Select it using the gear beside the
+uploaded ipatch in iOSPatchingEngine. The corresponding set contains only binary
+edits and a 20-byte arm64 payload; the TGExtra DEB contains no Pro implementation,
+preference or menu item. Disabling it requires rebuilding the original IPA with
+the feature off. The feature does not require the TGExtra runtime to execute.
+
+`swiftgram-pro-status-v1/patch.json` uses v3 Swift metadata anchors to require:
+
+- The nongeneric struct `TelegramUIPreferences.SGStatus` with exactly one mutable
+  `status: Swift.Int64` field (field flags 2).
+- Exactly one unconditional `Swift.Decodable` conformance and its `init(from:)`
+  witness, found without exported Swift symbols.
+- The reviewed 40-byte witness and 268-byte decoder body, each checked with an
+  `arm64-reloc-v1` fingerprint.
+
+The witness preserves the original decoder call and branches around result
+storage when Swift's error register x21 is nonzero. The patch redirects only the
+successful store at witness +24 to `payloads/status.bin`. That payload computes
+signed `max(2, x0)`, stores the value through x19, and returns to the existing
+epilogue at +28. The stack, preserved registers and error path are unchanged.
+`payloads/status.s` is the reviewable source; the native test checks that assembly
+matches the shipped bytes and exercises both success and error paths.
+
+The reviewed reference is Swiftgram 13.1.1 (343, `app.swiftgram.ios`), generic
+arm64. V3 engine planning has been checked against that decrypted IPA. The type
+and code checks permit relinking that preserves those constraints; changed code,
+metadata or architecture needs another reviewed profile. No arm64e compatibility
+is claimed. Device validation of the complete Pro behavior is still required.
+The feature covers local Swiftgram Pro behavior, with the same initial-account
+status limitation as the former decoder hook; Telegram Premium and server
+services remain separate. We strongly recommend supporting Swiftgram's author
+by purchasing Pro officially.
 
 ## Generating a profile
 
@@ -43,12 +82,13 @@ fingerprints. These checks do not replace on-device validation.
 The bridge targets C ABI 5 of TelegramMessenger/mtproto-engine, pinned by
 Telegram-iOS 1dd3e7f4ed to da4b2170210aab0430c4ff18c032991f3030cf45.
 Profile generation currently accepts unencrypted thin generic arm64 reference
-images. The engine can apply the generated profile to a generic arm64 slice in
-a thin or FAT input. It does not provide arm64e portable operations.
+images. The engine can apply these Rust profiles to a generic arm64 slice in
+a thin or FAT input. These profiles do not target arm64e.
 
 ## Engine validation and application
 
-Build the v2 CLI from iOSPatchingEngine's server directory:
+Build the CLI from iOSPatchingEngine's server directory (v3 for release packages
+with optional features; v2 is sufficient for standalone Rust-only profiles):
 
 ~~~sh
 go build -o /path/to/ipatch ./cmd/ipatch
@@ -81,11 +121,14 @@ python3 Tools/package_ipatch.py --deb TGExtra.deb --patches Patches --output TGE
 ~~~
 
 Every DEB variant embeds its matching DEB and all committed portable profiles in
-a version 2 archive. Payload files are included automatically. The packager also
-accepts v1 archives and preserves other client sets and the embedded DEB when
-merging an update. Profiles with the same original anchors and checks are
-replaced on update, preserving their combined explicit bundle IDs; distinct
-compatibility profiles remain separate.
+a version 3 archive, including declarations from `features.json`. Payload files
+are included automatically. Base Rust sets install the DEB; the Pro feature set
+does not reference or depend on it. The packager also accepts v1/v2 archives and
+preserves feature declarations, other client sets and the embedded DEB when
+merging an update. A v2 update cannot downgrade an existing v3 archive.
+Profiles with the same feature, original anchors and checks are replaced on
+update, preserving their combined explicit bundle IDs; distinct compatibility
+profiles remain separate. Conflicting feature declarations are rejected.
 
 The previous hash-pinned Telegram set is retained separately in PatchesV1/.
 It is excluded from portable release packages to avoid selecting two different
@@ -118,10 +161,16 @@ Tools/RustBridge/README.md.
 
 ~~~sh
 python3 Tests/ipatch_packaging.py
+python3 Tests/swiftgram_pro_ipatch.py
+IPATCH_ENGINE_CLI=/path/to/ipatch SWIFTGRAM_REFERENCE_IPA=/path/to/Swiftgram.ipa python3 Tests/swiftgram_pro_ipatch.py
 IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/rust_portable.py
 ~~~
 
-On Apple Silicon macOS the latter builds two native layouts, asks the engine to
+The Pro test executes the shipped payload against the reviewed witness calling
+convention on Apple Silicon. With a v3 CLI and a compatible reference IPA it also
+checks default-off, explicit off/on selection and the resolved binary edits.
+
+On Apple Silicon macOS the Rust test builds two native layouts, asks the engine to
 allocate/link production thunk templates, compares the linked bytes with the
 original generator and executes Objective-C argument, return, original-call and
 missing-tweak fallback checks. It also checks fingerprint semantics. Native

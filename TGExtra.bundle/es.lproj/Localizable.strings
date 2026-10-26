@@ -169,9 +169,5 @@
 "EDIT_HISTORY_MEDIA_CHANGED" = "Contenido multimedia modificado";
 "EDIT_HISTORY_FORMAT_CHANGED" = "Formato modificado";
 
-/* Swiftgram */
-"SWIFTGRAM_PRO_TITLE" = "Activar Swiftgram Pro";
-"SWIFTGRAM_PRO_SUBTITLE" = "Desbloquear funciones locales de Swiftgram Pro. Reinicia la app después de cambiar esta opción. Telegram Premium es independiente.";
-"SWIFTGRAM_SUPPORT_AUTHOR" = "Recomendamos encarecidamente apoyar al autor de Swiftgram comprando Pro oficialmente.";
 
 "SETTINGS_SAVE_FAILED" = "No se pudieron guardar los ajustes. Inténtalo de nuevo antes de reiniciar la app.";

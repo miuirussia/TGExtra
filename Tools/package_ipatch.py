@@ -5,6 +5,7 @@ import copy
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import stat
 import tempfile
 import zipfile
@@ -34,9 +35,39 @@ def read_archive(path):
 
 def manifest(files):
     value = json.loads(files['manifest.json'])
-    if value.get('format') != 'ipatch' or value.get('version') not in (1, 2) or not value.get('patch_sets') or 'config.json' in files:
-        raise ValueError('expected a version 1 or 2 ipatch with nonempty patch_sets')
+    if value.get('format') != 'ipatch' or value.get('version') not in (1, 2, 3) or not value.get('patch_sets') or 'config.json' in files:
+        raise ValueError('expected a version 1, 2 or 3 ipatch with nonempty patch_sets')
+    validate_features(value)
     return value
+
+
+def merge_features(target, definitions):
+    if not isinstance(definitions, list):
+        raise ValueError('features must be an array')
+    seen = set()
+    for definition in definitions:
+        if not isinstance(definition, dict) or not isinstance(definition.get('id'), str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}', definition['id']):
+            raise ValueError('invalid feature definition')
+        identifier = definition['id']
+        if identifier in seen:
+            raise ValueError(f'duplicate feature definition: {identifier}')
+        seen.add(identifier)
+        normalized = {**definition, 'default_enabled': definition.get('default_enabled', False)}
+        if identifier in target and target[identifier] != normalized:
+            raise ValueError(f'conflicting feature definition: {identifier}')
+        target[identifier] = normalized
+    if len(target) > 128:
+        raise ValueError('ipatch exceeds 128 features')
+
+
+def validate_features(value):
+    definitions = {}
+    merge_features(definitions, value.get('features', []))
+    used = {item['feature'] for item in value['patch_sets'] if 'feature' in item}
+    if used != definitions.keys():
+        raise ValueError('every feature must be declared and referenced by a patch set')
+    if ('features' in value or used) and value['version'] < 3:
+        raise ValueError('optional features require ipatch v3')
 
 
 def sources(item):
@@ -83,12 +114,13 @@ def set_key(item):
             if 'profile' in patch:
                 patch['profile'] = {key: value for key, value in patch['profile'].items()
                                     if key in ('arch', 'anchors', 'checks')}
-        return ('portable', json.dumps(compatibility, sort_keys=True, separators=(',', ':')))
+        return ('portable', item.get('feature'), json.dumps(compatibility, sort_keys=True, separators=(',', ':')))
     return (tuple(sorted(item['bundle_ids'])),
-            tuple(sorted((patch['path'], patch.get('sha256')) for patch in item['binary_patches'])))
+            tuple(sorted((patch['path'], patch.get('sha256')) for patch in item['binary_patches'])), item.get('feature'))
 
 
 def write_archive(output, value, files):
+    validate_features(value)
     data = (json.dumps(value, separators=(',', ':'))+'\n').encode()
     if len(data) > 1 << 20:
         raise ValueError('ipatch manifest exceeds 1 MiB')
@@ -119,9 +151,10 @@ def package(output, deb=None, patches=None, base=None, merges=(), retire_patches
     if base:
         files = read_archive(base)
         value = manifest(files)
-        tweaks = value['patch_sets'][0].get('tweaks', [])
-        if any(item.get('tweaks', []) != tweaks for item in value['patch_sets']):
-            raise ValueError('base package must use the same tweaks in every client set')
+        base_sets = [item for item in value['patch_sets'] if not item.get('feature')]
+        tweaks = base_sets[0].get('tweaks', []) if base_sets else []
+        if any(item.get('tweaks', []) != tweaks for item in base_sets):
+            raise ValueError('base package must use the same tweaks in every base client set')
     else:
         data = deb.read_bytes()
         if deb.suffix != '.deb' or not data.startswith(b'!<arch>\n'):
@@ -129,12 +162,18 @@ def package(output, deb=None, patches=None, base=None, merges=(), retire_patches
         tweak = 'tweaks/'+deb.name
         tweaks, files = [tweak], {tweak: data}
         value = {'format': 'ipatch', 'version': 1, 'name': deb.stem, 'patch_sets': []}
+    features = {}
+    merge_features(features, value.get('features', []))
     collections = []
     if patches:
         collections.append(repository_sets(patches))
+        declarations = patches/'features.json'
+        if declarations.exists():
+            merge_features(features, json.loads(declarations.read_text()))
     for archive in merges:
         entries = read_archive(archive)
         options = manifest(entries)
+        merge_features(features, options.get('features', []))
         value['version'] = max(value['version'], options['version'])
         if any(item.get('tweaks') for item in options['patch_sets']):
             raise ValueError('merged client packages cannot include tweaks')
@@ -142,7 +181,8 @@ def package(output, deb=None, patches=None, base=None, merges=(), retire_patches
     for sets, entries in collections:
         for original in sets:
             item = copy.deepcopy(original)
-            item['tweaks'] = list(tweaks)
+            if not item.get('feature'):
+                item['tweaks'] = list(tweaks)
             key = set_key(item)
             if key[0] == 'portable':
                 item['bundle_ids'] = sorted(set(item['bundle_ids']).union(
@@ -151,15 +191,18 @@ def package(output, deb=None, patches=None, base=None, merges=(), retire_patches
             value['patch_sets'].append(item)
         files.update({name: data for name, data in entries.items() if name != 'manifest.json'})
     if any('profile' in patch for item in value['patch_sets'] for patch in item['binary_patches']):
-        value['version'] = 2
+        value['version'] = max(value['version'], 2)
         if retire_patches:
             retired, _ = repository_sets(retire_patches)
             portable_ids = {bundle for item in value['patch_sets']
-                            if any('profile' in patch for patch in item['binary_patches']) for bundle in item['bundle_ids']}
+                            if not item.get('feature') and any('profile' in patch for patch in item['binary_patches']) for bundle in item['bundle_ids']}
             keys = {set_key(item) for item in retired if set(item['bundle_ids']) <= portable_ids}
             value['patch_sets'] = [item for item in value['patch_sets'] if set_key(item) not in keys]
     if not value['patch_sets']:
         raise ValueError('ipatch requires at least one client patch set')
+    if features:
+        value['features'] = list(features.values())
+        value['version'] = 3
     write_archive(output, value, files)
     print(f'Created {output}: {len(value["patch_sets"])} client patch sets')
 

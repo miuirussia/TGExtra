@@ -1,0 +1,122 @@
+{
+  "name": "Swiftgram Pro / reviewed SGStatus decoder",
+  "feature": "swiftgram-pro",
+  "bundle_ids": [
+    "app.swiftgram.ios"
+  ],
+  "binary_patches": [
+    {
+      "search": {
+        "roots": [
+          "."
+        ],
+        "max_candidates": 128,
+        "max_bytes": 1073741824
+      },
+      "profile": {
+        "arch": "arm64",
+        "header_reserve": 65536,
+        "anchors": [
+          {
+            "name": "status",
+            "type": "swift_type",
+            "swift": {
+              "context": "TelegramUIPreferences",
+              "name": "SGStatus",
+              "kind": "struct",
+              "fields": [
+                {
+                  "name": "status",
+                  "type": "Swift.Int64",
+                  "flags": 2
+                }
+              ],
+              "generic": {
+                "parameters": [],
+                "key_arguments": 0,
+                "requirements": []
+              },
+              "conformances": [
+                "Swift.Decodable"
+              ]
+            }
+          },
+          {
+            "name": "decodable",
+            "type": "swift_conformance",
+            "from": "status",
+            "protocol": "Swift.Decodable",
+            "conditions": []
+          },
+          {
+            "name": "decode",
+            "type": "swift_witness",
+            "from": "decodable",
+            "requirement": "init(from:)"
+          },
+          {
+            "name": "decodeBody",
+            "type": "branch_target",
+            "from": "decode",
+            "addend": 16,
+            "instruction": "bl"
+          }
+        ],
+        "checks": [
+          {
+            "type": "function",
+            "at": "decode",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 40,
+              "sha256": "c5624c04b29e266b212f0957af7711e7f79196513358ce7d55a100bf17866b95"
+            }
+          },
+          {
+            "type": "function",
+            "at": "decodeBody",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 268,
+              "sha256": "2f9b3ad7cf3eea8412c35ef6cf8421cced7da808a7d16f0410a835cb7216b926"
+            }
+          }
+        ],
+        "blocks": [
+          {
+            "name": "proStatus",
+            "source": "payloads/status.bin",
+            "size": 20,
+            "alignment": 4,
+            "permissions": "rx",
+            "near": "decode",
+            "max_distance": 134217724,
+            "relocations": [
+              {
+                "type": "b",
+                "offset": 16,
+                "anchor": "decode",
+                "addend": 28
+              }
+            ]
+          }
+        ],
+        "edits": [
+          {
+            "anchor": "decode",
+            "addend": 24,
+            "expected": "600200f9",
+            "replacement": "00000014",
+            "relocations": [
+              {
+                "type": "b",
+                "offset": 0,
+                "anchor": "proStatus"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
