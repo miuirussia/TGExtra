@@ -70,6 +70,7 @@
 #define kDisableAllAds @"disableAllAds"
 #define kDisableForwardRestriction @"disableForwardRestriction"
 #define kIgnorePrivateChatCopyProtection @"TGExtraIgnorePrivateChatCopyProtection"
+#define kSwiftgramPro @"TGExtraSwiftgramPro"
 
 // Anti-features
 #define kAntiRevoke @"TGExtraAntiRevoke"

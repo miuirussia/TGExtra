@@ -168,3 +168,8 @@
 
 "EDIT_HISTORY_MEDIA_CHANGED" = "Медиа изменено";
 "EDIT_HISTORY_FORMAT_CHANGED" = "Форматирование изменено";
+
+/* Swiftgram */
+"SWIFTGRAM_PRO_TITLE" = "Включить Swiftgram Pro";
+"SWIFTGRAM_PRO_SUBTITLE" = "Открыть локальные функции Swiftgram Pro. После изменения перезапустите приложение. Telegram Premium приобретается отдельно.";
+"SWIFTGRAM_SUPPORT_AUTHOR" = "Настоятельно рекомендуем поддержать автора Swiftgram, приобретя Pro официально.";

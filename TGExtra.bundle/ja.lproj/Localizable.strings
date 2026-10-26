@@ -165,3 +165,8 @@
 
 "EDIT_HISTORY_MEDIA_CHANGED" = "メディアが変更されました";
 "EDIT_HISTORY_FORMAT_CHANGED" = "書式が変更されました";
+
+/* Swiftgram */
+"SWIFTGRAM_PRO_TITLE" = "Swiftgram Pro を有効化";
+"SWIFTGRAM_PRO_SUBTITLE" = "Swiftgram Pro のローカル機能を解放します。変更後はアプリを再起動してください。Telegram Premium は別のサービスです。";
+"SWIFTGRAM_SUPPORT_AUTHOR" = "Pro を公式に購入して Swiftgram の作者を支援することを強くおすすめします。";

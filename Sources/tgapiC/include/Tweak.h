@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,6 +12,7 @@ NSString *TGExtraHistoryAccountForRequestService(id service);
 void TGExtraSetHistoryRequestService(id request, id service);
 NSString *TGExtraHistoryAccountForRequest(id request);
 BOOL TGExtraIsGhostException(int64_t userId);
+bool TGExtraReplaceSwiftgramStatusWitness(const void *targetTable, const void *sourceTable);
 
 #ifdef __cplusplus
 }

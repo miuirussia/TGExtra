@@ -166,3 +166,8 @@
 
 "EDIT_HISTORY_MEDIA_CHANGED" = "Media changed";
 "EDIT_HISTORY_FORMAT_CHANGED" = "Formatting changed";
+
+/* Swiftgram */
+"SWIFTGRAM_PRO_TITLE" = "Enable Swiftgram Pro";
+"SWIFTGRAM_PRO_SUBTITLE" = "Unlock local Swiftgram Pro features. Restart the app after changing this option. Telegram Premium is separate.";
+"SWIFTGRAM_SUPPORT_AUTHOR" = "We strongly recommend supporting Swiftgram’s author by purchasing Pro officially.";

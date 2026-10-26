@@ -124,6 +124,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"تم مسح قاعدة بيانات الرسائل",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"تم تغيير الوسائط",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"تم تغيير التنسيق",
+            @"SWIFTGRAM_PRO_TITLE": @"تفعيل Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"فتح ميزات Swiftgram Pro المحلية. أعد تشغيل التطبيق بعد تغيير هذا الخيار. Telegram Premium اشتراك منفصل.",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"نوصي بشدة بدعم مطوّر Swiftgram بشراء Pro رسميًا.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -249,6 +252,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"消息数据库已清空",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"媒体已更改",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"格式已更改",
+            @"SWIFTGRAM_PRO_TITLE": @"启用 Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"解锁 Swiftgram Pro 本地功能。更改此选项后请重启应用。Telegram Premium 需单独订阅。",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"强烈建议通过官方购买 Pro 来支持 Swiftgram 的作者。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -374,6 +380,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"Message database cleared",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Media changed",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Formatting changed",
+            @"SWIFTGRAM_PRO_TITLE": @"Enable Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"Unlock local Swiftgram Pro features. Restart the app after changing this option. Telegram Premium is separate.",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"We strongly recommend supporting Swiftgram’s author by purchasing Pro officially.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -499,6 +508,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"Base de mensajes vaciada",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Contenido multimedia modificado",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Formato modificado",
+            @"SWIFTGRAM_PRO_TITLE": @"Activar Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"Desbloquear funciones locales de Swiftgram Pro. Reinicia la app después de cambiar esta opción. Telegram Premium es independiente.",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"Recomendamos encarecidamente apoyar al autor de Swiftgram comprando Pro oficialmente.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -624,6 +636,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"Base de messages vidée",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Média modifié",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Mise en forme modifiée",
+            @"SWIFTGRAM_PRO_TITLE": @"Activer Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"Débloquer les fonctions locales de Swiftgram Pro. Redémarrez l’application après toute modification. Telegram Premium est distinct.",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"Nous vous recommandons vivement de soutenir l’auteur de Swiftgram en achetant Pro officiellement.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -749,6 +764,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"Database dei messaggi svuotato",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Contenuto multimediale modificato",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Formattazione modificata",
+            @"SWIFTGRAM_PRO_TITLE": @"Abilita Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"Sblocca le funzioni locali di Swiftgram Pro. Riavvia l’app dopo la modifica. Telegram Premium è separato.",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"Consigliamo vivamente di sostenere l’autore di Swiftgram acquistando Pro ufficialmente.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -874,6 +892,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"メッセージデータベースを消去しました",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"メディアが変更されました",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"書式が変更されました",
+            @"SWIFTGRAM_PRO_TITLE": @"Swiftgram Pro を有効化",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"Swiftgram Pro のローカル機能を解放します。変更後はアプリを再起動してください。Telegram Premium は別のサービスです。",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"Pro を公式に購入して Swiftgram の作者を支援することを強くおすすめします。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -999,6 +1020,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"База сообщений очищена",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Медиа изменено",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Форматирование изменено",
+            @"SWIFTGRAM_PRO_TITLE": @"Включить Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"Открыть локальные функции Swiftgram Pro. После изменения перезапустите приложение. Telegram Premium приобретается отдельно.",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"Настоятельно рекомендуем поддержать автора Swiftgram, приобретя Pro официально.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1124,6 +1148,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"訊息資料庫已清空",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"媒體已變更",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"格式已變更",
+            @"SWIFTGRAM_PRO_TITLE": @"啟用 Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"解鎖 Swiftgram Pro 本機功能。更改此選項後請重新啟動 App。Telegram Premium 需另行訂閱。",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"強烈建議透過官方購買 Pro 來支持 Swiftgram 的作者。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1249,6 +1276,9 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"MESSAGE_DATA_CLEARED": @"Đã xóa cơ sở dữ liệu tin nhắn",
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Đã thay đổi nội dung đa phương tiện",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Đã thay đổi định dạng",
+            @"SWIFTGRAM_PRO_TITLE": @"Bật Swiftgram Pro",
+            @"SWIFTGRAM_PRO_SUBTITLE": @"Mở các tính năng cục bộ của Swiftgram Pro. Khởi động lại ứng dụng sau khi thay đổi. Telegram Premium là gói riêng.",
+            @"SWIFTGRAM_SUPPORT_AUTHOR": @"Chúng tôi rất khuyến khích bạn ủng hộ tác giả Swiftgram bằng cách mua Pro chính thức.",
         };
     }
     return nil;

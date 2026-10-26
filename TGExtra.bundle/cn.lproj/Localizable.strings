@@ -167,3 +167,8 @@
 
 "EDIT_HISTORY_MEDIA_CHANGED" = "媒体已更改";
 "EDIT_HISTORY_FORMAT_CHANGED" = "格式已更改";
+
+/* Swiftgram */
+"SWIFTGRAM_PRO_TITLE" = "启用 Swiftgram Pro";
+"SWIFTGRAM_PRO_SUBTITLE" = "解锁 Swiftgram Pro 本地功能。更改此选项后请重启应用。Telegram Premium 需单独订阅。";
+"SWIFTGRAM_SUPPORT_AUTHOR" = "强烈建议通过官方购买 Pro 来支持 Swiftgram 的作者。";

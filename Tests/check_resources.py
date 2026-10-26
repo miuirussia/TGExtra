@@ -11,7 +11,7 @@ start = menu.rindex('- (NSString *)switchKeyForIndexPath:')
 keys = menu[start:]
 keys = keys[keys.index('  case MISC:'):keys.index('  case FILE_FIXER:')]
 rows = [int(row) for row in re.findall(r'case (\d+):', keys)]
-count = re.search(r'case MISC:\s*return (\d+);', menu)
+count = re.search(r'case MISC:\s*return TGExtraSwiftgramProAvailable\(\) \? (\d+) : 10;', menu)
 assert set(rows) == set(range(int(count[1]))), 'Every visible miscellaneous switch needs a settings key'
 cell = menu[menu.index('  } else if (indexPath.section == MISC)'):]
 cell = cell[:cell.index('  } else if (indexPath.section == FILE_FIXER)')]

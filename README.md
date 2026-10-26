@@ -30,8 +30,27 @@ the Chats tab five times.
   Duration and audio are preserved; 24/30 fps videos are unchanged.
 - Fix the Files picker and clear its temporary cache.
 - Fake location and ten interface languages.
+- Optional local Swiftgram Pro features, with a switch shown only in compatible
+  Swiftgram builds. Telegram Premium and server-provided services are separate.
 
 New features default to off. Updates preserve existing preferences.
+
+In Swiftgram, enable **TGExtra → Privacy & Extras → Enable Swiftgram Pro**, then
+use **Apply** and reopen the app. Restart after disabling it too: Swiftgram caches
+its status in several places. A new account needs an online launch to initialize
+its status before the local override can be read.
+
+**We strongly recommend supporting Swiftgram's author by purchasing Pro officially.**
+
+The integration was adapted from the behavior described by Swiftgram Crack
+1.1-7 (for Swiftgram 12.2), using Swiftgram's
+[current SGStatus source](https://github.com/Swiftgram/Telegram-iOS/blob/e3a392272b182dbf975d4ac5fc33b40a5954d749/Swiftgram/SGStatus/Sources/SGStatus.swift)
+and its TelegramUIPreferences module, confirmed in the Swiftgram 13.1.1 (343)
+reference binary. TGExtra replaces only that type's Decodable initializer in
+memory, after checking its layout; the bundled third-party dylib is not used.
+Other apps and unsupported layouts are left untouched. The existing content,
+screenshot-notification and advertising switches control those features separately.
+On-device validation of the Pro integration is still required.
 
 ## Behavior and limitations
 

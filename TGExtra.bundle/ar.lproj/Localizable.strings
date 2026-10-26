@@ -164,3 +164,8 @@
 
 "EDIT_HISTORY_MEDIA_CHANGED" = "تم تغيير الوسائط";
 "EDIT_HISTORY_FORMAT_CHANGED" = "تم تغيير التنسيق";
+
+/* Swiftgram */
+"SWIFTGRAM_PRO_TITLE" = "تفعيل Swiftgram Pro";
+"SWIFTGRAM_PRO_SUBTITLE" = "فتح ميزات Swiftgram Pro المحلية. أعد تشغيل التطبيق بعد تغيير هذا الخيار. Telegram Premium اشتراك منفصل.";
+"SWIFTGRAM_SUPPORT_AUTHOR" = "نوصي بشدة بدعم مطوّر Swiftgram بشراء Pro رسميًا.";
