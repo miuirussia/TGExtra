@@ -163,7 +163,7 @@ def inspect_runtime(data, profile):
 
 
 def make_patch(data, profile):
-    """Keep the verified offline application path for the standalone IPA workflow."""
+    """Generate verified hash-pinned edits for offline application."""
     macho, functions, imports, branches, usage, auth_info, _, _ = inspect_runtime(data, profile)
     # Keep substantial load-command growth room; the code lives in executable
     # __TEXT header padding. Existing sections/segments never move or grow.
@@ -351,7 +351,7 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
         elif legacy:
             target = apply_prepared(patch, plistlib.loads(files['resources/TGExtraRustBridge.plist']), apply_app)
         else:
-            # Keep standalone IPA builds independent of a private engine checkout.
+            # Apply verified edits without a private engine checkout.
             # This applies the same reviewed hooks locally; the release package
             # itself contains portable v2 operations, not these fixed offsets.
             offline, metadata = make_patch(original, profile)

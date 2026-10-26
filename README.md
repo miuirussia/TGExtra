@@ -121,7 +121,6 @@ verified reference clients are Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343
 `app.swiftgram.ios`). Both profiles have passed engine planning and patch
 application checks on their decrypted IPAs; on-device validation is still required.
 Portable operations target generic arm64; the tweak builds for arm64 and arm64e.
-Archived v1 sets remain in `PatchesV1/` for older engines.
 Regenerate older bridge archives to include the metadata needed for protected-copy
 recovery.
 
@@ -140,15 +139,7 @@ releases. Install either the DEB or its ipatch; the ipatch requires a matching
 Rust compatibility profile and a v3-capable engine. Swiftgram Pro is an optional
 feature in those archives and is disabled by default.
 
-The manual IPA workflow takes a required `decrypted_ipa_url` and optional
-`release_tag`. It applies the Rust bridge before signing, publishes IPA/TIPA
-assets and adds the generated portable profile to every release ipatch. The
-archived legacy Telegram set is retired when its portable replacement is present;
-other client sets and the DEB embedded in each variant are retained. Standalone
-IPA injection keeps the verified offline application path and does not require a
-private engine checkout. Clients without Rust
-produce no new patch set and keep the existing release ipatches. The workflows
-require `GITHUB_TOKEN` release permissions.
+The release workflow requires `GITHUB_TOKEN` release permissions.
 
 ## Building and checks
 

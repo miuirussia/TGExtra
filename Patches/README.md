@@ -109,8 +109,8 @@ edits and generated metadata to an extracted copy. The input IPA is never modifi
 
 Without --engine, --apply-app retains the standalone offline application path:
 it derives hash-pinned edits and metadata for the exact input and applies them
-locally. The exported release archive still uses portable v2 operations. The IPA
-workflow uses this path so it does not require access to a private engine checkout.
+locally without a private engine checkout. The exported release archive still
+uses portable v2 operations.
 Both paths use the same reviewed bridge code; their allocation addresses can
 differ. Modified binaries still need signing.
 
@@ -130,27 +130,8 @@ Profiles with the same feature, original anchors and checks are replaced on
 update, preserving their combined explicit bundle IDs; distinct compatibility
 profiles remain separate. Conflicting feature declarations are rejected.
 
-The previous hash-pinned Telegram set is retained separately in PatchesV1/.
-It is excluded from portable release packages to avoid selecting two different
-bridges and metadata resources for the same original binary. It can still be
-packaged for a v1 engine:
-
-~~~sh
-python3 Tools/package_ipatch.py --deb TGExtra.deb --patches PatchesV1 --output TGExtra-v1.ipatch
-~~~
-
-When migrating an existing release archive, explicitly retire those exact
-archived legacy set identities:
-
-~~~sh
-python3 Tools/package_ipatch.py --base TGExtra-old.ipatch --merge Client.ipatch --retire-patches PatchesV1 --output TGExtra.ipatch
-~~~
-
-Retirement requires portable profiles for the retired sets' bundle IDs. Other
-legacy clients are retained. Additional overlapping legacy profiles require
-their own verified migration; the engine rejects conflicts instead of choosing
-one set by order. The generator's --legacy option remains available to create
-a new hash-pinned v1 package explicitly.
+The generator's --legacy option remains available to create a hash-pinned v1
+package explicitly.
 
 Clients without Rust generate no new package and keep existing MtProtoKit hooks.
 Protected-forward recovery retains the shared ForwardCopy state machine,
