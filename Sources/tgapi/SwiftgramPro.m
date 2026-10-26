@@ -4,9 +4,38 @@
 #import <dlfcn.h>
 #import <mach/mach.h>
 #import <stdatomic.h>
+#import <string.h>
 #if __has_feature(ptrauth_calls)
 #import <ptrauth.h>
 #endif
+
+// Swift's ReflectionMirror runtime entry points and _FieldReflectionMetadata
+// (stdlib/public/runtime/ReflectionMirror.cpp, available since Swift 5.2).
+// Resolve them dynamically because SDK public interfaces can omit reflection SPI.
+typedef struct {
+    const char *name;
+    void (*freeFunc)(const char *);
+    bool isStrong;
+    bool isVar;
+} TGExtraFieldReflectionMetadata;
+
+bool TGExtraSwiftgramStatusHasExpectedField(const void *metadata, const void *int64Metadata) {
+    typedef intptr_t (__attribute__((swiftcall)) *FieldCount)(const void *);
+    typedef intptr_t (__attribute__((swiftcall)) *FieldOffset)(const void *, intptr_t);
+    typedef const void *(__attribute__((swiftcall)) *FieldMetadata)(const void *, intptr_t,
+        TGExtraFieldReflectionMetadata *);
+    FieldCount fieldCount = (FieldCount)dlsym(RTLD_DEFAULT, "swift_reflectionMirror_recursiveCount");
+    FieldOffset fieldOffset = (FieldOffset)dlsym(RTLD_DEFAULT, "swift_reflectionMirror_recursiveChildOffset");
+    FieldMetadata fieldMetadata = (FieldMetadata)dlsym(RTLD_DEFAULT, "swift_reflectionMirror_recursiveChildMetadata");
+    if (!metadata || !int64Metadata || !fieldCount || !fieldOffset || !fieldMetadata ||
+        fieldCount(metadata) != 1 || fieldOffset(metadata, 0) != 0) return false;
+
+    TGExtraFieldReflectionMetadata field = {0};
+    const void *type = fieldMetadata(metadata, 0, &field);
+    bool compatible = type == int64Metadata && field.name && strcmp(field.name, "status") == 0;
+    if (field.freeFunc) field.freeFunc(field.name);
+    return compatible;
+}
 
 bool TGExtraReplaceSwiftgramStatusWitness(const void *targetTable, const void *sourceTable) {
     if (!targetTable || !sourceTable) return false;

@@ -47,6 +47,7 @@ struct OtherStatus: Decodable { let status: Int64 }
 setEnabled(false)
 try check(read("{\"status\":1}") == 1, "Unmodified fixture")
 check(tgextraSwiftgramProAvailable(), "Discover stripped host type by its real module/name")
+try check(read("{\"status\":1}") == 1, "Availability probing preserves status while disabled")
 check(tgextraInstallSwiftgramPro(), "Install actual Swift witness replacement")
 check(tgextraInstallSwiftgramPro(), "Installation is idempotent")
 for enabled in [false, true, false, true] {
@@ -101,11 +102,11 @@ with tempfile.TemporaryDirectory(prefix='tgextra-swiftgram-pro-') as tmp:
     run('swiftc', '-O', '-emit-library', '-emit-module', '-module-name', 'PostboxFixture',
         'Decoder.swift', '-o', 'libPostboxFixture.dylib')
 
-    def executable(source, *libraries, arguments=(), environment=None):
+    def executable(source, *libraries, arguments=(), environment=None, bridge='bridge.o'):
         (work / 'main.swift').write_text(source)
         run('swiftc', '-O', '-I', include, '-I', tmp, '-L', tmp,
             '-Xlinker', '-rpath', '-Xlinker', tmp,
-            str(ROOT / 'Sources/tgapi/SwiftgramPro.swift'), 'main.swift', 'bridge.o', 'preferences.o',
+            str(ROOT / 'Sources/tgapi/SwiftgramPro.swift'), 'main.swift', bridge, 'preferences.o',
             *libraries, '-o', 'tests')
         run(str(work / 'tests'), *arguments, environment=environment)
 
@@ -148,7 +149,66 @@ with tempfile.TemporaryDirectory(prefix='tgextra-swiftgram-pro-') as tmp:
         executable(startup, '-lTelegramUIPreferences', '-lPostboxFixture', 'startup-defaults.o',
                    environment=environment)
     print('PASS Swiftgram Pro startup restores on/off from the preferences file before installing the witness')
-    (work / 'Host.swift').write_text('public struct SGStatus: Decodable { let status: Int64; let extra: Int64 }')
-    run('swiftc', '-O', '-emit-library', '-emit-module', '-module-name', 'TelegramUIPreferences',
-        'Host.swift', '-o', 'libTelegramUIPreferences.dylib')
-    executable('import TelegramUIPreferences\n' + UNAVAILABLE, '-lTelegramUIPreferences')
+    # Refuse the real bridge's VM lookup to exercise an installation failure
+    # independently of the Swift type/layout check.
+    (work / 'VMRegionFailure.m').write_text(r'''
+#import <mach/mach.h>
+kern_return_t TGExtraTestVMRegion(vm_map_read_t task, vm_address_t *address,
+    vm_size_t *size, vm_region_flavor_t flavor, vm_region_info_t info,
+    mach_msg_type_number_t *count, mach_port_t *object) {
+    return KERN_PROTECTION_FAILURE;
+}
+''')
+    run('clang', '-Werror', '-c', 'VMRegionFailure.m', '-o', 'vm-region-failure.o')
+    run('clang', '-fobjc-arc', '-Werror', '-DTGEXTRA_TESTING',
+        '-Dvm_region_64=TGExtraTestVMRegion', '-I', include,
+        '-c', str(ROOT / 'Sources/tgapi/SwiftgramPro.m'), '-o', 'refused-bridge.o')
+    unavailable_host = ('import TelegramUIPreferences\nimport PostboxFixture\n'
+                        'UserDefaults.standard.setVolatileDomain(["TGExtraSwiftgramPro": true], '
+                        'forName: UserDefaults.argumentDomain)\n' + UNAVAILABLE +
+                        'let value = try decode(SGStatus.self, Data(#"{"status":1}"#.utf8))\n'
+                        'precondition(value.status == 1, "Unavailable integration retains the host decoder")\n')
+    executable(unavailable_host,
+               '-lTelegramUIPreferences', '-lPostboxFixture', 'vm-region-failure.o',
+               bridge='refused-bridge.o')
+    print('PASS Swiftgram Pro is unavailable when witness installation fails')
+    (work / 'MissingReflection.m').write_text(r'''
+#import <dlfcn.h>
+#import <string.h>
+void *TGExtraTestDlsym(void *handle, const char *symbol) {
+    const char prefix[] = "swift_reflectionMirror_";
+    if (strncmp(symbol, prefix, sizeof(prefix) - 1) == 0) return NULL;
+    return dlsym(handle, symbol);
+}
+''')
+    run('clang', '-Werror', '-c', 'MissingReflection.m', '-o', 'missing-reflection.o')
+    run('clang', '-fobjc-arc', '-Werror', '-DTGEXTRA_TESTING', '-Ddlsym=TGExtraTestDlsym',
+        '-I', include, '-c', str(ROOT / 'Sources/tgapi/SwiftgramPro.m'), '-o', 'missing-reflection-bridge.o')
+    executable(unavailable_host, '-lTelegramUIPreferences', '-lPostboxFixture', 'missing-reflection.o',
+               bridge='missing-reflection-bridge.o')
+    for flag in ('-disable-reflection-metadata', '-disable-reflection-names'):
+        run('swiftc', '-O', '-Xfrontend', flag, '-emit-library', '-emit-module',
+            '-module-name', 'TelegramUIPreferences', 'Host.swift', '-o', 'libTelegramUIPreferences.dylib')
+        executable(unavailable_host, '-lTelegramUIPreferences', '-lPostboxFixture')
+    print('PASS Swiftgram Pro rejects missing reflection runtime, metadata and field names')
+    for fields, json, accessor in [
+        ('public let status: Int64; let extra: Int64', '{"status":1,"extra":1}', 'status'),
+        ('public let status: Double', '{"status":1}', 'status'),
+        ('public let status: UInt64', '{"status":1}', 'status'),
+        ('public let value: Int64', '{"value":1}', 'value'),
+        ('public let status: Counter', '{"status":{"value":1}}', 'status.value'),
+        ('public let status: Int64; let extra: Empty', '{"status":1,"extra":{}}', 'status'),
+    ]:
+        (work / 'Host.swift').write_text(
+            'public struct Counter: Decodable { public let value: Int64 }\n'
+            'public struct Empty: Decodable {}\n'
+            f'public struct SGStatus: Decodable {{ {fields} }}')
+        run('swiftc', '-O', '-emit-library', '-emit-module', '-module-name', 'TelegramUIPreferences',
+            'Host.swift', '-o', 'libTelegramUIPreferences.dylib')
+        executable('import TelegramUIPreferences\nimport PostboxFixture\n'
+                   'UserDefaults.standard.setVolatileDomain(["TGExtraSwiftgramPro": true], '
+                   'forName: UserDefaults.argumentDomain)\n' + UNAVAILABLE +
+                   f'let value = try decode(SGStatus.self, Data(#"{json}"#.utf8))\n'
+                   f'precondition(value.{accessor} == 1, "Rejected hosts retain their decoder")\n',
+                   '-lTelegramUIPreferences', '-lPostboxFixture')
+    print('PASS Swiftgram Pro rejects changed field types, names, nested values and extra fields')

@@ -47,7 +47,9 @@ The integration was adapted from the behavior described by Swiftgram Crack
 [current SGStatus source](https://github.com/Swiftgram/Telegram-iOS/blob/e3a392272b182dbf975d4ac5fc33b40a5954d749/Swiftgram/SGStatus/Sources/SGStatus.swift)
 and its TelegramUIPreferences module, confirmed in the Swiftgram 13.1.1 (343)
 reference binary. TGExtra replaces only that type's Decodable initializer in
-memory, after checking its layout; the bundled third-party dylib is not used.
+memory, after checking its layout and its single `status: Int64` field; the
+bundled third-party dylib is not used. The switch is shown only after successful
+installation; probing it with the option off preserves the decoded status.
 Other apps and unsupported layouts are left untouched. The existing content,
 screenshot-notification and advertising switches control those features separately.
 On-device validation of the Pro integration is still required.

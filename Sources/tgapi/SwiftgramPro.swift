@@ -10,8 +10,13 @@ private let swiftgramStatusType: Decodable.Type? = {
         return nil
     }
     func compatible<T>(_: T.Type) -> Bool {
-        return _isPOD(T.self) && MemoryLayout<T>.size == MemoryLayout<Int64>.size
-            && MemoryLayout<T>.alignment == MemoryLayout<Int64>.alignment
+        guard _isPOD(T.self), MemoryLayout<T>.size == MemoryLayout<Int64>.size,
+            MemoryLayout<T>.alignment == MemoryLayout<Int64>.alignment else { return false }
+        // Equal size/alignment alone also accepts Double, UInt64 and wrappers.
+        // Missing reflection metadata must leave the host untouched as well.
+        return TGExtraSwiftgramStatusHasExpectedField(
+            unsafeBitCast(T.self, to: UnsafeRawPointer.self),
+            unsafeBitCast(Int64.self, to: UnsafeRawPointer.self))
     }
     return _openExistential(type, do: compatible) ? type : nil
 }()
@@ -44,7 +49,9 @@ private let swiftgramProInstalled: Bool = {
 
 @_cdecl("TGExtraSwiftgramProAvailable")
 func tgextraSwiftgramProAvailable() -> Bool {
-    return swiftgramStatusType != nil
+    // Probe the actual installation, including memory protection and arm64e
+    // requirements. The replacement preserves status while the option is off.
+    return swiftgramProInstalled
 }
 
 @_cdecl("TGExtraInstallSwiftgramPro")

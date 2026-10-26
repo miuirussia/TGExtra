@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import <objc/runtime.h>
+#import <math.h>
 
 void showUI(void);
 BOOL TGExtraIsTelegramSupportLabel(NSString *label);
@@ -40,6 +41,24 @@ static ASDisplayNode *TGExtraFindSupportRow(ASDisplayNode *node) {
         if (row) return row;
     }
     return nil;
+}
+
+static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *background, UITraitCollection *traits) {
+    UIColor *color = [background resolvedColorWithTraitCollection:traits];
+    CGFloat red, green, blue, alpha;
+    if (![color getRed:&red green:&green blue:&blue alpha:&alpha] || alpha < 1.0) {
+        return traits.userInterfaceStyle;
+    }
+    // Choose the foreground with greater contrast against Telegram's surface,
+    // which may use a night/custom theme while iOS itself is in light mode.
+    CGFloat channels[] = {red, green, blue};
+    for (NSUInteger i = 0; i < 3; i++) {
+        CGFloat value = MAX(0.0, MIN(1.0, channels[i]));
+        channels[i] = value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
+    }
+    CGFloat luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+    return (1.05 / (luminance + 0.05) > (luminance + 0.05) / 0.05)
+        ? UIUserInterfaceStyleDark : UIUserInterfaceStyleLight;
 }
 
 @interface TGExtraSettingsButton : UIButton
@@ -121,6 +140,7 @@ static ASDisplayNode *TGExtraFindSupportRow(ASDisplayNode *node) {
             break;
         }
     }
+    self.overrideUserInterfaceStyle = TGExtraSettingsStyleForBackground(self.backgroundColor, row.view.traitCollection);
     if (@available(iOS 26.0, *)) {
         self.layer.cornerRadius = 26.0;
     }
