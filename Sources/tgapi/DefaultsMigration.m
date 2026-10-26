@@ -26,6 +26,7 @@ void TGExtraMigrateDefaults(NSUserDefaults *defaults) {
 
 #ifndef TGEXTRA_TESTING
 __attribute__((constructor(101))) static void TGExtraRunDefaultsMigration(void) {
+    TGExtraRestorePreferences();
     TGExtraMigrateDefaults(NSUserDefaults.standardUserDefaults);
 }
 #endif

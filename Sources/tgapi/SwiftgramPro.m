@@ -49,6 +49,7 @@ bool TGExtraReplaceSwiftgramStatusWitness(const void *targetTable, const void *s
 #ifndef TGEXTRA_TESTING
 __attribute__((constructor)) static void TGExtraSetupSwiftgramPro(void) {
     @autoreleasepool {
+        TGExtraRestorePreferences();
         if ([NSUserDefaults.standardUserDefaults boolForKey:kSwiftgramPro]) {
             bool installed = TGExtraInstallSwiftgramPro();
             if (!installed) NSLog(@"[TGExtra] Swiftgram Pro: compatible SGStatus witness unavailable");

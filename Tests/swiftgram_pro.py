@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Exercise the production Swift witness replacement across optimized modules."""
 from pathlib import Path
+import os
+import plistlib
 import subprocess
 import tempfile
 
@@ -88,22 +90,24 @@ with tempfile.TemporaryDirectory(prefix='tgextra-swiftgram-pro-') as tmp:
     work = Path(tmp)
     include = str(ROOT / 'Sources/tgapiC/include')
 
-    def run(*args):
-        subprocess.run(args, cwd=work, check=True)
+    def run(*args, environment=None):
+        subprocess.run(args, cwd=work, env=environment, check=True)
 
     run('clang', '-fobjc-arc', '-Werror', '-DTGEXTRA_TESTING', '-I', include,
         '-c', str(ROOT / 'Sources/tgapi/SwiftgramPro.m'), '-o', 'bridge.o')
+    run('clang', '-fobjc-arc', '-Werror', '-DTGEXTRA_TESTING',
+        '-c', str(ROOT / 'Sources/tgapi/Preferences.m'), '-o', 'preferences.o')
     (work / 'Decoder.swift').write_text(DECODER)
     run('swiftc', '-O', '-emit-library', '-emit-module', '-module-name', 'PostboxFixture',
         'Decoder.swift', '-o', 'libPostboxFixture.dylib')
 
-    def executable(source, *libraries, arguments=()):
+    def executable(source, *libraries, arguments=(), environment=None):
         (work / 'main.swift').write_text(source)
         run('swiftc', '-O', '-I', include, '-I', tmp, '-L', tmp,
             '-Xlinker', '-rpath', '-Xlinker', tmp,
-            str(ROOT / 'Sources/tgapi/SwiftgramPro.swift'), 'main.swift', 'bridge.o',
+            str(ROOT / 'Sources/tgapi/SwiftgramPro.swift'), 'main.swift', 'bridge.o', 'preferences.o',
             *libraries, '-o', 'tests')
-        run(str(work / 'tests'), *arguments)
+        run(str(work / 'tests'), *arguments, environment=environment)
 
     executable(UNAVAILABLE)
     (work / 'Host.swift').write_text(HOST)
@@ -116,6 +120,34 @@ with tempfile.TemporaryDirectory(prefix='tgextra-swiftgram-pro-') as tmp:
         '-c', str(ROOT / 'Sources/tgapi/SwiftgramPro.m'), '-o', 'bridge.o')
     executable(BOOTSTRAP, '-lTelegramUIPreferences', '-lPostboxFixture',
                arguments=('-TGExtraSwiftgramPro', 'YES'))
+    # +load replaces defaults before the production C constructor runs. All
+    # startup restoration writes stay in memory instead of the user's defaults.
+    (work / 'StartupDefaults.m').write_text(r'''
+#import <Foundation/Foundation.h>
+#import <objc/runtime.h>
+@interface StartupDefaults : NSUserDefaults
+@property NSMutableDictionary *values;
+@end
+@implementation StartupDefaults
++ (void)load {
+    StartupDefaults *defaults = [self new];
+    defaults.values = [NSMutableDictionary new];
+    Method method = class_getClassMethod(NSUserDefaults.class, @selector(standardUserDefaults));
+    method_setImplementation(method, imp_implementationWithBlock(^id(id cls) { return defaults; }));
+}
+- (BOOL)boolForKey:(NSString *)key { return [self.values[key] boolValue]; }
+- (void)setObject:(id)value forKey:(NSString *)key { self.values[key] = value; }
+@end
+''')
+    run('clang', '-fobjc-arc', '-Werror', '-c', 'StartupDefaults.m', '-o', 'startup-defaults.o')
+    preferences = work / 'Preferences.plist'
+    environment = dict(os.environ, TGEXTRA_TEST_PREFERENCES_PATH=str(preferences))
+    for enabled in (True, False):
+        preferences.write_bytes(plistlib.dumps({'TGExtraSwiftgramPro': enabled}))
+        startup = BOOTSTRAP if enabled else BOOTSTRAP.replace('value.status != 2', 'value.status != 1')
+        executable(startup, '-lTelegramUIPreferences', '-lPostboxFixture', 'startup-defaults.o',
+                   environment=environment)
+    print('PASS Swiftgram Pro startup restores on/off from the preferences file before installing the witness')
     (work / 'Host.swift').write_text('public struct SGStatus: Decodable { let status: Int64; let extra: Int64 }')
     run('swiftc', '-O', '-emit-library', '-emit-module', '-module-name', 'TelegramUIPreferences',
         'Host.swift', '-o', 'libTelegramUIPreferences.dylib')

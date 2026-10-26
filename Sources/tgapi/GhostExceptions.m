@@ -64,6 +64,7 @@ static void persist(void) {
 
   [[NSUserDefaults standardUserDefaults] setObject:[sEntries copy]
                                             forKey:kGhostExceptions];
+  TGExtraSavePreferences();
 
   dispatch_async(dispatch_get_main_queue(), ^{
     [[NSNotificationCenter defaultCenter]

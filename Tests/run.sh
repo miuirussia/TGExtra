@@ -5,6 +5,7 @@ python3 Tests/check_resources.py
 python3 Tests/check_api_schema.py
 python3 Tests/settings_support_labels.py
 python3 Tests/settings_apply.py
+python3 Tests/settings_persistence.py
 python3 Tests/swiftgram_pro.py
 python3 Tests/edit_badge_refresh.py
 python3 Tests/rust_thunks.py
@@ -18,6 +19,7 @@ cp -R Sources Tests "$test_build_dir/"
 cd "$test_build_dir"
 clang -fobjc-arc -DTGEXTRA_TESTING -c Tests/Support/TestSupport.m -o "$test_build_dir/support.o"
 clang -fobjc-arc -DTGEXTRA_TESTING -c Sources/tgapi/DefaultsMigration.m -o "$test_build_dir/migration.o"
+clang -fobjc-arc -DTGEXTRA_TESTING -c Sources/tgapi/Preferences.m -o "$test_build_dir/preferences.o"
 clang -fobjc-arc -c Sources/tgapi/FunctionHandler.m -o "$test_build_dir/handlers.o"
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -c Sources/tgapi/RustBridge.m -o "$test_build_dir/rust-bridge.o"
 clang -arch arm64e -fobjc-arc -Werror -DTGEXTRA_TESTING -fsyntax-only Sources/tgapi/RustBridge.m

@@ -28,6 +28,10 @@ for index, (key, label) in enumerate([
     assert re.search(r'ghostRow == ' + str(index) + r'\).*?TGLoc\(@"DISABLE_' + label + r'_READ_RECEIPT_TITLE"', ghost_cells, re.S), f'{key} needs its own label'
 assert 'self.isGhostModeExpanded ? [TGExtra ghostSubFeatureKeys].count : 0' in menu, 'Expanded Ghost Mode rows must include every subfeature'
 
+preferences = (ROOT / 'Sources/tgapi/Preferences.m').read_text()
+switch_keys = set(re.findall(r'return (k\w+|FILE_PICKER_FIX_KEY|FAKE_LOCATION_ENABLED_KEY);', menu[start:]))
+assert all(key in preferences for key in switch_keys | set(ghost_keys)), 'Every switch needs durable storage'
+
 pattern = re.compile(r'^\s*"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;\s*$', re.M)
 english = dict(pattern.findall((ROOT / 'TGExtra.bundle/en.lproj/Localizable.strings').read_text()))
 for path in (ROOT / 'TGExtra.bundle').glob('*.lproj/Localizable.strings'):

@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import "Preferences.h"
 
 #define kAccountUpdateOnlineStatus 1713919532
 #define kMessagesSetTypingAction 1486110434

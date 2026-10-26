@@ -172,3 +172,5 @@
 "SWIFTGRAM_PRO_TITLE" = "启用 Swiftgram Pro";
 "SWIFTGRAM_PRO_SUBTITLE" = "解锁 Swiftgram Pro 本地功能。更改此选项后请重启应用。Telegram Premium 需单独订阅。";
 "SWIFTGRAM_SUPPORT_AUTHOR" = "强烈建议通过官方购买 Pro 来支持 Swiftgram 的作者。";
+
+"SETTINGS_SAVE_FAILED" = "无法保存设置。请在重启应用前重试。";

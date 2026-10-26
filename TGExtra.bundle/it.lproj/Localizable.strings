@@ -172,3 +172,5 @@
 "SWIFTGRAM_PRO_TITLE" = "Abilita Swiftgram Pro";
 "SWIFTGRAM_PRO_SUBTITLE" = "Sblocca le funzioni locali di Swiftgram Pro. Riavvia l’app dopo la modifica. Telegram Premium è separato.";
 "SWIFTGRAM_SUPPORT_AUTHOR" = "Consigliamo vivamente di sostenere l’autore di Swiftgram acquistando Pro ufficialmente.";
+
+"SETTINGS_SAVE_FAILED" = "Impossibile salvare le impostazioni. Riprova prima di riavviare l’app.";

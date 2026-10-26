@@ -170,3 +170,5 @@
 "SWIFTGRAM_PRO_TITLE" = "Swiftgram Pro を有効化";
 "SWIFTGRAM_PRO_SUBTITLE" = "Swiftgram Pro のローカル機能を解放します。変更後はアプリを再起動してください。Telegram Premium は別のサービスです。";
 "SWIFTGRAM_SUPPORT_AUTHOR" = "Pro を公式に購入して Swiftgram の作者を支援することを強くおすすめします。";
+
+"SETTINGS_SAVE_FAILED" = "設定を保存できませんでした。アプリを再起動する前にもう一度お試しください。";

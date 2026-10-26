@@ -1349,6 +1349,7 @@ __attribute__((constructor))
 static void hook() {
     NSLog(@"[TGExtra] Tweak initializing...");
 
+    TGExtraRestorePreferences();
     [TLParser loadPersistedIds];
     [TGExtraAntiRevokeUpdater shared];
 

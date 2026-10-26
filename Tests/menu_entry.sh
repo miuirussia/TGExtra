@@ -25,6 +25,9 @@ for arch in arm64 arm64e; do
         -fobjc-arc -Werror -Wno-deprecated-declarations \
         -I "$test_build_dir" -I Sources/tgapiC/include -c \
         Sources/tgapi/UI/TGExtra.m -o "$test_build_dir/TGExtra-$arch.o"
+    clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+        -fobjc-arc -Werror -Wno-deprecated-declarations -c \
+        Sources/tgapi/Preferences.m -o "$test_build_dir/Preferences-$arch.o"
     clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations \
         -I Sources/tgapi -I Sources/tgapiC/include -c \

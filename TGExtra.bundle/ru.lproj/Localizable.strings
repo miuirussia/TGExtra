@@ -173,3 +173,5 @@
 "SWIFTGRAM_PRO_TITLE" = "Включить Swiftgram Pro";
 "SWIFTGRAM_PRO_SUBTITLE" = "Открыть локальные функции Swiftgram Pro. После изменения перезапустите приложение. Telegram Premium приобретается отдельно.";
 "SWIFTGRAM_SUPPORT_AUTHOR" = "Настоятельно рекомендуем поддержать автора Swiftgram, приобретя Pro официально.";
+
+"SETTINGS_SAVE_FAILED" = "Не удалось сохранить настройки. Повторите попытку перед перезапуском приложения.";

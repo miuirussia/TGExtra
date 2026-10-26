@@ -127,6 +127,7 @@
                                            forKey:FAKE_LONGITUDE_KEY];
   [[NSUserDefaults standardUserDefaults] setFloat:coordinate.latitude
                                            forKey:FAKE_LATITUDE_KEY];
+  TGExtraSavePreferences();
   [[NSUserDefaults standardUserDefaults] synchronize];
 
   [[NSNotificationCenter defaultCenter]

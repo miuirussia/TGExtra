@@ -17,18 +17,25 @@ support = r'''
 #define UIAlertActionStyleDefault 0
 #define UIAlertActionStyleCancel 1
 static NSMutableArray *events;
+static BOOL fileSaveSucceeds = YES;
+BOOL TGExtraSavePreferences(void) {
+    [events addObject:@"file"];
+    return fileSaveSucceeds;
+}
+static void TGExtraShowToast(NSString *message) { [events addObject:message]; }
 
 @interface BufferedDefaults : NSUserDefaults
 @property BOOL pendingHidden;
 @property BOOL savedHidden;
+@property BOOL syncSucceeds;
 @end
 @implementation BufferedDefaults
 - (BOOL)boolForKey:(NSString *)key { return self.pendingHidden; }
 - (void)setBool:(BOOL)value forKey:(NSString *)key { self.pendingHidden = value; }
 - (BOOL)synchronize {
     [events addObject:@"save"];
-    self.savedHidden = self.pendingHidden;
-    return YES;
+    if (self.syncSucceeds) self.savedHidden = self.pendingHidden;
+    return self.syncSucceeds;
 }
 @end
 
@@ -95,6 +102,8 @@ int main(void) {
         Method method = class_getClassMethod(NSUserDefaults.class, @selector(standardUserDefaults));
         IMP original = method_setImplementation(method, imp_implementationWithBlock(^id(id cls) { return defaults; }));
         for (NSNumber *hidden in @[@NO, @YES]) {
+          for (NSNumber *sync in @[@NO, @YES]) {
+            defaults.syncSucceeds = sync.boolValue;
             defaults.savedHidden = !hidden.boolValue;
             [defaults setBool:hidden.boolValue forKey:kDisableOnlineStatus];
             TGExtra *menu = [TGExtra new];
@@ -107,13 +116,20 @@ int main(void) {
             [menu applyChanges];
             UIAlertAction *confirm = menu.alert.actions.firstObject;
             confirm.handler(confirm);
-            NSArray *expected = @[@"save", @"suspend", @"exit"];
-            NSCAssert([events isEqual:expected], @"Flush preferences before suspending and exiting: %@", events);
-            NSCAssert(defaults.savedHidden == hidden.boolValue, @"The next launch must see the new online-status setting");
+            NSArray *expected = @[@"file", @"save", @"suspend", @"exit"];
+            NSCAssert([events isEqual:expected], @"Save the independent preferences file before suspending and exiting: %@", events);
             [events removeAllObjects];
+          }
         }
+        fileSaveSucceeds = NO;
+        TGExtra *menu = [TGExtra new];
+        [menu applyChanges];
+        UIAlertAction *confirm = menu.alert.actions.firstObject;
+        confirm.handler(confirm);
+        NSArray *failedSave = @[@"file", @"SETTINGS_SAVE_FAILED"];
+        NSCAssert([events isEqual:failedSave], @"A failed file write must report failure and keep the app open: %@", events);
         method_setImplementation(method, original);
-        puts("PASS Apply saves both online-status states before suspension/exit; cancellation leaves the app running");
+        puts("PASS Apply writes the preferences file before exit even when defaults sync fails; cancellation and file errors keep the app running");
     }
     return 0;
 }

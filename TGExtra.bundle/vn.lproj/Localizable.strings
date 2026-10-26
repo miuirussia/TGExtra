@@ -170,3 +170,5 @@
 "SWIFTGRAM_PRO_TITLE" = "Bật Swiftgram Pro";
 "SWIFTGRAM_PRO_SUBTITLE" = "Mở các tính năng cục bộ của Swiftgram Pro. Khởi động lại ứng dụng sau khi thay đổi. Telegram Premium là gói riêng.";
 "SWIFTGRAM_SUPPORT_AUTHOR" = "Chúng tôi rất khuyến khích bạn ủng hộ tác giả Swiftgram bằng cách mua Pro chính thức.";
+
+"SETTINGS_SAVE_FAILED" = "Không thể lưu cài đặt. Hãy thử lại trước khi khởi động lại ứng dụng.";

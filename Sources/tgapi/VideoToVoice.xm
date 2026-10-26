@@ -451,6 +451,7 @@ static void tgextraStyleVoiceButton(UIButton *button, BOOL enabled) {
     NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
     BOOL enabled = ![defaults boolForKey:kVideoToVoice];
     [defaults setBool:enabled forKey:kVideoToVoice];
+    TGExtraSavePreferences();
     tgextraStyleVoiceButton(sender, enabled);
     tgextraDiag("v2v: preview toggle -> %d", enabled);
 

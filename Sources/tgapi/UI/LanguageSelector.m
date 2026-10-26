@@ -136,6 +136,7 @@
                                                             style:UIAlertActionStyleDestructive
                                                           handler:^(UIAlertAction *action) {
         [[NSUserDefaults standardUserDefaults] setObject:self.selectedLanguageCode forKey:@"TGExtraLanguage"];
+        TGExtraSavePreferences();
         [[NSUserDefaults standardUserDefaults] synchronize];
 
         [[UIApplication sharedApplication] performSelector:@selector(suspend)];

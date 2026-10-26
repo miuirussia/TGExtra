@@ -127,6 +127,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"تفعيل Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"فتح ميزات Swiftgram Pro المحلية. أعد تشغيل التطبيق بعد تغيير هذا الخيار. Telegram Premium اشتراك منفصل.",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"نوصي بشدة بدعم مطوّر Swiftgram بشراء Pro رسميًا.",
+            @"SETTINGS_SAVE_FAILED": @"تعذر حفظ الإعدادات. حاول مرة أخرى قبل إعادة تشغيل التطبيق.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -255,6 +256,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"启用 Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"解锁 Swiftgram Pro 本地功能。更改此选项后请重启应用。Telegram Premium 需单独订阅。",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"强烈建议通过官方购买 Pro 来支持 Swiftgram 的作者。",
+            @"SETTINGS_SAVE_FAILED": @"无法保存设置。请在重启应用前重试。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -383,6 +385,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"Enable Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"Unlock local Swiftgram Pro features. Restart the app after changing this option. Telegram Premium is separate.",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"We strongly recommend supporting Swiftgram’s author by purchasing Pro officially.",
+            @"SETTINGS_SAVE_FAILED": @"Could not save settings. Try again before restarting the app.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -511,6 +514,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"Activar Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"Desbloquear funciones locales de Swiftgram Pro. Reinicia la app después de cambiar esta opción. Telegram Premium es independiente.",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"Recomendamos encarecidamente apoyar al autor de Swiftgram comprando Pro oficialmente.",
+            @"SETTINGS_SAVE_FAILED": @"No se pudieron guardar los ajustes. Inténtalo de nuevo antes de reiniciar la app.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -639,6 +643,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"Activer Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"Débloquer les fonctions locales de Swiftgram Pro. Redémarrez l’application après toute modification. Telegram Premium est distinct.",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"Nous vous recommandons vivement de soutenir l’auteur de Swiftgram en achetant Pro officiellement.",
+            @"SETTINGS_SAVE_FAILED": @"Impossible d’enregistrer les réglages. Réessayez avant de redémarrer l’application.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -767,6 +772,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"Abilita Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"Sblocca le funzioni locali di Swiftgram Pro. Riavvia l’app dopo la modifica. Telegram Premium è separato.",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"Consigliamo vivamente di sostenere l’autore di Swiftgram acquistando Pro ufficialmente.",
+            @"SETTINGS_SAVE_FAILED": @"Impossibile salvare le impostazioni. Riprova prima di riavviare l’app.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -895,6 +901,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"Swiftgram Pro を有効化",
             @"SWIFTGRAM_PRO_SUBTITLE": @"Swiftgram Pro のローカル機能を解放します。変更後はアプリを再起動してください。Telegram Premium は別のサービスです。",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"Pro を公式に購入して Swiftgram の作者を支援することを強くおすすめします。",
+            @"SETTINGS_SAVE_FAILED": @"設定を保存できませんでした。アプリを再起動する前にもう一度お試しください。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1023,6 +1030,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"Включить Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"Открыть локальные функции Swiftgram Pro. После изменения перезапустите приложение. Telegram Premium приобретается отдельно.",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"Настоятельно рекомендуем поддержать автора Swiftgram, приобретя Pro официально.",
+            @"SETTINGS_SAVE_FAILED": @"Не удалось сохранить настройки. Повторите попытку перед перезапуском приложения.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1151,6 +1159,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"啟用 Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"解鎖 Swiftgram Pro 本機功能。更改此選項後請重新啟動 App。Telegram Premium 需另行訂閱。",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"強烈建議透過官方購買 Pro 來支持 Swiftgram 的作者。",
+            @"SETTINGS_SAVE_FAILED": @"無法儲存設定。請在重新啟動 App 前重試。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1279,6 +1288,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SWIFTGRAM_PRO_TITLE": @"Bật Swiftgram Pro",
             @"SWIFTGRAM_PRO_SUBTITLE": @"Mở các tính năng cục bộ của Swiftgram Pro. Khởi động lại ứng dụng sau khi thay đổi. Telegram Premium là gói riêng.",
             @"SWIFTGRAM_SUPPORT_AUTHOR": @"Chúng tôi rất khuyến khích bạn ủng hộ tác giả Swiftgram bằng cách mua Pro chính thức.",
+            @"SETTINGS_SAVE_FAILED": @"Không thể lưu cài đặt. Hãy thử lại trước khi khởi động lại ứng dụng.",
         };
     }
     return nil;

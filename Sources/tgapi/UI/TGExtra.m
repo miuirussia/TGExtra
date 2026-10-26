@@ -188,6 +188,10 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       actionWithTitle:TGLoc(@"OK")
                 style:UIAlertActionStyleDefault
               handler:^(UIAlertAction *_Nonnull action) {
+                if (!TGExtraSavePreferences()) {
+                  TGExtraShowToast(TGLoc(@"SETTINGS_SAVE_FAILED"));
+                  return;
+                }
                 // Apply forces an exit, so finish pending preference writes first.
                 [[NSUserDefaults standardUserDefaults] synchronize];
                 [[UIApplication sharedApplication]
@@ -749,6 +753,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     self.isGhostModeExpanded = !self.isGhostModeExpanded;
     [[NSUserDefaults standardUserDefaults] setBool:self.isGhostModeExpanded
                                             forKey:kGhostDetailsToggle];
+    TGExtraSavePreferences();
     [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:GHOST_MODE]
                   withRowAnimation:UITableViewRowAnimationAutomatic];
     return;
@@ -931,6 +936,9 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 
     [[NSUserDefaults standardUserDefaults] setBool:sender.isOn
                                             forKey:switchKey];
+    if (!TGExtraSavePreferences()) {
+      TGExtraShowToast(TGLoc(@"SETTINGS_SAVE_FAILED"));
+    }
     // Names the key each row actually writes — the quickest way to catch a
     // section/row mapping that has drifted out of step with the labels.
     tgextraDiag("switch section=%ld row=%ld key=%{public}@ value=%d",
