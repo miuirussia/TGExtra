@@ -34,8 +34,11 @@ function cluster and call counts. A changed constructor or conservative
 fingerprint can require a separate profile even if the Rust ABI is unchanged.
 Bundle IDs remain explicit; the generator adds the input client's ID and retains
 previously authorized IDs when exporting the same profile again.
-The committed portable profile has been checked on Telegram 13.1.1 (35634).
-Swiftgram and a second real relinked client build remain unverified.
+The committed portable profiles have been checked on Telegram 13.1.1 (35634) and
+Swiftgram 13.1.1 (343, app.swiftgram.ios), including engine planning and application
+to extracted copies of both clients. Swiftgram needs its own profile because its
+engine constructor and session initializer have different conservative
+fingerprints. These checks do not replace on-device validation.
 
 The bridge targets C ABI 5 of TelegramMessenger/mtproto-engine, pinned by
 Telegram-iOS 1dd3e7f4ed to da4b2170210aab0430c4ff18c032991f3030cf45.

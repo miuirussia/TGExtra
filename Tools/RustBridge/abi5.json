@@ -22,7 +22,13 @@
     },
     "engineCreate": {
       "size": 4640,
-      "sha256": "d142b27ed16b2fdde87dfd53d90cdb2977a2a52d6a18ac548d9e677197349a91"
+      "sha256": "d142b27ed16b2fdde87dfd53d90cdb2977a2a52d6a18ac548d9e677197349a91",
+      "variants": [
+        {
+          "reference": "Swiftgram 13.1.1 (343), arm64",
+          "sha256": "557d66659f2e94974e0b41eda148bf5f986f9314ee42787605e15d67450e8b90"
+        }
+      ]
     },
     "sessionCreate": {
       "size": 2120,

@@ -101,7 +101,8 @@ def identify(macho, profile):
             continue
         digest = macho.fingerprint(a, b)
         for name, spec in specs.items():
-            if spec['size'] == b-a and spec['sha256'] == digest:
+            reviewed = [spec['sha256']] + [variant['sha256'] for variant in spec.get('variants', [])]
+            if spec['size'] == b-a and digest in reviewed:
                 off = macho.offset(a)
                 if 'exact' not in spec or macho.data[off:off+b-a].hex() == spec['exact']:
                     candidates[name].append(a)

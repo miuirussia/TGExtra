@@ -50,6 +50,22 @@ class RustPatchTests(unittest.TestCase):
         ambiguous = RelinkedCode(4096, duplicate=True)
         with self.assertRaises(ValueError): identify(ambiguous, ambiguous.profile)
 
+    def test_reviewed_variant_keeps_original_and_rejects_unknown_or_ambiguous_code(self):
+        original, variant = RelinkedCode(4096), RelinkedCode(4096)
+        start, end = variant.starts[4], variant.ends[4]
+        variant.data[start+1] ^= 0x08
+        spec = original.profile['functions']['engineCreate']
+        spec['variants'] = [{'reference': 'Reviewed fork', 'sha256': variant.fingerprint(start, end)}]
+        self.assertEqual(identify(original, original.profile)['engineCreate'], start)
+        self.assertEqual(identify(variant, original.profile)['engineCreate'], start)
+        variant.data[start+1] ^= 0x10
+        with self.assertRaises(ValueError): identify(variant, original.profile)
+        variant.data[start+1] ^= 0x10
+        original.starts.append(len(original.data))
+        original.data += variant.data[start:end]
+        original.ends.append(len(original.data))
+        with self.assertRaises(ValueError): identify(original, original.profile)
+
     def test_fingerprints_preserve_semantic_offsets(self):
         getter = bytes.fromhex('000440f9')
         different_field = bytes.fromhex('000840f9')

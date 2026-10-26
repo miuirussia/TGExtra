@@ -96,7 +96,9 @@ C ABI 5 instruction patterns. It emits portable v2 profiles; add
 The engine must include the zero-fill fingerprint fix in
 [`Tools/iOSPatchingEngine-v2.patch`](Tools/iOSPatchingEngine-v2.patch).
 Unknown implementations and insufficient header padding are rejected. The
-reference client is Telegram 13.1.1 (35634); Swiftgram with Rust remains untested.
+verified reference clients are Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343,
+`app.swiftgram.ios`). Both profiles have passed engine planning and patch
+application checks on their decrypted IPAs; on-device validation is still required.
 Portable operations target generic arm64; the tweak builds for arm64 and arm64e.
 Archived v1 sets remain in `PatchesV1/` for older engines.
 Regenerate older bridge archives to include the metadata needed for protected-copy

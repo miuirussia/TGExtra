@@ -1,0 +1,1040 @@
+{
+  "name": "Rust MTProto ABI 5 / d60b36df33091205",
+  "bundle_ids": [
+    "app.swiftgram.ios"
+  ],
+  "binary_patches": [
+    {
+      "search": {
+        "roots": [
+          "."
+        ],
+        "max_candidates": 128,
+        "max_bytes": 1073741824
+      },
+      "profile": {
+        "arch": "arm64",
+        "header_reserve": 65536,
+        "anchors": [
+          {
+            "name": "engineCreate",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 4640,
+              "sha256": "20011eed98b31ef5ecca0928874760c47b308f1b8a8738f0cca12c3056d53e8a"
+            }
+          },
+          {
+            "name": "bufferData",
+            "type": "relative_function",
+            "from": "engineCreate",
+            "index": -4
+          },
+          {
+            "name": "bufferLength",
+            "type": "relative_function",
+            "from": "engineCreate",
+            "index": -2
+          },
+          {
+            "name": "bufferFree",
+            "type": "relative_function",
+            "from": "engineCreate",
+            "index": -3
+          },
+          {
+            "name": "abi",
+            "type": "relative_function",
+            "from": "engineCreate",
+            "index": -1
+          },
+          {
+            "name": "sessionCreate",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 2120,
+              "sha256": "53b450e9958134911be3ad2ae6b671f5741c1d9b8fe85f6ea609f46544bc0840"
+            }
+          },
+          {
+            "name": "sessionDestroy",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 52,
+              "sha256": "aa14e8288d46505e7748b4b50b54bddc2dafd7d509100400ed03c0375f3e144d"
+            }
+          },
+          {
+            "name": "send",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 288,
+              "sha256": "51dbba29cea3b7a3b54fae619f37a16c1bef4675b07cf84478fcdcf54fa72eda"
+            }
+          },
+          {
+            "name": "cancel",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 52,
+              "sha256": "93b7390bd49a374d99d5694ccb9a10cabaa72efbf9649bae732bf8a1474aecc6"
+            }
+          },
+          {
+            "name": "nextRequestID",
+            "type": "relative_function",
+            "from": "engineCreate",
+            "index": 1
+          },
+          {
+            "name": "sessionInit",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 3532,
+              "sha256": "d9006a4c926fe9d27752532e2ed617a7c2392fd2087adeeadc803b406245bc3c"
+            }
+          },
+          {
+            "name": "sessionMarker",
+            "type": "pattern",
+            "target": {
+              "type": "pattern",
+              "arch": "arm64",
+              "segment": "__TEXT",
+              "section": "__cstring",
+              "pattern": "5B 4D 54 50 72 6F 74 6F 52 75 73 74 23 30 20 64 63"
+            }
+          },
+          {
+            "name": "sessionMarkerRefs",
+            "type": "data_reference",
+            "to": "sessionMarker",
+            "within": "sessionInit",
+            "window": 6,
+            "count": 1
+          },
+          {
+            "name": "usageManager",
+            "type": "objc_stub",
+            "selector": "initWithInfo:"
+          },
+          {
+            "name": "authInfo",
+            "type": "objc_stub",
+            "selector": "authInfoForDatacenterWithId:selector:"
+          },
+          {
+            "name": "_objc_lookUpClass",
+            "type": "import_stub",
+            "import": "_objc_lookUpClass"
+          },
+          {
+            "name": "_objc_msgSend",
+            "type": "import_stub",
+            "import": "_objc_msgSend"
+          },
+          {
+            "name": "_sel_registerName",
+            "type": "import_stub",
+            "import": "_sel_registerName"
+          },
+          {
+            "name": "engineCreateCalls",
+            "type": "calls",
+            "to": "engineCreate",
+            "count": 1
+          },
+          {
+            "name": "sessionCreateCalls",
+            "type": "calls",
+            "to": "sessionCreate",
+            "count": 1
+          },
+          {
+            "name": "sessionDestroyCalls",
+            "type": "calls",
+            "to": "sessionDestroy",
+            "count": 1
+          },
+          {
+            "name": "sendCalls",
+            "type": "calls",
+            "to": "send",
+            "count": 2
+          },
+          {
+            "name": "sendCalls0",
+            "type": "select",
+            "from": "sendCalls",
+            "index": 0
+          },
+          {
+            "name": "sendCalls1",
+            "type": "select",
+            "from": "sendCalls",
+            "index": 1
+          },
+          {
+            "name": "cancelCalls",
+            "type": "calls",
+            "to": "cancel",
+            "count": 2
+          },
+          {
+            "name": "cancelCalls0",
+            "type": "select",
+            "from": "cancelCalls",
+            "index": 0
+          },
+          {
+            "name": "cancelCalls1",
+            "type": "select",
+            "from": "cancelCalls",
+            "index": 1
+          },
+          {
+            "name": "bufferDataCalls",
+            "type": "calls",
+            "to": "bufferData",
+            "count": 1
+          },
+          {
+            "name": "bufferLengthCalls",
+            "type": "calls",
+            "to": "bufferLength",
+            "count": 1
+          },
+          {
+            "name": "bufferFreeCalls",
+            "type": "calls",
+            "to": "bufferFree",
+            "count": 2
+          },
+          {
+            "name": "bufferFreeCalls0",
+            "type": "select",
+            "from": "bufferFreeCalls",
+            "index": 0
+          },
+          {
+            "name": "bufferFreeCalls1",
+            "type": "select",
+            "from": "bufferFreeCalls",
+            "index": 1
+          },
+          {
+            "name": "usageManagerCalls",
+            "type": "calls",
+            "to": "usageManager",
+            "count": 1,
+            "within": "sessionInit"
+          },
+          {
+            "name": "authInfoCalls",
+            "type": "calls",
+            "to": "authInfo",
+            "count": 1,
+            "within": "sessionInit"
+          }
+        ],
+        "checks": [
+          {
+            "type": "function",
+            "at": "bufferData",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 12,
+              "sha256": "5efb967d07f0ce75f2012bd6ca980b4a2ebb9dafc974af8ec0a25ac78a9bbb49"
+            }
+          },
+          {
+            "type": "function",
+            "at": "bufferLength",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 12,
+              "sha256": "aab272b83eeeb0666f4a2ab789868c942aeba9985e35e7d676c3b2940f85dad6"
+            }
+          },
+          {
+            "type": "function",
+            "at": "bufferFree",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 140,
+              "sha256": "9fd93fde217004b810e54f5516566c97faf12b39ac5d3c7f636c630232a0d5a1"
+            }
+          },
+          {
+            "type": "function",
+            "at": "abi",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 8,
+              "sha256": "94152e462f3e98d8d99662739e87c91ff06eb16d5afefc0047346c214bd99ac8"
+            }
+          },
+          {
+            "type": "function",
+            "at": "nextRequestID",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 32,
+              "sha256": "88f7eef028a1381dd63c11bba1960ad294ac0dd2f4074795e011f9504f1a6f8a"
+            }
+          },
+          {
+            "type": "bytes",
+            "at": "abi",
+            "expected": "a0008052c0035fd6"
+          },
+          {
+            "type": "branch",
+            "at": "engineCreateCalls",
+            "to": "engineCreate",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "sessionCreateCalls",
+            "to": "sessionCreate",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "sessionDestroyCalls",
+            "to": "sessionDestroy",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "sendCalls0",
+            "to": "send",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "sendCalls1",
+            "to": "send",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "cancelCalls0",
+            "to": "cancel",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "cancelCalls1",
+            "to": "cancel",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "bufferDataCalls",
+            "to": "bufferData",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "bufferLengthCalls",
+            "to": "bufferLength",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "bufferFreeCalls0",
+            "to": "bufferFree",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "bufferFreeCalls1",
+            "to": "bufferFree",
+            "instruction": "b"
+          },
+          {
+            "type": "branch",
+            "at": "usageManagerCalls",
+            "to": "usageManager",
+            "instruction": "bl"
+          },
+          {
+            "type": "within",
+            "at": "usageManagerCalls",
+            "within": "sessionInit"
+          },
+          {
+            "type": "branch",
+            "at": "authInfoCalls",
+            "to": "authInfo",
+            "instruction": "bl"
+          },
+          {
+            "type": "within",
+            "at": "authInfoCalls",
+            "within": "sessionInit"
+          },
+          {
+            "type": "before",
+            "at": "usageManagerCalls",
+            "to": "authInfoCalls"
+          }
+        ],
+        "blocks": [
+          {
+            "name": "bridge.engineCreate",
+            "source": "payloads/engineCreate.bin",
+            "size": 188,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.engineCreate",
+                "addend": 128
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.engineCreate",
+                "addend": 146
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 80,
+                "anchor": "engineCreate"
+              },
+              {
+                "type": "b",
+                "offset": 96,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 124,
+                "anchor": "engineCreate"
+              }
+            ]
+          },
+          {
+            "name": "bridge.sessionCreate",
+            "source": "payloads/sessionCreate.bin",
+            "size": 168,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.sessionCreate",
+                "addend": 120
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.sessionCreate",
+                "addend": 138
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 72,
+                "anchor": "sessionCreate"
+              },
+              {
+                "type": "b",
+                "offset": 88,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 116,
+                "anchor": "sessionCreate"
+              }
+            ]
+          },
+          {
+            "name": "bridge.sessionDestroy",
+            "source": "payloads/sessionDestroy.bin",
+            "size": 172,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.sessionDestroy",
+                "addend": 120
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.sessionDestroy",
+                "addend": 138
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 72,
+                "anchor": "sessionDestroy"
+              },
+              {
+                "type": "b",
+                "offset": 88,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 116,
+                "anchor": "sessionDestroy"
+              }
+            ]
+          },
+          {
+            "name": "bridge.send",
+            "source": "payloads/send.bin",
+            "size": 176,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.send",
+                "addend": 124
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.send",
+                "addend": 142
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 76,
+                "anchor": "send"
+              },
+              {
+                "type": "b",
+                "offset": 92,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 120,
+                "anchor": "send"
+              }
+            ]
+          },
+          {
+            "name": "bridge.cancel",
+            "source": "payloads/cancel.bin",
+            "size": 176,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.cancel",
+                "addend": 124
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.cancel",
+                "addend": 142
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 76,
+                "anchor": "cancel"
+              },
+              {
+                "type": "b",
+                "offset": 92,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 120,
+                "anchor": "cancel"
+              }
+            ]
+          },
+          {
+            "name": "bridge.bufferData",
+            "source": "payloads/bufferData.bin",
+            "size": 156,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.bufferData",
+                "addend": 116
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.bufferData",
+                "addend": 134
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 68,
+                "anchor": "bufferData"
+              },
+              {
+                "type": "b",
+                "offset": 84,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 112,
+                "anchor": "bufferData"
+              }
+            ]
+          },
+          {
+            "name": "bridge.bufferLength",
+            "source": "payloads/bufferLength.bin",
+            "size": 160,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.bufferLength",
+                "addend": 116
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.bufferLength",
+                "addend": 134
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 68,
+                "anchor": "bufferLength"
+              },
+              {
+                "type": "b",
+                "offset": 84,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 112,
+                "anchor": "bufferLength"
+              }
+            ]
+          },
+          {
+            "name": "bridge.bufferFree",
+            "source": "payloads/bufferFree.bin",
+            "size": 156,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.bufferFree",
+                "addend": 116
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.bufferFree",
+                "addend": 134
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 68,
+                "anchor": "bufferFree"
+              },
+              {
+                "type": "b",
+                "offset": 84,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 112,
+                "anchor": "bufferFree"
+              }
+            ]
+          },
+          {
+            "name": "bridge.usageManager",
+            "source": "payloads/usageManager.bin",
+            "size": 180,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.usageManager",
+                "addend": 124
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.usageManager",
+                "addend": 142
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 76,
+                "anchor": "usageManager"
+              },
+              {
+                "type": "b",
+                "offset": 92,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 120,
+                "anchor": "usageManager"
+              }
+            ]
+          },
+          {
+            "name": "bridge.authInfo",
+            "source": "payloads/authInfo.bin",
+            "size": 200,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 24,
+                "anchor": "bridge.authInfo",
+                "addend": 128
+              },
+              {
+                "type": "bl",
+                "offset": 32,
+                "anchor": "_objc_lookUpClass"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 44,
+                "anchor": "bridge.authInfo",
+                "addend": 146
+              },
+              {
+                "type": "bl",
+                "offset": 52,
+                "anchor": "_sel_registerName"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 80,
+                "anchor": "authInfo"
+              },
+              {
+                "type": "b",
+                "offset": 96,
+                "anchor": "_objc_msgSend"
+              },
+              {
+                "type": "b",
+                "offset": 124,
+                "anchor": "authInfo"
+              }
+            ]
+          }
+        ],
+        "edits": [
+          {
+            "anchor": "engineCreateCalls",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.engineCreate"
+              }
+            ]
+          },
+          {
+            "anchor": "sessionCreateCalls",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.sessionCreate"
+              }
+            ]
+          },
+          {
+            "anchor": "sessionDestroyCalls",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.sessionDestroy"
+              }
+            ]
+          },
+          {
+            "anchor": "sendCalls0",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.send"
+              }
+            ]
+          },
+          {
+            "anchor": "sendCalls1",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.send"
+              }
+            ]
+          },
+          {
+            "anchor": "cancelCalls0",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.cancel"
+              }
+            ]
+          },
+          {
+            "anchor": "cancelCalls1",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.cancel"
+              }
+            ]
+          },
+          {
+            "anchor": "bufferDataCalls",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.bufferData"
+              }
+            ]
+          },
+          {
+            "anchor": "bufferLengthCalls",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.bufferLength"
+              }
+            ]
+          },
+          {
+            "anchor": "bufferFreeCalls0",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.bufferFree"
+              }
+            ]
+          },
+          {
+            "anchor": "bufferFreeCalls1",
+            "replacement": "00000014",
+            "relocations": [
+              {
+                "type": "b",
+                "offset": 0,
+                "anchor": "bridge.bufferFree"
+              }
+            ]
+          },
+          {
+            "anchor": "usageManagerCalls",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.usageManager"
+              }
+            ]
+          },
+          {
+            "anchor": "authInfoCalls",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.authInfo"
+              }
+            ]
+          }
+        ],
+        "generated_resources": [
+          {
+            "destination": "TGExtraRustBridge.plist",
+            "arch": "arm64",
+            "values": {
+              "ABI": {
+                "type": "uint",
+                "integer": 5
+              },
+              "UUID": {
+                "type": "uuid"
+              },
+              "BufferData": {
+                "type": "image_offset",
+                "anchor": "bufferData"
+              },
+              "BufferLength": {
+                "type": "image_offset",
+                "anchor": "bufferLength"
+              },
+              "BufferFree": {
+                "type": "image_offset",
+                "anchor": "bufferFree"
+              },
+              "NextRequestID": {
+                "type": "image_offset",
+                "anchor": "nextRequestID"
+              },
+              "Send": {
+                "type": "image_offset",
+                "anchor": "send"
+              },
+              "Cancel": {
+                "type": "image_offset",
+                "anchor": "cancel"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
