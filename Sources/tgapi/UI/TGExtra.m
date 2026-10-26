@@ -187,6 +187,8 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       actionWithTitle:TGLoc(@"OK")
                 style:UIAlertActionStyleDefault
               handler:^(UIAlertAction *_Nonnull action) {
+                // Apply forces an exit, so finish pending preference writes first.
+                [[NSUserDefaults standardUserDefaults] synchronize];
                 [[UIApplication sharedApplication]
                     performSelector:@selector(suspend)];
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
