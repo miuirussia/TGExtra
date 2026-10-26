@@ -94,10 +94,9 @@ with optional features; v2 is sufficient for standalone Rust-only profiles):
 go build -o /path/to/ipatch ./cmd/ipatch
 ~~~
 
-The engine must include the zero-fill data-reference fingerprint fix in
-Tools/iOSPatchingEngine-v2.patch. Real Rust engineCreate code references
-zero-fill globals; those are valid normalization targets, while patch writes
-must still target file-backed bytes.
+The engine's fingerprint normalization must support references to zero-fill globals.
+Rust engineCreate code references zero-fill globals, which are valid normalization
+targets. Patch writes must still target file-backed bytes.
 
 ~~~sh
 python3 Tools/prepare_rust_patch.py Client.ipa Client.ipatch --patch-set-dir Patches --engine /path/to/ipatch --plan-file plan.json

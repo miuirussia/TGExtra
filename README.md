@@ -114,8 +114,7 @@ python3 Tools/prepare_rust_patch.py Client.ipa TGExtra-Rust.ipatch --patch-set-d
 The generator supports unencrypted, thin arm64 references matching its reviewed
 C ABI 5 instruction patterns. It emits portable v2 profiles; add
 `--engine /path/to/ipatch --plan-file plan.json` to validate through the engine.
-The engine must include the zero-fill fingerprint fix in
-[`Tools/iOSPatchingEngine-v2.patch`](Tools/iOSPatchingEngine-v2.patch).
+The engine's fingerprint normalization must support references to zero-fill globals.
 Unknown implementations and insufficient header padding are rejected. The
 verified reference clients are Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343,
 `app.swiftgram.ios`). Both profiles have passed engine planning and patch

@@ -16,7 +16,7 @@ which input code may produce a new profile. The engine can reuse a profile for
 other builds only when all its structural checks match. The profile's explicit
 bundle IDs still constrain selection. Use `--patch-set-dir Patches` to include
 a profile in future GitHub releases. See [Patches/README.md](../../Patches/README.md)
-for engine requirements, validation, offline application and v1 migration.
+for engine requirements, validation and offline application.
 
 The reviewed references are Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343,
 `app.swiftgram.ios`). Swiftgram's 4640-byte `engineCreate` body has four additional
