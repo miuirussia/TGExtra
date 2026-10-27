@@ -4,8 +4,12 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import sys
+import zlib
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / 'Tools'))
+from tl_schema import decode_schema
 menu = (ROOT / 'Sources/tgapi/UI/TGExtra.m').read_text()
 start = menu.rindex('- (NSString *)switchKeyForIndexPath:')
 keys = menu[start:]
@@ -45,7 +49,7 @@ for path in (ROOT / 'Sources/tgapi').rglob('*'):
 assert used <= english.keys(), f'Missing UI keys: {used - english.keys()}'
 
 constants = (ROOT / 'Sources/tgapi/Constants.h').read_text()
-api = (ROOT / 'Sources/tgapi/api_sources/Api43.swift').read_text()
+api = decode_schema(zlib.decompress((ROOT / 'Tests/Fixtures/TelegramApiSchema.zlib').read_bytes()))
 for constant, function in {
     'kMessagesSendMedia': 'sendMedia', 'kMessagesSendMultiMedia': 'sendMultiMedia',
     'kMessagesUploadMedia': 'uploadMedia', 'kMessagesReadMessageContents': 'readMessageContents',
@@ -56,13 +60,13 @@ for constant, function in {
     'kGetAppConfig': 'getAppConfig',
 }.items():
     value = re.search(r'^#define ' + constant + r' (-?\d+)', constants, re.M)[1]
-    constructors = re.findall(r'static func ' + function + r'\([^\n]*\n        let buffer = Buffer\(\)\n        buffer.appendInt32\((-?\d+)\)', api)
-    assert value in constructors, f'{constant} is out of date with the bundled API'
+    constructors = [f['id'] for f in api['functions'] if f['name'].endswith('.' + function)]
+    assert int(value) & 0xffffffff in constructors, f'{constant} is out of date with the host API'
 for path in (ROOT / 'Sources').rglob('*'):
-    if path.suffix in ('.h', '.m', '.xm', '.swift') and 'api_sources' not in path.parts:
+    if path.suffix in ('.h', '.m', '.xm', '.swift'):
         assert not re.search(r'kConfirmCalls|kDownloadSpeedBoost|kCustomStars|CONFIRM_CALLS|DOWNLOAD_BOOST|CUSTOM_STARS|MxApiCompat', path.read_text()), f'Excluded feature in {path}'
 with tempfile.TemporaryDirectory() as tmp:
     output = Path(tmp) / 'EmbeddedLangs.h'
     subprocess.run(['python3', str(ROOT / 'generate_langs.py'), '--output', str(output)], check=True, capture_output=True)
     assert output.read_bytes() == (ROOT / 'Sources/tgapi/UI/EmbeddedLangs.h').read_bytes(), 'Embedded translations are stale'
-print('PASS menu coverage, ten languages, bundled API request IDs and excluded features')
+print('PASS menu coverage, ten languages, host API request IDs and excluded features')

@@ -198,6 +198,7 @@ func parseString(_ reader: BufferReader) -> String? {
 }
 
 public class Buffer: CustomStringConvertible {
+    var isValid = true
     public var data: UnsafeMutableRawPointer?
     public var _size: UInt = 0
     private var capacity: UInt = 0
@@ -240,6 +241,7 @@ public class Buffer: CustomStringConvertible {
     }
     
     public func makeData() -> Data {
+        guard isValid else { return Data() }
         return self.withUnsafeMutablePointer { pointer, size -> Data in
             if let pointer = pointer {
                 return Data(bytes: pointer.assumingMemoryBound(to: UInt8.self), count: Int(size))
@@ -248,6 +250,8 @@ public class Buffer: CustomStringConvertible {
             }
         }
     }
+
+    func makeValidData() -> Data? { isValid ? makeData() : nil }
     
     public var description: String {
         get {
@@ -321,7 +325,11 @@ public class Buffer: CustomStringConvertible {
 public class BufferReader {
     private let buffer: Buffer
     public private(set) var offset: UInt = 0
-    private var contentRestrictionEdits: [(Range<Int>, Data)] = []
+    var remaining: Int { buffer.size - Int(offset) }
+    var parsedRecords = [TLRecord]()
+    var changes: [TLFieldChange] { parsedRecords.flatMap(\.changes) }
+    private var pendingWireEdits = [Range<Int>: TLWireEdit]()
+    var wireEdits: [TLWireEdit] { pendingWireEdits.values.sorted { $0.range.lowerBound < $1.range.lowerBound } }
     // Network objects retain their wire IDs; restored snapshots may target 13.1.
     var preserveLegacyConstructorIds = true
     
@@ -331,7 +339,8 @@ public class BufferReader {
     
     public func reset() {
         self.offset = 0
-        self.contentRestrictionEdits.removeAll()
+        self.parsedRecords.removeAll()
+        self.pendingWireEdits.removeAll()
     }
     
     public func skip(_ count: Int) {
@@ -399,25 +408,41 @@ public class BufferReader {
     }
 }
 
+struct TLWireEdit {
+    let path: String
+    let range: Range<Int>
+    let replacement: Data
+}
+
 extension BufferReader {
-    // Record wire edits separately from the generated payload mutations. This
-    // lets the always-on content bypass preserve unrelated forwarding flags.
-    func removeContentRestriction(bit: Int, flagsOffset: UInt, vectorStart: UInt) {
-        let start = Int(flagsOffset)
-        guard start + 4 <= buffer.size, let bytes = buffer.data else { return }
-        var flags: Int32 = 0
-        memcpy(&flags, bytes.advanced(by: start), 4)
-        var cleared = (Int32(littleEndian: flags) & ~(1 << bit)).littleEndian
-        contentRestrictionEdits.append((start..<start + 4, withUnsafeBytes(of: &cleared) { Data($0) }))
-        contentRestrictionEdits.append((Int(vectorStart)..<Int(offset), Data()))
+    // Byte edits are separate from mutations to decoded objects. All ranges
+    // refer to the original packet, including after length-changing removals.
+    func replaceFlags(of record: TLRecord, field: String) {
+        guard let range = record.wireFields[field], range.count == 4,
+              let flags = record.fields[field] as? Int32 else { return }
+        var encoded = flags.littleEndian
+        let replacement = withUnsafeBytes(of: &encoded) { Data($0) }
+        if let bytes = buffer.data, range.lowerBound >= 0, range.upperBound <= buffer.size,
+           Data(bytes: bytes.advanced(by: range.lowerBound), count: range.count) == replacement {
+            pendingWireEdits.removeValue(forKey: range)
+            return
+        }
+        pendingWireEdits[range] = TLWireEdit(path: record.typeName + "." + record.constructorName + "." + field,
+                                            range: range, replacement: replacement)
     }
 
-    func dataWithoutContentRestrictions(in range: Range<Int>? = nil,
-                                        replacing replacements: [(Range<Int>, Data)] = []) -> NSData? {
+    func removeFieldBytes(of record: TLRecord, field: String) {
+        guard let range = record.wireFields[field], !range.isEmpty else { return }
+        pendingWireEdits[range] = TLWireEdit(path: record.typeName + "." + record.constructorName + "." + field,
+                                            range: range, replacement: Data())
+    }
+
+    func dataApplyingPatches(in range: Range<Int>? = nil,
+                            replacing replacements: [(Range<Int>, Data)] = []) -> NSData? {
         let range = range ?? 0..<Int(buffer.size)
         // A reserialized object already includes its content edits. Keep edits
         // outside those objects in the same original coordinate space.
-        let edits = (contentRestrictionEdits.filter { edit in
+        let edits = (wireEdits.map { ($0.range, $0.replacement) }.filter { edit in
             !replacements.contains { $0.0.overlaps(edit.0) }
         } + replacements).filter { range.lowerBound <= $0.0.lowerBound && $0.0.upperBound <= range.upperBound }
         guard !edits.isEmpty else { return nil }

@@ -1,212 +1,146 @@
 #!/usr/bin/env python3
-"""Regenerate the tweak's standalone Swift API from a local Telegram-iOS schema."""
+"""Generate only the typed views TGExtra uses, from an original IPA schema."""
 import argparse
 import hashlib
-import io
 import json
-import os
 from pathlib import Path
+import plistlib
 import re
-import subprocess
-import tarfile
-import tempfile
+import zipfile
+import zlib
+
+from tl_schema import decode_schema, inflate_schema
 
 ROOT = Path(__file__).resolve().parent.parent
-# Last class-based SwiftTL generator. The host now uses an ObjC-backed engine;
-# keeping the standalone Swift codec avoids duplicate ObjC classes in the app.
-GENERATOR_REVISION = "8947c9971fd4c494aaa6b864a637ed14a07d5a4a"
-# Telegram 13.0 constructors replaced by 13.1. Their field layouts are prefixes
-# of the new layouts; the added fields are optional and absent in 13.0 replies.
-LEGACY_CONSTRUCTORS = [
-    ("Chat", "channel", -727763770, 2060538432),
-    ("ChatFull", "channelFull", -1605464774, -993731264),
-    ("InputReplyTo", "inputReplyToMessage", 1003796418, 1975627120),
-    ("MessageReplyHeader", "messageReplyHeader", 462937446, -575296651),
-    ("UrlAuthResult", "urlAuthResultRequest", 1020666860, -1110810265),
-    ("UserFull", "userFull", 114026053, -1190384899),
-    ("wallet.NftItem", "nftItem", 876739868, 389937907),
-]
+FIXTURE = ROOT / "Tests/Fixtures/TelegramApiSchema.zlib"
+OUTPUT = ROOT / "Sources/tgapi/TL/ApiViews.swift"
 
 
-def patch_legacy_constructors(files):
-    files = dict(files)
-    for typename, constructor, old_id, new_id in LEGACY_CONSTRUCTORS:
-        namespace, _, name = typename.rpartition(".")
-        namespace = "Api" + ("." + namespace if namespace else "")
-        pattern = (r"^public extension " + re.escape(namespace) + r" \{\n    (?:indirect )?enum " +
-                   re.escape(name) + r":.*?(?=^public extension Api|\Z)")
-        matches = 0
-        for filename, contents in files.items():
-            def patch(match):
-                body = match[0]
-                anchor = f"public class Cons_{constructor}: TypeConstructorDescription {{\n"
-                assert body.count(anchor) == 1
-                body = body.replace(anchor, anchor + "            var tgextraConstructorId: Int32?\n")
-                anchor = f"buffer.appendInt32({new_id})"
-                assert body.count(anchor) == 1, f"Update the 13.0 compatibility mapping for {typename}"
-                return body.replace(anchor, f"buffer.appendInt32(_data.tgextraConstructorId ?? {new_id})")
+def generate(schema):
+    # Views contain no constructor IDs, wire offsets or parser/serializer tables.
+    paths = [ROOT / "Sources/tgapi/TLParser.swift", ROOT / "Sources/tgapi/ForwardCopy.swift",
+             ROOT / "Sources/tgapi/TL/MessagePatches.swift"]
+    paths += sorted((ROOT / "Tests").glob("*.swift"))
+    code = "\n".join(p.read_text() for p in paths)
+    cases = set(re.findall(r"\.([a-z]\w*)", code))
+    selected = [c for c in schema["constructors"] if c["name"] in cases]
+    types = set(re.findall(r"Api\.((?:[a-z]\w*\.)?[A-Z]\w*)", code))
+    types.update(c["type"] for c in selected)
+    types &= set(schema["types"])
+    methods = set(".".join(m) for m in re.findall(r"Api\.functions\.(\w+)\.(\w+)", code))
+    methods = [f for f in schema["functions"] if f["name"] in methods]
 
-            files[filename], count = re.subn(pattern, patch, contents, flags=re.M | re.S)
-            matches += count
-        assert matches == 1, typename
-    aliases = ""
-    for typename, constructor, old_id, _ in LEGACY_CONSTRUCTORS:
-        aliases += f"""    dict[{old_id}] = {{ reader in
-        guard case let .{constructor}(value)? = Api.{typename}.parse_{constructor}(reader) else {{ return nil }}
-        value.tgextraConstructorId = reader.preserveLegacyConstructorIds ? {old_id} : nil
-        return Api.{typename}.{constructor}(value)
-    }}
-"""
-    assert files["Api0.swift"].count("    return dict\n") == 1
-    files["Api0.swift"] = files["Api0.swift"].replace("    return dict\n", aliases + "    return dict\n")
-    return files
+    def field_type(field):
+        def kind_type(kind):
+            if kind == 6:
+                name = schema["types"][field["type_index"]]
+                return "Api." + name if name in types else "TLRecord"
+            return {0: "Int32", 1: "Int64", 2: "Int256", 3: "Double", 4: "String", 5: "Buffer"}[kind]
+        value = "[" + kind_type(field["element"]) + "]" if field["kind"] == 7 else kind_type(field["kind"])
+        return value + ("?" if field["optional"] else "")
 
-
-def patch_content_flags(contents):
-    # Preserve the existing tweak's codec patches, independent of file splits.
-    noforwards = {"channel": 27, "chat": 25, "message": 26, "storyItem": 10}
-    restrictions = {"channel": 9, "message": 22, "user": 18}
-
-    def patch(match):
-        name, body = match.group(1), match.group(0)
-        if name in noforwards:
-            bit = noforwards[name]
-            anchor = "            _1 = reader.readInt32()\n"
-            assert body.count(anchor) == 1
-            body = body.replace(anchor, anchor +
-                f"            _1 = _1.map {{ $0 & ~(1 << {bit}) }} // TGExtra: clear noforwards:flags.{bit}\n")
-        if name in restrictions:
-            bit = restrictions[name]
-            anchor = "            _1 = reader.readInt32()\n"
-            assert body.count(anchor) == 1
-            body = body.replace(anchor, "            let restrictionFlagsOffset = reader.offset\n" + anchor)
-            pattern = r"( +)(_(\d+)) = Api.parseVector\(reader, elementSignature: 0, elementType: Api.RestrictionReason.self\)\n"
-
-            def clear_reason(field):
-                indent, variable = field.group(1), field.group(2)
-                return f"{indent}let restrictionVectorStart = reader.offset - 4\n" + field.group(0) + (
-                    f"{indent}if {variable} != nil {{\n"
-                    f"{indent}    reader.removeContentRestriction(bit: {bit}, flagsOffset: restrictionFlagsOffset, vectorStart: restrictionVectorStart)\n"
-                    f"{indent}    _1 = _1.map {{ $0 & ~(1 << {bit}) }} // TGExtra: clear restriction_reason after reading it\n"
-                    f"{indent}    {variable} = nil\n{indent}}}\n")
-
-            body, count = re.subn(pattern, clear_reason, body)
-            assert count == 1
-            body = body.replace("if let _ = reader.readInt32() {\n                    let restrictionVectorStart",
-                                "if reader.readInt32() == 481674261 {\n                    let restrictionVectorStart")
-        return body
-
-    return re.sub(r"public static func parse_(\w+)\(_ reader: BufferReader\).*?\n        }",
-                  patch, contents, flags=re.S)
-
-
-def arrange_sources(generated, previous):
-    # Keep existing types in their files so schema additions do not move tens
-    # of thousands of unrelated lines. New types share a new numbered file.
-    def blocks(contents):
-        return re.findall(r"^public extension Api[^\n]* \{.*?(?=^public extension Api|\Z)",
-                          contents, flags=re.M | re.S)
-
-    def type_name(block):
-        match = re.match(r"public extension (Api[\w.]*) \{\n    (?:indirect )?enum (\w+)", block)
-        return f"{match[1]}.{match[2]}" if match else None
-
-    locations = {}
-    functions_file = None
-    for filename, contents in previous.items():
-        if filename == "Api0.swift":
-            continue
-        for block in blocks(contents):
-            if block.startswith("public extension Api.functions."):
-                functions_file = filename
+    namespaces = sorted({t.rsplit(".", 1)[0] for t in types if "." in t})
+    function_namespaces = sorted({f["name"].split(".")[0] for f in methods})
+    out = ["// Generated by Tools/update_telegram_api.py. Typed views only; the host supplies the protocol.\n",
+           "public enum Api {\n"]
+    out += [f"    public enum {n} {{}}\n" for n in namespaces]
+    out += ["    public enum functions {\n"]
+    out += [f"        public enum {n} {{}}\n" for n in function_namespaces]
+    out += ["    }\n}\n"]
+    for typ in sorted(types):
+        namespace, _, name = typ.rpartition(".")
+        parent = "Api" + ("." + namespace if namespace else "")
+        constructors = sorted([c for c in selected if c["type"] == typ], key=lambda c: c["name"])
+        out += [f"\npublic extension {parent} {{\n    enum {name}: TLObjectView {{\n",
+                f'        public static let tlTypeName = "{typ}"\n']
+        for c in constructors:
+            cons = c["name"]
+            if not c["fields"]:
+                out += [f"        case {cons}\n"]
+                continue
+            out += [f"        public final class Cons_{cons}: TLPayload {{\n"]
+            for f in c["fields"]:
+                n, t = f["name"], field_type(f)
+                out += [f'            public var `{n}`: {t} {{\n',
+                        f'                get {{ record.value("{n}") }}\n',
+                        f'                set {{ record.set("{n}", newValue) }}\n', "            }\n"]
+            params = ", ".join(f'`{f["name"]}`: {field_type(f)}' for f in c["fields"])
+            out += [f"            public init({params}) {{\n",
+                    f'                super.init(type: "{typ}", constructor: "{cons}")\n']
+            out += [f'                record.set("{f["name"]}", `{f["name"]}`)\n' for f in c["fields"]]
+            out += ["            }\n", "            public override init(record: TLRecord) { super.init(record: record) }\n", "        }\n",
+                    f"        case {cons}(Cons_{cons})\n"]
+        out += ["        case other(TLRecord)\n", "        public init?(_ record: TLRecord) {\n",
+                "            guard record.typeName == Self.tlTypeName else { return nil }\n", "            switch record.constructorName {\n"]
+        for c in constructors:
+            if not c["fields"]:
+                out += [f'            case "{c["name"]}" where record.descriptor?.fields.isEmpty == true: self = .{c["name"]}\n']
+                continue
+            checks = " && ".join(f'record.canRead("{f["name"]}", as: {field_type(f)}.self)' for f in c["fields"]) or "true"
+            out += [f'            case "{c["name"]}" where {checks}:\n',
+                    f'                self = .{c["name"]}(Cons_{c["name"]}(record: record))\n']
+        out += ["            default: self = .other(record)\n", "            }\n", "        }\n",
+                "        public var record: TLRecord {\n", "            switch self {\n"]
+        for c in constructors:
+            if c["fields"]:
+                out += [f'            case let .{c["name"]}(value): return value.record\n']
             else:
-                locations[type_name(block)] = filename
-    assert functions_file is not None
-    added_file = f"Api{max(int(re.search(r'\d+', name)[0]) for name in previous) + 1}.swift"
-    grouped = {}
-    for filename, contents in generated.items():
-        if filename == "Api0.swift":
-            continue
-        for block in blocks(contents):
-            target = functions_file if block.startswith("public extension Api.functions.") else locations.get(type_name(block), added_file)
-            grouped.setdefault(target, []).append(block)
-    result = {"Api0.swift": generated["Api0.swift"]}
-    for filename, values in grouped.items():
-        if filename != functions_file:
-            values.sort(key=type_name)
-        result[filename] = "".join(values)
-    return result
+                out += [f'            case .{c["name"]}: return TLRecord(type: "{typ}", constructor: "{c["name"]}")\n']
+        out += ["            case let .other(record): return record\n", "            }\n", "        }\n", "    }\n", "}\n"]
+    for f in methods:
+        namespace, name = f["name"].split(".")
+        params = ", ".join(f'`{v["name"]}`: {field_type(v)}' for v in f["fields"])
+        out += [f"\npublic extension Api.functions.{namespace} {{\n",
+                f"    static func {name}({params}) -> (FunctionDescription, Buffer) {{\n",
+                f'        let record = TLRecord(function: "{f["name"]}")\n']
+        out += [f'        record.set("{v["name"]}", `{v["name"]}`)\n' for v in f["fields"]]
+        out += ["        let buffer = Buffer()\n", "        record.serialize(buffer, true)\n",
+                f'        return (FunctionDescription(name: "{f["name"]}", parameters: []), buffer)\n', "    }\n", "}\n"]
+    out += ["\nextension Api {\n", "    static func view(_ record: TLRecord) -> Any {\n", "        switch record.typeName {\n"]
+    out += [f'        case "{t}": return Api.{t}(record) ?? .other(record)\n' for t in sorted(types)]
+    out += ["        default: return record\n", "        }\n", "    }\n", "}\n"]
+    return "".join(out)
 
 
-def update(checkout):
-    source = checkout / "submodules/TelegramApi/swift_scheme.tl"
-    schema = source.read_bytes()
-    revision = subprocess.check_output(
-        ["git", "-C", str(checkout), "rev-parse", "HEAD"], text=True
-    ).strip()
-    archive = subprocess.check_output([
-        "git", "-C", str(checkout), "archive", GENERATOR_REVISION,
-        "build-system/SwiftTL",
-    ])
-    with tempfile.TemporaryDirectory(prefix="tgextra-api-") as scratch:
-        scratch = Path(scratch)
-        with tarfile.open(fileobj=io.BytesIO(archive)) as package:
-            package.extractall(scratch, filter="data")
-        env = dict(os.environ, CLANG_MODULE_CACHE_PATH=str(scratch / "module-cache"))
-        build = [
-            "swift", "build", "--package-path", str(scratch / "build-system/SwiftTL"),
-            "--scratch-path", str(scratch / "build"), "--cache-path", str(scratch / "cache"),
-            "--config-path", str(scratch / "config"), "--security-path", str(scratch / "security"),
-            "-c", "release",
-        ]
-        subprocess.run(build, env=env, check=True)
-        binaries = subprocess.check_output(build + ["--show-bin-path"], env=env, text=True).strip()
-        schema_path = scratch / "swift_scheme.tl"
-        schema_path.write_bytes(schema)
-        output = scratch / "generated"
-        subprocess.run([str(Path(binaries) / "SwiftTL"), str(schema_path), str(output)], check=True)
-
-        registry = output / "Api0.swift"
-        contents = registry.read_text()
-        # Tweak-specific safeguards used by opaque-tail recovery.
-        anchor = "public extension Api {\n"
-        assert contents.count(anchor) == 1
-        contents = contents.replace(anchor, anchor + """    internal static func isKnownConstructor(_ signature: Int32) -> Swift.Bool {
-        return parsers[signature] != nil
-    }
-
-""")
-        anchor = "if let count = reader.readInt32() {"
-        assert contents.count(anchor) == 1
-        contents = contents.replace(anchor, "if let count = reader.readInt32(), count >= 0 {")
-        registry.write_text(contents)
-        destination = ROOT / "Sources/tgapi/api_sources"
-        previous = {p.name: p.read_text() for p in destination.glob("Api*.swift")}
-        generated = patch_legacy_constructors(arrange_sources(
-            {p.name: patch_content_flags(p.read_text()) for p in output.glob("Api*.swift")}, previous))
-        assert len(generated) > 1 and "Api0.swift" in generated
-        assert "enum UserFull" in "".join(generated.values())
-
-        for old in destination.glob("Api*.swift"):
-            if re.fullmatch(r"Api\d+\.swift", old.name) and old.name not in generated:
-                old.unlink()
-        for name, data in generated.items():
-            (destination / name).write_text(data)
-
-    snapshot = ROOT / "Tools/TelegramApi"
-    snapshot.mkdir(parents=True, exist_ok=True)
-    (snapshot / "swift_scheme.tl").write_bytes(schema)
-    metadata = {
-        "source_revision": revision,
-        "source_app_version": json.loads((checkout / "versions.json").read_text())["app"],
-        "schema_sha256": hashlib.sha256(schema).hexdigest(),
-        "generator_revision": GENERATOR_REVISION,
-    }
-    (snapshot / "version.json").write_text(json.dumps(metadata, indent=2) + "\n")
-    print(f"Updated {len(generated)} Swift files from Telegram-iOS {revision}")
+def update(ipa, check):
+    if ipa:
+        if check:
+            raise ValueError("--check cannot update a fixture")
+        with zipfile.ZipFile(ipa) as archive:
+            found = []
+            for item in archive.infolist():
+                if item.is_dir() or not item.filename.startswith("Payload/") or item.file_size > 256 << 20:
+                    continue
+                if "." in item.filename.rsplit("/", 1)[-1] and not item.filename.endswith(".dylib"):
+                    continue
+                with archive.open(item) as source:
+                    if source.read(4) != b"\xcf\xfa\xed\xfe":
+                        continue
+                data = archive.read(item)
+                if b"TelegramApi: the compressed schema table" in data:
+                    found.append(inflate_schema(data)[0])
+            if len(found) != 1:
+                raise ValueError(f"expected one host schema in IPA, found {len(found)}")
+            blob = found[0]
+            info_path = next(n for n in archive.namelist() if n.startswith("Payload/") and n.count("/") == 2 and n.endswith("/Info.plist"))
+            info = plistlib.loads(archive.read(info_path))
+        FIXTURE.write_bytes(blob)
+        metadata = dict(bundle_id=info["CFBundleIdentifier"], app_version=info["CFBundleShortVersionString"],
+                        app_build=info["CFBundleVersion"], schema_sha256=hashlib.sha256(blob).hexdigest())
+        FIXTURE.with_suffix(".json").write_text(json.dumps(metadata, indent=2) + "\n")
+    schema = decode_schema(zlib.decompress(FIXTURE.read_bytes()))
+    generated = generate(schema)
+    if check:
+        if OUTPUT.read_text() != generated:
+            raise ValueError("typed views are stale; run python3 Tools/update_telegram_api.py")
+    else:
+        OUTPUT.write_text(generated)
+    print(f"{'Checked' if check else 'Generated'} TGExtra views; protocol is read from the host at runtime")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("checkout", nargs="?", type=Path, default=Path.home() / "Projects/Telegram-iOS")
-    update(parser.parse_args().checkout.expanduser().resolve())
+    parser.add_argument("ipa", nargs="?", type=Path, help="original decrypted IPA; updates the test fixture only")
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    update(args.ipa, args.check)

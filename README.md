@@ -93,10 +93,52 @@ not cleared by this action.
 
 ## Compatibility and Rust transport
 
-TGExtra uses a bundled Swift codec from the
-[Telegram 13.1 schema](https://github.com/TelegramMessenger/Telegram-iOS/commit/1dd3e7f4ed5d72caed1caa04033832c28a5920f5)
-and also reads Telegram 13.0 message formats. UI hooks depend on the host app's
-private interfaces.
+TGExtra reads the original compressed TL schema from the loaded app and uses one
+table-driven codec. Only the message-policy views are generated; the tweak ships
+no standalone API or schema snapshot. The supported schema format is TLS1 v3,
+verified in Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343). Older 13.0 wire IDs
+remain readable for saved messages. Apps without a compatible embedded table keep
+their original protocol data; message policies require that table. UI hooks depend
+on the host app's private interfaces.
+
+Schema discovery works in both DEB and ipatch installations and requires no TL
+binary patch. MtProtoKit and Rust share the same message policies and codec.
+
+`Api.parse` only decodes. Setting keys, activation conditions and message field
+operations live together in
+[`MessagePatches.swift`](Sources/tgapi/TL/MessagePatches.swift). `TLParser.swift`
+supplies account/classification context and handles persistence. The rules use
+named operations from
+[`DataPatches.swift`](Sources/tgapi/TL/DataPatches.swift):
+
+```swift
+let patch = TLDataPatch(message.record)
+patch.clearFlag(.noForwards)
+patch.removeOptionalField("ttlPeriod")
+```
+
+Removing an optional field clears its presence bit using the host schema. A
+record's `changes` (or `reader.changes` for nested records) describes actual
+mutations to decoded objects, for example:
+
+```text
+Message.message.noforwards: true → false [flags.26]
+Message.message.ttlPeriod: 86400 → absent [flags.25]
+```
+
+Rules also attach their setting key to each change's `rule`, for example
+`TGExtraAntiAutoDelete`. Unconditional operations are explicitly marked
+`UNCONDITIONAL` and use an `always:` cause; context-dependent marker rules name
+that context. Timer rules, private-copy rules, compact-update exceptions,
+deletion classification, voice-upload registration and receipt privacy are
+evaluated in that same file. A disabled rule records no changes.
+
+No trace is logged automatically. `reader.wireEdits` separately lists direct
+edits to original packet bytes; `dataApplyingPatches()` applies them. Forwarding
+preparation changes the decoded copy for reserialization, while content-access
+rules also record byte edits. When forwarding bypass is off, returning original
+bytes preserves its protection flags. Other edits can still require serializing
+the prepared copy; `shouldReserialize` documents this retained legacy behavior.
 
 Telegram 13.1's optional Rust MTProto transport requires a binary patch. Release
 ipatch packages include the client patch sets in [`Patches/`](Patches/README.md).
@@ -154,14 +196,19 @@ After editing translations, regenerate the embedded fallbacks:
 python3 generate_langs.py
 ```
 
-To update the bundled API from a local Telegram-iOS checkout (Python 3.12+ and Swift):
+To update the typed policy views and the test fixture from an original decrypted IPA:
 
 ```sh
-python3 Tools/update_telegram_api.py ~/Projects/Telegram-iOS
+python3 Tools/update_telegram_api.py packages/Telegram_v13.1.1.ipa
 ```
 
-The script preserves TGExtra's codec patches and records the source revision and
-schema checksum in `Tools/TelegramApi/version.json`. Git may fetch missing objects.
+The original schema is saved only under `Tests/Fixtures`, with its checksum and app
+version. Production always reads the installed app's table. After adding a view
+usage in Swift, regenerate from the existing test fixture without supplying an IPA:
+
+```sh
+python3 Tools/update_telegram_api.py
+```
 
 Run the protocol and regression tests on macOS:
 

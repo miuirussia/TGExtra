@@ -262,10 +262,15 @@ func testUpdatedApi() {
     channel.appendInt32(0x37c1011c) // chatPhotoEmpty
     channel.appendInt32(1234)
     channel.appendInt32(81234) // flags2.22: pinned_msg_id
-    let decodedChannel = parsed(channel.makeData() as NSData, as: Api.Chat.self)
+    let channelReader = BufferReader(channel)
+    let decodedChannel = Api.parse(channelReader, signature: channelReader.readInt32()!) as! Api.Chat
     guard case let .channel(channelData) = decodedChannel else { fatalError("Expected channel") }
-    check(channelData.pinnedMsgId == 81234 && channelData.flags & (1 << 27) == 0,
-          "Decode new channel fields and retain the existing noforwards bypass")
+    check(channelData.pinnedMsgId == 81234 && channelData.flags & (1 << 27) != 0 &&
+          serialized(decodedChannel) == channel.makeData() as NSData,
+          "Decode new channel fields without changing the original protection flag")
+    MessagePatches.prepareDecodedObjects(in: channelReader)
+    check(channelData.flags & (1 << 27) == 0 && channelReader.wireEdits.isEmpty,
+          "Explicit preparation retains the forwarding bypass in the decoded copy")
 
     let update = Api.Updates.updates(.init(
         updates: [.updateNewChannelMessage(.init(message: message(89001, peer: .peerChannel(.init(channelId: 77)), ttl: 60), pts: 1, ptsCount: 1))],

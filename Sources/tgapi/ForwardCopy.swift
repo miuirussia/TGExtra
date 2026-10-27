@@ -121,9 +121,9 @@ final class ForwardCopyPlan: NSObject {
         switch peer {
         case let .inputPeerChannel(value):
             return Api.functions.channels.getMessages(channel: .inputChannel(.init(channelId: value.channelId,
-                accessHash: value.accessHash)), id: input).1.makeData()
+                accessHash: value.accessHash)), id: input).1.makeValidData()
         case .inputPeerSelf, .inputPeerUser, .inputPeerChat:
-            return Api.functions.messages.getMessages(id: input).1.makeData()
+            return Api.functions.messages.getMessages(id: input).1.makeValidData()
         default: return nil
         }
     }
@@ -229,7 +229,7 @@ final class ForwardCopyPlan: NSObject {
     func downloadRequest(index: Int, offset: Int64) -> Data? {
         guard items.indices.contains(index), let location = items[index].location, offset >= 0,
               offset < items[index].size, offset % 524288 == 0 else { return nil }
-        return Api.functions.upload.getFile(flags: 0, location: location, offset: offset, limit: 524288).1.makeData()
+        return Api.functions.upload.getFile(flags: 0, location: location, offset: offset, limit: 524288).1.makeValidData()
     }
 
     @objc(refreshDownloadWithResponse:index:)
@@ -260,8 +260,8 @@ final class ForwardCopyPlan: NSObject {
     static func uploadRequest(fileId: Int64, part: Int32, total: Int32, bytes: Data, big: Bool) -> Data? {
         guard total > 0, total <= 4000, part >= 0, part < total, !bytes.isEmpty, bytes.count <= 524288 else { return nil }
         if big { return Api.functions.upload.saveBigFilePart(fileId: fileId, filePart: part,
-            fileTotalParts: total, bytes: Buffer(data: bytes)).1.makeData() }
-        return Api.functions.upload.saveFilePart(fileId: fileId, filePart: part, bytes: Buffer(data: bytes)).1.makeData()
+            fileTotalParts: total, bytes: Buffer(data: bytes)).1.makeValidData() }
+        return Api.functions.upload.saveFilePart(fileId: fileId, filePart: part, bytes: Buffer(data: bytes)).1.makeValidData()
     }
 
     @objc(isUploadAcknowledged:)
@@ -289,7 +289,7 @@ final class ForwardCopyPlan: NSObject {
                 mimeType: item.mime, attributes: item.attributes, stickers: nil, videoCover: nil,
                 videoTimestamp: nil, ttlSeconds: nil))
         }
-        return Api.functions.messages.uploadMedia(flags: 0, businessConnectionId: nil, peer: destination, media: media).1.makeData()
+        return Api.functions.messages.uploadMedia(flags: 0, businessConnectionId: nil, peer: destination, media: media).1.makeValidData()
     }
 
     @objc(registerMediaResponse:index:)
@@ -324,7 +324,7 @@ final class ForwardCopyPlan: NSObject {
             var sendFlags = flags & ((1 << 5) | (1 << 6) | (1 << 10) | (1 << 13) | (1 << 14) | (1 << 19) | (1 << 21))
             if reply != nil { sendFlags |= 1 }
             let batchIds = Array(randomIds[index..<end])
-            let payload: Data
+            let payload: Data?
             if end - index > 1 {
                 let media: [Api.InputSingleMedia] = (index..<end).map { i in
                     let hide = flags & (1 << 12) != 0
@@ -334,7 +334,7 @@ final class ForwardCopyPlan: NSObject {
                 }
                 payload = Api.functions.messages.sendMultiMedia(flags: sendFlags, peer: destination, replyTo: reply,
                     multiMedia: media, scheduleDate: schedule, sendAs: sendAs, quickReplyShortcut: nil,
-                    effect: nil, allowPaidStars: paidStars).1.makeData()
+                    effect: nil, allowPaidStars: paidStars).1.makeValidData()
             } else {
                 let item = items[index]
                 let hide = item.media != nil && flags & (1 << 12) != 0
@@ -347,14 +347,15 @@ final class ForwardCopyPlan: NSObject {
                     payload = Api.functions.messages.sendMedia(flags: sendFlags, peer: destination, replyTo: reply,
                         media: media, message: hide ? "" : item.message.message, randomId: randomIds[index],
                         replyMarkup: nil, entities: entities, scheduleDate: schedule, scheduleRepeatPeriod: nil,
-                        sendAs: sendAs, quickReplyShortcut: nil, effect: nil, allowPaidStars: paidStars, suggestedPost: nil).1.makeData()
+                        sendAs: sendAs, quickReplyShortcut: nil, effect: nil, allowPaidStars: paidStars, suggestedPost: nil).1.makeValidData()
                 } else {
                     payload = Api.functions.messages.sendMessage(flags: sendFlags, peer: destination, replyTo: reply,
                         message: item.message.message, randomId: randomIds[index], replyMarkup: nil, entities: entities,
                         scheduleDate: schedule, scheduleRepeatPeriod: nil, sendAs: sendAs, quickReplyShortcut: nil,
-                        effect: nil, allowPaidStars: paidStars, suggestedPost: nil, richMessage: nil).1.makeData()
+                        effect: nil, allowPaidStars: paidStars, suggestedPost: nil, richMessage: nil).1.makeValidData()
                 }
             }
+            guard let payload = payload else { return fail("TGEXTRA_COPY_UNSUPPORTED") }
             requests.append(["payload": payload, "randomIds": batchIds]); batches.append(batchIds)
             index = end
         }

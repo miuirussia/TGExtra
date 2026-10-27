@@ -21,6 +21,10 @@ func isMessageSelfDestructing(_ id: NSNumber, peer: NSNumber?, account: String? 
 
 let defaults = TGExtraUseTestDefaults()!
 precondition(UserDefaults.standard === defaults, "Tests must use in-memory defaults")
+if CommandLine.arguments.contains("--no-schema") {
+    testMissingHostSchema()
+    exit(0)
+}
 if CommandLine.arguments.contains("--restore") {
     testRestoredOwnUserAccounts()
     var saved: [String: [String: Any]] = [
@@ -680,3 +684,6 @@ testContentRestrictions()
 testAppleContentSettings()
 testLegacyApiConstructors()
 testSnapshotApiCompatibility()
+testHostSchemaCodec()
+testExplicitDataPatches()
+testMessagePatchSettings()

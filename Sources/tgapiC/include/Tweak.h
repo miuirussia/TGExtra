@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 NSData *decompressGzip(const void *input, size_t inputLen);
+NSData *TGExtraHostTLSchema(void);
 NSString *TGExtraHistoryAccountForPath(NSString *path);
 NSString *TGExtraHistoryAccountForMTProto(id mtProto);
 NSString *TGExtraHistoryAccountForRequestService(id service);

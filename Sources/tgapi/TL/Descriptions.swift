@@ -18,18 +18,6 @@ public final class FunctionDescription {
     }
 }
 
-public final class DeserializeFunctionResponse<T> {
-    private let f: (Buffer) -> T?
-    
-    public init(_ f: @escaping (Buffer) -> T?) {
-        self.f = f
-    }
-    
-    public func parse(_ buffer: Buffer) -> T? {
-        return self.f(buffer)
-    }
-}
-
 public protocol TypeConstructorDescription {
     func descriptionFields() -> (String, [(String, ConstructorParameterDescription)])
 }
