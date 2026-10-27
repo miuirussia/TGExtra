@@ -74,7 +74,9 @@
     id native = [TLParser nativeTLAvailable] ? TGExtraNativePacket(data, TGExtraHistoryAccountForMTProto(self), 0, nil) : nil;
     if (native) {
         id previous = TGExtraNativeBegin(native);
-        @try { return %orig(data); }
+        @try {
+            return %orig(data);
+        }
         @finally { TGExtraNativeEnd(previous); }
     }
     NSData *patched = [TLParser stripAntiSelfDestruct:data account:TGExtraHistoryAccountForMTProto(self)];
