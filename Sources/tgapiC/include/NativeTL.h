@@ -1,5 +1,9 @@
 #import <Foundation/Foundation.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 NS_ASSUME_NONNULL_BEGIN
 
 typedef id _Nullable (^TGExtraNativeProcessor)(id root, NSData *packet,
@@ -45,3 +49,7 @@ NSArray *TGExtraNativeObjects(id root);
 NSArray *TGExtraNativeApplyRoot(id root, TGExtraNativeSettings settings);
 
 NS_ASSUME_NONNULL_END
+
+#ifdef __cplusplus
+}
+#endif

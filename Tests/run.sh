@@ -38,6 +38,9 @@ clang -fobjc-arc -c Sources/tgapi/GhostExceptions.m -o "$test_build_dir/exceptio
 clang -fobjc-arc -c Sources/tgapiC/Gzip.m -o "$test_build_dir/gzip.o"
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -c Sources/tgapiC/HostTLSchema.m -o "$test_build_dir/host-tl-schema.o"
 clang -O2 -fobjc-arc -Werror -DTGEXTRA_TESTING -c Sources/tgapiC/NativeTL.m -o "$test_build_dir/native-tl.o"
+clang++ -fobjc-arc -Werror Tests/native_linkage.mm "$test_build_dir/native-tl.o" \
+    -framework Foundation -o "$test_build_dir/NativeLinkageTests"
+"$test_build_dir/NativeLinkageTests"
 clang -fobjc-arc -c Sources/tgapiC/HistoryAccount.m -o "$test_build_dir/history-account.o"
 clang -fobjc-arc -Werror -Wno-deprecated-declarations -DTGEXTRA_TESTING -ISources/tgapiC/include -c Sources/tgapi/ForwardCopy.m -o "$test_build_dir/forward-copy.o"
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -ISources/tgapiC/include -c Tests/forward_copy.m -o "$test_build_dir/forward-copy-tests.o"
