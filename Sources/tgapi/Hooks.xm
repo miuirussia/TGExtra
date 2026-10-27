@@ -23,6 +23,13 @@
     self.fakeData = TGExtraFakeResponseForPayload(payload);
     __weak MTRequest *weakRequest = self;
     id (^wrappedParser)(NSData *) = ^id(NSData *data) {
+        id native = [TLParser nativeTLAvailable] ? TGExtraNativePacket(data,
+            TGExtraHistoryAccountForRequest(weakRequest), functionID, weakRequest.payload) : nil;
+        if (native) {
+            id previous = TGExtraNativeBegin(native);
+            @try { return responseParser(data); }
+            @finally { TGExtraNativeEnd(previous); }
+        }
         NSData *patched = [TLParser handleResponse:data functionID:@(functionID)
                                           account:TGExtraHistoryAccountForRequest(weakRequest)
                                    requestPayload:weakRequest.payload];
@@ -64,6 +71,12 @@
 
 %hook MTProto
 - (id)parseMessage:(NSData *)data {
+    id native = [TLParser nativeTLAvailable] ? TGExtraNativePacket(data, TGExtraHistoryAccountForMTProto(self), 0, nil) : nil;
+    if (native) {
+        id previous = TGExtraNativeBegin(native);
+        @try { return %orig(data); }
+        @finally { TGExtraNativeEnd(previous); }
+    }
     NSData *patched = [TLParser stripAntiSelfDestruct:data account:TGExtraHistoryAccountForMTProto(self)];
     return %orig(patched ?: data);
 }

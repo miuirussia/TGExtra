@@ -1,0 +1,229 @@
+{
+  "name": "Native TL engine v1",
+  "bundle_ids": [
+    "ph.telegra.Telegraph",
+    "app.swiftgram.ios"
+  ],
+  "binary_patches": [
+    {
+      "search": {
+        "roots": [
+          "."
+        ],
+        "max_candidates": 128,
+        "max_bytes": 1073741824
+      },
+      "profile": {
+        "arch": "arm64",
+        "header_reserve": 4096,
+        "anchors": [
+          {
+            "name": "constructor",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 524,
+              "sha256": "c479ab0bc04609e9cd59a797306435f9f602fa8ac21206143c7796ea20394bd6"
+            }
+          },
+          {
+            "name": "result",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 112,
+              "sha256": "d2c348e2ee1cd557a49a2a6288f094ea9487799b993b7a8bdd66896bb2c19e0c"
+            }
+          },
+          {
+            "name": "topLevel",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 276,
+              "sha256": "12868a7d86b5d4db86bdbb615567599322ddb98bc5a20feb5ad07196786e1674"
+            }
+          },
+          {
+            "name": "body",
+            "type": "function",
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 1160,
+              "sha256": "1e5d2e64d6b4855a9b2d2d49af59ac747a3b42594943fb9e2da93053ff0d6279"
+            }
+          },
+          {
+            "name": "_dlsym",
+            "type": "import_stub",
+            "import": "_dlsym"
+          },
+          {
+            "name": "constructorCalls",
+            "type": "calls",
+            "to": "constructor",
+            "count": 1,
+            "within": "topLevel"
+          },
+          {
+            "name": "constructorCall0",
+            "type": "select",
+            "from": "constructorCalls",
+            "index": 0
+          },
+          {
+            "name": "resultCalls",
+            "type": "calls",
+            "to": "result",
+            "count": 1
+          },
+          {
+            "name": "resultCall0",
+            "type": "select",
+            "from": "resultCalls",
+            "index": 0
+          }
+        ],
+        "checks": [
+          {
+            "type": "branch",
+            "at": "constructorCall0",
+            "to": "constructor",
+            "instruction": "bl"
+          },
+          {
+            "type": "branch",
+            "at": "resultCall0",
+            "to": "result",
+            "instruction": "bl"
+          }
+        ],
+        "blocks": [
+          {
+            "name": "bridge.constructor",
+            "source": "payloads/constructor.bin",
+            "size": 104,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 20,
+                "anchor": "bridge.constructor",
+                "addend": 72
+              },
+              {
+                "type": "bl",
+                "offset": 28,
+                "anchor": "_dlsym"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 56,
+                "anchor": "constructor"
+              },
+              {
+                "type": "b",
+                "offset": 68,
+                "anchor": "constructor"
+              }
+            ]
+          },
+          {
+            "name": "bridge.result",
+            "source": "payloads/result.bin",
+            "size": 100,
+            "alignment": 4,
+            "permissions": "rx",
+            "relocations": [
+              {
+                "type": "adrp_add",
+                "offset": 20,
+                "anchor": "bridge.result",
+                "addend": 72
+              },
+              {
+                "type": "bl",
+                "offset": 28,
+                "anchor": "_dlsym"
+              },
+              {
+                "type": "adrp_add",
+                "offset": 56,
+                "anchor": "result"
+              },
+              {
+                "type": "b",
+                "offset": 68,
+                "anchor": "result"
+              }
+            ]
+          }
+        ],
+        "edits": [
+          {
+            "anchor": "constructorCall0",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.constructor"
+              }
+            ]
+          },
+          {
+            "anchor": "resultCall0",
+            "replacement": "00000094",
+            "relocations": [
+              {
+                "type": "bl",
+                "offset": 0,
+                "anchor": "bridge.result"
+              }
+            ]
+          }
+        ],
+        "generated_resources": [
+          {
+            "destination": "TGExtraNativeTL.plist",
+            "arch": "arm64",
+            "values": {
+              "ABI": {
+                "type": "uint",
+                "integer": 1
+              },
+              "UUID": {
+                "type": "uuid"
+              },
+              "constructorCall0": {
+                "type": "image_offset",
+                "anchor": "constructorCall0"
+              },
+              "constructor": {
+                "type": "image_offset",
+                "anchor": "constructor"
+              },
+              "bridge.constructor": {
+                "type": "image_offset",
+                "anchor": "bridge.constructor"
+              },
+              "resultCall0": {
+                "type": "image_offset",
+                "anchor": "resultCall0"
+              },
+              "result": {
+                "type": "image_offset",
+                "anchor": "result"
+              },
+              "bridge.result": {
+                "type": "image_offset",
+                "anchor": "bridge.result"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

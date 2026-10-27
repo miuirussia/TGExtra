@@ -93,17 +93,31 @@ not cleared by this action.
 
 ## Compatibility and Rust transport
 
-TGExtra reads the original compressed TL schema from the loaded app and uses one
-table-driven codec. Only the message-policy views are generated; the tweak ships
-no standalone API or schema snapshot. The supported schema format is TLS1 v3,
+TGExtra reads the original compressed TL schema from the loaded app. Only the
+message-policy views are generated; the tweak ships no standalone API or schema
+snapshot. The supported schema format is TLS1 v3,
 verified in Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343). Telegram/Swiftgram
 13.1 or newer is required; pre-13.1 constructors and snapshots are unsupported.
 Apps without a compatible embedded table keep
 their original protocol data; message policies require that table. UI hooks depend
 on the host app's private interfaces.
 
-Schema discovery works in both DEB and ipatch installations and requires no TL
-binary patch. MtProtoKit and Rust share the same message policies and codec.
+On a verified native decoder, MtProtoKit policies run after Telegram's own root
+decode. Simple content/copy rules edit the host storage through compiled field
+indices; stateful rules use lazy views of that same storage. The incoming packet
+is decoded once and its object graph is returned to Telegram without serializing
+it. New entities and restored snapshots are materialized separately when needed.
+The policy source remains named Swift operations in `MessagePatches.swift`.
+
+The iPatch `native-tl-v1` profile redirects two root calls using reviewable assembly
+bridges; DEB installations discover the same checked decoder and use
+`MSHookFunction` when available. Native ABI/code checks currently cover the generic
+arm64 engine in the two 13.1.1 references above. Changed decoders, unavailable
+hooks, compressed/container packets and unsupported profiles use the table-driven
+byte codec. Rust also retains this byte path: it queues responses before decoding,
+so a thread-local native request context would lose account attribution. Both
+paths use the same stateful policies. Native iPatch planning and native engine
+fixtures are tested; the complete integration still needs on-device validation.
 
 `Api.parse` only decodes. Setting keys, activation conditions and message field
 operations live together in
@@ -212,10 +226,12 @@ python3 Tools/update_telegram_api.py
 ```
 
 The codec stores values by schema field index and validates typed-view layouts
-once per host constructor. With message policies off it validates packets without
-building message payloads, while still removing content restrictions and learning
-peer names. Unmodified decoded objects can reuse their packet bytes; object edits
-invalidate that path, and mutable byte buffers always use value serialization.
+once per host constructor. The byte fallback validates packets without building
+message payloads when message policies are off, while still removing content
+restrictions and learning peer names. Unmodified fallback objects can reuse their
+packet bytes; object edits invalidate that path, and mutable byte buffers always
+use value serialization. The native path compiles a selective object traversal
+once and skips irrelevant child types.
 
 Run the protocol and regression tests on macOS:
 
@@ -223,11 +239,16 @@ Run the protocol and regression tests on macOS:
 bash Tests/run.sh
 # Optimized TL benchmarks, identical packets and checked results:
 bash Tests/run.sh --benchmark
+# Native host decoder versus byte patching followed by host decoding:
+bash Tests/run.sh --native-benchmark
 ```
 
 The suite covers privacy, message protection, edit history, account isolation,
 API compatibility and protected-copy recovery through mock MtProtoKit and Rust
-servers. It uses in-memory preferences and temporary recovery journals.
+servers. The native fixture uses the reviewed Objective-C engine, the production
+assembly bridges and the existing test schema. It checks single decoding,
+optional-field presence, account isolation, rejected packets and ownership. Tests
+use in-memory preferences and temporary recovery journals.
 
 To compile the menu and hooks for arm64/arm64e against iOS 16.5:
 

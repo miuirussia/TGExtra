@@ -21,6 +21,13 @@ func isMessageSelfDestructing(_ id: NSNumber, peer: NSNumber?, account: String? 
 
 let defaults = TGExtraUseTestDefaults()!
 precondition(UserDefaults.standard === defaults, "Tests must use in-memory defaults")
+if CommandLine.arguments.contains("--native-benchmark") { benchmarkNativeEngine(); exit(0) }
+if CommandLine.arguments.contains("--native") {
+    _ = TLParser.nativeTLAvailable()
+    TGExtraNativeFixtureEnable()
+    testNativeEngine()
+    exit(0)
+}
 if CommandLine.arguments.contains("--benchmark") { runCodecBenchmarks(); exit(0) }
 if CommandLine.arguments.contains("--no-schema") {
     testMissingHostSchema()

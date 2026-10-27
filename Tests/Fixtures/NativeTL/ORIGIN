@@ -1,0 +1,9 @@
+Telegram-iOS: https://github.com/TelegramMessenger/Telegram-iOS
+Commit: fb0e62ba8a147f0821da6aa63c09da7d79a10111
+Source: submodules/TelegramApi/ObjC (reviewed 13.1 engine).
+
+The two public parser definitions are renamed to TGEFixtureRaw* to exercise
+production call redirection. The raw constructor increments a test-only counter
+through TGExtraNativeFixtureDidParse. All other engine code is unchanged.
+Schema.c is generated in the isolated test build from the existing schema fixture.
+Production never links these fixture classes or a schema snapshot.

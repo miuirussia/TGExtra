@@ -1,4 +1,5 @@
 import Foundation
+import tgapiC
 
 // View compatibility depends on schema metadata, not individual packet values.
 public struct TLShape {
@@ -149,29 +150,51 @@ public final class TLRecord: TLSerializable, TLValue {
     var isDecoded = false
     var hasCompatibleView: Swift.Bool { isDecoded && descriptor?.supportsView == true }
     // The schema owns name lookup; the codec reads and writes by field index.
-    private(set) var values: [Any?]
+    var nativeObject: TGExtraNativeObject?
+    // Native records are scoped to the post-decode transaction and never
+    // escape it; the host receives only its own backing objects.
+    unowned var nativeContext: NativeTLContext?
+    private(set) var nativeEdits = Set<String>()
+    private var nativeLoaded: UInt64 = 0
+    private var nativeExtraLoaded = Set<Int>()
+    private var storageValues: [Any?]
+    var values: [Any?] {
+        if let descriptor = descriptor, nativeObject != nil {
+            for field in descriptor.fields { _ = self[field.name] }
+        }
+        return storageValues
+    }
     var fields: [String: Any] {
         get {
             guard let descriptor = descriptor else { return [:] }
             return Dictionary(uniqueKeysWithValues: descriptor.fields.enumerated().compactMap { index, field in
-                values[index].map { (field.name, $0) }
+                self[field.name].map { (field.name, $0) }
             })
         }
         set {
             isDecoded = false
             wireSource?.isDirty = true
             guard let descriptor = descriptor else { return }
-            for (index, field) in descriptor.fields.enumerated() { values[index] = newValue[field.name] }
+            for field in descriptor.fields { self[field.name] = newValue[field.name] }
         }
     }
     subscript(_ name: String) -> Any? {
         get {
             guard let index = descriptor?.fieldIndices[name] else { return nil }
-            return values[index]
+            let loaded = index < 64 ? nativeLoaded & (UInt64(1) << index) != 0 : nativeExtraLoaded.contains(index)
+            if nativeObject != nil && !loaded {
+                storageValues[index] = nativeContext?.value(self, index: index)
+                if index < 64 { nativeLoaded |= UInt64(1) << index } else { nativeExtraLoaded.insert(index) }
+            }
+            return storageValues[index]
         }
         set {
             guard let index = descriptor?.fieldIndices[name] else { return }
-            values[index] = newValue
+            storageValues[index] = newValue
+            if nativeObject != nil {
+                if index < 64 { nativeLoaded |= UInt64(1) << index } else { nativeExtraLoaded.insert(index) }
+                nativeEdits.insert(name)
+            }
             isDecoded = false
             wireSource?.isDirty = true
         }
@@ -188,28 +211,29 @@ public final class TLRecord: TLSerializable, TLValue {
         typeName = type
         constructorName = constructor
         descriptor = HostSchema.shared?.constructor(type: type, name: constructor)
-        values = Array(repeating: nil, count: descriptor?.fields.count ?? 0)
+        storageValues = Array(repeating: nil, count: descriptor?.fields.count ?? 0)
     }
     init(function: String) {
         typeName = "!Function"
         constructorName = function
         descriptor = HostSchema.shared?.functions[function]
-        values = Array(repeating: nil, count: descriptor?.fields.count ?? 0)
+        storageValues = Array(repeating: nil, count: descriptor?.fields.count ?? 0)
     }
     init(descriptor: TLConstructor, type: String, values: [Any?]? = nil) {
         self.descriptor = descriptor
         self.typeName = type
         self.constructorName = descriptor.name
-        self.values = values ?? Array(repeating: nil, count: descriptor.fields.count)
+        self.storageValues = values ?? Array(repeating: nil, count: descriptor.fields.count)
     }
     public func value<T: TLValue>(_ name: String) -> T {
         // A view is only constructed after its required fields have been checked.
         T.fromTL(self[name] ?? NSNull())!
     }
     public func set<T: TLValue>(_ name: String, _ value: T) {
-        writtenFields.insert(name)
+        // Decoded native records already track edits in nativeEdits.
+        if nativeObject == nil { writtenFields.insert(name) }
         let raw = value.tlValue
-        self[name] = raw is NSNull ? nil : raw
+        self[name] = Swift.type(of: raw) == NSNull.self ? nil : raw
     }
     public func canRead<T: TLValue>(_ name: String, as type: T.Type) -> Swift.Bool {
         T.canReadTL(self[name] ?? NSNull())
@@ -224,15 +248,26 @@ public final class TLRecord: TLSerializable, TLValue {
         guard let descriptor = original.descriptor else { return }
         wireSource?.isDirty = true
         isDecoded = false
-        if self.descriptor !== descriptor {
+        if let native = original.nativeObject {
+            let own = fields
+            self.descriptor = descriptor
+            storageValues = Array(repeating: nil, count: descriptor.fields.count)
+            nativeObject = native
+            nativeContext = original.nativeContext
+            nativeLoaded = 0
+            nativeExtraLoaded.removeAll()
+            nativeEdits.removeAll()
+            for name in writtenFields { self[name] = own[name] }
+            for name in original.nativeEdits where !writtenFields.contains(name) { self[name] = original[name] }
+        } else if self.descriptor !== descriptor {
             let ownFields = fields
             self.descriptor = descriptor
-            values = descriptor.fields.enumerated().map { index, field in
+            storageValues = descriptor.fields.enumerated().map { index, field in
                 writtenFields.contains(field.name) ? ownFields[field.name] : original.values[index]
             }
         } else {
             for (index, field) in descriptor.fields.enumerated() where !writtenFields.contains(field.name) {
-                values[index] = original.values[index]
+                storageValues[index] = original.values[index]
             }
         }
     }

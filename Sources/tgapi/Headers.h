@@ -4,6 +4,7 @@
 #import "../tgapiC/include/Tweak.h"
 
 @interface TLParser : NSObject
++ (BOOL)nativeTLAvailable;
 + (NSData *)handleResponse:(NSData *)data functionID:(NSNumber *)ios account:(NSString *)account requestPayload:(NSData *)payload;
 + (void)addDeletedId:(int32_t)msgId peer:(int64_t)peer account:(NSString *)account messageNamespace:(int32_t)messageNamespace;
 + (void)loadPersistedIds;

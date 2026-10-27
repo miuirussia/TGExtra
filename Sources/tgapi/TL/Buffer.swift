@@ -331,6 +331,7 @@ public class BufferReader {
     public private(set) var offset: UInt = 0
     var remaining: Int { buffer.size - Int(offset) }
     var parsedRecords = [TLRecord]()
+    weak var nativeContext: NativeTLContext?
     var changes: [TLFieldChange] { parsedRecords.flatMap(\.changes) }
     private var pendingWireEdits = [Range<Int>: TLWireEdit]()
     var wireEdits: [TLWireEdit] { pendingWireEdits.values.sorted { $0.range.lowerBound < $1.range.lowerBound } }
@@ -439,6 +440,7 @@ extension BufferReader {
     // Byte edits are separate from mutations to decoded objects. All ranges
     // refer to the original packet, including after length-changing removals.
     func replaceFlags(of record: TLRecord, field: String) {
+        if let native = nativeContext { native.capture(record, field: field); return }
         guard let range = record.wireFields[field], range.count == 4,
               let flags = record[field] as? Int32 else { return }
         var encoded = flags.littleEndian
@@ -453,6 +455,7 @@ extension BufferReader {
     }
 
     func removeFieldBytes(of record: TLRecord, field: String) {
+        if let native = nativeContext { native.capture(record, field: field); return }
         guard let range = record.wireFields[field], !range.isEmpty else { return }
         pendingWireEdits[range] = TLWireEdit(path: record.typeName + "." + record.constructorName + "." + field,
                                             range: range, replacement: Data())

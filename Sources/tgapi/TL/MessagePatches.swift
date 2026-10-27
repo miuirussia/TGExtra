@@ -1,4 +1,5 @@
 import Foundation
+import tgapiC
 
 // The setting → condition → field-change mapping for TL message policies.
 // Account lookup, message classification and persistence remain in TLParser.
@@ -259,5 +260,38 @@ enum MessagePatches {
         guard settings.videoToVoice, registeredUpload, record.typeName == "InputMedia",
               record.constructorName == "inputMediaUploadedDocument" else { return false }
         return TLDataPatch(record, rule: Setting.videoToVoice.rawValue).replaceField("attributes", attributes)
+    }
+}
+
+// The native fast path compiles these named rules once. Execution uses only
+// constructor IDs, field indices and masks; no field-name lookup per message.
+extension MessagePatches {
+    static func nativeRules(_ schema: HostSchema) -> Data {
+        var words = [UInt32]()
+        func clear(_ record: TLRecord, _ flag: TLFlag, when setting: TGExtraNativeSettings) {
+            guard let descriptor = record.descriptor, let location = flag.location(in: record),
+                  let index = descriptor.fieldIndices[location.field] else { return }
+            words += [UInt32(bitPattern: descriptor.signature), UInt32(index), setting.rawValue, UInt32(bitPattern: location.mask), 0]
+        }
+        func remove(_ record: TLRecord, _ name: String) {
+            guard let descriptor = record.descriptor, let index = descriptor.fieldIndices[name],
+                  let location = TLDataPatch(record).presenceFlag(for: name),
+                  let flags = descriptor.fieldIndices[location.field] else { return }
+            words += [UInt32(bitPattern: descriptor.signature), UInt32(flags) | UInt32(index) << 16, 0,
+                      UInt32(bitPattern: location.mask), 1]
+        }
+        for descriptor in schema.constructors.values.sorted(by: { UInt32(bitPattern: $0.signature) < UInt32(bitPattern: $1.signature) }) {
+            let type = schema.types[descriptor.typeIndex]
+            let record = TLRecord(descriptor: descriptor, type: type)
+            // disableForwardRestriction → noforwards. The flag's reviewed
+            // semantic location is shared with the regular TLDataPatch rules.
+            clear(record, .noForwards, when: .bypassForwarding)
+            clear(record, .noForwardsMyEnabled, when: .bypassPrivateCopy)
+            clear(record, .noForwardsPeerEnabled, when: .bypassPrivateCopy)
+            if ["Message.message", "Chat.channel", "User.user"].contains(type + "." + descriptor.name) {
+                remove(record, "restrictionReason") // unconditional iOS content access
+            }
+        }
+        return words.withUnsafeBytes { Data($0) }
     }
 }

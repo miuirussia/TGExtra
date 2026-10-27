@@ -20,6 +20,43 @@ and function offsets. No compatibility SHA-256, fixed framework path or copied
 metadata is needed. The engine still captures a full-file digest and exact
 preimages to protect application after planning.
 
+## Native TL decoder
+
+`native-tl-v1` accelerates the MtProtoKit response path on the reviewed Telegram
+13.1.1 (35634) and Swiftgram 13.1.1 (343) generic arm64 engines. The profile checks
+the constructor parser, its object-body parser, the function-result parser and
+the Swift top-level wrapper. Exactly one constructor call in that wrapper and
+one function-result call are redirected. Recursive native calls stay unchanged.
+
+`payloads/constructor.s` and `payloads/result.s` are the readable bridge sources.
+Each preserves parser arguments, resolves the exported TGExtra bridge and tail
+calls it with the original parser address. A missing tweak falls through to the
+original parser. No TL field offsets or policy conditions live in assembly.
+
+The engine generates `TGExtraNativeTL.plist` with the image UUID, parser offsets,
+bridge offsets and checked call sites. TGExtra verifies those locations and the
+native root-class ABI before using the decoder. DEB installs use the same code
+matcher and `MSHookFunction`; unavailable native integration falls back to the
+byte codec. Rust responses retain that fallback because their asynchronous
+queue boundary needs a separate account-aware integration.
+
+Rules stay in `Sources/tgapi/TL/MessagePatches.swift`; `nativeRules` compiles the
+simple named flags into field-index operations. Stateful rules run through lazy
+native-backed views and preflight their writes before touching the host objects.
+Only successful complete root decodes can publish policy state.
+
+Regenerate or verify the profile and runtime matcher from a reviewed reference:
+
+~~~sh
+python3 Tools/prepare_native_tl.py packages/Telegram_v13.1.1.ipa
+python3 Tools/prepare_native_tl.py packages/Swiftgram_v13.1.1.ipa --check
+IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/native_tl_profile.py
+~~~
+
+Changed parser code requires a new review. These tests verify both reference IPA
+plans and execute the bridges against the fixture engine on macOS; they do not
+replace device testing. Native arm64e binary profiles are not currently provided.
+
 ## Swiftgram Pro feature
 
 `swiftgram-pro` is disabled by default. Select it using the gear beside the

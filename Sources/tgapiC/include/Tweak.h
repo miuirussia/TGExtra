@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import "NativeTL.h"
 
 #ifdef __cplusplus
 extern "C" {

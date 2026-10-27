@@ -139,6 +139,10 @@ struct TLDataPatch {
 
     private static func describe(_ value: Any?) -> String {
         guard let value = value else { return "absent" }
+        // Avoid reflection and Objective-C boxing for the common scalar trace.
+        if let integer = value as? Int32 { return String(integer) }
+        if let integer = value as? Int64 { return String(integer) }
+        if let number = value as? Double { return String(number) }
         if let text = value as? String {
             return String(text.prefix(160)).debugDescription + (text.count > 160 ? "…" : "")
         }

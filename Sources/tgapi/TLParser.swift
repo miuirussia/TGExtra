@@ -190,7 +190,7 @@ class TLParser: NSObject {
             guard let editDate = editDate, editDate >= oldDate else { return }
         }
         let bytes = serializeBoxed(message) as Data
-        guard snapshots[key] != bytes else { return }
+        guard !bytes.isEmpty, snapshots[key] != bytes else { return }
         snapshots[key] = bytes
         snapshotOrder.removeAll { $0 == key }
         snapshotOrder.append(key)
@@ -2155,6 +2155,17 @@ class TLParser: NSObject {
             return reader.dataApplyingPatches()
         }
 
+        let (newResult, modified) = rewriteDecoded(result, settings: settings)
+        if MessagePatches.shouldReserialize(changed: modified, settings: settings) {
+            let outBuf = Buffer()
+            Api.serializeObject(newResult, buffer: outBuf, boxed: true)
+            guard outBuf.isValid else { return nil }
+            return outBuf.makeData() as NSData
+        }
+        return reader.dataApplyingPatches()
+    }
+
+    private static func rewriteDecoded(_ result: Any, settings: MessagePatches.Settings) -> (Any, Bool) {
         var modified = false
         var newResult: Any = result
 
@@ -2374,16 +2385,73 @@ class TLParser: NSObject {
             }
         }
 
-        if MessagePatches.shouldReserialize(changed: modified, settings: settings) {
-            let outBuf = Buffer()
-            if let original = Api.record(result), let replacement = Api.record(newResult), original !== replacement {
-                replacement.retainUnwrittenFields(from: original)
-            }
-            Api.serializeObject(newResult, buffer: outBuf, boxed: true)
-            guard outBuf.isValid else { return nil }
-            return outBuf.makeData() as NSData
+        if let original = Api.record(result), let replacement = Api.record(newResult), original !== replacement {
+            replacement.retainUnwrittenFields(from: original)
         }
-        return reader.dataApplyingPatches()
+        return (newResult, modified)
+    }
+
+    static func patchNative(_ root: Any, account: String?, function: Int32, request: Data?) -> Any? {
+        processingLock.lock()
+        let previousAccount = processingHistoryAccount
+        let previousSettings = processingSettings
+        let previousNamespace = processingNamespace
+        let previousIds = requestedMessageIds
+        let previousPeer = requestedMessagePeer
+        processingHistoryAccount = account
+        processingSettings = MessagePatches.Settings(snapshot: true)
+        let settings = packetSettings
+        switch function {
+        case -183077365, -1111817116: processingNamespace = 3
+        case -1801153085: processingNamespace = 5
+        default: processingNamespace = 0
+        }
+        let validation = validationRequest(request as NSData?, function: function)
+        requestedMessageIds = validation?.ids
+        requestedMessagePeer = validation?.peer
+        defer {
+            processingHistoryAccount = previousAccount; processingSettings = previousSettings
+            processingNamespace = previousNamespace; requestedMessageIds = previousIds; requestedMessagePeer = previousPeer
+            processingLock.unlock()
+        }
+        if !settings.tracksContentReads { contentReadStates.removeAll(); contentReadOrder.removeAll() }
+        let context = NativeTLContext()
+        let nativeRoot = TGExtraNativeObject(object: root)
+        let descriptor = nativeRoot.flatMap { HostSchema.shared?.constructors[Int32(bitPattern: $0.constructorId)] }
+        let appConfig = descriptor.map { HostSchema.shared?.types[$0.typeIndex] == "help.AppConfig" } ?? false
+        if !appConfig && !settings.protectsAnyDeletions && !settings.keepEditHistory && !settings.tracksContentReads {
+            var mask = TGExtraNativeSettings()
+            if settings.bypassForwarding { mask.insert(.bypassForwarding) }
+            if settings.bypassPrivateCopy { mask.insert(.bypassPrivateCopy) }
+            let users = TGExtraNativeApplyRoot(root, mask).compactMap { context.record($0 as AnyObject).flatMap(Api.User.init) }
+            noteOwnUser(in: users); notePeerNames(in: users)
+            return root
+        }
+        context.reader.parsedRecords = TGExtraNativeObjects(root).compactMap { context.record($0 as AnyObject) }
+        MessagePatches.prepareDecodedObjects(in: context.reader)
+        if let values = root as? [Any] {
+            let users = values.compactMap { context.record($0 as AnyObject).flatMap(Api.User.init) }
+            noteOwnUser(in: users); notePeerNames(in: users)
+            _ = context.commit(nil, allChanges: false)
+            return root
+        }
+        guard let record = context.record(root as AnyObject) else { return nil }
+        let result = Api.view(record)
+        if let config = result as? Api.help.AppConfig {
+            let changed = MessagePatches.allowIOSContent(in: config)
+            return context.commit(record, allChanges: changed)
+        }
+        noteUsersAnywhere(result)
+        guard settings.processesMessages || !isOwnIdKnown else { return context.commit(record, allChanges: false) }
+        if MessagePatches.patchPrivateCopyResponse(result, reader: context.reader, settings: settings) {
+            return context.commit(record, allChanges: false)
+        }
+        let (rewritten, changed) = rewriteDecoded(result, settings: settings)
+        let replacement = Api.record(rewritten)
+        // Fieldless enum views do not carry a payload object. Reuse the
+        // decoded backing object when its constructor was not replaced.
+        let output = !changed && replacement?.constructorName == record.constructorName ? record : replacement
+        return context.commit(output, allChanges: MessagePatches.shouldReserialize(changed: changed, settings: settings))
     }
 
     /// users.getFullUser, users.getUsers, contacts.resolveUsername — the three
