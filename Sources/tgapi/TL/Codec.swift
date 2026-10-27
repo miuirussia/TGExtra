@@ -4,34 +4,112 @@ import Foundation
 // that TGExtra has never named. There are no per-type wire parsers in the tweak.
 enum TLCodec {
     private static let vector: Int32 = 481674261
-    private static let legacy: [Int32: (String, String)] = [
-        -727763770: ("Chat", "channel"), -1605464774: ("ChatFull", "channelFull"),
-        1003796418: ("InputReplyTo", "inputReplyToMessage"), 462937446: ("MessageReplyHeader", "messageReplyHeader"),
-        1020666860: ("UrlAuthResult", "urlAuthResultRequest"), 114026053: ("UserFull", "userFull"),
-        876739868: ("wallet.NftItem", "nftItem"),
-    ]
-
     static func descriptor(_ signature: Int32) -> TLConstructor? {
-        guard let schema = HostSchema.shared else { return nil }
-        return schema.constructors[signature] ?? legacy[signature].flatMap { schema.constructor(type: $0.0, name: $0.1) }
+        HostSchema.shared?.constructors[signature]
     }
 
-    static func parse(_ reader: BufferReader, descriptor: TLConstructor, signature: Int32?, depth: Int = 0) -> TLRecord? {
+    static func parse(_ reader: BufferReader, descriptor: TLConstructor, depth: Int = 0) -> TLRecord? {
         guard depth < 128, let schema = HostSchema.shared, descriptor.typeIndex < schema.types.count else { return nil }
-        let result = TLRecord(descriptor: descriptor, type: schema.types[descriptor.typeIndex])
-        if reader.preserveLegacyConstructorIds { result.wireSignature = signature }
-        for field in descriptor.fields {
+        return descriptor.fields.withUnsafeBufferPointer { fields in
+            let wireStart = Int(reader.offset)
+            var values = [Any?](repeating: nil, count: descriptor.fields.count)
+            var wireFields = [String: Range<Int>]()
+            var flags0: Int32?, flags1: Int32?
+            for index in fields.indices {
+                let flagsIndex = fields[index].flagsIndex
+                if flagsIndex >= 0 {
+                    let flagsValue = flagsIndex == 0 ? flags0 : (flagsIndex == 1 ? flags1 : values[flagsIndex] as? Int32)
+                    guard let flags = flagsValue else { return nil }
+                    if flags & (Int32(1) << fields[index].flagBit) == 0 { continue }
+                }
+                let field = fields[index]
+                let start = Int(reader.offset)
+                guard let value = read(field, reader: reader, depth: depth + 1) else { return nil }
+                values[index] = value
+                if index == 0 { flags0 = value as? Int32 }
+                else if index == 1 { flags1 = value as? Int32 }
+                if descriptor.tracksWireFields && (field.name == "flags" || field.name == "flags2" || field.name == "restrictionReason") {
+                    wireFields[field.name] = start..<Int(reader.offset)
+                }
+            }
+            let result = TLRecord(descriptor: descriptor, type: schema.types[descriptor.typeIndex], values: values)
+            result.wireFields = wireFields
+            result.wireSource = reader.wireSource
+            result.wireRange = wireStart..<Int(reader.offset)
+            result.isDecoded = true
+            reader.parsedRecords.append(result)
+            return result
+        }
+    }
+
+    // With message policies off, validate the complete object and materialize
+    // only users and present restriction vectors. No message payloads are needed.
+    static func scan(_ reader: BufferReader, descriptor: TLConstructor, users: inout [Api.User],
+                     depth: Int = 0, harvestUser: Bool = false) -> Bool {
+        guard depth < 128, let schema = HostSchema.shared, descriptor.typeIndex < schema.types.count else { return false }
+        if !descriptor.canScan || ((harvestUser || depth == 0) && schema.types[descriptor.typeIndex] == "User") {
+            guard let record = parse(reader, descriptor: descriptor, depth: depth) else { return false }
+            if let user = Api.User(record) { users.append(user) }
+            if depth == 0, let values = record["users"] as? [TLRecord] { users += values.compactMap(Api.User.init) }
+            return true
+        }
+        var flags0: Int32?, flags1: Int32?
+        var flags0Start = 0, flags1Start = 0
+        var restricted: TLRecord?
+        for (index, field) in descriptor.fields.enumerated() {
             if field.flagsIndex >= 0 {
-                guard let flags = result.fields[descriptor.fields[field.flagsIndex].name] as? Int32 else { return nil }
+                guard let flags = field.flagsIndex == 0 ? flags0 : flags1 else { return false }
                 if flags & (Int32(1) << field.flagBit) == 0 { continue }
             }
             let start = Int(reader.offset)
-            guard let value = read(field, reader: reader, depth: depth + 1) else { return nil }
-            result.fields[field.name] = value
-            result.wireFields[field.name] = start..<Int(reader.offset)
+            if descriptor.restrictionIndex == index {
+                guard let value = read(field, reader: reader, depth: depth + 1) else { return false }
+                let record = TLRecord(descriptor: descriptor, type: schema.types[descriptor.typeIndex])
+                let flagsName = descriptor.fields[field.flagsIndex].name
+                record[flagsName] = field.flagsIndex == 0 ? flags0 : flags1
+                record[field.name] = value
+                let flagStart = field.flagsIndex == 0 ? flags0Start : flags1Start
+                record.wireFields[flagsName] = flagStart..<flagStart + 4
+                record.wireFields[field.name] = start..<Int(reader.offset)
+                restricted = record
+            } else if field.kind == 0 {
+                guard let value = reader.readInt32() else { return false }
+                if index == 0 { flags0 = value; flags0Start = start }
+                else if index == 1 { flags1 = value; flags1Start = start }
+            } else if field.kind == 7 {
+                if field.boxedVector, reader.readInt32() != vector { return false }
+                guard let count = reader.readInt32(), count >= 0, Int(count) <= reader.remaining / 4 else { return false }
+                for _ in 0..<count {
+                    guard scanValue(field.elementKind, field: field, reader: reader, users: &users, depth: depth + 1,
+                                    harvestUser: harvestUser || (depth == 0 && field.name == "users")) else { return false }
+                }
+            } else if !scanValue(field.kind, field: field, reader: reader, users: &users, depth: depth + 1,
+                                 harvestUser: harvestUser) { return false }
         }
-        reader.parsedRecords.append(result)
-        return result
+        if let record = restricted { reader.parsedRecords.append(record) }
+        return true
+    }
+
+    private static func scanValue(_ kind: Int, field: TLField, reader: BufferReader, users: inout [Api.User],
+                                  depth: Int, harvestUser: Bool) -> Bool {
+        switch kind {
+        case 0: return reader.skipValueBytes(4)
+        case 1, 3: return reader.skipValueBytes(8)
+        case 2: return reader.skipValueBytes(32)
+        case 4, 5: return reader.skipTLBytes()
+        case 6:
+            let constructor: TLConstructor
+            if field.bare {
+                guard let value = HostSchema.shared?.bareConstructor(field) else { return false }
+                constructor = value
+            } else {
+                guard let signature = reader.readInt32(), let value = descriptor(signature) else { return false }
+                constructor = value
+            }
+            guard field.typeIndex == 65535 || constructor.typeIndex == field.typeIndex else { return false }
+            return scan(reader, descriptor: constructor, users: &users, depth: depth, harvestUser: harvestUser)
+        default: return false
+        }
     }
 
     private static func read(_ field: TLField, reader: BufferReader, depth: Int) -> Any? {
@@ -39,6 +117,7 @@ enum TLCodec {
         if field.boxedVector, reader.readInt32() != vector { return nil }
         guard let count = reader.readInt32(), count >= 0, Int(count) <= reader.remaining / 4 else { return nil }
         var values = [Any]()
+        values.reserveCapacity(Int(count))
         for _ in 0..<count {
             guard let value = readValue(field.elementKind, field: field, reader: reader, depth: depth) else { return nil }
             values.append(value)
@@ -53,34 +132,46 @@ enum TLCodec {
         case 2: return parseInt256(reader)
         case 3: return reader.readDouble()
         case 4: return parseString(reader)
-        case 5: return parseBytes(reader)
+        case 5:
+            // Buffer exposes mutable bytes; edits through it do not call record.set.
+            reader.wireSource.canCopy = false
+            return parseBytes(reader)
         case 6:
             let constructor: TLConstructor
-            let signature: Int32?
             if field.bare {
                 guard let value = HostSchema.shared?.bareConstructor(field) else { return nil }
                 constructor = value
-                signature = nil
             } else {
                 guard let value = reader.readInt32(), let valueDescriptor = descriptor(value) else { return nil }
                 constructor = valueDescriptor
-                signature = value
             }
             guard field.typeIndex == 65535 || constructor.typeIndex == field.typeIndex else { return nil }
-            return parse(reader, descriptor: constructor, signature: signature, depth: depth)
+            return parse(reader, descriptor: constructor, depth: depth)
         default: return nil
         }
     }
 
     static func serialize(_ record: TLRecord, into buffer: Buffer, boxed: Swift.Bool, depth: Int = 0) -> Swift.Bool {
         guard depth < 128, let descriptor = record.descriptor else { return false }
-        if boxed { buffer.appendInt32(record.wireSignature ?? descriptor.signature) }
-        for field in descriptor.fields {
+        if boxed { buffer.appendInt32(descriptor.signature) }
+        if let source = record.wireSource, !source.isDirty, source.canCopy {
+            source.bytes.withUnsafeBytes { bytes in
+                if !record.wireRange.isEmpty {
+                    buffer.appendBytes(bytes.baseAddress!.advanced(by: record.wireRange.lowerBound), length: UInt(record.wireRange.count))
+                }
+            }
+            return true
+        }
+        let values = record.values
+        let flags0 = values.first.flatMap { $0 as? Int32 }
+        let flags1 = values.count > 1 ? values[1] as? Int32 : nil
+        for (index, field) in descriptor.fields.enumerated() {
             if field.flagsIndex >= 0 {
-                guard let flags = record.fields[descriptor.fields[field.flagsIndex].name] as? Int32 else { return false }
+                let flagsValue = field.flagsIndex == 0 ? flags0 : (field.flagsIndex == 1 ? flags1 : values[field.flagsIndex] as? Int32)
+                guard let flags = flagsValue else { return false }
                 if flags & (Int32(1) << field.flagBit) == 0 { continue }
             }
-            guard let value = record.fields[field.name] else { return false }
+            guard let value = values[index] else { return false }
             if field.kind == 7 {
                 guard let values = value as? [Any], values.count <= Int(Int32.max) else { return false }
                 if field.boxedVector { buffer.appendInt32(vector) }
@@ -143,7 +234,7 @@ extension Api {
                 telegramApiLog("Type constructor \(String(UInt32(bitPattern: signature), radix: 16)) not found in host schema")
                 return nil
             }
-            guard let record = TLCodec.parse(reader, descriptor: descriptor, signature: signature) else { return nil }
+            guard let record = TLCodec.parse(reader, descriptor: descriptor) else { return nil }
             return view(record)
         }
     }
@@ -151,6 +242,7 @@ extension Api {
     static func parseVector<T>(_ reader: BufferReader, elementSignature: Int32, elementType: T.Type) -> [T]? {
         guard let count = reader.readInt32(), count >= 0, Int(count) <= reader.remaining / 4 else { return nil }
         var values = [T]()
+        values.reserveCapacity(Int(count))
         for _ in 0..<count {
             if elementType == Buffer.self {
                 guard let value = parseBytes(reader) as? T else { return nil }

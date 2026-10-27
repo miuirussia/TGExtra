@@ -246,11 +246,11 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "channel" where record.canRead("flags", as: Int32.self) && record.canRead("flags2", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64?.self) && record.canRead("title", as: String.self) && record.canRead("username", as: String?.self) && record.canRead("photo", as: Api.ChatPhoto.self) && record.canRead("date", as: Int32.self) && record.canRead("restrictionReason", as: [Api.RestrictionReason]?.self) && record.canRead("adminRights", as: TLRecord?.self) && record.canRead("bannedRights", as: TLRecord?.self) && record.canRead("defaultBannedRights", as: TLRecord?.self) && record.canRead("participantsCount", as: Int32?.self) && record.canRead("usernames", as: [Api.Username]?.self) && record.canRead("storiesMaxId", as: TLRecord?.self) && record.canRead("color", as: TLRecord?.self) && record.canRead("profileColor", as: TLRecord?.self) && record.canRead("emojiStatus", as: TLRecord?.self) && record.canRead("level", as: Int32?.self) && record.canRead("subscriptionUntilDate", as: Int32?.self) && record.canRead("botVerificationIcon", as: Int64?.self) && record.canRead("sendPaidMessagesStars", as: Int64?.self) && record.canRead("linkedMonoforumId", as: Int64?.self) && record.canRead("linkedCommunityId", as: Int64?.self) && record.canRead("pinnedMsgId", as: Int32?.self):
+            case "channel" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("flags2", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64?.self) && record.canRead("title", as: String.self) && record.canRead("username", as: String?.self) && record.canRead("photo", as: Api.ChatPhoto.self) && record.canRead("date", as: Int32.self) && record.canRead("restrictionReason", as: [Api.RestrictionReason]?.self) && record.canRead("adminRights", as: TLRecord?.self) && record.canRead("bannedRights", as: TLRecord?.self) && record.canRead("defaultBannedRights", as: TLRecord?.self) && record.canRead("participantsCount", as: Int32?.self) && record.canRead("usernames", as: [Api.Username]?.self) && record.canRead("storiesMaxId", as: TLRecord?.self) && record.canRead("color", as: TLRecord?.self) && record.canRead("profileColor", as: TLRecord?.self) && record.canRead("emojiStatus", as: TLRecord?.self) && record.canRead("level", as: Int32?.self) && record.canRead("subscriptionUntilDate", as: Int32?.self) && record.canRead("botVerificationIcon", as: Int64?.self) && record.canRead("sendPaidMessagesStars", as: Int64?.self) && record.canRead("linkedMonoforumId", as: Int64?.self) && record.canRead("linkedCommunityId", as: Int64?.self) && record.canRead("pinnedMsgId", as: Int32?.self)):
                 self = .channel(Cons_channel(record: record))
-            case "chat" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("title", as: String.self) && record.canRead("photo", as: Api.ChatPhoto.self) && record.canRead("participantsCount", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("version", as: Int32.self) && record.canRead("migratedTo", as: Api.InputChannel?.self) && record.canRead("adminRights", as: TLRecord?.self) && record.canRead("defaultBannedRights", as: TLRecord?.self):
+            case "chat" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("title", as: String.self) && record.canRead("photo", as: Api.ChatPhoto.self) && record.canRead("participantsCount", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("version", as: Int32.self) && record.canRead("migratedTo", as: Api.InputChannel?.self) && record.canRead("adminRights", as: TLRecord?.self) && record.canRead("defaultBannedRights", as: TLRecord?.self)):
                 self = .chat(Cons_chat(record: record))
-            case "chatEmpty" where record.canRead("id", as: Int64.self):
+            case "chatEmpty" where record.hasCompatibleView || (record.canRead("id", as: Int64.self)):
                 self = .chatEmpty(Cons_chatEmpty(record: record))
             default: self = .other(record)
             }
@@ -370,7 +370,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "chatFull" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("about", as: String.self) && record.canRead("participants", as: TLRecord.self) && record.canRead("chatPhoto", as: Api.Photo?.self) && record.canRead("notifySettings", as: Api.PeerNotifySettings.self) && record.canRead("exportedInvite", as: TLRecord?.self) && record.canRead("botInfo", as: [TLRecord]?.self) && record.canRead("pinnedMsgId", as: Int32?.self) && record.canRead("folderId", as: Int32?.self) && record.canRead("call", as: TLRecord?.self) && record.canRead("ttlPeriod", as: Int32?.self) && record.canRead("groupcallDefaultJoinAs", as: Api.Peer?.self) && record.canRead("themeEmoticon", as: String?.self) && record.canRead("requestsPending", as: Int32?.self) && record.canRead("recentRequesters", as: [Int64]?.self) && record.canRead("availableReactions", as: TLRecord?.self) && record.canRead("reactionsLimit", as: Int32?.self):
+            case "chatFull" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("about", as: String.self) && record.canRead("participants", as: TLRecord.self) && record.canRead("chatPhoto", as: Api.Photo?.self) && record.canRead("notifySettings", as: Api.PeerNotifySettings.self) && record.canRead("exportedInvite", as: TLRecord?.self) && record.canRead("botInfo", as: [TLRecord]?.self) && record.canRead("pinnedMsgId", as: Int32?.self) && record.canRead("folderId", as: Int32?.self) && record.canRead("call", as: TLRecord?.self) && record.canRead("ttlPeriod", as: Int32?.self) && record.canRead("groupcallDefaultJoinAs", as: Api.Peer?.self) && record.canRead("themeEmoticon", as: String?.self) && record.canRead("requestsPending", as: Int32?.self) && record.canRead("recentRequesters", as: [Int64]?.self) && record.canRead("availableReactions", as: TLRecord?.self) && record.canRead("reactionsLimit", as: Int32?.self)):
                 self = .chatFull(Cons_chatFull(record: record))
             default: self = .other(record)
             }
@@ -634,7 +634,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "config" where record.canRead("flags", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("expires", as: Int32.self) && record.canRead("testMode", as: Api.Bool.self) && record.canRead("thisDc", as: Int32.self) && record.canRead("dcOptions", as: [TLRecord].self) && record.canRead("dcTxtDomainName", as: String.self) && record.canRead("chatSizeMax", as: Int32.self) && record.canRead("megagroupSizeMax", as: Int32.self) && record.canRead("forwardedCountMax", as: Int32.self) && record.canRead("onlineUpdatePeriodMs", as: Int32.self) && record.canRead("offlineBlurTimeoutMs", as: Int32.self) && record.canRead("offlineIdleTimeoutMs", as: Int32.self) && record.canRead("onlineCloudTimeoutMs", as: Int32.self) && record.canRead("notifyCloudDelayMs", as: Int32.self) && record.canRead("notifyDefaultDelayMs", as: Int32.self) && record.canRead("pushChatPeriodMs", as: Int32.self) && record.canRead("pushChatLimit", as: Int32.self) && record.canRead("editTimeLimit", as: Int32.self) && record.canRead("revokeTimeLimit", as: Int32.self) && record.canRead("revokePmTimeLimit", as: Int32.self) && record.canRead("ratingEDecay", as: Int32.self) && record.canRead("stickersRecentLimit", as: Int32.self) && record.canRead("channelsReadMediaPeriod", as: Int32.self) && record.canRead("tmpSessions", as: Int32?.self) && record.canRead("callReceiveTimeoutMs", as: Int32.self) && record.canRead("callRingTimeoutMs", as: Int32.self) && record.canRead("callConnectTimeoutMs", as: Int32.self) && record.canRead("callPacketTimeoutMs", as: Int32.self) && record.canRead("meUrlPrefix", as: String.self) && record.canRead("autoupdateUrlPrefix", as: String?.self) && record.canRead("gifSearchUsername", as: String?.self) && record.canRead("venueSearchUsername", as: String?.self) && record.canRead("imgSearchUsername", as: String?.self) && record.canRead("staticMapsProvider", as: String?.self) && record.canRead("captionLengthMax", as: Int32.self) && record.canRead("messageLengthMax", as: Int32.self) && record.canRead("webfileDcId", as: Int32.self) && record.canRead("suggestedLangCode", as: String?.self) && record.canRead("langPackVersion", as: Int32?.self) && record.canRead("baseLangPackVersion", as: Int32?.self) && record.canRead("reactionsDefault", as: Api.Reaction?.self) && record.canRead("autologinToken", as: String?.self):
+            case "config" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("expires", as: Int32.self) && record.canRead("testMode", as: Api.Bool.self) && record.canRead("thisDc", as: Int32.self) && record.canRead("dcOptions", as: [TLRecord].self) && record.canRead("dcTxtDomainName", as: String.self) && record.canRead("chatSizeMax", as: Int32.self) && record.canRead("megagroupSizeMax", as: Int32.self) && record.canRead("forwardedCountMax", as: Int32.self) && record.canRead("onlineUpdatePeriodMs", as: Int32.self) && record.canRead("offlineBlurTimeoutMs", as: Int32.self) && record.canRead("offlineIdleTimeoutMs", as: Int32.self) && record.canRead("onlineCloudTimeoutMs", as: Int32.self) && record.canRead("notifyCloudDelayMs", as: Int32.self) && record.canRead("notifyDefaultDelayMs", as: Int32.self) && record.canRead("pushChatPeriodMs", as: Int32.self) && record.canRead("pushChatLimit", as: Int32.self) && record.canRead("editTimeLimit", as: Int32.self) && record.canRead("revokeTimeLimit", as: Int32.self) && record.canRead("revokePmTimeLimit", as: Int32.self) && record.canRead("ratingEDecay", as: Int32.self) && record.canRead("stickersRecentLimit", as: Int32.self) && record.canRead("channelsReadMediaPeriod", as: Int32.self) && record.canRead("tmpSessions", as: Int32?.self) && record.canRead("callReceiveTimeoutMs", as: Int32.self) && record.canRead("callRingTimeoutMs", as: Int32.self) && record.canRead("callConnectTimeoutMs", as: Int32.self) && record.canRead("callPacketTimeoutMs", as: Int32.self) && record.canRead("meUrlPrefix", as: String.self) && record.canRead("autoupdateUrlPrefix", as: String?.self) && record.canRead("gifSearchUsername", as: String?.self) && record.canRead("venueSearchUsername", as: String?.self) && record.canRead("imgSearchUsername", as: String?.self) && record.canRead("staticMapsProvider", as: String?.self) && record.canRead("captionLengthMax", as: Int32.self) && record.canRead("messageLengthMax", as: Int32.self) && record.canRead("webfileDcId", as: Int32.self) && record.canRead("suggestedLangCode", as: String?.self) && record.canRead("langPackVersion", as: Int32?.self) && record.canRead("baseLangPackVersion", as: Int32?.self) && record.canRead("reactionsDefault", as: Api.Reaction?.self) && record.canRead("autologinToken", as: String?.self)):
                 self = .config(Cons_config(record: record))
             default: self = .other(record)
             }
@@ -732,7 +732,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "dialog" where record.canRead("flags", as: Int32.self) && record.canRead("peer", as: Api.Peer.self) && record.canRead("topMessage", as: Int32.self) && record.canRead("readInboxMaxId", as: Int32.self) && record.canRead("readOutboxMaxId", as: Int32.self) && record.canRead("unreadCount", as: Int32.self) && record.canRead("unreadMentionsCount", as: Int32.self) && record.canRead("unreadReactionsCount", as: Int32.self) && record.canRead("unreadPollVotesCount", as: Int32.self) && record.canRead("notifySettings", as: Api.PeerNotifySettings.self) && record.canRead("pts", as: Int32?.self) && record.canRead("draft", as: TLRecord?.self) && record.canRead("folderId", as: Int32?.self) && record.canRead("ttlPeriod", as: Int32?.self):
+            case "dialog" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("peer", as: Api.Peer.self) && record.canRead("topMessage", as: Int32.self) && record.canRead("readInboxMaxId", as: Int32.self) && record.canRead("readOutboxMaxId", as: Int32.self) && record.canRead("unreadCount", as: Int32.self) && record.canRead("unreadMentionsCount", as: Int32.self) && record.canRead("unreadReactionsCount", as: Int32.self) && record.canRead("unreadPollVotesCount", as: Int32.self) && record.canRead("notifySettings", as: Api.PeerNotifySettings.self) && record.canRead("pts", as: Int32?.self) && record.canRead("draft", as: TLRecord?.self) && record.canRead("folderId", as: Int32?.self) && record.canRead("ttlPeriod", as: Int32?.self)):
                 self = .dialog(Cons_dialog(record: record))
             default: self = .other(record)
             }
@@ -827,9 +827,9 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "document" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self) && record.canRead("date", as: Int32.self) && record.canRead("mimeType", as: String.self) && record.canRead("size", as: Int64.self) && record.canRead("thumbs", as: [Api.PhotoSize]?.self) && record.canRead("videoThumbs", as: [TLRecord]?.self) && record.canRead("dcId", as: Int32.self) && record.canRead("attributes", as: [Api.DocumentAttribute].self):
+            case "document" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self) && record.canRead("date", as: Int32.self) && record.canRead("mimeType", as: String.self) && record.canRead("size", as: Int64.self) && record.canRead("thumbs", as: [Api.PhotoSize]?.self) && record.canRead("videoThumbs", as: [TLRecord]?.self) && record.canRead("dcId", as: Int32.self) && record.canRead("attributes", as: [Api.DocumentAttribute].self)):
                 self = .document(Cons_document(record: record))
-            case "documentEmpty" where record.canRead("id", as: Int64.self):
+            case "documentEmpty" where record.hasCompatibleView || (record.canRead("id", as: Int64.self)):
                 self = .documentEmpty(Cons_documentEmpty(record: record))
             default: self = .other(record)
             }
@@ -944,13 +944,13 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "documentAttributeAudio" where record.canRead("flags", as: Int32.self) && record.canRead("duration", as: Int32.self) && record.canRead("title", as: String?.self) && record.canRead("performer", as: String?.self) && record.canRead("waveform", as: Buffer?.self):
+            case "documentAttributeAudio" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("duration", as: Int32.self) && record.canRead("title", as: String?.self) && record.canRead("performer", as: String?.self) && record.canRead("waveform", as: Buffer?.self)):
                 self = .documentAttributeAudio(Cons_documentAttributeAudio(record: record))
-            case "documentAttributeCustomEmoji" where record.canRead("flags", as: Int32.self) && record.canRead("alt", as: String.self) && record.canRead("stickerset", as: TLRecord.self):
+            case "documentAttributeCustomEmoji" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("alt", as: String.self) && record.canRead("stickerset", as: TLRecord.self)):
                 self = .documentAttributeCustomEmoji(Cons_documentAttributeCustomEmoji(record: record))
-            case "documentAttributeFilename" where record.canRead("fileName", as: String.self):
+            case "documentAttributeFilename" where record.hasCompatibleView || (record.canRead("fileName", as: String.self)):
                 self = .documentAttributeFilename(Cons_documentAttributeFilename(record: record))
-            case "documentAttributeSticker" where record.canRead("flags", as: Int32.self) && record.canRead("alt", as: String.self) && record.canRead("stickerset", as: TLRecord.self) && record.canRead("maskCoords", as: TLRecord?.self):
+            case "documentAttributeSticker" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("alt", as: String.self) && record.canRead("stickerset", as: TLRecord.self) && record.canRead("maskCoords", as: TLRecord?.self)):
                 self = .documentAttributeSticker(Cons_documentAttributeSticker(record: record))
             default: self = .other(record)
             }
@@ -1074,7 +1074,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "ephemeralMessage" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("fromId", as: Api.Peer.self) && record.canRead("peerId", as: Api.Peer?.self) && record.canRead("receiverId", as: Int64.self) && record.canRead("topMsgId", as: Int32?.self) && record.canRead("date", as: Int32.self) && record.canRead("message", as: String.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("media", as: Api.MessageMedia?.self) && record.canRead("replyMarkup", as: TLRecord?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("richMessage", as: Api.RichMessage?.self) && record.canRead("chatInstance", as: Int64?.self) && record.canRead("anchorMsgId", as: Int32?.self):
+            case "ephemeralMessage" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("fromId", as: Api.Peer.self) && record.canRead("peerId", as: Api.Peer?.self) && record.canRead("receiverId", as: Int64.self) && record.canRead("topMsgId", as: Int32?.self) && record.canRead("date", as: Int32.self) && record.canRead("message", as: String.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("media", as: Api.MessageMedia?.self) && record.canRead("replyMarkup", as: TLRecord?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("richMessage", as: Api.RichMessage?.self) && record.canRead("chatInstance", as: Int64?.self) && record.canRead("anchorMsgId", as: Int32?.self)):
                 self = .ephemeralMessage(Cons_ephemeralMessage(record: record))
             default: self = .other(record)
             }
@@ -1152,9 +1152,9 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputChannel" where record.canRead("channelId", as: Int64.self) && record.canRead("accessHash", as: Int64.self):
+            case "inputChannel" where record.hasCompatibleView || (record.canRead("channelId", as: Int64.self) && record.canRead("accessHash", as: Int64.self)):
                 self = .inputChannel(Cons_inputChannel(record: record))
-            case "inputChannelFromMessage" where record.canRead("peer", as: Api.InputPeer.self) && record.canRead("msgId", as: Int32.self) && record.canRead("channelId", as: Int64.self):
+            case "inputChannelFromMessage" where record.hasCompatibleView || (record.canRead("peer", as: Api.InputPeer.self) && record.canRead("msgId", as: Int32.self) && record.canRead("channelId", as: Int64.self)):
                 self = .inputChannelFromMessage(Cons_inputChannelFromMessage(record: record))
             default: self = .other(record)
             }
@@ -1198,7 +1198,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputDocument" where record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self):
+            case "inputDocument" where record.hasCompatibleView || (record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self)):
                 self = .inputDocument(Cons_inputDocument(record: record))
             default: self = .other(record)
             }
@@ -1268,9 +1268,9 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputFile" where record.canRead("id", as: Int64.self) && record.canRead("parts", as: Int32.self) && record.canRead("name", as: String.self) && record.canRead("md5Checksum", as: String.self):
+            case "inputFile" where record.hasCompatibleView || (record.canRead("id", as: Int64.self) && record.canRead("parts", as: Int32.self) && record.canRead("name", as: String.self) && record.canRead("md5Checksum", as: String.self)):
                 self = .inputFile(Cons_inputFile(record: record))
-            case "inputFileBig" where record.canRead("id", as: Int64.self) && record.canRead("parts", as: Int32.self) && record.canRead("name", as: String.self):
+            case "inputFileBig" where record.hasCompatibleView || (record.canRead("id", as: Int64.self) && record.canRead("parts", as: Int32.self) && record.canRead("name", as: String.self)):
                 self = .inputFileBig(Cons_inputFileBig(record: record))
             default: self = .other(record)
             }
@@ -1346,9 +1346,9 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputDocumentFileLocation" where record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self) && record.canRead("thumbSize", as: String.self):
+            case "inputDocumentFileLocation" where record.hasCompatibleView || (record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self) && record.canRead("thumbSize", as: String.self)):
                 self = .inputDocumentFileLocation(Cons_inputDocumentFileLocation(record: record))
-            case "inputPhotoFileLocation" where record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self) && record.canRead("thumbSize", as: String.self):
+            case "inputPhotoFileLocation" where record.hasCompatibleView || (record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self) && record.canRead("thumbSize", as: String.self)):
                 self = .inputPhotoFileLocation(Cons_inputPhotoFileLocation(record: record))
             default: self = .other(record)
             }
@@ -1518,13 +1518,13 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputMediaDocument" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Api.InputDocument.self) && record.canRead("videoCover", as: Api.InputPhoto?.self) && record.canRead("videoTimestamp", as: Int32?.self) && record.canRead("ttlSeconds", as: Int32?.self) && record.canRead("query", as: String?.self):
+            case "inputMediaDocument" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Api.InputDocument.self) && record.canRead("videoCover", as: Api.InputPhoto?.self) && record.canRead("videoTimestamp", as: Int32?.self) && record.canRead("ttlSeconds", as: Int32?.self) && record.canRead("query", as: String?.self)):
                 self = .inputMediaDocument(Cons_inputMediaDocument(record: record))
-            case "inputMediaPhoto" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Api.InputPhoto.self) && record.canRead("ttlSeconds", as: Int32?.self) && record.canRead("video", as: Api.InputDocument?.self):
+            case "inputMediaPhoto" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Api.InputPhoto.self) && record.canRead("ttlSeconds", as: Int32?.self) && record.canRead("video", as: Api.InputDocument?.self)):
                 self = .inputMediaPhoto(Cons_inputMediaPhoto(record: record))
-            case "inputMediaUploadedDocument" where record.canRead("flags", as: Int32.self) && record.canRead("file", as: Api.InputFile.self) && record.canRead("thumb", as: Api.InputFile?.self) && record.canRead("mimeType", as: String.self) && record.canRead("attributes", as: [Api.DocumentAttribute].self) && record.canRead("stickers", as: [Api.InputDocument]?.self) && record.canRead("videoCover", as: Api.InputPhoto?.self) && record.canRead("videoTimestamp", as: Int32?.self) && record.canRead("ttlSeconds", as: Int32?.self):
+            case "inputMediaUploadedDocument" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("file", as: Api.InputFile.self) && record.canRead("thumb", as: Api.InputFile?.self) && record.canRead("mimeType", as: String.self) && record.canRead("attributes", as: [Api.DocumentAttribute].self) && record.canRead("stickers", as: [Api.InputDocument]?.self) && record.canRead("videoCover", as: Api.InputPhoto?.self) && record.canRead("videoTimestamp", as: Int32?.self) && record.canRead("ttlSeconds", as: Int32?.self)):
                 self = .inputMediaUploadedDocument(Cons_inputMediaUploadedDocument(record: record))
-            case "inputMediaUploadedPhoto" where record.canRead("flags", as: Int32.self) && record.canRead("file", as: Api.InputFile.self) && record.canRead("stickers", as: [Api.InputDocument]?.self) && record.canRead("ttlSeconds", as: Int32?.self) && record.canRead("video", as: Api.InputDocument?.self):
+            case "inputMediaUploadedPhoto" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("file", as: Api.InputFile.self) && record.canRead("stickers", as: [Api.InputDocument]?.self) && record.canRead("ttlSeconds", as: Int32?.self) && record.canRead("video", as: Api.InputDocument?.self)):
                 self = .inputMediaUploadedPhoto(Cons_inputMediaUploadedPhoto(record: record))
             default: self = .other(record)
             }
@@ -1560,7 +1560,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputMessageID" where record.canRead("id", as: Int32.self):
+            case "inputMessageID" where record.hasCompatibleView || (record.canRead("id", as: Int32.self)):
                 self = .inputMessageID(Cons_inputMessageID(record: record))
             default: self = .other(record)
             }
@@ -1628,12 +1628,12 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputPeerChannel" where record.canRead("channelId", as: Int64.self) && record.canRead("accessHash", as: Int64.self):
+            case "inputPeerChannel" where record.hasCompatibleView || (record.canRead("channelId", as: Int64.self) && record.canRead("accessHash", as: Int64.self)):
                 self = .inputPeerChannel(Cons_inputPeerChannel(record: record))
-            case "inputPeerChat" where record.canRead("chatId", as: Int64.self):
+            case "inputPeerChat" where record.hasCompatibleView || (record.canRead("chatId", as: Int64.self)):
                 self = .inputPeerChat(Cons_inputPeerChat(record: record))
             case "inputPeerSelf" where record.descriptor?.fields.isEmpty == true: self = .inputPeerSelf
-            case "inputPeerUser" where record.canRead("userId", as: Int64.self) && record.canRead("accessHash", as: Int64.self):
+            case "inputPeerUser" where record.hasCompatibleView || (record.canRead("userId", as: Int64.self) && record.canRead("accessHash", as: Int64.self)):
                 self = .inputPeerUser(Cons_inputPeerUser(record: record))
             default: self = .other(record)
             }
@@ -1679,7 +1679,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputPhoto" where record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self):
+            case "inputPhoto" where record.hasCompatibleView || (record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self)):
                 self = .inputPhoto(Cons_inputPhoto(record: record))
             default: self = .other(record)
             }
@@ -1762,7 +1762,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputReplyToMessage" where record.canRead("flags", as: Int32.self) && record.canRead("replyToMsgId", as: Int32.self) && record.canRead("topMsgId", as: Int32?.self) && record.canRead("replyToPeerId", as: Api.InputPeer?.self) && record.canRead("quoteText", as: String?.self) && record.canRead("quoteEntities", as: [Api.MessageEntity]?.self) && record.canRead("quoteOffset", as: Int32?.self) && record.canRead("monoforumPeerId", as: Api.InputPeer?.self) && record.canRead("todoItemId", as: Int32?.self) && record.canRead("pollOption", as: Buffer?.self) && record.canRead("quoteRich", as: [Api.RichText]?.self):
+            case "inputReplyToMessage" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("replyToMsgId", as: Int32.self) && record.canRead("topMsgId", as: Int32?.self) && record.canRead("replyToPeerId", as: Api.InputPeer?.self) && record.canRead("quoteText", as: String?.self) && record.canRead("quoteEntities", as: [Api.MessageEntity]?.self) && record.canRead("quoteOffset", as: Int32?.self) && record.canRead("monoforumPeerId", as: Api.InputPeer?.self) && record.canRead("todoItemId", as: Int32?.self) && record.canRead("pollOption", as: Buffer?.self) && record.canRead("quoteRich", as: [Api.RichText]?.self)):
                 self = .inputReplyToMessage(Cons_inputReplyToMessage(record: record))
             default: self = .other(record)
             }
@@ -1815,7 +1815,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputSingleMedia" where record.canRead("flags", as: Int32.self) && record.canRead("media", as: Api.InputMedia.self) && record.canRead("randomId", as: Int64.self) && record.canRead("message", as: String.self) && record.canRead("entities", as: [Api.MessageEntity]?.self):
+            case "inputSingleMedia" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("media", as: Api.InputMedia.self) && record.canRead("randomId", as: Int64.self) && record.canRead("message", as: String.self) && record.canRead("entities", as: [Api.MessageEntity]?.self)):
                 self = .inputSingleMedia(Cons_inputSingleMedia(record: record))
             default: self = .other(record)
             }
@@ -1876,9 +1876,9 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputUser" where record.canRead("userId", as: Int64.self) && record.canRead("accessHash", as: Int64.self):
+            case "inputUser" where record.hasCompatibleView || (record.canRead("userId", as: Int64.self) && record.canRead("accessHash", as: Int64.self)):
                 self = .inputUser(Cons_inputUser(record: record))
-            case "inputUserFromMessage" where record.canRead("peer", as: Api.InputPeer.self) && record.canRead("msgId", as: Int32.self) && record.canRead("userId", as: Int64.self):
+            case "inputUserFromMessage" where record.hasCompatibleView || (record.canRead("peer", as: Api.InputPeer.self) && record.canRead("msgId", as: Int32.self) && record.canRead("userId", as: Int64.self)):
                 self = .inputUserFromMessage(Cons_inputUserFromMessage(record: record))
             case "inputUserSelf" where record.descriptor?.fields.isEmpty == true: self = .inputUserSelf
             default: self = .other(record)
@@ -1919,7 +1919,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "jsonObjectValue" where record.canRead("key", as: String.self) && record.canRead("value", as: Api.JSONValue.self):
+            case "jsonObjectValue" where record.hasCompatibleView || (record.canRead("key", as: String.self) && record.canRead("value", as: Api.JSONValue.self)):
                 self = .jsonObjectValue(Cons_jsonObjectValue(record: record))
             default: self = .other(record)
             }
@@ -2000,15 +2000,15 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "jsonArray" where record.canRead("value", as: [Api.JSONValue].self):
+            case "jsonArray" where record.hasCompatibleView || (record.canRead("value", as: [Api.JSONValue].self)):
                 self = .jsonArray(Cons_jsonArray(record: record))
-            case "jsonBool" where record.canRead("value", as: Api.Bool.self):
+            case "jsonBool" where record.hasCompatibleView || (record.canRead("value", as: Api.Bool.self)):
                 self = .jsonBool(Cons_jsonBool(record: record))
-            case "jsonNumber" where record.canRead("value", as: Double.self):
+            case "jsonNumber" where record.hasCompatibleView || (record.canRead("value", as: Double.self)):
                 self = .jsonNumber(Cons_jsonNumber(record: record))
-            case "jsonObject" where record.canRead("value", as: [Api.JSONObjectValue].self):
+            case "jsonObject" where record.hasCompatibleView || (record.canRead("value", as: [Api.JSONObjectValue].self)):
                 self = .jsonObject(Cons_jsonObject(record: record))
-            case "jsonString" where record.canRead("value", as: String.self):
+            case "jsonString" where record.hasCompatibleView || (record.canRead("value", as: String.self)):
                 self = .jsonString(Cons_jsonString(record: record))
             default: self = .other(record)
             }
@@ -2299,11 +2299,11 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "message" where record.canRead("flags", as: Int32.self) && record.canRead("flags2", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("fromId", as: Api.Peer?.self) && record.canRead("fromBoostsApplied", as: Int32?.self) && record.canRead("fromRank", as: String?.self) && record.canRead("peerId", as: Api.Peer.self) && record.canRead("savedPeerId", as: Api.Peer?.self) && record.canRead("fwdFrom", as: TLRecord?.self) && record.canRead("viaBotId", as: Int64?.self) && record.canRead("viaBusinessBotId", as: Int64?.self) && record.canRead("guestchatViaFrom", as: Api.Peer?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("date", as: Int32.self) && record.canRead("message", as: String.self) && record.canRead("media", as: Api.MessageMedia?.self) && record.canRead("replyMarkup", as: TLRecord?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("views", as: Int32?.self) && record.canRead("forwards", as: Int32?.self) && record.canRead("replies", as: TLRecord?.self) && record.canRead("editDate", as: Int32?.self) && record.canRead("postAuthor", as: String?.self) && record.canRead("groupedId", as: Int64?.self) && record.canRead("reactions", as: Api.MessageReactions?.self) && record.canRead("restrictionReason", as: [Api.RestrictionReason]?.self) && record.canRead("ttlPeriod", as: Int32?.self) && record.canRead("quickReplyShortcutId", as: Int32?.self) && record.canRead("effect", as: Int64?.self) && record.canRead("factcheck", as: TLRecord?.self) && record.canRead("reportDeliveryUntilDate", as: Int32?.self) && record.canRead("paidMessageStars", as: Int64?.self) && record.canRead("suggestedPost", as: TLRecord?.self) && record.canRead("scheduleRepeatPeriod", as: Int32?.self) && record.canRead("summaryFromLanguage", as: String?.self) && record.canRead("richMessage", as: Api.RichMessage?.self):
+            case "message" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("flags2", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("fromId", as: Api.Peer?.self) && record.canRead("fromBoostsApplied", as: Int32?.self) && record.canRead("fromRank", as: String?.self) && record.canRead("peerId", as: Api.Peer.self) && record.canRead("savedPeerId", as: Api.Peer?.self) && record.canRead("fwdFrom", as: TLRecord?.self) && record.canRead("viaBotId", as: Int64?.self) && record.canRead("viaBusinessBotId", as: Int64?.self) && record.canRead("guestchatViaFrom", as: Api.Peer?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("date", as: Int32.self) && record.canRead("message", as: String.self) && record.canRead("media", as: Api.MessageMedia?.self) && record.canRead("replyMarkup", as: TLRecord?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("views", as: Int32?.self) && record.canRead("forwards", as: Int32?.self) && record.canRead("replies", as: TLRecord?.self) && record.canRead("editDate", as: Int32?.self) && record.canRead("postAuthor", as: String?.self) && record.canRead("groupedId", as: Int64?.self) && record.canRead("reactions", as: Api.MessageReactions?.self) && record.canRead("restrictionReason", as: [Api.RestrictionReason]?.self) && record.canRead("ttlPeriod", as: Int32?.self) && record.canRead("quickReplyShortcutId", as: Int32?.self) && record.canRead("effect", as: Int64?.self) && record.canRead("factcheck", as: TLRecord?.self) && record.canRead("reportDeliveryUntilDate", as: Int32?.self) && record.canRead("paidMessageStars", as: Int64?.self) && record.canRead("suggestedPost", as: TLRecord?.self) && record.canRead("scheduleRepeatPeriod", as: Int32?.self) && record.canRead("summaryFromLanguage", as: String?.self) && record.canRead("richMessage", as: Api.RichMessage?.self)):
                 self = .message(Cons_message(record: record))
-            case "messageEmpty" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("peerId", as: Api.Peer?.self):
+            case "messageEmpty" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("peerId", as: Api.Peer?.self)):
                 self = .messageEmpty(Cons_messageEmpty(record: record))
-            case "messageService" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("fromId", as: Api.Peer?.self) && record.canRead("peerId", as: Api.Peer.self) && record.canRead("savedPeerId", as: Api.Peer?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("date", as: Int32.self) && record.canRead("action", as: Api.MessageAction.self) && record.canRead("reactions", as: Api.MessageReactions?.self) && record.canRead("ttlPeriod", as: Int32?.self):
+            case "messageService" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("fromId", as: Api.Peer?.self) && record.canRead("peerId", as: Api.Peer.self) && record.canRead("savedPeerId", as: Api.Peer?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("date", as: Int32.self) && record.canRead("action", as: Api.MessageAction.self) && record.canRead("reactions", as: Api.MessageReactions?.self) && record.canRead("ttlPeriod", as: Int32?.self)):
                 self = .messageService(Cons_messageService(record: record))
             default: self = .other(record)
             }
@@ -2700,43 +2700,43 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "inputMessageEntityMentionName" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("userId", as: Api.InputUser.self):
+            case "inputMessageEntityMentionName" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("userId", as: Api.InputUser.self)):
                 self = .inputMessageEntityMentionName(Cons_inputMessageEntityMentionName(record: record))
-            case "messageEntityBankCard" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityBankCard" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityBankCard(Cons_messageEntityBankCard(record: record))
-            case "messageEntityBlockquote" where record.canRead("flags", as: Int32.self) && record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityBlockquote" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityBlockquote(Cons_messageEntityBlockquote(record: record))
-            case "messageEntityBold" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityBold" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityBold(Cons_messageEntityBold(record: record))
-            case "messageEntityBotCommand" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityBotCommand" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityBotCommand(Cons_messageEntityBotCommand(record: record))
-            case "messageEntityCode" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityCode" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityCode(Cons_messageEntityCode(record: record))
-            case "messageEntityCustomEmoji" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("documentId", as: Int64.self):
+            case "messageEntityCustomEmoji" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("documentId", as: Int64.self)):
                 self = .messageEntityCustomEmoji(Cons_messageEntityCustomEmoji(record: record))
-            case "messageEntityEmail" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityEmail" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityEmail(Cons_messageEntityEmail(record: record))
-            case "messageEntityHashtag" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityHashtag" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityHashtag(Cons_messageEntityHashtag(record: record))
-            case "messageEntityItalic" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityItalic" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityItalic(Cons_messageEntityItalic(record: record))
-            case "messageEntityMention" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityMention" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityMention(Cons_messageEntityMention(record: record))
-            case "messageEntityMentionName" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("userId", as: Int64.self):
+            case "messageEntityMentionName" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("userId", as: Int64.self)):
                 self = .messageEntityMentionName(Cons_messageEntityMentionName(record: record))
-            case "messageEntityPhone" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityPhone" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityPhone(Cons_messageEntityPhone(record: record))
-            case "messageEntityPre" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("language", as: String.self):
+            case "messageEntityPre" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("language", as: String.self)):
                 self = .messageEntityPre(Cons_messageEntityPre(record: record))
-            case "messageEntitySpoiler" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntitySpoiler" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntitySpoiler(Cons_messageEntitySpoiler(record: record))
-            case "messageEntityStrike" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityStrike" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityStrike(Cons_messageEntityStrike(record: record))
-            case "messageEntityTextUrl" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("url", as: String.self):
+            case "messageEntityTextUrl" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self) && record.canRead("url", as: String.self)):
                 self = .messageEntityTextUrl(Cons_messageEntityTextUrl(record: record))
-            case "messageEntityUnderline" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityUnderline" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityUnderline(Cons_messageEntityUnderline(record: record))
-            case "messageEntityUrl" where record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self):
+            case "messageEntityUrl" where record.hasCompatibleView || (record.canRead("offset", as: Int32.self) && record.canRead("length", as: Int32.self)):
                 self = .messageEntityUrl(Cons_messageEntityUrl(record: record))
             default: self = .other(record)
             }
@@ -2975,20 +2975,20 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "messageMediaContact" where record.canRead("phoneNumber", as: String.self) && record.canRead("firstName", as: String.self) && record.canRead("lastName", as: String.self) && record.canRead("vcard", as: String.self) && record.canRead("userId", as: Int64.self):
+            case "messageMediaContact" where record.hasCompatibleView || (record.canRead("phoneNumber", as: String.self) && record.canRead("firstName", as: String.self) && record.canRead("lastName", as: String.self) && record.canRead("vcard", as: String.self) && record.canRead("userId", as: Int64.self)):
                 self = .messageMediaContact(Cons_messageMediaContact(record: record))
-            case "messageMediaDice" where record.canRead("flags", as: Int32.self) && record.canRead("value", as: Int32.self) && record.canRead("emoticon", as: String.self) && record.canRead("gameOutcome", as: TLRecord?.self):
+            case "messageMediaDice" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("value", as: Int32.self) && record.canRead("emoticon", as: String.self) && record.canRead("gameOutcome", as: TLRecord?.self)):
                 self = .messageMediaDice(Cons_messageMediaDice(record: record))
-            case "messageMediaDocument" where record.canRead("flags", as: Int32.self) && record.canRead("document", as: Api.Document?.self) && record.canRead("altDocuments", as: [Api.Document]?.self) && record.canRead("videoCover", as: Api.Photo?.self) && record.canRead("videoTimestamp", as: Int32?.self) && record.canRead("ttlSeconds", as: Int32?.self):
+            case "messageMediaDocument" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("document", as: Api.Document?.self) && record.canRead("altDocuments", as: [Api.Document]?.self) && record.canRead("videoCover", as: Api.Photo?.self) && record.canRead("videoTimestamp", as: Int32?.self) && record.canRead("ttlSeconds", as: Int32?.self)):
                 self = .messageMediaDocument(Cons_messageMediaDocument(record: record))
             case "messageMediaEmpty" where record.descriptor?.fields.isEmpty == true: self = .messageMediaEmpty
-            case "messageMediaGeoLive" where record.canRead("flags", as: Int32.self) && record.canRead("geo", as: TLRecord.self) && record.canRead("heading", as: Int32?.self) && record.canRead("period", as: Int32.self) && record.canRead("proximityNotificationRadius", as: Int32?.self):
+            case "messageMediaGeoLive" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("geo", as: TLRecord.self) && record.canRead("heading", as: Int32?.self) && record.canRead("period", as: Int32.self) && record.canRead("proximityNotificationRadius", as: Int32?.self)):
                 self = .messageMediaGeoLive(Cons_messageMediaGeoLive(record: record))
-            case "messageMediaPhoto" where record.canRead("flags", as: Int32.self) && record.canRead("photo", as: Api.Photo?.self) && record.canRead("ttlSeconds", as: Int32?.self) && record.canRead("video", as: Api.Document?.self):
+            case "messageMediaPhoto" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("photo", as: Api.Photo?.self) && record.canRead("ttlSeconds", as: Int32?.self) && record.canRead("video", as: Api.Document?.self)):
                 self = .messageMediaPhoto(Cons_messageMediaPhoto(record: record))
-            case "messageMediaPoll" where record.canRead("flags", as: Int32.self) && record.canRead("poll", as: TLRecord.self) && record.canRead("results", as: TLRecord.self) && record.canRead("attachedMedia", as: Api.MessageMedia?.self):
+            case "messageMediaPoll" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("poll", as: TLRecord.self) && record.canRead("results", as: TLRecord.self) && record.canRead("attachedMedia", as: Api.MessageMedia?.self)):
                 self = .messageMediaPoll(Cons_messageMediaPoll(record: record))
-            case "messageMediaWebPage" where record.canRead("flags", as: Int32.self) && record.canRead("webpage", as: TLRecord.self):
+            case "messageMediaWebPage" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("webpage", as: TLRecord.self)):
                 self = .messageMediaWebPage(Cons_messageMediaWebPage(record: record))
             default: self = .other(record)
             }
@@ -3043,7 +3043,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "messagePeerReaction" where record.canRead("flags", as: Int32.self) && record.canRead("peerId", as: Api.Peer.self) && record.canRead("date", as: Int32.self) && record.canRead("reaction", as: Api.Reaction.self):
+            case "messagePeerReaction" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("peerId", as: Api.Peer.self) && record.canRead("date", as: Int32.self) && record.canRead("reaction", as: Api.Reaction.self)):
                 self = .messagePeerReaction(Cons_messagePeerReaction(record: record))
             default: self = .other(record)
             }
@@ -3091,7 +3091,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "messageReactions" where record.canRead("flags", as: Int32.self) && record.canRead("results", as: [TLRecord].self) && record.canRead("recentReactions", as: [Api.MessagePeerReaction]?.self) && record.canRead("topReactors", as: [TLRecord]?.self):
+            case "messageReactions" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("results", as: [TLRecord].self) && record.canRead("recentReactions", as: [Api.MessagePeerReaction]?.self) && record.canRead("topReactors", as: [TLRecord]?.self)):
                 self = .messageReactions(Cons_messageReactions(record: record))
             default: self = .other(record)
             }
@@ -3108,85 +3108,15 @@ public extension Api {
 public extension Api {
     enum MessageReplyHeader: TLObjectView {
         public static let tlTypeName = "MessageReplyHeader"
-        public final class Cons_messageReplyHeader: TLPayload {
-            public var `flags`: Int32 {
-                get { record.value("flags") }
-                set { record.set("flags", newValue) }
-            }
-            public var `replyToMsgId`: Int32? {
-                get { record.value("replyToMsgId") }
-                set { record.set("replyToMsgId", newValue) }
-            }
-            public var `replyToPeerId`: Api.Peer? {
-                get { record.value("replyToPeerId") }
-                set { record.set("replyToPeerId", newValue) }
-            }
-            public var `replyFrom`: TLRecord? {
-                get { record.value("replyFrom") }
-                set { record.set("replyFrom", newValue) }
-            }
-            public var `replyMedia`: Api.MessageMedia? {
-                get { record.value("replyMedia") }
-                set { record.set("replyMedia", newValue) }
-            }
-            public var `replyToTopId`: Int32? {
-                get { record.value("replyToTopId") }
-                set { record.set("replyToTopId", newValue) }
-            }
-            public var `quoteText`: String? {
-                get { record.value("quoteText") }
-                set { record.set("quoteText", newValue) }
-            }
-            public var `quoteEntities`: [Api.MessageEntity]? {
-                get { record.value("quoteEntities") }
-                set { record.set("quoteEntities", newValue) }
-            }
-            public var `quoteOffset`: Int32? {
-                get { record.value("quoteOffset") }
-                set { record.set("quoteOffset", newValue) }
-            }
-            public var `todoItemId`: Int32? {
-                get { record.value("todoItemId") }
-                set { record.set("todoItemId", newValue) }
-            }
-            public var `pollOption`: Buffer? {
-                get { record.value("pollOption") }
-                set { record.set("pollOption", newValue) }
-            }
-            public var `quoteRich`: [Api.RichText]? {
-                get { record.value("quoteRich") }
-                set { record.set("quoteRich", newValue) }
-            }
-            public init(`flags`: Int32, `replyToMsgId`: Int32?, `replyToPeerId`: Api.Peer?, `replyFrom`: TLRecord?, `replyMedia`: Api.MessageMedia?, `replyToTopId`: Int32?, `quoteText`: String?, `quoteEntities`: [Api.MessageEntity]?, `quoteOffset`: Int32?, `todoItemId`: Int32?, `pollOption`: Buffer?, `quoteRich`: [Api.RichText]?) {
-                super.init(type: "MessageReplyHeader", constructor: "messageReplyHeader")
-                record.set("flags", `flags`)
-                record.set("replyToMsgId", `replyToMsgId`)
-                record.set("replyToPeerId", `replyToPeerId`)
-                record.set("replyFrom", `replyFrom`)
-                record.set("replyMedia", `replyMedia`)
-                record.set("replyToTopId", `replyToTopId`)
-                record.set("quoteText", `quoteText`)
-                record.set("quoteEntities", `quoteEntities`)
-                record.set("quoteOffset", `quoteOffset`)
-                record.set("todoItemId", `todoItemId`)
-                record.set("pollOption", `pollOption`)
-                record.set("quoteRich", `quoteRich`)
-            }
-            public override init(record: TLRecord) { super.init(record: record) }
-        }
-        case messageReplyHeader(Cons_messageReplyHeader)
         case other(TLRecord)
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "messageReplyHeader" where record.canRead("flags", as: Int32.self) && record.canRead("replyToMsgId", as: Int32?.self) && record.canRead("replyToPeerId", as: Api.Peer?.self) && record.canRead("replyFrom", as: TLRecord?.self) && record.canRead("replyMedia", as: Api.MessageMedia?.self) && record.canRead("replyToTopId", as: Int32?.self) && record.canRead("quoteText", as: String?.self) && record.canRead("quoteEntities", as: [Api.MessageEntity]?.self) && record.canRead("quoteOffset", as: Int32?.self) && record.canRead("todoItemId", as: Int32?.self) && record.canRead("pollOption", as: Buffer?.self) && record.canRead("quoteRich", as: [Api.RichText]?.self):
-                self = .messageReplyHeader(Cons_messageReplyHeader(record: record))
             default: self = .other(record)
             }
         }
         public var record: TLRecord {
             switch self {
-            case let .messageReplyHeader(value): return value.record
             case let .other(record): return record
             }
         }
@@ -3212,7 +3142,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "pageBlockParagraph" where record.canRead("text", as: Api.RichText.self):
+            case "pageBlockParagraph" where record.hasCompatibleView || (record.canRead("text", as: Api.RichText.self)):
                 self = .pageBlockParagraph(Cons_pageBlockParagraph(record: record))
             default: self = .other(record)
             }
@@ -3269,11 +3199,11 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "peerChannel" where record.canRead("channelId", as: Int64.self):
+            case "peerChannel" where record.hasCompatibleView || (record.canRead("channelId", as: Int64.self)):
                 self = .peerChannel(Cons_peerChannel(record: record))
-            case "peerChat" where record.canRead("chatId", as: Int64.self):
+            case "peerChat" where record.hasCompatibleView || (record.canRead("chatId", as: Int64.self)):
                 self = .peerChat(Cons_peerChat(record: record))
-            case "peerUser" where record.canRead("userId", as: Int64.self):
+            case "peerUser" where record.hasCompatibleView || (record.canRead("userId", as: Int64.self)):
                 self = .peerUser(Cons_peerUser(record: record))
             default: self = .other(record)
             }
@@ -3363,7 +3293,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "peerNotifySettings" where record.canRead("flags", as: Int32.self) && record.canRead("showPreviews", as: Api.Bool?.self) && record.canRead("silent", as: Api.Bool?.self) && record.canRead("muteUntil", as: Int32?.self) && record.canRead("iosSound", as: TLRecord?.self) && record.canRead("androidSound", as: TLRecord?.self) && record.canRead("otherSound", as: TLRecord?.self) && record.canRead("storiesMuted", as: Api.Bool?.self) && record.canRead("storiesHideSender", as: Api.Bool?.self) && record.canRead("storiesIosSound", as: TLRecord?.self) && record.canRead("storiesAndroidSound", as: TLRecord?.self) && record.canRead("storiesOtherSound", as: TLRecord?.self):
+            case "peerNotifySettings" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("showPreviews", as: Api.Bool?.self) && record.canRead("silent", as: Api.Bool?.self) && record.canRead("muteUntil", as: Int32?.self) && record.canRead("iosSound", as: TLRecord?.self) && record.canRead("androidSound", as: TLRecord?.self) && record.canRead("otherSound", as: TLRecord?.self) && record.canRead("storiesMuted", as: Api.Bool?.self) && record.canRead("storiesHideSender", as: Api.Bool?.self) && record.canRead("storiesIosSound", as: TLRecord?.self) && record.canRead("storiesAndroidSound", as: TLRecord?.self) && record.canRead("storiesOtherSound", as: TLRecord?.self)):
                 self = .peerNotifySettings(Cons_peerNotifySettings(record: record))
             default: self = .other(record)
             }
@@ -3446,7 +3376,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "peerSettings" where record.canRead("flags", as: Int32.self) && record.canRead("geoDistance", as: Int32?.self) && record.canRead("requestChatTitle", as: String?.self) && record.canRead("requestChatDate", as: Int32?.self) && record.canRead("businessBotId", as: Int64?.self) && record.canRead("businessBotManageUrl", as: String?.self) && record.canRead("chargePaidMessageStars", as: Int64?.self) && record.canRead("registrationMonth", as: String?.self) && record.canRead("phoneCountry", as: String?.self) && record.canRead("nameChangeDate", as: Int32?.self) && record.canRead("photoChangeDate", as: Int32?.self):
+            case "peerSettings" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("geoDistance", as: Int32?.self) && record.canRead("requestChatTitle", as: String?.self) && record.canRead("requestChatDate", as: Int32?.self) && record.canRead("businessBotId", as: Int64?.self) && record.canRead("businessBotManageUrl", as: String?.self) && record.canRead("chargePaidMessageStars", as: Int64?.self) && record.canRead("registrationMonth", as: String?.self) && record.canRead("phoneCountry", as: String?.self) && record.canRead("nameChangeDate", as: Int32?.self) && record.canRead("photoChangeDate", as: Int32?.self)):
                 self = .peerSettings(Cons_peerSettings(record: record))
             default: self = .other(record)
             }
@@ -3526,9 +3456,9 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "photo" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self) && record.canRead("date", as: Int32.self) && record.canRead("sizes", as: [Api.PhotoSize].self) && record.canRead("videoSizes", as: [TLRecord]?.self) && record.canRead("dcId", as: Int32.self):
+            case "photo" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64.self) && record.canRead("fileReference", as: Buffer.self) && record.canRead("date", as: Int32.self) && record.canRead("sizes", as: [Api.PhotoSize].self) && record.canRead("videoSizes", as: [TLRecord]?.self) && record.canRead("dcId", as: Int32.self)):
                 self = .photo(Cons_photo(record: record))
-            case "photoEmpty" where record.canRead("id", as: Int64.self):
+            case "photoEmpty" where record.hasCompatibleView || (record.canRead("id", as: Int64.self)):
                 self = .photoEmpty(Cons_photoEmpty(record: record))
             default: self = .other(record)
             }
@@ -3604,9 +3534,9 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "photoSize" where record.canRead("type", as: String.self) && record.canRead("w", as: Int32.self) && record.canRead("h", as: Int32.self) && record.canRead("size", as: Int32.self):
+            case "photoSize" where record.hasCompatibleView || (record.canRead("type", as: String.self) && record.canRead("w", as: Int32.self) && record.canRead("h", as: Int32.self) && record.canRead("size", as: Int32.self)):
                 self = .photoSize(Cons_photoSize(record: record))
-            case "photoSizeProgressive" where record.canRead("type", as: String.self) && record.canRead("w", as: Int32.self) && record.canRead("h", as: Int32.self) && record.canRead("sizes", as: [Int32].self):
+            case "photoSizeProgressive" where record.hasCompatibleView || (record.canRead("type", as: String.self) && record.canRead("w", as: Int32.self) && record.canRead("h", as: Int32.self) && record.canRead("sizes", as: [Int32].self)):
                 self = .photoSizeProgressive(Cons_photoSizeProgressive(record: record))
             default: self = .other(record)
             }
@@ -3640,7 +3570,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "reactionEmoji" where record.canRead("emoticon", as: String.self):
+            case "reactionEmoji" where record.hasCompatibleView || (record.canRead("emoticon", as: String.self)):
                 self = .reactionEmoji(Cons_reactionEmoji(record: record))
             default: self = .other(record)
             }
@@ -3683,7 +3613,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "restrictionReason" where record.canRead("platform", as: String.self) && record.canRead("reason", as: String.self) && record.canRead("text", as: String.self):
+            case "restrictionReason" where record.hasCompatibleView || (record.canRead("platform", as: String.self) && record.canRead("reason", as: String.self) && record.canRead("text", as: String.self)):
                 self = .restrictionReason(Cons_restrictionReason(record: record))
             default: self = .other(record)
             }
@@ -3731,7 +3661,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "richMessage" where record.canRead("flags", as: Int32.self) && record.canRead("blocks", as: [Api.PageBlock].self) && record.canRead("photos", as: [Api.Photo].self) && record.canRead("documents", as: [Api.Document].self):
+            case "richMessage" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("blocks", as: [Api.PageBlock].self) && record.canRead("photos", as: [Api.Photo].self) && record.canRead("documents", as: [Api.Document].self)):
                 self = .richMessage(Cons_richMessage(record: record))
             default: self = .other(record)
             }
@@ -3834,17 +3764,17 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "textBold" where record.canRead("text", as: Api.RichText.self):
+            case "textBold" where record.hasCompatibleView || (record.canRead("text", as: Api.RichText.self)):
                 self = .textBold(Cons_textBold(record: record))
-            case "textConcat" where record.canRead("texts", as: [Api.RichText].self):
+            case "textConcat" where record.hasCompatibleView || (record.canRead("texts", as: [Api.RichText].self)):
                 self = .textConcat(Cons_textConcat(record: record))
-            case "textCustomEmoji" where record.canRead("documentId", as: Int64.self) && record.canRead("alt", as: String.self):
+            case "textCustomEmoji" where record.hasCompatibleView || (record.canRead("documentId", as: Int64.self) && record.canRead("alt", as: String.self)):
                 self = .textCustomEmoji(Cons_textCustomEmoji(record: record))
-            case "textDiff" where record.canRead("text", as: Api.RichText.self) && record.canRead("oldText", as: Api.RichText.self):
+            case "textDiff" where record.hasCompatibleView || (record.canRead("text", as: Api.RichText.self) && record.canRead("oldText", as: Api.RichText.self)):
                 self = .textDiff(Cons_textDiff(record: record))
-            case "textMath" where record.canRead("source", as: String.self):
+            case "textMath" where record.hasCompatibleView || (record.canRead("source", as: String.self)):
                 self = .textMath(Cons_textMath(record: record))
-            case "textPlain" where record.canRead("text", as: String.self):
+            case "textPlain" where record.hasCompatibleView || (record.canRead("text", as: String.self)):
                 self = .textPlain(Cons_textPlain(record: record))
             default: self = .other(record)
             }
@@ -3902,7 +3832,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "searchPostsFlood" where record.canRead("flags", as: Int32.self) && record.canRead("totalDaily", as: Int32.self) && record.canRead("remains", as: Int32.self) && record.canRead("waitTill", as: Int32?.self) && record.canRead("starsAmount", as: Int64.self):
+            case "searchPostsFlood" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("totalDaily", as: Int32.self) && record.canRead("remains", as: Int32.self) && record.canRead("waitTill", as: Int32?.self) && record.canRead("starsAmount", as: Int64.self)):
                 self = .searchPostsFlood(Cons_searchPostsFlood(record: record))
             default: self = .other(record)
             }
@@ -4026,7 +3956,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "storyItem" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("fromId", as: Api.Peer?.self) && record.canRead("fwdFrom", as: TLRecord?.self) && record.canRead("expireDate", as: Int32.self) && record.canRead("caption", as: String?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("media", as: Api.MessageMedia.self) && record.canRead("mediaAreas", as: [TLRecord]?.self) && record.canRead("privacy", as: [TLRecord]?.self) && record.canRead("views", as: TLRecord?.self) && record.canRead("sentReaction", as: Api.Reaction?.self) && record.canRead("albums", as: [Int32]?.self) && record.canRead("music", as: Api.Document?.self):
+            case "storyItem" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("fromId", as: Api.Peer?.self) && record.canRead("fwdFrom", as: TLRecord?.self) && record.canRead("expireDate", as: Int32.self) && record.canRead("caption", as: String?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("media", as: Api.MessageMedia.self) && record.canRead("mediaAreas", as: [TLRecord]?.self) && record.canRead("privacy", as: [TLRecord]?.self) && record.canRead("views", as: TLRecord?.self) && record.canRead("sentReaction", as: Api.Reaction?.self) && record.canRead("albums", as: [Int32]?.self) && record.canRead("music", as: Api.Document?.self)):
                 self = .storyItem(Cons_storyItem(record: record))
             default: self = .other(record)
             }
@@ -4391,39 +4321,39 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "updateChannelAvailableMessages" where record.canRead("channelId", as: Int64.self) && record.canRead("availableMinId", as: Int32.self):
+            case "updateChannelAvailableMessages" where record.hasCompatibleView || (record.canRead("channelId", as: Int64.self) && record.canRead("availableMinId", as: Int32.self)):
                 self = .updateChannelAvailableMessages(Cons_updateChannelAvailableMessages(record: record))
-            case "updateDeleteChannelMessages" where record.canRead("channelId", as: Int64.self) && record.canRead("messages", as: [Int32].self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self):
+            case "updateDeleteChannelMessages" where record.hasCompatibleView || (record.canRead("channelId", as: Int64.self) && record.canRead("messages", as: [Int32].self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self)):
                 self = .updateDeleteChannelMessages(Cons_updateDeleteChannelMessages(record: record))
-            case "updateDeleteEphemeralMessages" where record.canRead("peer", as: Api.Peer.self) && record.canRead("ids", as: [Int32].self):
+            case "updateDeleteEphemeralMessages" where record.hasCompatibleView || (record.canRead("peer", as: Api.Peer.self) && record.canRead("ids", as: [Int32].self)):
                 self = .updateDeleteEphemeralMessages(Cons_updateDeleteEphemeralMessages(record: record))
-            case "updateDeleteMessages" where record.canRead("messages", as: [Int32].self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self):
+            case "updateDeleteMessages" where record.hasCompatibleView || (record.canRead("messages", as: [Int32].self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self)):
                 self = .updateDeleteMessages(Cons_updateDeleteMessages(record: record))
-            case "updateDeleteQuickReplyMessages" where record.canRead("shortcutId", as: Int32.self) && record.canRead("messages", as: [Int32].self):
+            case "updateDeleteQuickReplyMessages" where record.hasCompatibleView || (record.canRead("shortcutId", as: Int32.self) && record.canRead("messages", as: [Int32].self)):
                 self = .updateDeleteQuickReplyMessages(Cons_updateDeleteQuickReplyMessages(record: record))
-            case "updateDeleteScheduledMessages" where record.canRead("flags", as: Int32.self) && record.canRead("peer", as: Api.Peer.self) && record.canRead("messages", as: [Int32].self) && record.canRead("sentMessages", as: [Int32]?.self):
+            case "updateDeleteScheduledMessages" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("peer", as: Api.Peer.self) && record.canRead("messages", as: [Int32].self) && record.canRead("sentMessages", as: [Int32]?.self)):
                 self = .updateDeleteScheduledMessages(Cons_updateDeleteScheduledMessages(record: record))
-            case "updateEditChannelMessage" where record.canRead("message", as: Api.Message.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self):
+            case "updateEditChannelMessage" where record.hasCompatibleView || (record.canRead("message", as: Api.Message.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self)):
                 self = .updateEditChannelMessage(Cons_updateEditChannelMessage(record: record))
-            case "updateEditEphemeralMessage" where record.canRead("message", as: Api.EphemeralMessage.self):
+            case "updateEditEphemeralMessage" where record.hasCompatibleView || (record.canRead("message", as: Api.EphemeralMessage.self)):
                 self = .updateEditEphemeralMessage(Cons_updateEditEphemeralMessage(record: record))
-            case "updateEditMessage" where record.canRead("message", as: Api.Message.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self):
+            case "updateEditMessage" where record.hasCompatibleView || (record.canRead("message", as: Api.Message.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self)):
                 self = .updateEditMessage(Cons_updateEditMessage(record: record))
-            case "updateMessageID" where record.canRead("id", as: Int32.self) && record.canRead("randomId", as: Int64.self):
+            case "updateMessageID" where record.hasCompatibleView || (record.canRead("id", as: Int32.self) && record.canRead("randomId", as: Int64.self)):
                 self = .updateMessageID(Cons_updateMessageID(record: record))
-            case "updateMessageReactions" where record.canRead("flags", as: Int32.self) && record.canRead("peer", as: Api.Peer.self) && record.canRead("msgId", as: Int32.self) && record.canRead("topMsgId", as: Int32?.self) && record.canRead("savedPeerId", as: Api.Peer?.self) && record.canRead("reactions", as: Api.MessageReactions.self):
+            case "updateMessageReactions" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("peer", as: Api.Peer.self) && record.canRead("msgId", as: Int32.self) && record.canRead("topMsgId", as: Int32?.self) && record.canRead("savedPeerId", as: Api.Peer?.self) && record.canRead("reactions", as: Api.MessageReactions.self)):
                 self = .updateMessageReactions(Cons_updateMessageReactions(record: record))
-            case "updateNewChannelMessage" where record.canRead("message", as: Api.Message.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self):
+            case "updateNewChannelMessage" where record.hasCompatibleView || (record.canRead("message", as: Api.Message.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self)):
                 self = .updateNewChannelMessage(Cons_updateNewChannelMessage(record: record))
-            case "updateNewEphemeralMessage" where record.canRead("message", as: Api.EphemeralMessage.self):
+            case "updateNewEphemeralMessage" where record.hasCompatibleView || (record.canRead("message", as: Api.EphemeralMessage.self)):
                 self = .updateNewEphemeralMessage(Cons_updateNewEphemeralMessage(record: record))
-            case "updateNewMessage" where record.canRead("message", as: Api.Message.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self):
+            case "updateNewMessage" where record.hasCompatibleView || (record.canRead("message", as: Api.Message.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self)):
                 self = .updateNewMessage(Cons_updateNewMessage(record: record))
-            case "updateNewScheduledMessage" where record.canRead("message", as: Api.Message.self):
+            case "updateNewScheduledMessage" where record.hasCompatibleView || (record.canRead("message", as: Api.Message.self)):
                 self = .updateNewScheduledMessage(Cons_updateNewScheduledMessage(record: record))
-            case "updateQuickReplyMessage" where record.canRead("message", as: Api.Message.self):
+            case "updateQuickReplyMessage" where record.hasCompatibleView || (record.canRead("message", as: Api.Message.self)):
                 self = .updateQuickReplyMessage(Cons_updateQuickReplyMessage(record: record))
-            case "updateReadHistoryOutbox" where record.canRead("peer", as: Api.Peer.self) && record.canRead("maxId", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self):
+            case "updateReadHistoryOutbox" where record.hasCompatibleView || (record.canRead("peer", as: Api.Peer.self) && record.canRead("maxId", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self)):
                 self = .updateReadHistoryOutbox(Cons_updateReadHistoryOutbox(record: record))
             default: self = .other(record)
             }
@@ -4733,17 +4663,17 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "updateShort" where record.canRead("update", as: Api.Update.self) && record.canRead("date", as: Int32.self):
+            case "updateShort" where record.hasCompatibleView || (record.canRead("update", as: Api.Update.self) && record.canRead("date", as: Int32.self)):
                 self = .updateShort(Cons_updateShort(record: record))
-            case "updateShortChatMessage" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("fromId", as: Int64.self) && record.canRead("chatId", as: Int64.self) && record.canRead("message", as: String.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("fwdFrom", as: TLRecord?.self) && record.canRead("viaBotId", as: Int64?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("ttlPeriod", as: Int32?.self):
+            case "updateShortChatMessage" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("fromId", as: Int64.self) && record.canRead("chatId", as: Int64.self) && record.canRead("message", as: String.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("fwdFrom", as: TLRecord?.self) && record.canRead("viaBotId", as: Int64?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("ttlPeriod", as: Int32?.self)):
                 self = .updateShortChatMessage(Cons_updateShortChatMessage(record: record))
-            case "updateShortMessage" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("userId", as: Int64.self) && record.canRead("message", as: String.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("fwdFrom", as: TLRecord?.self) && record.canRead("viaBotId", as: Int64?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("ttlPeriod", as: Int32?.self):
+            case "updateShortMessage" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("userId", as: Int64.self) && record.canRead("message", as: String.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("fwdFrom", as: TLRecord?.self) && record.canRead("viaBotId", as: Int64?.self) && record.canRead("replyTo", as: Api.MessageReplyHeader?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("ttlPeriod", as: Int32?.self)):
                 self = .updateShortMessage(Cons_updateShortMessage(record: record))
-            case "updateShortSentMessage" where record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("media", as: Api.MessageMedia?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("ttlPeriod", as: Int32?.self):
+            case "updateShortSentMessage" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("id", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("media", as: Api.MessageMedia?.self) && record.canRead("entities", as: [Api.MessageEntity]?.self) && record.canRead("ttlPeriod", as: Int32?.self)):
                 self = .updateShortSentMessage(Cons_updateShortSentMessage(record: record))
-            case "updates" where record.canRead("updates", as: [Api.Update].self) && record.canRead("users", as: [Api.User].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("date", as: Int32.self) && record.canRead("seq", as: Int32.self):
+            case "updates" where record.hasCompatibleView || (record.canRead("updates", as: [Api.Update].self) && record.canRead("users", as: [Api.User].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("date", as: Int32.self) && record.canRead("seq", as: Int32.self)):
                 self = .updates(Cons_updates(record: record))
-            case "updatesCombined" where record.canRead("updates", as: [Api.Update].self) && record.canRead("users", as: [Api.User].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("date", as: Int32.self) && record.canRead("seqStart", as: Int32.self) && record.canRead("seq", as: Int32.self):
+            case "updatesCombined" where record.hasCompatibleView || (record.canRead("updates", as: [Api.Update].self) && record.canRead("users", as: [Api.User].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("date", as: Int32.self) && record.canRead("seqStart", as: Int32.self) && record.canRead("seq", as: Int32.self)):
                 self = .updatesCombined(Cons_updatesCombined(record: record))
             case "updatesTooLong" where record.descriptor?.fields.isEmpty == true: self = .updatesTooLong
             default: self = .other(record)
@@ -4905,9 +4835,9 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "user" where record.canRead("flags", as: Int32.self) && record.canRead("flags2", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64?.self) && record.canRead("firstName", as: String?.self) && record.canRead("lastName", as: String?.self) && record.canRead("username", as: String?.self) && record.canRead("phone", as: String?.self) && record.canRead("photo", as: TLRecord?.self) && record.canRead("status", as: TLRecord?.self) && record.canRead("botInfoVersion", as: Int32?.self) && record.canRead("restrictionReason", as: [Api.RestrictionReason]?.self) && record.canRead("botInlinePlaceholder", as: String?.self) && record.canRead("langCode", as: String?.self) && record.canRead("emojiStatus", as: TLRecord?.self) && record.canRead("usernames", as: [Api.Username]?.self) && record.canRead("storiesMaxId", as: TLRecord?.self) && record.canRead("color", as: TLRecord?.self) && record.canRead("profileColor", as: TLRecord?.self) && record.canRead("botActiveUsers", as: Int32?.self) && record.canRead("botVerificationIcon", as: Int64?.self) && record.canRead("sendPaidMessagesStars", as: Int64?.self) && record.canRead("linkedCommunityId", as: Int64?.self):
+            case "user" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("flags2", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("accessHash", as: Int64?.self) && record.canRead("firstName", as: String?.self) && record.canRead("lastName", as: String?.self) && record.canRead("username", as: String?.self) && record.canRead("phone", as: String?.self) && record.canRead("photo", as: TLRecord?.self) && record.canRead("status", as: TLRecord?.self) && record.canRead("botInfoVersion", as: Int32?.self) && record.canRead("restrictionReason", as: [Api.RestrictionReason]?.self) && record.canRead("botInlinePlaceholder", as: String?.self) && record.canRead("langCode", as: String?.self) && record.canRead("emojiStatus", as: TLRecord?.self) && record.canRead("usernames", as: [Api.Username]?.self) && record.canRead("storiesMaxId", as: TLRecord?.self) && record.canRead("color", as: TLRecord?.self) && record.canRead("profileColor", as: TLRecord?.self) && record.canRead("botActiveUsers", as: Int32?.self) && record.canRead("botVerificationIcon", as: Int64?.self) && record.canRead("sendPaidMessagesStars", as: Int64?.self) && record.canRead("linkedCommunityId", as: Int64?.self)):
                 self = .user(Cons_user(record: record))
-            case "userEmpty" where record.canRead("id", as: Int64.self):
+            case "userEmpty" where record.hasCompatibleView || (record.canRead("id", as: Int64.self)):
                 self = .userEmpty(Cons_userEmpty(record: record))
             default: self = .other(record)
             }
@@ -5146,7 +5076,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "userFull" where record.canRead("flags", as: Int32.self) && record.canRead("flags2", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("about", as: String?.self) && record.canRead("settings", as: Api.PeerSettings.self) && record.canRead("personalPhoto", as: Api.Photo?.self) && record.canRead("profilePhoto", as: Api.Photo?.self) && record.canRead("fallbackPhoto", as: Api.Photo?.self) && record.canRead("notifySettings", as: Api.PeerNotifySettings.self) && record.canRead("botInfo", as: TLRecord?.self) && record.canRead("pinnedMsgId", as: Int32?.self) && record.canRead("commonChatsCount", as: Int32.self) && record.canRead("folderId", as: Int32?.self) && record.canRead("ttlPeriod", as: Int32?.self) && record.canRead("theme", as: TLRecord?.self) && record.canRead("privateForwardName", as: String?.self) && record.canRead("botGroupAdminRights", as: TLRecord?.self) && record.canRead("botBroadcastAdminRights", as: TLRecord?.self) && record.canRead("wallpaper", as: TLRecord?.self) && record.canRead("stories", as: TLRecord?.self) && record.canRead("businessWorkHours", as: TLRecord?.self) && record.canRead("businessLocation", as: TLRecord?.self) && record.canRead("businessGreetingMessage", as: TLRecord?.self) && record.canRead("businessAwayMessage", as: TLRecord?.self) && record.canRead("businessIntro", as: TLRecord?.self) && record.canRead("birthday", as: TLRecord?.self) && record.canRead("personalChannelId", as: Int64?.self) && record.canRead("personalChannelMessage", as: Int32?.self) && record.canRead("stargiftsCount", as: Int32?.self) && record.canRead("starrefProgram", as: TLRecord?.self) && record.canRead("botVerification", as: TLRecord?.self) && record.canRead("sendPaidMessagesStars", as: Int64?.self) && record.canRead("disallowedGifts", as: TLRecord?.self) && record.canRead("starsRating", as: TLRecord?.self) && record.canRead("starsMyPendingRating", as: TLRecord?.self) && record.canRead("starsMyPendingRatingDate", as: Int32?.self) && record.canRead("mainTab", as: TLRecord?.self) && record.canRead("savedMusic", as: Api.Document?.self) && record.canRead("note", as: TLRecord?.self) && record.canRead("botManagerId", as: Int64?.self) && record.canRead("walletCard", as: Api.wallet.Card?.self) && record.canRead("shareTheme", as: Api.ShareTheme?.self):
+            case "userFull" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("flags2", as: Int32.self) && record.canRead("id", as: Int64.self) && record.canRead("about", as: String?.self) && record.canRead("settings", as: Api.PeerSettings.self) && record.canRead("personalPhoto", as: Api.Photo?.self) && record.canRead("profilePhoto", as: Api.Photo?.self) && record.canRead("fallbackPhoto", as: Api.Photo?.self) && record.canRead("notifySettings", as: Api.PeerNotifySettings.self) && record.canRead("botInfo", as: TLRecord?.self) && record.canRead("pinnedMsgId", as: Int32?.self) && record.canRead("commonChatsCount", as: Int32.self) && record.canRead("folderId", as: Int32?.self) && record.canRead("ttlPeriod", as: Int32?.self) && record.canRead("theme", as: TLRecord?.self) && record.canRead("privateForwardName", as: String?.self) && record.canRead("botGroupAdminRights", as: TLRecord?.self) && record.canRead("botBroadcastAdminRights", as: TLRecord?.self) && record.canRead("wallpaper", as: TLRecord?.self) && record.canRead("stories", as: TLRecord?.self) && record.canRead("businessWorkHours", as: TLRecord?.self) && record.canRead("businessLocation", as: TLRecord?.self) && record.canRead("businessGreetingMessage", as: TLRecord?.self) && record.canRead("businessAwayMessage", as: TLRecord?.self) && record.canRead("businessIntro", as: TLRecord?.self) && record.canRead("birthday", as: TLRecord?.self) && record.canRead("personalChannelId", as: Int64?.self) && record.canRead("personalChannelMessage", as: Int32?.self) && record.canRead("stargiftsCount", as: Int32?.self) && record.canRead("starrefProgram", as: TLRecord?.self) && record.canRead("botVerification", as: TLRecord?.self) && record.canRead("sendPaidMessagesStars", as: Int64?.self) && record.canRead("disallowedGifts", as: TLRecord?.self) && record.canRead("starsRating", as: TLRecord?.self) && record.canRead("starsMyPendingRating", as: TLRecord?.self) && record.canRead("starsMyPendingRatingDate", as: Int32?.self) && record.canRead("mainTab", as: TLRecord?.self) && record.canRead("savedMusic", as: Api.Document?.self) && record.canRead("note", as: TLRecord?.self) && record.canRead("botManagerId", as: Int64?.self) && record.canRead("walletCard", as: Api.wallet.Card?.self) && record.canRead("shareTheme", as: Api.ShareTheme?.self)):
                 self = .userFull(Cons_userFull(record: record))
             default: self = .other(record)
             }
@@ -5184,7 +5114,7 @@ public extension Api {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "username" where record.canRead("flags", as: Int32.self) && record.canRead("username", as: String.self):
+            case "username" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("username", as: String.self)):
                 self = .username(Cons_username(record: record))
             default: self = .other(record)
             }
@@ -5222,7 +5152,7 @@ public extension Api.ephemeral {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "welcomeMessages" where record.canRead("hash", as: Int64.self) && record.canRead("messages", as: [Api.EphemeralMessage].self):
+            case "welcomeMessages" where record.hasCompatibleView || (record.canRead("hash", as: Int64.self) && record.canRead("messages", as: [Api.EphemeralMessage].self)):
                 self = .welcomeMessages(Cons_welcomeMessages(record: record))
             default: self = .other(record)
             }
@@ -5261,7 +5191,7 @@ public extension Api.help {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "appConfig" where record.canRead("hash", as: Int32.self) && record.canRead("config", as: Api.JSONValue.self):
+            case "appConfig" where record.hasCompatibleView || (record.canRead("hash", as: Int32.self) && record.canRead("config", as: Api.JSONValue.self)):
                 self = .appConfig(Cons_appConfig(record: record))
             case "appConfigNotModified" where record.descriptor?.fields.isEmpty == true: self = .appConfigNotModified
             default: self = .other(record)
@@ -5306,7 +5236,7 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "affectedHistory" where record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self) && record.canRead("offset", as: Int32.self):
+            case "affectedHistory" where record.hasCompatibleView || (record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self) && record.canRead("offset", as: Int32.self)):
                 self = .affectedHistory(Cons_affectedHistory(record: record))
             default: self = .other(record)
             }
@@ -5344,7 +5274,7 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "affectedMessages" where record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self):
+            case "affectedMessages" where record.hasCompatibleView || (record.canRead("pts", as: Int32.self) && record.canRead("ptsCount", as: Int32.self)):
                 self = .affectedMessages(Cons_affectedMessages(record: record))
             default: self = .other(record)
             }
@@ -5387,7 +5317,7 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "chatFull" where record.canRead("fullChat", as: Api.ChatFull.self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "chatFull" where record.hasCompatibleView || (record.canRead("fullChat", as: Api.ChatFull.self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .chatFull(Cons_chatFull(record: record))
             default: self = .other(record)
             }
@@ -5437,9 +5367,9 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "chats" where record.canRead("chats", as: [Api.Chat].self):
+            case "chats" where record.hasCompatibleView || (record.canRead("chats", as: [Api.Chat].self)):
                 self = .chats(Cons_chats(record: record))
-            case "chatsSlice" where record.canRead("count", as: Int32.self) && record.canRead("chats", as: [Api.Chat].self):
+            case "chatsSlice" where record.hasCompatibleView || (record.canRead("count", as: Int32.self) && record.canRead("chats", as: [Api.Chat].self)):
                 self = .chatsSlice(Cons_chatsSlice(record: record))
             default: self = .other(record)
             }
@@ -5520,9 +5450,9 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "dialogs" where record.canRead("dialogs", as: [Api.Dialog].self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "dialogs" where record.hasCompatibleView || (record.canRead("dialogs", as: [Api.Dialog].self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .dialogs(Cons_dialogs(record: record))
-            case "dialogsSlice" where record.canRead("count", as: Int32.self) && record.canRead("dialogs", as: [Api.Dialog].self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "dialogsSlice" where record.hasCompatibleView || (record.canRead("count", as: Int32.self) && record.canRead("dialogs", as: [Api.Dialog].self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .dialogsSlice(Cons_dialogsSlice(record: record))
             default: self = .other(record)
             }
@@ -5591,7 +5521,7 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "discussionMessage" where record.canRead("flags", as: Int32.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("maxId", as: Int32?.self) && record.canRead("readInboxMaxId", as: Int32?.self) && record.canRead("readOutboxMaxId", as: Int32?.self) && record.canRead("unreadCount", as: Int32.self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "discussionMessage" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("maxId", as: Int32?.self) && record.canRead("readInboxMaxId", as: Int32?.self) && record.canRead("readOutboxMaxId", as: Int32?.self) && record.canRead("unreadCount", as: Int32.self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .discussionMessage(Cons_discussionMessage(record: record))
             default: self = .other(record)
             }
@@ -5738,11 +5668,11 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "channelMessages" where record.canRead("flags", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("count", as: Int32.self) && record.canRead("offsetIdOffset", as: Int32?.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "channelMessages" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("count", as: Int32.self) && record.canRead("offsetIdOffset", as: Int32?.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .channelMessages(Cons_channelMessages(record: record))
-            case "messages" where record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "messages" where record.hasCompatibleView || (record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .messages(Cons_messages(record: record))
-            case "messagesSlice" where record.canRead("flags", as: Int32.self) && record.canRead("count", as: Int32.self) && record.canRead("nextRate", as: Int32?.self) && record.canRead("offsetIdOffset", as: Int32?.self) && record.canRead("searchFlood", as: Api.SearchPostsFlood?.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "messagesSlice" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("count", as: Int32.self) && record.canRead("nextRate", as: Int32?.self) && record.canRead("offsetIdOffset", as: Int32?.self) && record.canRead("searchFlood", as: Api.SearchPostsFlood?.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .messagesSlice(Cons_messagesSlice(record: record))
             default: self = .other(record)
             }
@@ -5797,7 +5727,7 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "peerDialogs" where record.canRead("dialogs", as: [Api.Dialog].self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("state", as: Api.updates.State.self):
+            case "peerDialogs" where record.hasCompatibleView || (record.canRead("dialogs", as: [Api.Dialog].self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("state", as: Api.updates.State.self)):
                 self = .peerDialogs(Cons_peerDialogs(record: record))
             default: self = .other(record)
             }
@@ -5840,7 +5770,7 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "peerSettings" where record.canRead("settings", as: Api.PeerSettings.self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "peerSettings" where record.hasCompatibleView || (record.canRead("settings", as: Api.PeerSettings.self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .peerSettings(Cons_peerSettings(record: record))
             default: self = .other(record)
             }
@@ -5878,7 +5808,7 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "reactions" where record.canRead("hash", as: Int64.self) && record.canRead("reactions", as: [Api.Reaction].self):
+            case "reactions" where record.hasCompatibleView || (record.canRead("hash", as: Int64.self) && record.canRead("reactions", as: [Api.Reaction].self)):
                 self = .reactions(Cons_reactions(record: record))
             default: self = .other(record)
             }
@@ -5916,7 +5846,7 @@ public extension Api.photos {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "photo" where record.canRead("photo", as: Api.Photo.self) && record.canRead("users", as: [Api.User].self):
+            case "photo" where record.hasCompatibleView || (record.canRead("photo", as: Api.Photo.self) && record.canRead("users", as: [Api.User].self)):
                 self = .photo(Cons_photo(record: record))
             default: self = .other(record)
             }
@@ -6037,9 +5967,9 @@ public extension Api.updates {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "channelDifference" where record.canRead("flags", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("timeout", as: Int32?.self) && record.canRead("newMessages", as: [Api.Message].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "channelDifference" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("timeout", as: Int32?.self) && record.canRead("newMessages", as: [Api.Message].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .channelDifference(Cons_channelDifference(record: record))
-            case "channelDifferenceTooLong" where record.canRead("flags", as: Int32.self) && record.canRead("timeout", as: Int32?.self) && record.canRead("dialog", as: Api.Dialog.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "channelDifferenceTooLong" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("timeout", as: Int32?.self) && record.canRead("dialog", as: Api.Dialog.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .channelDifferenceTooLong(Cons_channelDifferenceTooLong(record: record))
             default: self = .other(record)
             }
@@ -6135,9 +6065,9 @@ public extension Api.updates {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "difference" where record.canRead("newMessages", as: [Api.Message].self) && record.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("state", as: Api.updates.State.self):
+            case "difference" where record.hasCompatibleView || (record.canRead("newMessages", as: [Api.Message].self) && record.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("state", as: Api.updates.State.self)):
                 self = .difference(Cons_difference(record: record))
-            case "differenceSlice" where record.canRead("newMessages", as: [Api.Message].self) && record.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("intermediateState", as: Api.updates.State.self):
+            case "differenceSlice" where record.hasCompatibleView || (record.canRead("newMessages", as: [Api.Message].self) && record.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("intermediateState", as: Api.updates.State.self)):
                 self = .differenceSlice(Cons_differenceSlice(record: record))
             default: self = .other(record)
             }
@@ -6191,7 +6121,7 @@ public extension Api.updates {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "state" where record.canRead("pts", as: Int32.self) && record.canRead("qts", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("seq", as: Int32.self) && record.canRead("unreadCount", as: Int32.self):
+            case "state" where record.hasCompatibleView || (record.canRead("pts", as: Int32.self) && record.canRead("qts", as: Int32.self) && record.canRead("date", as: Int32.self) && record.canRead("seq", as: Int32.self) && record.canRead("unreadCount", as: Int32.self)):
                 self = .state(Cons_state(record: record))
             default: self = .other(record)
             }
@@ -6234,7 +6164,7 @@ public extension Api.upload {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "file" where record.canRead("type", as: Api.storage.FileType.self) && record.canRead("mtime", as: Int32.self) && record.canRead("bytes", as: Buffer.self):
+            case "file" where record.hasCompatibleView || (record.canRead("type", as: Api.storage.FileType.self) && record.canRead("mtime", as: Int32.self) && record.canRead("bytes", as: Buffer.self)):
                 self = .file(Cons_file(record: record))
             default: self = .other(record)
             }
@@ -6277,7 +6207,7 @@ public extension Api.users {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "userFull" where record.canRead("fullUser", as: Api.UserFull.self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self):
+            case "userFull" where record.hasCompatibleView || (record.canRead("fullUser", as: Api.UserFull.self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .userFull(Cons_userFull(record: record))
             default: self = .other(record)
             }
@@ -6310,7 +6240,7 @@ public extension Api.users {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "users" where record.canRead("users", as: [Api.User].self):
+            case "users" where record.hasCompatibleView || (record.canRead("users", as: [Api.User].self)):
                 self = .users(Cons_users(record: record))
             default: self = .other(record)
             }
@@ -6336,7 +6266,7 @@ public extension Api.wallet {
                 get { record.value("stickers") }
                 set { record.set("stickers", newValue) }
             }
-            public var `bgNftItem`: Api.wallet.NftItem? {
+            public var `bgNftItem`: TLRecord? {
                 get { record.value("bgNftItem") }
                 set { record.set("bgNftItem", newValue) }
             }
@@ -6348,7 +6278,7 @@ public extension Api.wallet {
                 get { record.value("balance") }
                 set { record.set("balance", newValue) }
             }
-            public init(`flags`: Int32, `stickers`: [TLRecord]?, `bgNftItem`: Api.wallet.NftItem?, `address`: String, `balance`: Int64) {
+            public init(`flags`: Int32, `stickers`: [TLRecord]?, `bgNftItem`: TLRecord?, `address`: String, `balance`: Int64) {
                 super.init(type: "wallet.Card", constructor: "card")
                 record.set("flags", `flags`)
                 record.set("stickers", `stickers`)
@@ -6363,7 +6293,7 @@ public extension Api.wallet {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "card" where record.canRead("flags", as: Int32.self) && record.canRead("stickers", as: [TLRecord]?.self) && record.canRead("bgNftItem", as: Api.wallet.NftItem?.self) && record.canRead("address", as: String.self) && record.canRead("balance", as: Int64.self):
+            case "card" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("stickers", as: [TLRecord]?.self) && record.canRead("bgNftItem", as: TLRecord?.self) && record.canRead("address", as: String.self) && record.canRead("balance", as: Int64.self)):
                 self = .card(Cons_card(record: record))
             default: self = .other(record)
             }
@@ -6371,104 +6301,6 @@ public extension Api.wallet {
         public var record: TLRecord {
             switch self {
             case let .card(value): return value.record
-            case let .other(record): return record
-            }
-        }
-    }
-}
-
-public extension Api.wallet {
-    enum NftItem: TLObjectView {
-        public static let tlTypeName = "wallet.NftItem"
-        public final class Cons_nftItem: TLPayload {
-            public var `flags`: Int32 {
-                get { record.value("flags") }
-                set { record.set("flags", newValue) }
-            }
-            public var `collectionAddress`: String? {
-                get { record.value("collectionAddress") }
-                set { record.set("collectionAddress", newValue) }
-            }
-            public var `address`: String {
-                get { record.value("address") }
-                set { record.set("address", newValue) }
-            }
-            public var `ownerAddress`: String {
-                get { record.value("ownerAddress") }
-                set { record.set("ownerAddress", newValue) }
-            }
-            public var `index`: String {
-                get { record.value("index") }
-                set { record.set("index", newValue) }
-            }
-            public var `name`: String? {
-                get { record.value("name") }
-                set { record.set("name", newValue) }
-            }
-            public var `description`: String? {
-                get { record.value("description") }
-                set { record.set("description", newValue) }
-            }
-            public var `image`: TLRecord? {
-                get { record.value("image") }
-                set { record.set("image", newValue) }
-            }
-            public var `imageSmall`: TLRecord? {
-                get { record.value("imageSmall") }
-                set { record.set("imageSmall", newValue) }
-            }
-            public var `contentUrl`: TLRecord? {
-                get { record.value("contentUrl") }
-                set { record.set("contentUrl", newValue) }
-            }
-            public var `lottie`: TLRecord? {
-                get { record.value("lottie") }
-                set { record.set("lottie", newValue) }
-            }
-            public var `attributes`: [TLRecord]? {
-                get { record.value("attributes") }
-                set { record.set("attributes", newValue) }
-            }
-            public var `extra`: TLRecord? {
-                get { record.value("extra") }
-                set { record.set("extra", newValue) }
-            }
-            public var `gift`: TLRecord? {
-                get { record.value("gift") }
-                set { record.set("gift", newValue) }
-            }
-            public init(`flags`: Int32, `collectionAddress`: String?, `address`: String, `ownerAddress`: String, `index`: String, `name`: String?, `description`: String?, `image`: TLRecord?, `imageSmall`: TLRecord?, `contentUrl`: TLRecord?, `lottie`: TLRecord?, `attributes`: [TLRecord]?, `extra`: TLRecord?, `gift`: TLRecord?) {
-                super.init(type: "wallet.NftItem", constructor: "nftItem")
-                record.set("flags", `flags`)
-                record.set("collectionAddress", `collectionAddress`)
-                record.set("address", `address`)
-                record.set("ownerAddress", `ownerAddress`)
-                record.set("index", `index`)
-                record.set("name", `name`)
-                record.set("description", `description`)
-                record.set("image", `image`)
-                record.set("imageSmall", `imageSmall`)
-                record.set("contentUrl", `contentUrl`)
-                record.set("lottie", `lottie`)
-                record.set("attributes", `attributes`)
-                record.set("extra", `extra`)
-                record.set("gift", `gift`)
-            }
-            public override init(record: TLRecord) { super.init(record: record) }
-        }
-        case nftItem(Cons_nftItem)
-        case other(TLRecord)
-        public init?(_ record: TLRecord) {
-            guard record.typeName == Self.tlTypeName else { return nil }
-            switch record.constructorName {
-            case "nftItem" where record.canRead("flags", as: Int32.self) && record.canRead("collectionAddress", as: String?.self) && record.canRead("address", as: String.self) && record.canRead("ownerAddress", as: String.self) && record.canRead("index", as: String.self) && record.canRead("name", as: String?.self) && record.canRead("description", as: String?.self) && record.canRead("image", as: TLRecord?.self) && record.canRead("imageSmall", as: TLRecord?.self) && record.canRead("contentUrl", as: TLRecord?.self) && record.canRead("lottie", as: TLRecord?.self) && record.canRead("attributes", as: [TLRecord]?.self) && record.canRead("extra", as: TLRecord?.self) && record.canRead("gift", as: TLRecord?.self):
-                self = .nftItem(Cons_nftItem(record: record))
-            default: self = .other(record)
-            }
-        }
-        public var record: TLRecord {
-            switch self {
-            case let .nftItem(value): return value.record
             case let .other(record): return record
             }
         }
@@ -6705,6 +6537,168 @@ public extension Api.functions.upload {
 }
 
 extension Api {
+    static func supportsView(_ constructor: TLConstructor, type: String, types: [String]) -> Swift.Bool {
+        switch (type, constructor.name) {
+        case ("updates.Difference", "difference"): return constructor.canRead("newMessages", as: [Api.Message].self, types: types) && constructor.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self, types: types) && constructor.canRead("otherUpdates", as: [Api.Update].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("state", as: Api.updates.State.self, types: types)
+        case ("InputMedia", "inputMediaUploadedDocument"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("file", as: Api.InputFile.self, types: types) && constructor.canRead("thumb", as: Api.InputFile?.self, types: types) && constructor.canRead("mimeType", as: String.self, types: types) && constructor.canRead("attributes", as: [Api.DocumentAttribute].self, types: types) && constructor.canRead("stickers", as: [Api.InputDocument]?.self, types: types) && constructor.canRead("videoCover", as: Api.InputPhoto?.self, types: types) && constructor.canRead("videoTimestamp", as: Int32?.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types)
+        case ("MessageMedia", "messageMediaDice"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("value", as: Int32.self, types: types) && constructor.canRead("emoticon", as: String.self, types: types) && constructor.canRead("gameOutcome", as: TLRecord?.self, types: types)
+        case ("upload.File", "file"): return constructor.canRead("type", as: Api.storage.FileType.self, types: types) && constructor.canRead("mtime", as: Int32.self, types: types) && constructor.canRead("bytes", as: Buffer.self, types: types)
+        case ("MessageReactions", "messageReactions"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("results", as: [TLRecord].self, types: types) && constructor.canRead("recentReactions", as: [Api.MessagePeerReaction]?.self, types: types) && constructor.canRead("topReactors", as: [TLRecord]?.self, types: types)
+        case ("ephemeral.WelcomeMessages", "welcomeMessages"): return constructor.canRead("hash", as: Int64.self, types: types) && constructor.canRead("messages", as: [Api.EphemeralMessage].self, types: types)
+        case ("DocumentAttribute", "documentAttributeFilename"): return constructor.canRead("fileName", as: String.self, types: types)
+        case ("messages.Dialogs", "dialogs"): return constructor.canRead("dialogs", as: [Api.Dialog].self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("StoryItem", "storyItem"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("fromId", as: Api.Peer?.self, types: types) && constructor.canRead("fwdFrom", as: TLRecord?.self, types: types) && constructor.canRead("expireDate", as: Int32.self, types: types) && constructor.canRead("caption", as: String?.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types) && constructor.canRead("media", as: Api.MessageMedia.self, types: types) && constructor.canRead("mediaAreas", as: [TLRecord]?.self, types: types) && constructor.canRead("privacy", as: [TLRecord]?.self, types: types) && constructor.canRead("views", as: TLRecord?.self, types: types) && constructor.canRead("sentReaction", as: Api.Reaction?.self, types: types) && constructor.canRead("albums", as: [Int32]?.self, types: types) && constructor.canRead("music", as: Api.Document?.self, types: types)
+        case ("InputDocument", "inputDocument"): return constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types) && constructor.canRead("fileReference", as: Buffer.self, types: types)
+        case ("Reaction", "reactionEmoji"): return constructor.canRead("emoticon", as: String.self, types: types)
+        case ("Update", "updateEditChannelMessage"): return constructor.canRead("message", as: Api.Message.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
+        case ("InputSingleMedia", "inputSingleMedia"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("media", as: Api.InputMedia.self, types: types) && constructor.canRead("randomId", as: Int64.self, types: types) && constructor.canRead("message", as: String.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types)
+        case ("messages.Messages", "messages"): return constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [Api.ForumTopic].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("InputUser", "inputUserFromMessage"): return constructor.canRead("peer", as: Api.InputPeer.self, types: types) && constructor.canRead("msgId", as: Int32.self, types: types) && constructor.canRead("userId", as: Int64.self, types: types)
+        case ("Update", "updateMessageReactions"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("peer", as: Api.Peer.self, types: types) && constructor.canRead("msgId", as: Int32.self, types: types) && constructor.canRead("topMsgId", as: Int32?.self, types: types) && constructor.canRead("savedPeerId", as: Api.Peer?.self, types: types) && constructor.canRead("reactions", as: Api.MessageReactions.self, types: types)
+        case ("Update", "updateNewMessage"): return constructor.canRead("message", as: Api.Message.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
+        case ("photos.Photo", "photo"): return constructor.canRead("photo", as: Api.Photo.self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("updates.ChannelDifference", "channelDifference"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("timeout", as: Int32?.self, types: types) && constructor.canRead("newMessages", as: [Api.Message].self, types: types) && constructor.canRead("otherUpdates", as: [Api.Update].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("MessageEntity", "inputMessageEntityMentionName"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types) && constructor.canRead("userId", as: Api.InputUser.self, types: types)
+        case ("Update", "updateNewEphemeralMessage"): return constructor.canRead("message", as: Api.EphemeralMessage.self, types: types)
+        case ("Photo", "photoEmpty"): return constructor.canRead("id", as: Int64.self, types: types)
+        case ("ChatFull", "chatFull"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("about", as: String.self, types: types) && constructor.canRead("participants", as: TLRecord.self, types: types) && constructor.canRead("chatPhoto", as: Api.Photo?.self, types: types) && constructor.canRead("notifySettings", as: Api.PeerNotifySettings.self, types: types) && constructor.canRead("exportedInvite", as: TLRecord?.self, types: types) && constructor.canRead("botInfo", as: [TLRecord]?.self, types: types) && constructor.canRead("pinnedMsgId", as: Int32?.self, types: types) && constructor.canRead("folderId", as: Int32?.self, types: types) && constructor.canRead("call", as: TLRecord?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types) && constructor.canRead("groupcallDefaultJoinAs", as: Api.Peer?.self, types: types) && constructor.canRead("themeEmoticon", as: String?.self, types: types) && constructor.canRead("requestsPending", as: Int32?.self, types: types) && constructor.canRead("recentRequesters", as: [Int64]?.self, types: types) && constructor.canRead("availableReactions", as: TLRecord?.self, types: types) && constructor.canRead("reactionsLimit", as: Int32?.self, types: types)
+        case ("InputPeer", "inputPeerChannel"): return constructor.canRead("channelId", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types)
+        case ("MessageEntity", "messageEntityCode"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("Chat", "chatEmpty"): return constructor.canRead("id", as: Int64.self, types: types)
+        case ("JSONValue", "jsonNumber"): return constructor.canRead("value", as: Double.self, types: types)
+        case ("Update", "updateReadHistoryOutbox"): return constructor.canRead("peer", as: Api.Peer.self, types: types) && constructor.canRead("maxId", as: Int32.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
+        case ("Updates", "updateShortMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("userId", as: Int64.self, types: types) && constructor.canRead("message", as: String.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("fwdFrom", as: TLRecord?.self, types: types) && constructor.canRead("viaBotId", as: Int64?.self, types: types) && constructor.canRead("replyTo", as: Api.MessageReplyHeader?.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types)
+        case ("MessageEntity", "messageEntitySpoiler"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("messages.PeerDialogs", "peerDialogs"): return constructor.canRead("dialogs", as: [Api.Dialog].self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("state", as: Api.updates.State.self, types: types)
+        case ("InputPeer", "inputPeerChat"): return constructor.canRead("chatId", as: Int64.self, types: types)
+        case ("Peer", "peerChat"): return constructor.canRead("chatId", as: Int64.self, types: types)
+        case ("Document", "documentEmpty"): return constructor.canRead("id", as: Int64.self, types: types)
+        case ("ChatPhoto", "chatPhotoEmpty"): return constructor.fields.isEmpty
+        case ("Update", "updateNewScheduledMessage"): return constructor.canRead("message", as: Api.Message.self, types: types)
+        case ("users.UserFull", "userFull"): return constructor.canRead("fullUser", as: Api.UserFull.self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("InputPhoto", "inputPhoto"): return constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types) && constructor.canRead("fileReference", as: Buffer.self, types: types)
+        case ("MessageMedia", "messageMediaEmpty"): return constructor.fields.isEmpty
+        case ("Update", "updateQuickReplyMessage"): return constructor.canRead("message", as: Api.Message.self, types: types)
+        case ("SearchPostsFlood", "searchPostsFlood"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("totalDaily", as: Int32.self, types: types) && constructor.canRead("remains", as: Int32.self, types: types) && constructor.canRead("waitTill", as: Int32?.self, types: types) && constructor.canRead("starsAmount", as: Int64.self, types: types)
+        case ("InputFileLocation", "inputPhotoFileLocation"): return constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types) && constructor.canRead("fileReference", as: Buffer.self, types: types) && constructor.canRead("thumbSize", as: String.self, types: types)
+        case ("Chat", "chat"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("title", as: String.self, types: types) && constructor.canRead("photo", as: Api.ChatPhoto.self, types: types) && constructor.canRead("participantsCount", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("version", as: Int32.self, types: types) && constructor.canRead("migratedTo", as: Api.InputChannel?.self, types: types) && constructor.canRead("adminRights", as: TLRecord?.self, types: types) && constructor.canRead("defaultBannedRights", as: TLRecord?.self, types: types)
+        case ("PageBlock", "pageBlockParagraph"): return constructor.canRead("text", as: Api.RichText.self, types: types)
+        case ("Update", "updateEditEphemeralMessage"): return constructor.canRead("message", as: Api.EphemeralMessage.self, types: types)
+        case ("Updates", "updateShortChatMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("fromId", as: Int64.self, types: types) && constructor.canRead("chatId", as: Int64.self, types: types) && constructor.canRead("message", as: String.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("fwdFrom", as: TLRecord?.self, types: types) && constructor.canRead("viaBotId", as: Int64?.self, types: types) && constructor.canRead("replyTo", as: Api.MessageReplyHeader?.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types)
+        case ("Update", "updateMessageID"): return constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("randomId", as: Int64.self, types: types)
+        case ("MessageMedia", "messageMediaDocument"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("document", as: Api.Document?.self, types: types) && constructor.canRead("altDocuments", as: [Api.Document]?.self, types: types) && constructor.canRead("videoCover", as: Api.Photo?.self, types: types) && constructor.canRead("videoTimestamp", as: Int32?.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types)
+        case ("Update", "updateDeleteQuickReplyMessages"): return constructor.canRead("shortcutId", as: Int32.self, types: types) && constructor.canRead("messages", as: [Int32].self, types: types)
+        case ("Update", "updateDeleteEphemeralMessages"): return constructor.canRead("peer", as: Api.Peer.self, types: types) && constructor.canRead("ids", as: [Int32].self, types: types)
+        case ("Peer", "peerUser"): return constructor.canRead("userId", as: Int64.self, types: types)
+        case ("InputChannel", "inputChannelFromMessage"): return constructor.canRead("peer", as: Api.InputPeer.self, types: types) && constructor.canRead("msgId", as: Int32.self, types: types) && constructor.canRead("channelId", as: Int64.self, types: types)
+        case ("messages.Messages", "messagesSlice"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("count", as: Int32.self, types: types) && constructor.canRead("nextRate", as: Int32?.self, types: types) && constructor.canRead("offsetIdOffset", as: Int32?.self, types: types) && constructor.canRead("searchFlood", as: Api.SearchPostsFlood?.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [Api.ForumTopic].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("Update", "updateNewChannelMessage"): return constructor.canRead("message", as: Api.Message.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
+        case ("users.Users", "users"): return constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("DocumentAttribute", "documentAttributeSticker"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("alt", as: String.self, types: types) && constructor.canRead("stickerset", as: TLRecord.self, types: types) && constructor.canRead("maskCoords", as: TLRecord?.self, types: types)
+        case ("MessageEntity", "messageEntityEmail"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("messages.Chats", "chats"): return constructor.canRead("chats", as: [Api.Chat].self, types: types)
+        case ("RichText", "textBold"): return constructor.canRead("text", as: Api.RichText.self, types: types)
+        case ("messages.PeerSettings", "peerSettings"): return constructor.canRead("settings", as: Api.PeerSettings.self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("MessageEntity", "messageEntityBotCommand"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("MessageEntity", "messageEntityUrl"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("MessageEntity", "messageEntityHashtag"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("MessageMedia", "messageMediaContact"): return constructor.canRead("phoneNumber", as: String.self, types: types) && constructor.canRead("firstName", as: String.self, types: types) && constructor.canRead("lastName", as: String.self, types: types) && constructor.canRead("vcard", as: String.self, types: types) && constructor.canRead("userId", as: Int64.self, types: types)
+        case ("messages.Dialogs", "dialogsSlice"): return constructor.canRead("count", as: Int32.self, types: types) && constructor.canRead("dialogs", as: [Api.Dialog].self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("Updates", "updatesCombined"): return constructor.canRead("updates", as: [Api.Update].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("seqStart", as: Int32.self, types: types) && constructor.canRead("seq", as: Int32.self, types: types)
+        case ("MessageEntity", "messageEntityPre"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types) && constructor.canRead("language", as: String.self, types: types)
+        case ("RichText", "textPlain"): return constructor.canRead("text", as: String.self, types: types)
+        case ("Updates", "updates"): return constructor.canRead("updates", as: [Api.Update].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("seq", as: Int32.self, types: types)
+        case ("InputReplyTo", "inputReplyToMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("replyToMsgId", as: Int32.self, types: types) && constructor.canRead("topMsgId", as: Int32?.self, types: types) && constructor.canRead("replyToPeerId", as: Api.InputPeer?.self, types: types) && constructor.canRead("quoteText", as: String?.self, types: types) && constructor.canRead("quoteEntities", as: [Api.MessageEntity]?.self, types: types) && constructor.canRead("quoteOffset", as: Int32?.self, types: types) && constructor.canRead("monoforumPeerId", as: Api.InputPeer?.self, types: types) && constructor.canRead("todoItemId", as: Int32?.self, types: types) && constructor.canRead("pollOption", as: Buffer?.self, types: types) && constructor.canRead("quoteRich", as: [Api.RichText]?.self, types: types)
+        case ("PhotoSize", "photoSize"): return constructor.canRead("type", as: String.self, types: types) && constructor.canRead("w", as: Int32.self, types: types) && constructor.canRead("h", as: Int32.self, types: types) && constructor.canRead("size", as: Int32.self, types: types)
+        case ("Message", "message"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("flags2", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("fromId", as: Api.Peer?.self, types: types) && constructor.canRead("fromBoostsApplied", as: Int32?.self, types: types) && constructor.canRead("fromRank", as: String?.self, types: types) && constructor.canRead("peerId", as: Api.Peer.self, types: types) && constructor.canRead("savedPeerId", as: Api.Peer?.self, types: types) && constructor.canRead("fwdFrom", as: TLRecord?.self, types: types) && constructor.canRead("viaBotId", as: Int64?.self, types: types) && constructor.canRead("viaBusinessBotId", as: Int64?.self, types: types) && constructor.canRead("guestchatViaFrom", as: Api.Peer?.self, types: types) && constructor.canRead("replyTo", as: Api.MessageReplyHeader?.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("message", as: String.self, types: types) && constructor.canRead("media", as: Api.MessageMedia?.self, types: types) && constructor.canRead("replyMarkup", as: TLRecord?.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types) && constructor.canRead("views", as: Int32?.self, types: types) && constructor.canRead("forwards", as: Int32?.self, types: types) && constructor.canRead("replies", as: TLRecord?.self, types: types) && constructor.canRead("editDate", as: Int32?.self, types: types) && constructor.canRead("postAuthor", as: String?.self, types: types) && constructor.canRead("groupedId", as: Int64?.self, types: types) && constructor.canRead("reactions", as: Api.MessageReactions?.self, types: types) && constructor.canRead("restrictionReason", as: [Api.RestrictionReason]?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types) && constructor.canRead("quickReplyShortcutId", as: Int32?.self, types: types) && constructor.canRead("effect", as: Int64?.self, types: types) && constructor.canRead("factcheck", as: TLRecord?.self, types: types) && constructor.canRead("reportDeliveryUntilDate", as: Int32?.self, types: types) && constructor.canRead("paidMessageStars", as: Int64?.self, types: types) && constructor.canRead("suggestedPost", as: TLRecord?.self, types: types) && constructor.canRead("scheduleRepeatPeriod", as: Int32?.self, types: types) && constructor.canRead("summaryFromLanguage", as: String?.self, types: types) && constructor.canRead("richMessage", as: Api.RichMessage?.self, types: types)
+        case ("MessageEntity", "messageEntityBankCard"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("MessageEntity", "messageEntityTextUrl"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types) && constructor.canRead("url", as: String.self, types: types)
+        case ("MessageMedia", "messageMediaPoll"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("poll", as: TLRecord.self, types: types) && constructor.canRead("results", as: TLRecord.self, types: types) && constructor.canRead("attachedMedia", as: Api.MessageMedia?.self, types: types)
+        case ("Updates", "updateShort"): return constructor.canRead("update", as: Api.Update.self, types: types) && constructor.canRead("date", as: Int32.self, types: types)
+        case ("Message", "messageService"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("fromId", as: Api.Peer?.self, types: types) && constructor.canRead("peerId", as: Api.Peer.self, types: types) && constructor.canRead("savedPeerId", as: Api.Peer?.self, types: types) && constructor.canRead("replyTo", as: Api.MessageReplyHeader?.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("action", as: Api.MessageAction.self, types: types) && constructor.canRead("reactions", as: Api.MessageReactions?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types)
+        case ("Chat", "channel"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("flags2", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64?.self, types: types) && constructor.canRead("title", as: String.self, types: types) && constructor.canRead("username", as: String?.self, types: types) && constructor.canRead("photo", as: Api.ChatPhoto.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("restrictionReason", as: [Api.RestrictionReason]?.self, types: types) && constructor.canRead("adminRights", as: TLRecord?.self, types: types) && constructor.canRead("bannedRights", as: TLRecord?.self, types: types) && constructor.canRead("defaultBannedRights", as: TLRecord?.self, types: types) && constructor.canRead("participantsCount", as: Int32?.self, types: types) && constructor.canRead("usernames", as: [Api.Username]?.self, types: types) && constructor.canRead("storiesMaxId", as: TLRecord?.self, types: types) && constructor.canRead("color", as: TLRecord?.self, types: types) && constructor.canRead("profileColor", as: TLRecord?.self, types: types) && constructor.canRead("emojiStatus", as: TLRecord?.self, types: types) && constructor.canRead("level", as: Int32?.self, types: types) && constructor.canRead("subscriptionUntilDate", as: Int32?.self, types: types) && constructor.canRead("botVerificationIcon", as: Int64?.self, types: types) && constructor.canRead("sendPaidMessagesStars", as: Int64?.self, types: types) && constructor.canRead("linkedMonoforumId", as: Int64?.self, types: types) && constructor.canRead("linkedCommunityId", as: Int64?.self, types: types) && constructor.canRead("pinnedMsgId", as: Int32?.self, types: types)
+        case ("help.AppConfig", "appConfigNotModified"): return constructor.fields.isEmpty
+        case ("InputMedia", "inputMediaUploadedPhoto"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("file", as: Api.InputFile.self, types: types) && constructor.canRead("stickers", as: [Api.InputDocument]?.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types) && constructor.canRead("video", as: Api.InputDocument?.self, types: types)
+        case ("InputPeer", "inputPeerSelf"): return constructor.fields.isEmpty
+        case ("RichText", "textConcat"): return constructor.canRead("texts", as: [Api.RichText].self, types: types)
+        case ("MessageEntity", "messageEntityItalic"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("messages.AffectedMessages", "affectedMessages"): return constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
+        case ("MessagePeerReaction", "messagePeerReaction"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("peerId", as: Api.Peer.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("reaction", as: Api.Reaction.self, types: types)
+        case ("wallet.Card", "card"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("stickers", as: [TLRecord]?.self, types: types) && constructor.canRead("bgNftItem", as: TLRecord?.self, types: types) && constructor.canRead("address", as: String.self, types: types) && constructor.canRead("balance", as: Int64.self, types: types)
+        case ("Document", "document"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types) && constructor.canRead("fileReference", as: Buffer.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("mimeType", as: String.self, types: types) && constructor.canRead("size", as: Int64.self, types: types) && constructor.canRead("thumbs", as: [Api.PhotoSize]?.self, types: types) && constructor.canRead("videoThumbs", as: [TLRecord]?.self, types: types) && constructor.canRead("dcId", as: Int32.self, types: types) && constructor.canRead("attributes", as: [Api.DocumentAttribute].self, types: types)
+        case ("Updates", "updateShortSentMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("media", as: Api.MessageMedia?.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types)
+        case ("Message", "messageEmpty"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("peerId", as: Api.Peer?.self, types: types)
+        case ("ShareTheme", "shareThemeDefault"): return constructor.fields.isEmpty
+        case ("RichText", "textDiff"): return constructor.canRead("text", as: Api.RichText.self, types: types) && constructor.canRead("oldText", as: Api.RichText.self, types: types)
+        case ("DocumentAttribute", "documentAttributeAudio"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("duration", as: Int32.self, types: types) && constructor.canRead("title", as: String?.self, types: types) && constructor.canRead("performer", as: String?.self, types: types) && constructor.canRead("waveform", as: Buffer?.self, types: types)
+        case ("PeerNotifySettings", "peerNotifySettings"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("showPreviews", as: Api.Bool?.self, types: types) && constructor.canRead("silent", as: Api.Bool?.self, types: types) && constructor.canRead("muteUntil", as: Int32?.self, types: types) && constructor.canRead("iosSound", as: TLRecord?.self, types: types) && constructor.canRead("androidSound", as: TLRecord?.self, types: types) && constructor.canRead("otherSound", as: TLRecord?.self, types: types) && constructor.canRead("storiesMuted", as: Api.Bool?.self, types: types) && constructor.canRead("storiesHideSender", as: Api.Bool?.self, types: types) && constructor.canRead("storiesIosSound", as: TLRecord?.self, types: types) && constructor.canRead("storiesAndroidSound", as: TLRecord?.self, types: types) && constructor.canRead("storiesOtherSound", as: TLRecord?.self, types: types)
+        case ("Bool", "boolTrue"): return constructor.fields.isEmpty
+        case ("JSONValue", "jsonObject"): return constructor.canRead("value", as: [Api.JSONObjectValue].self, types: types)
+        case ("MessageEntity", "messageEntityPhone"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("MessageEntity", "messageEntityUnderline"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("messages.Chats", "chatsSlice"): return constructor.canRead("count", as: Int32.self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types)
+        case ("RichText", "textMath"): return constructor.canRead("source", as: String.self, types: types)
+        case ("Update", "updateDeleteMessages"): return constructor.canRead("messages", as: [Int32].self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
+        case ("RichText", "textCustomEmoji"): return constructor.canRead("documentId", as: Int64.self, types: types) && constructor.canRead("alt", as: String.self, types: types)
+        case ("Peer", "peerChannel"): return constructor.canRead("channelId", as: Int64.self, types: types)
+        case ("updates.ChannelDifference", "channelDifferenceTooLong"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("timeout", as: Int32?.self, types: types) && constructor.canRead("dialog", as: Api.Dialog.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("updates.State", "state"): return constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("qts", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("seq", as: Int32.self, types: types) && constructor.canRead("unreadCount", as: Int32.self, types: types)
+        case ("messages.DiscussionMessage", "discussionMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("maxId", as: Int32?.self, types: types) && constructor.canRead("readInboxMaxId", as: Int32?.self, types: types) && constructor.canRead("readOutboxMaxId", as: Int32?.self, types: types) && constructor.canRead("unreadCount", as: Int32.self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("InputMessage", "inputMessageID"): return constructor.canRead("id", as: Int32.self, types: types)
+        case ("InputMedia", "inputMediaDocument"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Api.InputDocument.self, types: types) && constructor.canRead("videoCover", as: Api.InputPhoto?.self, types: types) && constructor.canRead("videoTimestamp", as: Int32?.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types) && constructor.canRead("query", as: String?.self, types: types)
+        case ("updates.Difference", "differenceSlice"): return constructor.canRead("newMessages", as: [Api.Message].self, types: types) && constructor.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self, types: types) && constructor.canRead("otherUpdates", as: [Api.Update].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("intermediateState", as: Api.updates.State.self, types: types)
+        case ("storage.FileType", "fileUnknown"): return constructor.fields.isEmpty
+        case ("User", "user"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("flags2", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64?.self, types: types) && constructor.canRead("firstName", as: String?.self, types: types) && constructor.canRead("lastName", as: String?.self, types: types) && constructor.canRead("username", as: String?.self, types: types) && constructor.canRead("phone", as: String?.self, types: types) && constructor.canRead("photo", as: TLRecord?.self, types: types) && constructor.canRead("status", as: TLRecord?.self, types: types) && constructor.canRead("botInfoVersion", as: Int32?.self, types: types) && constructor.canRead("restrictionReason", as: [Api.RestrictionReason]?.self, types: types) && constructor.canRead("botInlinePlaceholder", as: String?.self, types: types) && constructor.canRead("langCode", as: String?.self, types: types) && constructor.canRead("emojiStatus", as: TLRecord?.self, types: types) && constructor.canRead("usernames", as: [Api.Username]?.self, types: types) && constructor.canRead("storiesMaxId", as: TLRecord?.self, types: types) && constructor.canRead("color", as: TLRecord?.self, types: types) && constructor.canRead("profileColor", as: TLRecord?.self, types: types) && constructor.canRead("botActiveUsers", as: Int32?.self, types: types) && constructor.canRead("botVerificationIcon", as: Int64?.self, types: types) && constructor.canRead("sendPaidMessagesStars", as: Int64?.self, types: types) && constructor.canRead("linkedCommunityId", as: Int64?.self, types: types)
+        case ("Update", "updateChannelAvailableMessages"): return constructor.canRead("channelId", as: Int64.self, types: types) && constructor.canRead("availableMinId", as: Int32.self, types: types)
+        case ("Username", "username"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("username", as: String.self, types: types)
+        case ("messages.AffectedHistory", "affectedHistory"): return constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types) && constructor.canRead("offset", as: Int32.self, types: types)
+        case ("MessageAction", "messageActionEmpty"): return constructor.fields.isEmpty
+        case ("JSONValue", "jsonString"): return constructor.canRead("value", as: String.self, types: types)
+        case ("UserFull", "userFull"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("flags2", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("about", as: String?.self, types: types) && constructor.canRead("settings", as: Api.PeerSettings.self, types: types) && constructor.canRead("personalPhoto", as: Api.Photo?.self, types: types) && constructor.canRead("profilePhoto", as: Api.Photo?.self, types: types) && constructor.canRead("fallbackPhoto", as: Api.Photo?.self, types: types) && constructor.canRead("notifySettings", as: Api.PeerNotifySettings.self, types: types) && constructor.canRead("botInfo", as: TLRecord?.self, types: types) && constructor.canRead("pinnedMsgId", as: Int32?.self, types: types) && constructor.canRead("commonChatsCount", as: Int32.self, types: types) && constructor.canRead("folderId", as: Int32?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types) && constructor.canRead("theme", as: TLRecord?.self, types: types) && constructor.canRead("privateForwardName", as: String?.self, types: types) && constructor.canRead("botGroupAdminRights", as: TLRecord?.self, types: types) && constructor.canRead("botBroadcastAdminRights", as: TLRecord?.self, types: types) && constructor.canRead("wallpaper", as: TLRecord?.self, types: types) && constructor.canRead("stories", as: TLRecord?.self, types: types) && constructor.canRead("businessWorkHours", as: TLRecord?.self, types: types) && constructor.canRead("businessLocation", as: TLRecord?.self, types: types) && constructor.canRead("businessGreetingMessage", as: TLRecord?.self, types: types) && constructor.canRead("businessAwayMessage", as: TLRecord?.self, types: types) && constructor.canRead("businessIntro", as: TLRecord?.self, types: types) && constructor.canRead("birthday", as: TLRecord?.self, types: types) && constructor.canRead("personalChannelId", as: Int64?.self, types: types) && constructor.canRead("personalChannelMessage", as: Int32?.self, types: types) && constructor.canRead("stargiftsCount", as: Int32?.self, types: types) && constructor.canRead("starrefProgram", as: TLRecord?.self, types: types) && constructor.canRead("botVerification", as: TLRecord?.self, types: types) && constructor.canRead("sendPaidMessagesStars", as: Int64?.self, types: types) && constructor.canRead("disallowedGifts", as: TLRecord?.self, types: types) && constructor.canRead("starsRating", as: TLRecord?.self, types: types) && constructor.canRead("starsMyPendingRating", as: TLRecord?.self, types: types) && constructor.canRead("starsMyPendingRatingDate", as: Int32?.self, types: types) && constructor.canRead("mainTab", as: TLRecord?.self, types: types) && constructor.canRead("savedMusic", as: Api.Document?.self, types: types) && constructor.canRead("note", as: TLRecord?.self, types: types) && constructor.canRead("botManagerId", as: Int64?.self, types: types) && constructor.canRead("walletCard", as: Api.wallet.Card?.self, types: types) && constructor.canRead("shareTheme", as: Api.ShareTheme?.self, types: types)
+        case ("MessageMedia", "messageMediaGeoLive"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("geo", as: TLRecord.self, types: types) && constructor.canRead("heading", as: Int32?.self, types: types) && constructor.canRead("period", as: Int32.self, types: types) && constructor.canRead("proximityNotificationRadius", as: Int32?.self, types: types)
+        case ("InputFileLocation", "inputDocumentFileLocation"): return constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types) && constructor.canRead("fileReference", as: Buffer.self, types: types) && constructor.canRead("thumbSize", as: String.self, types: types)
+        case ("RichMessage", "richMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("blocks", as: [Api.PageBlock].self, types: types) && constructor.canRead("photos", as: [Api.Photo].self, types: types) && constructor.canRead("documents", as: [Api.Document].self, types: types)
+        case ("MessageEntity", "messageEntityBold"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("MessageEntity", "messageEntityStrike"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("JSONObjectValue", "jsonObjectValue"): return constructor.canRead("key", as: String.self, types: types) && constructor.canRead("value", as: Api.JSONValue.self, types: types)
+        case ("Update", "updateDeleteChannelMessages"): return constructor.canRead("channelId", as: Int64.self, types: types) && constructor.canRead("messages", as: [Int32].self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
+        case ("JSONValue", "jsonBool"): return constructor.canRead("value", as: Api.Bool.self, types: types)
+        case ("messages.Messages", "channelMessages"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("count", as: Int32.self, types: types) && constructor.canRead("offsetIdOffset", as: Int32?.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [Api.ForumTopic].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("MessageEntity", "messageEntityCustomEmoji"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types) && constructor.canRead("documentId", as: Int64.self, types: types)
+        case ("Config", "config"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("expires", as: Int32.self, types: types) && constructor.canRead("testMode", as: Api.Bool.self, types: types) && constructor.canRead("thisDc", as: Int32.self, types: types) && constructor.canRead("dcOptions", as: [TLRecord].self, types: types) && constructor.canRead("dcTxtDomainName", as: String.self, types: types) && constructor.canRead("chatSizeMax", as: Int32.self, types: types) && constructor.canRead("megagroupSizeMax", as: Int32.self, types: types) && constructor.canRead("forwardedCountMax", as: Int32.self, types: types) && constructor.canRead("onlineUpdatePeriodMs", as: Int32.self, types: types) && constructor.canRead("offlineBlurTimeoutMs", as: Int32.self, types: types) && constructor.canRead("offlineIdleTimeoutMs", as: Int32.self, types: types) && constructor.canRead("onlineCloudTimeoutMs", as: Int32.self, types: types) && constructor.canRead("notifyCloudDelayMs", as: Int32.self, types: types) && constructor.canRead("notifyDefaultDelayMs", as: Int32.self, types: types) && constructor.canRead("pushChatPeriodMs", as: Int32.self, types: types) && constructor.canRead("pushChatLimit", as: Int32.self, types: types) && constructor.canRead("editTimeLimit", as: Int32.self, types: types) && constructor.canRead("revokeTimeLimit", as: Int32.self, types: types) && constructor.canRead("revokePmTimeLimit", as: Int32.self, types: types) && constructor.canRead("ratingEDecay", as: Int32.self, types: types) && constructor.canRead("stickersRecentLimit", as: Int32.self, types: types) && constructor.canRead("channelsReadMediaPeriod", as: Int32.self, types: types) && constructor.canRead("tmpSessions", as: Int32?.self, types: types) && constructor.canRead("callReceiveTimeoutMs", as: Int32.self, types: types) && constructor.canRead("callRingTimeoutMs", as: Int32.self, types: types) && constructor.canRead("callConnectTimeoutMs", as: Int32.self, types: types) && constructor.canRead("callPacketTimeoutMs", as: Int32.self, types: types) && constructor.canRead("meUrlPrefix", as: String.self, types: types) && constructor.canRead("autoupdateUrlPrefix", as: String?.self, types: types) && constructor.canRead("gifSearchUsername", as: String?.self, types: types) && constructor.canRead("venueSearchUsername", as: String?.self, types: types) && constructor.canRead("imgSearchUsername", as: String?.self, types: types) && constructor.canRead("staticMapsProvider", as: String?.self, types: types) && constructor.canRead("captionLengthMax", as: Int32.self, types: types) && constructor.canRead("messageLengthMax", as: Int32.self, types: types) && constructor.canRead("webfileDcId", as: Int32.self, types: types) && constructor.canRead("suggestedLangCode", as: String?.self, types: types) && constructor.canRead("langPackVersion", as: Int32?.self, types: types) && constructor.canRead("baseLangPackVersion", as: Int32?.self, types: types) && constructor.canRead("reactionsDefault", as: Api.Reaction?.self, types: types) && constructor.canRead("autologinToken", as: String?.self, types: types)
+        case ("RestrictionReason", "restrictionReason"): return constructor.canRead("platform", as: String.self, types: types) && constructor.canRead("reason", as: String.self, types: types) && constructor.canRead("text", as: String.self, types: types)
+        case ("User", "userEmpty"): return constructor.canRead("id", as: Int64.self, types: types)
+        case ("MessageEntity", "messageEntityMentionName"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types) && constructor.canRead("userId", as: Int64.self, types: types)
+        case ("help.AppConfig", "appConfig"): return constructor.canRead("hash", as: Int32.self, types: types) && constructor.canRead("config", as: Api.JSONValue.self, types: types)
+        case ("EphemeralMessage", "ephemeralMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("fromId", as: Api.Peer.self, types: types) && constructor.canRead("peerId", as: Api.Peer?.self, types: types) && constructor.canRead("receiverId", as: Int64.self, types: types) && constructor.canRead("topMsgId", as: Int32?.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("message", as: String.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types) && constructor.canRead("media", as: Api.MessageMedia?.self, types: types) && constructor.canRead("replyMarkup", as: TLRecord?.self, types: types) && constructor.canRead("replyTo", as: Api.MessageReplyHeader?.self, types: types) && constructor.canRead("richMessage", as: Api.RichMessage?.self, types: types) && constructor.canRead("chatInstance", as: Int64?.self, types: types) && constructor.canRead("anchorMsgId", as: Int32?.self, types: types)
+        case ("InputPeer", "inputPeerUser"): return constructor.canRead("userId", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types)
+        case ("MessageMedia", "messageMediaWebPage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("webpage", as: TLRecord.self, types: types)
+        case ("MessageMedia", "messageMediaPhoto"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("photo", as: Api.Photo?.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types) && constructor.canRead("video", as: Api.Document?.self, types: types)
+        case ("Updates", "updatesTooLong"): return constructor.fields.isEmpty
+        case ("InputMedia", "inputMediaPhoto"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Api.InputPhoto.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types) && constructor.canRead("video", as: Api.InputDocument?.self, types: types)
+        case ("Update", "updateEditMessage"): return constructor.canRead("message", as: Api.Message.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
+        case ("messages.ChatFull", "chatFull"): return constructor.canRead("fullChat", as: Api.ChatFull.self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("messages.Reactions", "reactions"): return constructor.canRead("hash", as: Int64.self, types: types) && constructor.canRead("reactions", as: [Api.Reaction].self, types: types)
+        case ("MessageEntity", "messageEntityBlockquote"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("InputUser", "inputUser"): return constructor.canRead("userId", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types)
+        case ("Update", "updateDeleteScheduledMessages"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("peer", as: Api.Peer.self, types: types) && constructor.canRead("messages", as: [Int32].self, types: types) && constructor.canRead("sentMessages", as: [Int32]?.self, types: types)
+        case ("InputChannel", "inputChannel"): return constructor.canRead("channelId", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types)
+        case ("PeerSettings", "peerSettings"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("geoDistance", as: Int32?.self, types: types) && constructor.canRead("requestChatTitle", as: String?.self, types: types) && constructor.canRead("requestChatDate", as: Int32?.self, types: types) && constructor.canRead("businessBotId", as: Int64?.self, types: types) && constructor.canRead("businessBotManageUrl", as: String?.self, types: types) && constructor.canRead("chargePaidMessageStars", as: Int64?.self, types: types) && constructor.canRead("registrationMonth", as: String?.self, types: types) && constructor.canRead("phoneCountry", as: String?.self, types: types) && constructor.canRead("nameChangeDate", as: Int32?.self, types: types) && constructor.canRead("photoChangeDate", as: Int32?.self, types: types)
+        case ("InputFile", "inputFile"): return constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("parts", as: Int32.self, types: types) && constructor.canRead("name", as: String.self, types: types) && constructor.canRead("md5Checksum", as: String.self, types: types)
+        case ("JSONValue", "jsonArray"): return constructor.canRead("value", as: [Api.JSONValue].self, types: types)
+        case ("InputUser", "inputUserSelf"): return constructor.fields.isEmpty
+        case ("MessageEntity", "messageEntityMention"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types)
+        case ("PhotoSize", "photoSizeProgressive"): return constructor.canRead("type", as: String.self, types: types) && constructor.canRead("w", as: Int32.self, types: types) && constructor.canRead("h", as: Int32.self, types: types) && constructor.canRead("sizes", as: [Int32].self, types: types)
+        case ("InputFile", "inputFileBig"): return constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("parts", as: Int32.self, types: types) && constructor.canRead("name", as: String.self, types: types)
+        case ("Photo", "photo"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types) && constructor.canRead("fileReference", as: Buffer.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("sizes", as: [Api.PhotoSize].self, types: types) && constructor.canRead("videoSizes", as: [TLRecord]?.self, types: types) && constructor.canRead("dcId", as: Int32.self, types: types)
+        case ("Dialog", "dialog"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("peer", as: Api.Peer.self, types: types) && constructor.canRead("topMessage", as: Int32.self, types: types) && constructor.canRead("readInboxMaxId", as: Int32.self, types: types) && constructor.canRead("readOutboxMaxId", as: Int32.self, types: types) && constructor.canRead("unreadCount", as: Int32.self, types: types) && constructor.canRead("unreadMentionsCount", as: Int32.self, types: types) && constructor.canRead("unreadReactionsCount", as: Int32.self, types: types) && constructor.canRead("unreadPollVotesCount", as: Int32.self, types: types) && constructor.canRead("notifySettings", as: Api.PeerNotifySettings.self, types: types) && constructor.canRead("pts", as: Int32?.self, types: types) && constructor.canRead("draft", as: TLRecord?.self, types: types) && constructor.canRead("folderId", as: Int32?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types)
+        case ("DocumentAttribute", "documentAttributeCustomEmoji"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("alt", as: String.self, types: types) && constructor.canRead("stickerset", as: TLRecord.self, types: types)
+        default: return false
+        }
+    }
+}
+
+extension Api {
     static func view(_ record: TLRecord) -> Any {
         switch record.typeName {
         case "Bool": return Api.Bool(record) ?? .other(record)
@@ -6777,7 +6771,6 @@ extension Api {
         case "users.UserFull": return Api.users.UserFull(record) ?? .other(record)
         case "users.Users": return Api.users.Users(record) ?? .other(record)
         case "wallet.Card": return Api.wallet.Card(record) ?? .other(record)
-        case "wallet.NftItem": return Api.wallet.NftItem(record) ?? .other(record)
         default: return record
         }
     }

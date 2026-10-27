@@ -31,10 +31,16 @@ clang -fobjc-arc -Werror -DTGEXTRA_TESTING -c Sources/tgapiC/HostTLSchema.m -o "
 clang -fobjc-arc -c Sources/tgapiC/HistoryAccount.m -o "$test_build_dir/history-account.o"
 clang -fobjc-arc -Werror -Wno-deprecated-declarations -DTGEXTRA_TESTING -ISources/tgapiC/include -c Sources/tgapi/ForwardCopy.m -o "$test_build_dir/forward-copy.o"
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -ISources/tgapiC/include -c Tests/forward_copy.m -o "$test_build_dir/forward-copy-tests.o"
-swiftc -whole-module-optimization -I Sources/tgapiC/include -I Tests/Support -module-cache-path "$test_build_dir/cache" \
-    Sources/tgapi/TL/*.swift Sources/tgapi/TLParser.swift Sources/tgapi/ForwardCopy.swift Tests/content_settings.swift Tests/api_compatibility.swift Tests/forward_copy.swift Tests/message_protection.swift Tests/read_contents.swift Tests/own_user_accounts.swift Tests/rendered_messages.swift Tests/host_runtime.swift Tests/main.swift \
+optimization=-Onone
+if [[ "${1:-}" == "--benchmark" ]]; then optimization=-O; fi
+swiftc "$optimization" -whole-module-optimization -I Sources/tgapiC/include -I Tests/Support -module-cache-path "$test_build_dir/cache" \
+    Sources/tgapi/TL/*.swift Sources/tgapi/TLParser.swift Sources/tgapi/ForwardCopy.swift Tests/content_settings.swift Tests/api_compatibility.swift Tests/forward_copy.swift Tests/message_protection.swift Tests/read_contents.swift Tests/own_user_accounts.swift Tests/rendered_messages.swift Tests/host_runtime.swift Tests/codec_benchmark.swift Tests/main.swift \
     "$test_build_dir"/*.o -lz -o "$test_build_dir/TGExtraTests"
 export TGEXTRA_TL_SCHEMA="$test_build_dir/Tests/Fixtures/TelegramApiSchema.zlib"
+if [[ "${1:-}" == "--benchmark" ]]; then
+    "$test_build_dir/TGExtraTests" --benchmark
+    exit
+fi
 "$test_build_dir/TGExtraTests"
 
 "$test_build_dir/TGExtraTests" --restore

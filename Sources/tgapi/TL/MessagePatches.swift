@@ -25,8 +25,17 @@ enum MessagePatches {
     }
 
     struct Settings {
-        var defaults: UserDefaults = .standard
-        func enabled(_ setting: Setting) -> Bool { defaults.bool(forKey: setting.rawValue) }
+        private let defaults: UserDefaults
+        private let captured: [Setting: Bool]?
+
+        init(defaults: UserDefaults = .standard, snapshot: Bool = false) {
+            self.defaults = defaults
+            captured = snapshot ? Dictionary(uniqueKeysWithValues: Setting.allCases.map {
+                ($0, defaults.bool(forKey: $0.rawValue))
+            }) : nil
+        }
+
+        func enabled(_ setting: Setting) -> Bool { captured?[setting] ?? defaults.bool(forKey: setting.rawValue) }
         var preventAutoDelete: Bool { enabled(.preventAutoDelete) }
         var preventMediaSelfDestruct: Bool { enabled(.preventMediaSelfDestruct) }
         var bypassForwarding: Bool { enabled(.bypassForwarding) }
@@ -128,7 +137,7 @@ enum MessagePatches {
     // Compact updates also clear media_unread, matching the existing policy.
     @discardableResult
     static func removeAutoDeleteTimer(from record: TLRecord, settings: Settings = .init()) -> Bool {
-        guard settings.preventAutoDelete, record.fields["ttlPeriod"] != nil else { return false }
+        guard settings.preventAutoDelete, record["ttlPeriod"] != nil else { return false }
         let patch = TLDataPatch(record, rule: Setting.preventAutoDelete.rawValue)
         switch record.typeName + "." + record.constructorName {
         case "Message.message", "Message.messageService":
@@ -202,7 +211,7 @@ enum MessagePatches {
             if text.hasPrefix("⏱️ ") { text.removeFirst(3) }
             let offset = Int32(marker.count)
             for entity in entities {
-                if let current = entity.record.fields["offset"] as? Int32 {
+                if let current = entity.record["offset"] as? Int32 {
                     TLDataPatch(entity.record, rule: "disappearing label offsets").replaceField("offset", current + offset)
                 }
             }
@@ -228,8 +237,8 @@ enum MessagePatches {
         case "updateDeleteEphemeralMessages": field = "ids"
         default: return false
         }
-        if record.constructorName == "updateDeleteScheduledMessages", record.fields["sentMessages"] != nil { return false }
-        guard let original = record.fields[field] as? [Int32], original.count == ids.count,
+        if record.constructorName == "updateDeleteScheduledMessages", record["sentMessages"] != nil { return false }
+        guard let original = record[field] as? [Int32], original.count == ids.count,
               zip(original, ids).allSatisfy({ $0.0 == $0.1 || $0.1 == 0 }) else { return false }
         let keys: [Setting] = [.keepDeletedMessages, .preventMediaSelfDestruct, .preventAutoDelete]
         let reason = keys.filter { settings.enabled($0) }.map(\.rawValue).joined(separator: " || ")

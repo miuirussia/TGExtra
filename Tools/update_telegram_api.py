@@ -77,7 +77,7 @@ def generate(schema):
                 out += [f'            case "{c["name"]}" where record.descriptor?.fields.isEmpty == true: self = .{c["name"]}\n']
                 continue
             checks = " && ".join(f'record.canRead("{f["name"]}", as: {field_type(f)}.self)' for f in c["fields"]) or "true"
-            out += [f'            case "{c["name"]}" where {checks}:\n',
+            out += [f'            case "{c["name"]}" where record.hasCompatibleView || ({checks}):\n',
                     f'                self = .{c["name"]}(Cons_{c["name"]}(record: record))\n']
         out += ["            default: self = .other(record)\n", "            }\n", "        }\n",
                 "        public var record: TLRecord {\n", "            switch self {\n"]
@@ -96,6 +96,16 @@ def generate(schema):
         out += [f'        record.set("{v["name"]}", `{v["name"]}`)\n' for v in f["fields"]]
         out += ["        let buffer = Buffer()\n", "        record.serialize(buffer, true)\n",
                 f'        return (FunctionDescription(name: "{f["name"]}", parameters: []), buffer)\n', "    }\n", "}\n"]
+    # Validate a policy view once when loading a host constructor. Decoding has
+    # already checked wire values, so subsequent view access needs no field walk.
+    out += ["\nextension Api {\n",
+            "    static func supportsView(_ constructor: TLConstructor, type: String, types: [String]) -> Swift.Bool {\n",
+            "        switch (type, constructor.name) {\n"]
+    for c in selected:
+        checks = " && ".join(f'constructor.canRead("{f["name"]}", as: {field_type(f)}.self, types: types)' for f in c["fields"])
+        checks = checks or "constructor.fields.isEmpty"
+        out += [f'        case ("{c["type"]}", "{c["name"]}"): return {checks}\n']
+    out += ["        default: return false\n", "        }\n", "    }\n", "}\n"]
     out += ["\nextension Api {\n", "    static func view(_ record: TLRecord) -> Any {\n", "        switch record.typeName {\n"]
     out += [f'        case "{t}": return Api.{t}(record) ?? .other(record)\n' for t in sorted(types)]
     out += ["        default: return record\n", "        }\n", "    }\n", "}\n"]

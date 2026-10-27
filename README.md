@@ -96,8 +96,9 @@ not cleared by this action.
 TGExtra reads the original compressed TL schema from the loaded app and uses one
 table-driven codec. Only the message-policy views are generated; the tweak ships
 no standalone API or schema snapshot. The supported schema format is TLS1 v3,
-verified in Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343). Older 13.0 wire IDs
-remain readable for saved messages. Apps without a compatible embedded table keep
+verified in Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343). Telegram/Swiftgram
+13.1 or newer is required; pre-13.1 constructors and snapshots are unsupported.
+Apps without a compatible embedded table keep
 their original protocol data; message policies require that table. UI hooks depend
 on the host app's private interfaces.
 
@@ -210,10 +211,18 @@ usage in Swift, regenerate from the existing test fixture without supplying an I
 python3 Tools/update_telegram_api.py
 ```
 
+The codec stores values by schema field index and validates typed-view layouts
+once per host constructor. With message policies off it validates packets without
+building message payloads, while still removing content restrictions and learning
+peer names. Unmodified decoded objects can reuse their packet bytes; object edits
+invalidate that path, and mutable byte buffers always use value serialization.
+
 Run the protocol and regression tests on macOS:
 
 ```sh
 bash Tests/run.sh
+# Optimized TL benchmarks, identical packets and checked results:
+bash Tests/run.sh --benchmark
 ```
 
 The suite covers privacy, message protection, edit history, account isolation,

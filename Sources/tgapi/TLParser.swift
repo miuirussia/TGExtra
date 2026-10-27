@@ -28,7 +28,7 @@ class TLParser: NSObject {
     private static var contentReadOrder = [EditKey]()
 
     private static var tracksContentReads: Bool {
-        return MessagePatches.Settings().tracksContentReads
+        return packetSettings.tracksContentReads
     }
 
     private static func noteContentReadState(id: Int32, peer: Int64, mention: Bool? = nil, reaction: Bool?, disappearingMedia: Bool? = nil) {
@@ -162,12 +162,8 @@ class TLParser: NSObject {
         }
     }
 
-    private static func decodedSnapshot(_ bytes: Data, forHost: Bool = false) -> Api.Message? {
+    private static func decodedSnapshot(_ bytes: Data) -> Api.Message? {
         let reader = BufferReader(Buffer(data: bytes))
-        if forHost, let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
-           version.compare("13.1", options: .numeric) != .orderedAscending {
-            reader.preserveLegacyConstructorIds = false
-        }
         guard let constructor = reader.readInt32(),
               let message = Api.parse(reader, signature: constructor) as? Api.Message,
               reader.offset == UInt(bytes.count) else { return nil }
@@ -177,7 +173,7 @@ class TLParser: NSObject {
 
     private static func cacheMessage(_ message: Api.Message) {
         guard processingNamespace == 0, let account = processingHistoryAccount else { return }
-        guard MessagePatches.Settings().protectsAnyDeletions else { return }
+        guard packetSettings.protectsAnyDeletions else { return }
         let id: Int32
         let peer: Int64
         let editDate: Int32?
@@ -228,7 +224,7 @@ class TLParser: NSObject {
                 return key.peer > -1_000_000_000_000
             }
             guard matches.count == 1, let key = matches.first, let bytes = snapshots[key],
-                  let snapshot = decodedSnapshot(bytes, forHost: true),
+                  let snapshot = decodedSnapshot(bytes),
                   neutralizeDeletions([id], peer: key.peer) != nil else { continue }
             recovered[id] = snapshot
         }
@@ -665,7 +661,7 @@ class TLParser: NSObject {
         if let texts = value as? [Api.RichText] { return texts.map { richText($0, depth: depth + 1) }.joined() }
         if let record = Api.record(value), let descriptor = record.descriptor {
             let pieces = descriptor.fields.compactMap { field in
-                record.fields[field.name].map { richText(Api.exposedValue($0), depth: depth + 1) }
+                record[field.name].map { richText(Api.exposedValue($0), depth: depth + 1) }
             }.filter { !$0.isEmpty }
             return pieces.joined(separator: record.typeName == "RichMessage" ? "\n" : "")
         }
@@ -685,7 +681,7 @@ class TLParser: NSObject {
             discardOwnEditHistory(id: id, peer: peer, account: processingHistoryAccount, namespace: processingNamespace)
             return
         }
-        guard isAntiEditEnabled else { return }
+        guard packetSettings.keepEditHistory else { return }
         guard id != 0 else { return }
         diag("anti-edit RECORD id=\(id) peer=\(peer) \(text.count) chars")
         _ = recordText(text, forId: id, peer: peer, editDate: nil, content: revisionContent(entities: entities, media: nil, rich: nil))
@@ -708,7 +704,7 @@ class TLParser: NSObject {
             discardOwnEditHistory(id: data.id, peer: peer, account: processingHistoryAccount, namespace: processingNamespace)
             return
         }
-        guard isAntiEditEnabled else { return }
+        guard packetSettings.keepEditHistory else { return }
         let text = data.richMessage.map { richText($0) }.flatMap { $0.isEmpty ? nil : $0 } ?? data.message
         let content = revisionContent(entities: data.entities, media: data.media, rich: data.richMessage)
         guard recordText(text, forId: data.id, peer: peer, editDate: data.editDate,
@@ -1391,7 +1387,7 @@ class TLParser: NSObject {
     /// which the tweak has no typed view.
     private static func noteUsersAnywhere(_ result: Any) {
         guard let record = Api.record(result) else { return }
-        if let values = record.fields["users"] as? [TLRecord] {
+        if let values = record["users"] as? [TLRecord] {
             let users = values.compactMap(Api.User.init)
             noteOwnUser(in: users)
             notePeerNames(in: users)
@@ -1506,7 +1502,7 @@ class TLParser: NSObject {
         payload.getBytes(&function, length: 4)
         function = Int32(littleEndian: function)
         guard function == 916930423 || function == -357180360 else { return nil }
-        let settings = MessagePatches.Settings()
+        let settings = MessagePatches.Settings(snapshot: true)
         guard settings.filtersContentReceipts else { return nil }
         let reader = BufferReader(Buffer(nsData: payload))
         _ = reader.readInt32()
@@ -1569,15 +1565,14 @@ class TLParser: NSObject {
         return peerKey(peer)
     }
 
-    private static func stripTTLMedia(_ media: Api.MessageMedia, messageId: Int32, scope: Int64) -> Api.MessageMedia {
-        if MessagePatches.removeMediaTimer(from: media.record) {
-            recordTimedId(messageId, scope: scope, disappearing: true)
-        }
-        return media
+    private static func stripTTLMedia(_ media: Api.MessageMedia, messageId: Int32, scope: Int64) -> Bool {
+        guard MessagePatches.removeMediaTimer(from: media.record, settings: packetSettings) else { return false }
+        recordTimedId(messageId, scope: scope, disappearing: true)
+        return true
     }
 
     private static func stripNoForwards(_ chat: Api.Chat) -> (Api.Chat, Bool) {
-        return (chat, MessagePatches.removeForwardingProtection(from: chat.record))
+        return (chat, MessagePatches.removeForwardingProtection(from: chat.record, settings: packetSettings))
     }
 
     private static func stripNoForwardsFromChats(_ chats: [Api.Chat]) -> ([Api.Chat], Bool) {
@@ -1603,7 +1598,7 @@ class TLParser: NSObject {
                                  reaction: hasUnreadReactions(data.reactions), disappearingMedia: false)
             guard data.ttlPeriod != nil else { return (apiMsg, false) }
             recordTimedId(data.id, scope: deletionScope(data.peerId), disappearing: false)
-            return (apiMsg, MessagePatches.removeAutoDeleteTimer(from: apiMsg.record))
+            return (apiMsg, MessagePatches.removeAutoDeleteTimer(from: apiMsg.record, settings: packetSettings))
         }
         guard case let .message(data) = apiMsg else { return (apiMsg, false) }
         let scope = deletionScope(data.peerId)
@@ -1618,15 +1613,13 @@ class TLParser: NSObject {
                              reaction: hasUnreadReactions(data.reactions), disappearingMedia: disappearingMedia)
         let autoDelete = data.ttlPeriod != nil
         if autoDelete { recordTimedId(data.id, scope: scope, disappearing: false) }
-        let before = serializeBoxed(apiMsg)
-        if let media = data.media {
-            _ = stripTTLMedia(media, messageId: data.id, scope: scope)
-        }
+        let before = apiMsg.record.changes.count
+        let mediaChanged = data.media.map { stripTTLMedia($0, messageId: data.id, scope: scope) } ?? false
         let disappearing = markerBits(id: data.id, peer: scope, account: processingHistoryAccount, namespace: processingNamespace) & disappearingMarker != 0
-        MessagePatches.removeAutoDeleteTimer(from: apiMsg.record)
-        MessagePatches.markDisappearingMessage(apiMsg, observedDisappearing: disappearing)
-        MessagePatches.removeForwardingProtection(from: apiMsg.record)
-        return (apiMsg, before != serializeBoxed(apiMsg))
+        MessagePatches.removeAutoDeleteTimer(from: apiMsg.record, settings: packetSettings)
+        MessagePatches.markDisappearingMessage(apiMsg, observedDisappearing: disappearing, settings: packetSettings)
+        MessagePatches.removeForwardingProtection(from: apiMsg.record, settings: packetSettings)
+        return (apiMsg, mediaChanged || before != apiMsg.record.changes.count)
     }
 
     private static func stripTTLUpdates(_ updates: [Api.Update]) -> ([Api.Update], Bool) {
@@ -1675,13 +1668,13 @@ class TLParser: NSObject {
             cacheMessage(data.message)
             // Logged before the flag check: silence here otherwise cannot be
             // told apart from "the update never arrived".
-            diag("updateEditMessage seen, antiEdit=\(isAntiEditEnabled)")
+            diag("updateEditMessage seen, antiEdit=\(packetSettings.keepEditHistory)")
             trackMessageVersions(data.message, allowUndatedEdit: true)
             let (message, changed) = stripTTLMessage(data.message)
             return (.updateEditMessage(.init(message: message, pts: data.pts, ptsCount: data.ptsCount)), changed)
         case let .updateEditChannelMessage(data):
             cacheMessage(data.message)
-            diag("updateEditChannelMessage seen, antiEdit=\(isAntiEditEnabled)")
+            diag("updateEditChannelMessage seen, antiEdit=\(packetSettings.keepEditHistory)")
             trackMessageVersions(data.message, allowUndatedEdit: true)
             let (message, changed) = stripTTLMessage(data.message)
             return (.updateEditChannelMessage(.init(message: message, pts: data.pts, ptsCount: data.ptsCount)), changed)
@@ -1702,13 +1695,13 @@ class TLParser: NSObject {
             guard data.sentMessages == nil else { return (update, false) }
             return withNamespace(3) {
                 guard let kept = neutralizeDeletions(data.messages, peer: peerKey(data.peer)) else { return (update, false) }
-                MessagePatches.replaceDeletionIds(in: update.record, keeping: kept)
+                MessagePatches.replaceDeletionIds(in: update.record, keeping: kept, settings: packetSettings)
                 return (update, true)
             }
         case let .updateDeleteQuickReplyMessages(data):
             return withNamespace(5) {
                 guard let kept = neutralizeDeletions(data.messages, peer: cloudScope) else { return (update, false) }
-                MessagePatches.replaceDeletionIds(in: update.record, keeping: kept)
+                MessagePatches.replaceDeletionIds(in: update.record, keeping: kept, settings: packetSettings)
                 return (update, true)
             }
         case let .updateNewEphemeralMessage(data):
@@ -1724,10 +1717,10 @@ class TLParser: NSObject {
                 let kept = withNamespace(namespace) { neutralizeDeletions(data.ids, peer: peerKey(data.peer)) ?? data.ids }
                 ids = zip(ids, kept).map { $0 == 0 || $1 == 0 ? 0 : $0 }
             }
-            let changed = MessagePatches.replaceDeletionIds(in: update.record, keeping: ids)
+            let changed = MessagePatches.replaceDeletionIds(in: update.record, keeping: ids, settings: packetSettings)
             return (update, changed)
         case let .updateChannelAvailableMessages(data):
-            guard let noDeletion = MessagePatches.suppressChannelHistoryPruning(update) else { return (update, false) }
+            guard let noDeletion = MessagePatches.suppressChannelHistoryPruning(update, settings: packetSettings) else { return (update, false) }
             if let account = processingHistoryAccount, data.availableMinId > 0 {
                 loadMarkers()
                 let peer = -(1_000_000_000_000 + data.channelId)
@@ -1748,12 +1741,12 @@ class TLParser: NSObject {
             return (noDeletion, true)
         case let .updateDeleteMessages(data):
             guard let kept = neutralizeDeletions(data.messages, peer: cloudScope) else { return (update, false) }
-            MessagePatches.replaceDeletionIds(in: update.record, keeping: kept)
+            MessagePatches.replaceDeletionIds(in: update.record, keeping: kept, settings: packetSettings)
             return (update, true)
         case let .updateDeleteChannelMessages(data):
             let channelPeer = -(1_000_000_000_000 + data.channelId)
             guard let kept = neutralizeDeletions(data.messages, peer: channelPeer) else { return (update, false) }
-            MessagePatches.replaceDeletionIds(in: update.record, keeping: kept)
+            MessagePatches.replaceDeletionIds(in: update.record, keeping: kept, settings: packetSettings)
             return (update, true)
         default:
             return (update, false)
@@ -1764,9 +1757,7 @@ class TLParser: NSObject {
         guard case let .ephemeralMessage(data) = message else { return false }
         guard let peer = data.peerId else {
             guard let media = data.media else { return false }
-            let before = serializeBoxed(message)
-            _ = stripTTLMedia(media, messageId: 0, scope: 0)
-            return before != serializeBoxed(message)
+            return stripTTLMedia(media, messageId: 0, scope: 0)
         }
         let namespace: Int32 = data.flags & (1 << 5) != 0 ? 9 : (data.anchorMsgId == nil ? 7 : 8)
         return withNamespace(namespace) {
@@ -1774,7 +1765,7 @@ class TLParser: NSObject {
             if own {
                 discardOwnEditHistory(id: data.id, peer: peerKey(peer), account: processingHistoryAccount, namespace: namespace)
             }
-            if isAntiEditEnabled && isOwnIdKnown && !own {
+            if packetSettings.keepEditHistory && isOwnIdKnown && !own {
                 let text = data.richMessage.map { richText($0) }.flatMap { $0.isEmpty ? nil : $0 } ?? data.message
                 if recordText(text, forId: data.id, peer: peerKey(peer), editDate: nil, allowUndatedEdit: isEdit,
                               content: revisionContent(entities: data.entities, media: data.media, rich: data.richMessage)),
@@ -1788,11 +1779,7 @@ class TLParser: NSObject {
                     }
                 }
             }
-            let before = serializeBoxed(message)
-            if let media = data.media {
-                _ = stripTTLMedia(media, messageId: data.id, scope: peerKey(peer))
-            }
-            return before != serializeBoxed(message)
+            return data.media.map { stripTTLMedia($0, messageId: data.id, scope: peerKey(peer)) } ?? false
         }
     }
 
@@ -1809,7 +1796,7 @@ class TLParser: NSObject {
     /// count, pts and pts_count stay as the server sent them, and message 0
     /// exists nowhere, so Telegram applies the deletion to nothing.
     private static func neutralizeDeletions(_ ids: [Int32], peer: Int64) -> [Int32]? {
-        let settings = MessagePatches.Settings()
+        let settings = packetSettings
         guard settings.protectsAnyDeletions else { return nil }
         let kept = ids.map { id -> Int32 in
             guard id != 0 else { return 0 }
@@ -1966,7 +1953,7 @@ class TLParser: NSObject {
         MessagePatches.prepareDecodedObjects(in: reader)
         let batch = patchMessageBatch(messages, chats: [])
         let (patchedUpdates, changedUpdates) = stripTTLUpdates(updates)
-        guard MessagePatches.shouldReserialize(changed: batch.changed || changedUpdates) else {
+        guard MessagePatches.shouldReserialize(changed: batch.changed || changedUpdates, settings: packetSettings) else {
             return reader.dataApplyingPatches()
         }
         func boxedVector(_ values: [Any]) -> Data? {
@@ -2023,7 +2010,7 @@ class TLParser: NSObject {
         var replacements = [(Range<Int>, Data)]()
         for entry in updates {
             let (patched, changed) = stripTTLUpdate(entry.update)
-            if MessagePatches.shouldReserialize(changed: changed) {
+            if MessagePatches.shouldReserialize(changed: changed, settings: packetSettings) {
                 let encoded = serializeBoxed(patched)
                 guard encoded.length >= 4 else { return nil }
                 replacements.append((entry.start..<entry.start + entry.length, encoded as Data))
@@ -2034,6 +2021,9 @@ class TLParser: NSObject {
 
     // Protected by processingLock, including recursive parsing of containers.
     private static var processingHistoryAccount: String?
+    // Accessed only under processingLock. All messages in a packet use one settings snapshot.
+    private static var processingSettings: MessagePatches.Settings?
+    private static var packetSettings: MessagePatches.Settings { processingSettings ?? .init() }
     private static var processingNamespace: Int32 = 0
 
     private static func withNamespace<T>(_ namespace: Int32, _ body: () -> T) -> T {
@@ -2045,6 +2035,8 @@ class TLParser: NSObject {
 
     @objc static func stripAntiSelfDestruct(_ data: NSData, account: String?) -> NSData? {
         processingLock.lock()
+        let previousSettings = processingSettings
+        processingSettings = previousSettings ?? MessagePatches.Settings(snapshot: true)
         if !tracksContentReads {
             // Updates received while tracking is off invalidate older metadata.
             contentReadStates.removeAll()
@@ -2054,6 +2046,7 @@ class TLParser: NSObject {
         processingHistoryAccount = account
         defer {
             processingHistoryAccount = previousAccount
+            processingSettings = previousSettings
             processingLock.unlock()
         }
         guard let patched = patchResponse(data, depth: 0), patched.length >= 4 else { return nil }
@@ -2071,7 +2064,7 @@ class TLParser: NSObject {
 
     private static func patchResponse(_ data: NSData, depth: Int) -> NSData? {
         guard data.length >= 4, depth < 16 else { return nil }
-        let settings = MessagePatches.Settings()
+        let settings = packetSettings
 
         // iOS content restrictions are always removed, independently of the
         // optional message/forwarding features and account-id discovery.
@@ -2126,6 +2119,19 @@ class TLParser: NSObject {
             notePeerNames(in: users)
             return reader.dataApplyingPatches()
         }
+        if !settings.processesMessages, let descriptor = TLCodec.descriptor(signature),
+           HostSchema.shared?.types[descriptor.typeIndex] != "help.AppConfig" {
+            var users = [Api.User]()
+            if TLCodec.scan(reader, descriptor: descriptor, users: &users), reader.offset == UInt(data.length) {
+                MessagePatches.prepareDecodedObjects(in: reader)
+                noteOwnUser(in: users)
+                notePeerNames(in: users)
+                return reader.dataApplyingPatches()
+            }
+            // Preserve the opaque-peer fallback and discard any partial scan.
+            reader.reset()
+            _ = reader.readInt32()
+        }
         // Do not reset the reader, because Api.parse(reader, signature:) expects the reader to be at offset 4
         guard let result = Api.parse(reader, signature: signature) else {
             // Unknown peer constructors can leave a known message/update
@@ -2173,11 +2179,11 @@ class TLParser: NSObject {
                                      reaction: false, disappearingMedia: false)
                 recordShortFormOriginal(id: data.id, text: data.message,
                                         peer: data.userId, entities: data.entities, outgoing: data.flags & (1 << 1) != 0)
-                let before = serializeBoxed(updates)
+                let before = updates.record.changes.count
                 if data.ttlPeriod != nil { recordTimedId(data.id, scope: cloudScope, disappearing: false) }
-                MessagePatches.removeAutoDeleteTimer(from: updates.record)
-                MessagePatches.removeForwardingProtection(from: updates.record)
-                modified = before != serializeBoxed(updates)
+                MessagePatches.removeAutoDeleteTimer(from: updates.record, settings: packetSettings)
+                MessagePatches.removeForwardingProtection(from: updates.record, settings: packetSettings)
+                modified = before != updates.record.changes.count
             case let .updateShortChatMessage(data):
                 noteContentReadState(id: data.id, peer: -data.chatId,
                                      mention: data.flags & (1 << 4) != 0 && data.flags & (1 << 5) != 0,
@@ -2185,18 +2191,18 @@ class TLParser: NSObject {
                 recordShortFormOriginal(id: data.id, text: data.message,
                                         peer: -data.chatId, entities: data.entities,
                                         outgoing: data.flags & (1 << 1) != 0 || isOwnAuthor(.peerUser(.init(userId: data.fromId)), account: processingHistoryAccount))
-                let before = serializeBoxed(updates)
+                let before = updates.record.changes.count
                 if data.ttlPeriod != nil { recordTimedId(data.id, scope: cloudScope, disappearing: false) }
-                MessagePatches.removeAutoDeleteTimer(from: updates.record)
-                MessagePatches.removeForwardingProtection(from: updates.record)
-                modified = before != serializeBoxed(updates)
+                MessagePatches.removeAutoDeleteTimer(from: updates.record, settings: packetSettings)
+                MessagePatches.removeForwardingProtection(from: updates.record, settings: packetSettings)
+                modified = before != updates.record.changes.count
             case let .updateShortSentMessage(data):
-                let before = serializeBoxed(updates)
+                let before = updates.record.changes.count
                 if data.ttlPeriod != nil { recordTimedId(data.id, scope: cloudScope, disappearing: false) }
-                MessagePatches.removeAutoDeleteTimer(from: updates.record)
-                MessagePatches.removeForwardingProtection(from: updates.record)
-                if let media = data.media { _ = stripTTLMedia(media, messageId: data.id, scope: cloudScope) }
-                modified = before != serializeBoxed(updates)
+                MessagePatches.removeAutoDeleteTimer(from: updates.record, settings: packetSettings)
+                MessagePatches.removeForwardingProtection(from: updates.record, settings: packetSettings)
+                let mediaChanged = data.media.map { stripTTLMedia($0, messageId: data.id, scope: cloudScope) } ?? false
+                modified = mediaChanged || before != updates.record.changes.count
             case let .updatesCombined(data):
                 let (stripped, anyStripped) = stripTTLUpdates(data.updates)
                 let (newChats, anyChatsChanged) = stripNoForwardsFromChats(data.chats)
@@ -2438,7 +2444,7 @@ class TLParser: NSObject {
         return withNamespace(namespace) { stripAntiSelfDestruct(data, account: account) }
     }
     @objc static func fakeUpdatesResponse() -> NSData {
-        // Request privacy also works in older hosts without an embedded table.
+        // Keep request privacy independent of schema discovery.
         let buffer = Buffer()
         buffer.appendInt32(1957577280) // updates
         for _ in 0..<3 {

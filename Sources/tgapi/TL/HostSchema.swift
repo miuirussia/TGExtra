@@ -14,12 +14,39 @@ struct TLField {
     let constructorIndex: Int
 }
 
-struct TLConstructor {
+final class TLConstructor {
     let name: String
     let signature: Int32
     let typeIndex: Int
     let caseIndex: Int
     let fields: [TLField]
+    let fieldIndices: [String: Int]
+    // Only these fields can require edits to the original packet.
+    let tracksWireFields: Bool
+    let restrictionIndex: Int?
+    let canScan: Bool
+    private(set) var supportsView = false
+
+    init(name: String, signature: Int32, typeIndex: Int, caseIndex: Int, fields: [TLField], type: String? = nil, types: [String] = []) {
+        self.name = name
+        self.signature = signature
+        self.typeIndex = typeIndex
+        self.caseIndex = caseIndex
+        self.fields = fields
+        self.fieldIndices = Dictionary(uniqueKeysWithValues: fields.enumerated().map { ($0.element.name, $0.offset) })
+        self.tracksWireFields = ["message", "channel", "user", "userFull"].contains(name)
+        let removesRestrictions = (type == "Message" && name == "message") || (type == "Chat" && name == "channel") || (type == "User" && name == "user")
+        if removesRestrictions, let index = fieldIndices["restrictionReason"], fields[index].flagsIndex >= 0 {
+            self.restrictionIndex = index
+        } else { self.restrictionIndex = nil }
+        self.canScan = fields.allSatisfy { $0.flagsIndex < 2 }
+        if let type = type { supportsView = Api.supportsView(self, type: type, types: types) }
+    }
+
+    func canRead<T: TLValue>(_ name: String, as type: T.Type, types: [String]) -> Bool {
+        guard let index = fieldIndices[name] else { return T.tlShape.optional }
+        return T.tlShape.matches(fields[index], types: types)
+    }
 }
 
 final class HostSchema {
@@ -75,6 +102,7 @@ final class HostSchema {
         func fieldSlice(_ first: Int, _ count: Int) -> [TLField]? {
             guard first <= fields.count, count <= fields.count - first else { return nil }
             let result = Array(fields[first..<first + count])
+            guard Set(result.map(\.name)).count == result.count else { return nil }
             for field in result {
                 guard field.flagsIndex >= -1, field.flagsIndex < count else { return nil }
                 if field.flagsIndex >= 0 {
@@ -93,7 +121,7 @@ final class HostSchema {
                   previous == nil || signature > previous! else { return nil }
             previous = signature
             let constructor = TLConstructor(name: name, signature: Int32(bitPattern: signature), typeIndex: type,
-                                            caseIndex: caseIndex, fields: values)
+                                            caseIndex: caseIndex, fields: values, type: types[type], types: types)
             let key = types[type] + "." + name
             guard names[key] == nil else { return nil }
             constructors[constructor.signature] = constructor

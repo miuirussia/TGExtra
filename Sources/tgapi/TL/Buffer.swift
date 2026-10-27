@@ -184,6 +184,7 @@ public func parseBytes(_ reader: BufferReader) -> Buffer? {
         }
         
         let buffer = reader.readBuffer(length)
+        if tmp == 255 || paddingBytes > reader.remaining { reader.wireSource.canCopy = false }
         reader.skip(paddingBytes)
         return buffer
     }
@@ -192,7 +193,9 @@ public func parseBytes(_ reader: BufferReader) -> Buffer? {
 
 func parseString(_ reader: BufferReader) -> String? {
     if let buffer = parseBytes(reader) {
-        return String(data: buffer.makeData(), encoding: .utf8) ?? ""
+        if let value = String(data: buffer.makeData(), encoding: .utf8) { return value }
+        reader.wireSource.canCopy = false
+        return ""
     }
     return nil
 }
@@ -324,14 +327,13 @@ public class Buffer: CustomStringConvertible {
 
 public class BufferReader {
     private let buffer: Buffer
+    lazy var wireSource = TLWireSource(buffer)
     public private(set) var offset: UInt = 0
     var remaining: Int { buffer.size - Int(offset) }
     var parsedRecords = [TLRecord]()
     var changes: [TLFieldChange] { parsedRecords.flatMap(\.changes) }
     private var pendingWireEdits = [Range<Int>: TLWireEdit]()
     var wireEdits: [TLWireEdit] { pendingWireEdits.values.sorted { $0.range.lowerBound < $1.range.lowerBound } }
-    // Network objects retain their wire IDs; restored snapshots may target 13.1.
-    var preserveLegacyConstructorIds = true
     
     public init(_ buffer: Buffer) {
         self.buffer = buffer
@@ -347,6 +349,25 @@ public class BufferReader {
         self.offset = min(self.buffer._size, self.offset + UInt(count))
     }
     
+    // Validation-only traversal uses the same TL field kinds without allocating values.
+    func skipValueBytes(_ count: Int) -> Bool {
+        guard count >= 0, count <= remaining else { return false }
+        offset += UInt(count)
+        return true
+    }
+
+    func skipTLBytes() -> Bool {
+        guard let first = readBytesAsInt32(1) else { return false }
+        let header = first == 254 ? 4 : 1
+        let length: Int
+        if first == 254 {
+            guard let value = readBytesAsInt32(3) else { return false }
+            length = Int(value)
+        } else { length = Int(first) }
+        let padding = (4 - (header + length) % 4) % 4
+        return skipValueBytes(length + padding)
+    }
+
     public func readInt32() -> Int32? {
         if self.offset + 4 <= self.buffer._size {
             let value: Int32 = buffer.data!.advanced(by: Int(self.offset)).assumingMemoryBound(to: Int32.self).pointee
@@ -419,7 +440,7 @@ extension BufferReader {
     // refer to the original packet, including after length-changing removals.
     func replaceFlags(of record: TLRecord, field: String) {
         guard let range = record.wireFields[field], range.count == 4,
-              let flags = record.fields[field] as? Int32 else { return }
+              let flags = record[field] as? Int32 else { return }
         var encoded = flags.littleEndian
         let replacement = withUnsafeBytes(of: &encoded) { Data($0) }
         if let bytes = buffer.data, range.lowerBound >= 0, range.upperBound <= buffer.size,

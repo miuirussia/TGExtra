@@ -21,6 +21,7 @@ func isMessageSelfDestructing(_ id: NSNumber, peer: NSNumber?, account: String? 
 
 let defaults = TGExtraUseTestDefaults()!
 precondition(UserDefaults.standard === defaults, "Tests must use in-memory defaults")
+if CommandLine.arguments.contains("--benchmark") { runCodecBenchmarks(); exit(0) }
 if CommandLine.arguments.contains("--no-schema") {
     testMissingHostSchema()
     exit(0)
@@ -311,7 +312,7 @@ flags("TGExtraAntiAutoDelete")
 let autoDeleted = messageData(parsed(patch(message(20, ttl: 86400))!, as: Api.Message.self))
 check(autoDeleted.ttlPeriod == nil, "Remove local chat auto-delete timer")
 check(autoDeleted.message == "Original 😀", "Chat auto-delete does not add a disappearing-media label")
-check(autoDeleted.paidMessageStars == 456 && autoDeleted.scheduleRepeatPeriod == 3600 && autoDeleted.summaryFromLanguage == "ru", "Preserve API 13.0 optional fields")
+check(autoDeleted.paidMessageStars == 456 && autoDeleted.scheduleRepeatPeriod == 3600 && autoDeleted.summaryFromLanguage == "ru", "Preserve optional message fields")
 check(deletionIds(parsed(patch(deletion([20, 21]))!, as: Api.Update.self)) == [0, 21], "Protect only known auto-delete messages")
 let channel = Api.Peer.peerChannel(.init(channelId: 88))
 _ = patch(message(22, peer: channel, ttl: 60))
@@ -682,8 +683,10 @@ testForwardCopies(rust: true)
 testUpdatedApi()
 testContentRestrictions()
 testAppleContentSettings()
-testLegacyApiConstructors()
+testUnsupportedApiConstructors()
 testSnapshotApiCompatibility()
 testHostSchemaCodec()
 testExplicitDataPatches()
 testMessagePatchSettings()
+
+testOptimizedWirePaths()

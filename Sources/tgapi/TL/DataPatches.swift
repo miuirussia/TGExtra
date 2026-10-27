@@ -62,7 +62,7 @@ struct TLDataPatch {
     @discardableResult
     func clearFlag(_ flag: TLFlag) -> Bool {
         guard let location = flag.location(in: record),
-              let flags = record.fields[location.field] as? Int32, flags & location.mask != 0 else { return false }
+              let flags = record[location.field] as? Int32, flags & location.mask != 0 else { return false }
         record.set(location.field, flags & ~location.mask)
         report(flag.rawValue, before: "true", after: "false", presence: location)
         return true
@@ -71,8 +71,8 @@ struct TLDataPatch {
     @discardableResult
     func removeOptionalField(_ name: String) -> Bool {
         guard let location = presenceFlag(for: name),
-              let flags = record.fields[location.field] as? Int32 else { return false }
-        let previous = record.fields[name]
+              let flags = record[location.field] as? Int32 else { return false }
+        let previous = record[name]
         guard previous != nil || flags & location.mask != 0 else { return false }
         record.set(location.field, flags & ~location.mask)
         record.set(name, Optional<Int32>.none)
@@ -85,8 +85,8 @@ struct TLDataPatch {
         let raw = value.tlValue
         if raw is NSNull { return removeOptionalField(name) }
         guard let location = presenceFlag(for: name),
-              let flags = record.fields[location.field] as? Int32 else { return false }
-        let previous = record.fields[name]
+              let flags = record[location.field] as? Int32 else { return false }
+        let previous = record[name]
         guard !Self.equal(previous, raw) || flags & location.mask == 0 else { return false }
         record.set(location.field, flags | location.mask)
         record.set(name, value)
@@ -96,11 +96,12 @@ struct TLDataPatch {
 
     @discardableResult
     func replaceField<T: TLValue>(_ name: String, _ value: T) -> Bool {
-        guard let field = record.descriptor?.fields.first(where: { $0.name == name }) else { return false }
+        guard let descriptor = record.descriptor, let index = descriptor.fieldIndices[name] else { return false }
+        let field = descriptor.fields[index]
         if field.flagsIndex >= 0 { return setOptionalField(name, value) }
         let raw = value.tlValue
         let replacement: Any? = raw is NSNull ? nil : raw
-        let previous = record.fields[name]
+        let previous = record[name]
         guard !Self.equal(previous, replacement) else { return false }
         record.set(name, value)
         report(name, before: Self.describe(previous), after: Self.describe(replacement), presence: nil)
@@ -109,7 +110,9 @@ struct TLDataPatch {
 
     func presenceFlag(for name: String) -> TLFlagLocation? {
         guard let descriptor = record.descriptor,
-              let field = descriptor.fields.first(where: { $0.name == name }), field.flagsIndex >= 0 else { return nil }
+              let index = descriptor.fieldIndices[name] else { return nil }
+        let field = descriptor.fields[index]
+        guard field.flagsIndex >= 0 else { return nil }
         return TLFlagLocation(field: descriptor.fields[field.flagsIndex].name, bit: field.flagBit)
     }
 

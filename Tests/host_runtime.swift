@@ -290,7 +290,7 @@ func testHostSchemaCodec() {
     let futureBytes = serialized(record)
     let futureReader = BufferReader(Buffer(nsData: futureBytes))
     _ = futureReader.readInt32()
-    let future = TLCodec.parse(futureReader, descriptor: newer, signature: newer.signature)!
+    let future = TLCodec.parse(futureReader, descriptor: newer)!
     let view = Api.Message(future)!
     messageData(view).message = "Edited"
     messageData(original).message = "Edited"
@@ -318,4 +318,62 @@ func testHostSchemaCodec() {
     corrupted.replaceSubrange(60..<64, with: [255, 255, 255, 127])
     check(HostSchema(image: corrupted) == nil, "Reject table offsets outside the image")
     print("PASS host-driven codec, unmodeled objects, future fields, invalid serialization and schema validation")
+}
+
+func testOptimizedWirePaths() {
+    flags()
+    let original = message(98200)
+    let originalBytes = serialized(original)
+    let reader = BufferReader(Buffer(nsData: originalBytes))
+    let decoded = Api.parse(reader, signature: reader.readInt32()!) as! Api.Message
+    check(decoded.record.hasCompatibleView, "Complete decoding uses the schema-validated view")
+    check(decoded.record.wireSource?.isDirty == false && serialized(decoded) == originalBytes,
+          "Unchanged objects serialize from their immutable packet")
+    guard case let .messageEntityBold(entity) = messageData(decoded).entities![0] else { fatalError("Expected bold entity") }
+    entity.offset = 3
+    check(decoded.record.wireSource?.isDirty == true, "Nested setters invalidate ancestor byte copies")
+    guard case let .messageEntityBold(expectedEntity) = messageData(original).entities![0] else { fatalError("Expected bold entity") }
+    expectedEntity.offset = 3
+    check(serialized(decoded) == serialized(original), "Nested edits survive root serialization")
+
+    let independent = parsed(originalBytes, as: Api.Message.self)
+    check(independent.record.wireSource?.isDirty == false, "Other packets keep their own mutation state")
+    messageData(independent).record.set("message", Optional<String>.none)
+    guard case .other = Api.Message(independent.record)! else { fatalError("Reject an invalidated required field") }
+    check(serialized(independent).length == 0, "A mutated incomplete record cannot bypass validation")
+
+    let file = Api.upload.File.file(.init(type: .fileUnknown, mtime: 0, bytes: Buffer(data: Data([1, 2, 3]))))
+    let fileBytes = serialized(file)
+    let parsedFile = parsed(fileBytes, as: Api.upload.File.self)
+    guard case let .file(data) = parsedFile else { fatalError("Expected file") }
+    check(parsedFile.record.wireSource?.canCopy == false, "Mutable byte buffers use value serialization")
+    data.bytes.data!.storeBytes(of: UInt8(9), as: UInt8.self)
+    let expectedFile = Api.upload.File.file(.init(type: .fileUnknown, mtime: 0, bytes: Buffer(data: Data([9, 2, 3]))))
+    check(serialized(parsedFile) == serialized(expectedFile), "In-place Buffer edits are preserved")
+
+    let descriptor = original.record.descriptor!
+    let incompatibleFields = descriptor.fields.map { field -> TLField in
+        guard field.name == "message" else { return field }
+        return TLField(name: field.name, kind: 0, elementKind: 0, optional: false, boxedVector: false,
+                       bare: false, flagsIndex: -1, flagBit: 0, typeIndex: 0, constructorIndex: 0)
+    }
+    let incompatible = TLConstructor(name: descriptor.name, signature: descriptor.signature,
+        typeIndex: descriptor.typeIndex, caseIndex: descriptor.caseIndex, fields: incompatibleFields,
+        type: "Message", types: HostSchema.shared!.types)
+    check(!incompatible.supportsView, "A changed required field type cannot use cached view validation")
+    let wrongType = TLRecord(descriptor: incompatible, type: "Message")
+    wrongType.fields = original.record.fields
+    wrongType.set("message", Int32(1))
+    let wrongBytes = serialized(wrongType)
+    let wrongReader = BufferReader(Buffer(nsData: wrongBytes))
+    _ = wrongReader.readInt32()
+    let wrongRecord = TLCodec.parse(wrongReader, descriptor: incompatible)!
+    guard case .other = Api.Message(wrongRecord)! else { fatalError("Do not expose an incompatible host layout") }
+
+    let snapshot = MessagePatches.Settings(snapshot: true)
+    flags("TGExtraAntiAutoDelete")
+    check(!snapshot.preventAutoDelete && MessagePatches.Settings().preventAutoDelete,
+          "A packet snapshot stays stable while later operations see new settings")
+    flags()
+    print("PASS schema-validated views, nested byte-copy invalidation, mutable buffers and settings snapshots")
 }
