@@ -14,31 +14,66 @@ for group, method in [('TGExtraMessageViewLayout', 'layoutSubviews'), ('TGExtraM
     updater = updater.replace('%end\n%end', '@end', 1)
 assert '%' not in updater, 'Only Objective-C runtime hooks may drive message updates'
 bindings = source[source.index('static char kTGExtraEditMsgIdKey;'):source.index('@interface TGExtraEditHistoryButtonTarget')]
-geometry = source[source.index('static CGRect tgextraEditBadgeFrame('):source.index('/// Places, or hides, the pencil badge')]
+geometry = source[source.index('static void tgextraCollectEditBadgeObstacles('):source.index('/// Places, or hides, the pencil badge')]
 
 support = r'''
 #import <Foundation/Foundation.h>
 #import <CoreFoundation/CoreFoundation.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <objc/runtime.h>
+#include <cmath>
+
+// UIKit's CGRect conveniences on NSValue are absent from macOS Foundation.
+@interface NSValue (CGRectSupport)
++ (instancetype)valueWithCGRect:(CGRect)rect;
+- (CGRect)CGRectValue;
+@end
+@implementation NSValue (CGRectSupport)
++ (instancetype)valueWithCGRect:(CGRect)rect { return [self valueWithBytes:&rect objCType:@encode(CGRect)]; }
+- (CGRect)CGRectValue { CGRect rect; [self getValue:&rect size:sizeof(rect)]; return rect; }
+@end
 
 @class ASDisplayNode;
 @interface UIView : NSObject
 @property NSInteger tag;
 @property BOOL hidden;
 @property NSArray *subviews;
+@property (weak) UIView *superview;
+@property CGRect frame;
+@property CGRect bounds;
+@property CGFloat alpha;
 @property (weak) ASDisplayNode *node;
 @property NSUInteger originalLayouts;
 @property NSUInteger originalWindowMoves;
 - (void)layoutSubviews;
 - (void)didMoveToWindow;
+- (void)addSubview:(UIView *)view;
+- (CGRect)convertRect:(CGRect)rect fromView:(UIView *)view;
+- (ASDisplayNode *)asyncdisplaykit_node;
 @end
 @implementation UIView
+- (instancetype)init {
+    if ((self = [super init])) { self.alpha = 1.0; self.subviews = @[]; }
+    return self;
+}
+- (void)addSubview:(UIView *)view { view.superview = self; self.subviews = [self.subviews arrayByAddingObject:view]; }
+- (CGRect)convertRect:(CGRect)rect fromView:(UIView *)view {
+    while (view != self) {
+        rect = CGRectOffset(rect, view.frame.origin.x - view.bounds.origin.x, view.frame.origin.y - view.bounds.origin.y);
+        view = view.superview;
+        NSCAssert(view, @"Only descendants are converted by this harness");
+    }
+    return rect;
+}
 - (void)layoutSubviews { self.originalLayouts++; }
 - (void)didMoveToWindow { self.originalWindowMoves++; }
 - (ASDisplayNode *)asyncdisplaykit_node { return self.node; }
 @end
-@interface UIButton : UIView
+@interface UIControl : UIView
+@end
+@implementation UIControl
+@end
+@interface UIButton : UIControl
 @end
 @implementation UIButton
 @end
@@ -74,6 +109,10 @@ support = r'''
 @interface ChatMessageBubbleItemNode : ASDisplayNode
 @end
 @implementation ChatMessageBubbleItemNode
+@end
+@interface ChatMessageShareButton : ASDisplayNode
+@end
+@implementation ChatMessageShareButton
 @end
 @interface TLParser : NSObject
 + (NSDictionary *)messageStateFromNode:(ASDisplayNode *)node observe:(BOOL)observe;
@@ -184,11 +223,70 @@ int main(void) {
         CGRect boundsCases[] = { CGRectMake(0, 0, 200, 60), CGRectMake(10, 20, 30, 24) };
         for (CGRect bounds : boundsCases) {
             for (int hasStatus = 0; hasStatus < 2; hasStatus++) {
-                CGRect frame = tgextraEditBadgeFrame(bounds, CGRectMake(230, -50, 20, 10), hasStatus);
+                CGRect frame = tgextraEditBadgeFrame(bounds, CGRectMake(230, -50, 20, 10), hasStatus, @[]);
                 NSCAssert(CGRectContainsRect(bounds, frame), @"Full touch target stays within both axes of the message view");
             }
         }
-        puts("PASS backing-view lifecycle, coalescing, snapshots, direct notifications, reuse, bindings and touch bounds");
+
+        // A plain ASDisplayKit view for sharing, a nested native translate
+        // control, and inline buttons reproduce the screenshot's occupied gutter.
+        UIView *root = [UIView new];
+        root.bounds = CGRectMake(0, 0, 450, 420);
+        ChatMessageShareButton *share = [ChatMessageShareButton new];
+        share.view.frame = CGRectMake(374, 254, 38, 38);
+        share.view.bounds = CGRectMake(0, 0, 38, 38);
+        [root addSubview:share.view];
+        UIView *container = [UIView new];
+        container.frame = CGRectMake(370, 200, 50, 50);
+        [root addSubview:container];
+        UIButton *translate = [UIButton new];
+        translate.frame = CGRectMake(4, 10, 38, 38);
+        translate.bounds = CGRectMake(0, 0, 38, 38);
+        [container addSubview:translate];
+        UIButton *inlineButtons = [UIButton new];
+        inlineButtons.frame = CGRectMake(0, 296, 365, 124);
+        inlineButtons.bounds = CGRectMake(0, 0, 365, 124);
+        [root addSubview:inlineButtons];
+        [root addSubview:badge];
+        badge.hidden = NO;
+        badge.bounds = CGRectMake(0, 0, 44, 44);
+        NSMutableArray<NSValue *> *obstacles = [NSMutableArray array];
+        tgextraCollectEditBadgeObstacles(root, root, badge, obstacles);
+        NSCAssert(obstacles.count == 3, @"Recognize ASDisplayKit and nested UIKit controls; exclude the pencil itself");
+        CGRect status = CGRectMake(220, 275, 140, 12);
+        [obstacles addObject:[NSValue valueWithCGRect:status]];
+        CGRect placed = tgextraEditBadgeFrame(root.bounds, status, YES, obstacles);
+        NSCAssert(CGRectContainsRect(root.bounds, placed) && placed.size.width == 44 && placed.size.height == 44,
+                  @"Keep a full, reachable touch target");
+        NSCAssert(placed.origin.x == 368 && CGRectGetMaxY(placed) <= 202,
+                  @"Move above the occupied stack in the same gutter");
+        for (NSValue *value in obstacles) {
+            NSCAssert(!CGRectIntersectsRect(placed, CGRectInset(value.CGRectValue, -8, -8)),
+                      @"The entire touch target clears native controls and timestamp by 8pt");
+        }
+        badge.frame = placed;
+        NSMutableArray<NSValue *> *refreshed = [NSMutableArray array];
+        tgextraCollectEditBadgeObstacles(root, root, badge, refreshed);
+        [refreshed addObject:[NSValue valueWithCGRect:status]];
+        NSCAssert(CGRectEqualToRect(placed, tgextraEditBadgeFrame(root.bounds, status, YES, refreshed)),
+                  @"Repeated layouts must not move the badge away from itself");
+        container.hidden = YES;
+        share.view.alpha = 0;
+        inlineButtons.hidden = YES;
+        [refreshed removeAllObjects];
+        tgextraCollectEditBadgeObstacles(root, root, badge, refreshed);
+        NSCAssert(refreshed.count == 0, @"Hidden controls and their descendants do not occupy space");
+        CGRect restored = tgextraEditBadgeFrame(root.bounds, status, YES, refreshed);
+        NSCAssert(restored.origin.x == 368 && restored.origin.y == 259, @"Recompute placement when controls disappear");
+
+        CGRect compact = CGRectMake(0, 0, 200, 60);
+        NSArray *blocked = @[[NSValue valueWithCGRect:CGRectMake(156, 0, 44, 60)]];
+        CGRect shifted = tgextraEditBadgeFrame(compact, CGRectZero, NO, blocked);
+        NSCAssert(CGRectContainsRect(compact, shifted) && CGRectGetMaxX(shifted) <= 148,
+                  @"Use horizontal space when no vertical gap fits a compact message");
+        NSCAssert(CGRectIsNull(tgextraEditBadgeFrame(compact, CGRectZero, NO, @[[NSValue valueWithCGRect:compact]])),
+                  @"Never return an overlapping target when the whole message is occupied");
+        puts("PASS backing-view lifecycle, notifications, reuse, bindings, touch bounds and native-control collision avoidance");
     }
     return 0;
 }

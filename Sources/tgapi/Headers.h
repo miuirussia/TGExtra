@@ -35,6 +35,7 @@
 // Internal message UI bridge; existing public selectors remain available.
 + (NSDictionary<NSString *, id> *)messageStateFromNode:(id)node observe:(BOOL)observe;
 + (BOOL)hasAdMessageFromNode:(id)node;
++ (NSDictionary<NSString *, id> *)editHistoryButtonColorsFromNode:(id)node;
 @end
 
 @interface MTRpcError : NSObject

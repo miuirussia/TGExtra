@@ -756,6 +756,31 @@ class TLParser: NSObject {
         return nil
     }
 
+    /// Reuse the current chat's side-button palette without linking Telegram UI types.
+    @objc static func editHistoryButtonColorsFromNode(_ node: Any) -> [String: Any]? {
+        var theme: Any = node
+        for field in ["item", "presentationData", "theme"] {
+            guard let next = storedField(field, in: theme) else { return nil }
+            theme = unwrapOptional(next)
+        }
+        guard let wallpaper = storedField("wallpaper", in: theme),
+              let baseTheme = storedField("theme", in: theme),
+              let chat = storedField("chat", in: baseTheme),
+              let message = storedField("message", in: chat) else { return nil }
+        let wallpaperCase = Mirror(reflecting: unwrapOptional(wallpaper)).children.first
+        // This is the same special case as Telegram's bubbleVariableColor.
+        let plainWhite = wallpaperCase.map { $0.label == "color" && rawNumber($0.value) == 0xffffff } ?? false
+        let variant = plainWhite ? "withoutWallpaper" : "withWallpaper"
+        var colors: [String: Any] = [:]
+        for (key, field) in [("fill", "shareButtonFillColor"), ("foreground", "shareButtonForegroundColor"),
+                             ("stroke", "shareButtonStrokeColor")] {
+            guard let variable = storedField(field, in: message),
+                  let color = storedField(variant, in: variable) else { continue }
+            colors[key] = color
+        }
+        return colors.isEmpty ? nil : colors
+    }
+
     private struct RenderedMessage {
         let value: Any
         let id: Int32

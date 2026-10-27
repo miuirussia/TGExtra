@@ -3,6 +3,7 @@
 #import "../Logger/Logger.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import <math.h>
 
 void showUI(void);
 
@@ -1145,13 +1146,64 @@ static void clearTGExtraEditBadgeBinding(UIButton *badge) {
 
 @end
 
-static CGRect tgextraEditBadgeFrame(CGRect bounds, CGRect statusFrame, BOOL hasStatus) {
+static void tgextraCollectEditBadgeObstacles(UIView *view, UIView *root, UIButton *badge, NSMutableArray<NSValue *> *frames) {
+    if (view == badge || view.hidden || view.alpha <= 0.01) return;
+    if (view != root) {
+        ASDisplayNode *node = [view respondsToSelector:@selector(asyncdisplaykit_node)] ? [view asyncdisplaykit_node] : nil;
+        NSString *name = NSStringFromClass([node class]);
+        // AsyncDisplayKit controls are often plain UIViews, not UIControls.
+        BOOL isControl = [view isKindOfClass:[UIControl class]] || [name containsString:@"Button"] ||
+            [name containsString:@"ThreadInfo"] || [name containsString:@"ReplyInfo"];
+        if (isControl || view.tag == 8898) {
+            CGRect frame = [root convertRect:view.bounds fromView:view];
+            if (!CGRectIsEmpty(frame)) [frames addObject:[NSValue valueWithCGRect:frame]];
+            return;
+        }
+    }
+    for (UIView *child in view.subviews) tgextraCollectEditBadgeObstacles(child, root, badge, frames);
+}
+
+static CGRect tgextraEditBadgeFrame(CGRect bounds, CGRect statusFrame, BOOL hasStatus, NSArray<NSValue *> *obstacles) {
     CGFloat side = MIN(44.0, MIN(CGRectGetWidth(bounds), CGRectGetHeight(bounds)));
-    CGFloat x = hasStatus ? CGRectGetMaxX(statusFrame) + 4.0 : CGRectGetMaxX(bounds) - side;
+    CGFloat x = hasStatus ? CGRectGetMaxX(statusFrame) + 8.0 : CGRectGetMaxX(bounds) - side;
     CGFloat y = hasStatus ? CGRectGetMidY(statusFrame) - side / 2.0 : CGRectGetMaxY(bounds) - side;
     x = MAX(CGRectGetMinX(bounds), MIN(x, CGRectGetMaxX(bounds) - side));
     y = MAX(CGRectGetMinY(bounds), MIN(y, CGRectGetMaxY(bounds) - side));
-    return CGRectMake(x, y, side, side);
+
+    // Search the edges of occupied areas rather than clamping onto Telegram's
+    // share/translate buttons. Prefer moving vertically in the same gutter.
+    const CGFloat gap = 8.0;
+    NSMutableArray<NSNumber *> *xs = [NSMutableArray arrayWithArray:@[@(x), @(CGRectGetMinX(bounds)), @(CGRectGetMaxX(bounds) - side)]];
+    NSMutableArray<NSNumber *> *ys = [NSMutableArray arrayWithArray:@[@(y), @(CGRectGetMinY(bounds)), @(CGRectGetMaxY(bounds) - side)]];
+    for (NSValue *value in obstacles) {
+        CGRect frame = value.CGRectValue;
+        [xs addObject:@(CGRectGetMinX(frame) - gap - side)];
+        [xs addObject:@(CGRectGetMaxX(frame) + gap)];
+        [ys addObject:@(CGRectGetMinY(frame) - gap - side)];
+        [ys addObject:@(CGRectGetMaxY(frame) + gap)];
+    }
+    CGRect best = CGRectNull;
+    CGFloat bestDistance = CGFLOAT_MAX;
+    for (NSNumber *candidateX in xs) {
+        for (NSNumber *candidateY in ys) {
+            CGRect candidate = CGRectMake(candidateX.doubleValue, candidateY.doubleValue, side, side);
+            if (!CGRectContainsRect(bounds, candidate)) continue;
+            BOOL occupied = NO;
+            for (NSValue *value in obstacles) {
+                if (CGRectIntersectsRect(candidate, CGRectInset(value.CGRectValue, -gap, -gap))) {
+                    occupied = YES;
+                    break;
+                }
+            }
+            if (occupied) continue;
+            CGFloat distance = fabs(candidate.origin.x - x) * (CGRectGetHeight(bounds) + 1.0) + fabs(candidate.origin.y - y);
+            if (distance < bestDistance) {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+    }
+    return best;
 }
 
 /// Places, or hides, the pencil badge on one message node.
@@ -1202,13 +1254,15 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     if (!badge) {
         badge = [UIButton buttonWithType:UIButtonTypeSystem];
         badge.tag = kTGExtraEditBadgeTag;
-        [badge setImage:[UIImage systemImageNamed:@"pencil.circle.fill"]
+        UIImageSymbolConfiguration *symbol = [UIImageSymbolConfiguration configurationWithPointSize:18 weight:UIImageSymbolWeightRegular];
+        [badge setImage:[UIImage systemImageNamed:@"pencil" withConfiguration:symbol]
                forState:UIControlStateNormal];
-        badge.tintColor = [UIColor systemBlueColor];
-        // The glyph stays small enough not to crowd the timestamp, but the
-        // button itself is a full touch target — 22pt next to a message tap
-        // area of its own was more miss than hit.
-        badge.contentEdgeInsets = UIEdgeInsetsMake(9, 9, 9, 9);
+        // Match Telegram's 30pt side-button disc while keeping a 44pt target.
+        UIView *background = [[UIView alloc] init];
+        background.tag = 8897;
+        background.userInteractionEnabled = NO;
+        background.isAccessibilityElement = NO;
+        [badge insertSubview:background atIndex:0];
         [badge addTarget:[TGExtraEditHistoryButtonTarget shared]
                   action:@selector(handleTap:)
         forControlEvents:UIControlEventTouchUpInside];
@@ -1223,15 +1277,37 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     // their backing view, which would swallow every touch aimed at the badge.
     node.view.userInteractionEnabled = YES;
 
-    // Clamp the full touch target on both axes. UIKit rejects touches outside
-    // an ancestor's bounds even when clipsToBounds is disabled.
+    // Keep the full touch target inside the message and clear of native
+    // controls, whose gesture handlers can otherwise intercept the tap.
     ASDisplayNode *statusNode = findNodeByClassNamePrefix(node, @"ChatMessageDateAndStatusNode");
     BOOL hasStatus = statusNode && statusNode.view;
     CGRect statusFrame = hasStatus ? [node.view convertRect:statusNode.view.bounds fromView:statusNode.view] : CGRectZero;
-    badge.frame = tgextraEditBadgeFrame(node.view.bounds, statusFrame, hasStatus);
+    NSMutableArray<NSValue *> *obstacles = [NSMutableArray array];
+    tgextraCollectEditBadgeObstacles(node.view, node.view, badge, obstacles);
+    if (hasStatus) [obstacles addObject:[NSValue valueWithCGRect:statusFrame]];
+    CGRect frame = tgextraEditBadgeFrame(node.view.bounds, statusFrame, hasStatus, obstacles);
+    if (CGRectIsNull(frame)) {
+        clearTGExtraEditBadgeBinding(badge);
+        return;
+    }
+    badge.frame = frame;
     badge.autoresizingMask = UIViewAutoresizingNone;
-    CGFloat inset = MAX(0.0, (CGRectGetWidth(badge.frame) - 26.0) / 2.0);
+    CGFloat inset = MAX(0.0, (CGRectGetWidth(badge.frame) - 18.0) / 2.0);
     badge.contentEdgeInsets = UIEdgeInsetsMake(inset, inset, inset, inset);
+
+    NSDictionary *colors = [TLParser editHistoryButtonColorsFromNode:node];
+    UIColor *fill = [colors[@"fill"] isKindOfClass:UIColor.class] ? colors[@"fill"] : [UIColor colorWithWhite:0.0 alpha:0.3];
+    UIColor *foreground = [colors[@"foreground"] isKindOfClass:UIColor.class] ? colors[@"foreground"] : UIColor.whiteColor;
+    UIColor *stroke = [colors[@"stroke"] isKindOfClass:UIColor.class] ? colors[@"stroke"] : UIColor.clearColor;
+    UIView *background = [badge viewWithTag:8897];
+    CGFloat diameter = MIN(30.0, CGRectGetWidth(badge.bounds));
+    background.frame = CGRectMake((CGRectGetWidth(badge.bounds) - diameter) / 2.0,
+                                  (CGRectGetHeight(badge.bounds) - diameter) / 2.0, diameter, diameter);
+    background.layer.cornerRadius = diameter / 2.0;
+    background.backgroundColor = fill;
+    background.layer.borderColor = stroke.CGColor;
+    background.layer.borderWidth = 1.0 / UIScreen.mainScreen.scale;
+    badge.tintColor = foreground;
 
     badge.accessibilityLabel = TGExtraLoc(@"EDIT_HISTORY_TITLE");
     badge.hidden = NO;

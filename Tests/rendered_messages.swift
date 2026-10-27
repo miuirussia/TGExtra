@@ -78,6 +78,7 @@ private func cachedNode(_ message: CachedMessage, account: String = "account-1")
 }
 
 func testRenderedMessages() {
+    testEditHistoryButtonColors()
     flags("TGExtraAntiEdit")
     let node = cachedNode(cachedMessage(82000))
     check(TLParser.getMessageId(from: node.item as Any) == 82000, "Unwrap inherited optional item and named enum tuple")
@@ -169,6 +170,44 @@ func testRenderedMessages() {
     _ = strip(serialized(message(82011, text: "After enabling", edit: 2000)))
     check(history(forId: 82011, peer: 42) == nil, "Disabled Anti-Edit never records cache originals")
     print("PASS stored message reflection, cache/wire merging, albums, content revisions, reuse and account/namespace isolation")
+}
+
+private func testEditHistoryButtonColors() {
+    struct VariableColor { let withWallpaper: String; let withoutWallpaper: String }
+    struct Palette {
+        let shareButtonFillColor: VariableColor
+        let shareButtonForegroundColor: VariableColor
+        let shareButtonStrokeColor: VariableColor
+    }
+    struct ChatTheme { let message: Palette }
+    struct Theme { let chat: ChatTheme }
+    enum Wallpaper { case color(Int32); case image }
+    struct ThemeData { let theme: Theme; let wallpaper: Wallpaper }
+    struct PresentationData { let theme: ThemeData }
+    struct Item { let presentationData: PresentationData }
+    class NodeBase { var item: Item? }
+    final class Node: NodeBase {}
+    let node = Node()
+    func apply(_ name: String, wallpaper: Wallpaper) {
+        let palette = Palette(
+            shareButtonFillColor: VariableColor(withWallpaper: name + "-fill", withoutWallpaper: name + "-plain-fill"),
+            shareButtonForegroundColor: VariableColor(withWallpaper: name + "-icon", withoutWallpaper: name + "-plain-icon"),
+            shareButtonStrokeColor: VariableColor(withWallpaper: name + "-border", withoutWallpaper: name + "-plain-border"))
+        node.item = Item(presentationData: PresentationData(theme: ThemeData(theme: Theme(chat: ChatTheme(message: palette)), wallpaper: wallpaper)))
+    }
+    check(TLParser.editHistoryButtonColorsFromNode(node) == nil, "Unbound nodes have no theme palette")
+    apply("light", wallpaper: .image)
+    check(TLParser.editHistoryButtonColorsFromNode(node) as? [String: String] ==
+          ["fill": "light-fill", "foreground": "light-icon", "stroke": "light-border"],
+          "Use the native side-button palette from the optional inherited item")
+    apply("dark", wallpaper: .color(0x111111))
+    check(TLParser.editHistoryButtonColorsFromNode(node)?["fill"] as? String == "dark-fill",
+          "Theme changes and solid colored wallpapers use the current wallpaper palette")
+    apply("light", wallpaper: .color(0xffffff))
+    check(TLParser.editHistoryButtonColorsFromNode(node) as? [String: String] ==
+          ["fill": "light-plain-fill", "foreground": "light-plain-icon", "stroke": "light-plain-border"],
+          "Plain white wallpaper matches Telegram's withoutWallpaper special case")
+    check(TLParser.editHistoryButtonColorsFromNode(NSObject()) == nil, "Unknown host layouts fall back without KVC")
 }
 
 private func defaultsForRenderedTests() -> [String: [String: Any]] {
