@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Portable fingerprint regressions and execution of engine-linked ObjC thunks."""
+import json
 import os
 from pathlib import Path
 import platform
 import plistlib
+import shutil
 import struct
 import subprocess
 import sys
@@ -12,10 +14,11 @@ import unittest
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'Tools'))
-from prepare_rust_patch import thunk, engine_plan, apply_engine_plan
+from prepare_rust_patch import SELECTORS, thunk, engine_plan, apply_engine_plan
 from RustBridge.macho import MachO
 from portable import payload_template
 from package_ipatch import write_archive
+from build_payloads import rebuild
 
 
 def fingerprint_image(words, offset=0x1000):
@@ -28,6 +31,42 @@ def fingerprint_image(words, offset=0x1000):
 
 
 class PortableRustTests(unittest.TestCase):
+    def test_rebuild_uses_adjacent_c_and_preserves_host_checks(self):
+        original = next((Path(__file__).resolve().parents[1]/'Patches').glob('rust-abi5-*'))
+        with tempfile.TemporaryDirectory(prefix='tgextra-c-rebuild-') as directory:
+            patches = Path(directory)
+            profile = patches/original.name
+            shutil.copytree(original, profile)
+            before = json.loads((profile/'patch.json').read_text())['binary_patches'][0]['profile']
+            source = profile/'payloads/send.c'
+            changed = source.read_text().replace('"TGExtraRustBridge"', '"AbsentRustBridge!"')
+            source.write_text(changed)
+            rebuild(patches)
+            rebuilt, = patches.glob('rust-abi5-*')
+            self.assertNotEqual(profile, rebuilt)
+            after = json.loads((rebuilt/'patch.json').read_text())['binary_patches'][0]['profile']
+            for key in ('anchors', 'checks', 'edits', 'generated_resources'):
+                self.assertEqual(before[key], after[key])
+            self.assertEqual((rebuilt/'payloads/send.c').read_text(), changed)
+            self.assertIn(b'AbsentRustBridge!\0', (rebuilt/'payloads/send.bin').read_bytes())
+            rebuild(patches, check=True)
+
+    def test_built_payloads_match_c_source(self):
+        profiles = Path(__file__).resolve().parents[1]/'Patches'
+        sets = list(profiles.glob('rust-abi5-*/patch.json'))
+        self.assertTrue(sets)
+        for path in sets:
+            profile = json.loads(path.read_text())['binary_patches'][0]['profile']
+            self.assertEqual(len(profile['blocks']), len(SELECTORS))
+            for name, (selector, arguments) in SELECTORS.items():
+                block = next(b for b in profile['blocks'] if b['name'] == 'bridge.'+name)
+                code, relocations = payload_template(selector, arguments, name,
+                                                     source=path.parent/Path(block['source']).with_suffix('.c'))
+                self.assertEqual(code, (path.parent/block['source']).read_bytes(), (path.parent.name, name))
+                self.assertEqual(relocations, block['relocations'])
+                self.assertEqual(len(code), block['size'])
+        self.assertTrue(all(path.with_suffix('.c').is_file() for path in profiles.rglob('*.bin')))
+
     def test_fingerprints_keep_local_control_flow_and_semantic_constants(self):
         image, start, end = fingerprint_image([0x14000001, 0x91000421, 0xD65F03C0])
         original = image.portable_fingerprint(start, end)
@@ -85,7 +124,7 @@ class PortableRustTests(unittest.TestCase):
                 for index, name in enumerate(names):
                     arguments = min(index+1, 4)
                     target = 'original'+name
-                    code, relocations = payload_template(selectors[arguments-1], arguments, target, thunk)
+                    code, relocations = payload_template(selectors[arguments-1], arguments, target)
                     if name == 'Fallback':
                         code = code.replace(b'TGExtraRustBridge\0', b'AbsentRustBridge!\0')
                     source = 'payloads/'+name+'.bin'
@@ -110,8 +149,8 @@ class PortableRustTests(unittest.TestCase):
                 current = [(edit['offset'], edit['replacement']) for edit in linked['edits']]
                 self.assertNotEqual(previous, current)
                 previous = current
-                # Compare every engine-linked block with the independently
-                # verified original generator before executing the result.
+                # Compare every engine-linked block with the offline C-payload
+                # linker before executing the result.
                 addresses = {key: value[0]['va'] for key, value in linked['anchors'].items()}
                 by_offset = {edit['offset']: bytes.fromhex(edit['replacement']) for edit in linked['edits']}
                 for index, name in enumerate(names):

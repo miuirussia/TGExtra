@@ -108,6 +108,7 @@ class IpatchPackagingTests(unittest.TestCase):
                         for block in binary['profile']['blocks']:
                             self.assertTrue(block['source'].startswith('payloads/'))
                             self.assertEqual(len(entries[block['source']]), block['size'])
+                            self.assertIn(str(Path(block['source']).with_suffix('.c')), entries)
                         continue
                     self.assertEqual(len(binary['sha256']), 64)
                     for edit in binary['edits']:

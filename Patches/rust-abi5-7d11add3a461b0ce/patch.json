@@ -1,7 +1,7 @@
 {
-  "name": "Rust MTProto ABI 5 / a83de9a5d80e1dc6",
+  "name": "Rust MTProto ABI 5 / 7d11add3a461b0ce",
   "bundle_ids": [
-    "ph.telegra.Telegraph"
+    "app.swiftgram.ios"
   ],
   "binary_patches": [
     {
@@ -22,7 +22,7 @@
             "fingerprint": {
               "algorithm": "arm64-reloc-v1",
               "size": 4640,
-              "sha256": "9a0a34646e5692e4208bafc4bd3200b0a21d2e2797cd3990f98bf006aac632d7"
+              "sha256": "20011eed98b31ef5ecca0928874760c47b308f1b8a8738f0cca12c3056d53e8a"
             }
           },
           {
@@ -55,7 +55,7 @@
             "fingerprint": {
               "algorithm": "arm64-reloc-v1",
               "size": 2120,
-              "sha256": "38fffba5e344b9e809320e0b7bf363e4ba52f2bb47441177c61620874e17fb70"
+              "sha256": "53b450e9958134911be3ad2ae6b671f5741c1d9b8fe85f6ea609f46544bc0840"
             }
           },
           {
@@ -73,7 +73,7 @@
             "fingerprint": {
               "algorithm": "arm64-reloc-v1",
               "size": 288,
-              "sha256": "5d43c847be150a8a5ad6feaf7c6129acbb09a4cbd03e113bd4f48b73d1c22c91"
+              "sha256": "51dbba29cea3b7a3b54fae619f37a16c1bef4675b07cf84478fcdcf54fa72eda"
             }
           },
           {
@@ -97,7 +97,7 @@
             "fingerprint": {
               "algorithm": "arm64-reloc-v1",
               "size": 3532,
-              "sha256": "ab7b155c2629d907a00fc00db53deea8d5791ccd9e7e56626c3f440ee04eca6f"
+              "sha256": "d9006a4c926fe9d27752532e2ed617a7c2392fd2087adeeadc803b406245bc3c"
             }
           },
           {
@@ -392,45 +392,45 @@
           {
             "name": "bridge.engineCreate",
             "source": "payloads/engineCreate.bin",
-            "size": 188,
+            "size": 216,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 24,
+                "offset": 36,
                 "anchor": "bridge.engineCreate",
-                "addend": 128
+                "addend": 156
               },
               {
                 "type": "bl",
-                "offset": 32,
+                "offset": 44,
                 "anchor": "_objc_lookUpClass"
               },
               {
                 "type": "adrp_add",
-                "offset": 44,
+                "offset": 56,
                 "anchor": "bridge.engineCreate",
-                "addend": 146
+                "addend": 174
               },
               {
                 "type": "bl",
-                "offset": 52,
+                "offset": 64,
                 "anchor": "_sel_registerName"
               },
               {
                 "type": "adrp_add",
-                "offset": 80,
+                "offset": 72,
                 "anchor": "engineCreate"
               },
               {
                 "type": "b",
-                "offset": 96,
+                "offset": 116,
                 "anchor": "_objc_msgSend"
               },
               {
                 "type": "b",
-                "offset": 124,
+                "offset": 152,
                 "anchor": "engineCreate"
               }
             ]
@@ -466,12 +466,12 @@
               },
               {
                 "type": "adrp_add",
-                "offset": 72,
+                "offset": 56,
                 "anchor": "sessionCreate"
               },
               {
                 "type": "b",
-                "offset": 88,
+                "offset": 92,
                 "anchor": "_objc_msgSend"
               },
               {
@@ -512,12 +512,12 @@
               },
               {
                 "type": "adrp_add",
-                "offset": 72,
+                "offset": 56,
                 "anchor": "sessionDestroy"
               },
               {
                 "type": "b",
-                "offset": 88,
+                "offset": 92,
                 "anchor": "_objc_msgSend"
               },
               {
@@ -530,45 +530,45 @@
           {
             "name": "bridge.send",
             "source": "payloads/send.bin",
-            "size": 176,
+            "size": 184,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 24,
+                "offset": 28,
                 "anchor": "bridge.send",
-                "addend": 124
+                "addend": 132
               },
               {
                 "type": "bl",
-                "offset": 32,
+                "offset": 36,
                 "anchor": "_objc_lookUpClass"
               },
               {
                 "type": "adrp_add",
-                "offset": 44,
+                "offset": 48,
                 "anchor": "bridge.send",
-                "addend": 142
+                "addend": 150
               },
               {
                 "type": "bl",
-                "offset": 52,
+                "offset": 56,
                 "anchor": "_sel_registerName"
               },
               {
                 "type": "adrp_add",
-                "offset": 76,
+                "offset": 64,
                 "anchor": "send"
               },
               {
                 "type": "b",
-                "offset": 92,
+                "offset": 100,
                 "anchor": "_objc_msgSend"
               },
               {
                 "type": "b",
-                "offset": 120,
+                "offset": 128,
                 "anchor": "send"
               }
             ]
@@ -576,45 +576,45 @@
           {
             "name": "bridge.cancel",
             "source": "payloads/cancel.bin",
-            "size": 176,
+            "size": 184,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 24,
+                "offset": 28,
                 "anchor": "bridge.cancel",
-                "addend": 124
+                "addend": 132
               },
               {
                 "type": "bl",
-                "offset": 32,
+                "offset": 36,
                 "anchor": "_objc_lookUpClass"
               },
               {
                 "type": "adrp_add",
-                "offset": 44,
+                "offset": 48,
                 "anchor": "bridge.cancel",
-                "addend": 142
+                "addend": 150
               },
               {
                 "type": "bl",
-                "offset": 52,
+                "offset": 56,
                 "anchor": "_sel_registerName"
               },
               {
                 "type": "adrp_add",
-                "offset": 76,
+                "offset": 64,
                 "anchor": "cancel"
               },
               {
                 "type": "b",
-                "offset": 92,
+                "offset": 100,
                 "anchor": "_objc_msgSend"
               },
               {
                 "type": "b",
-                "offset": 120,
+                "offset": 128,
                 "anchor": "cancel"
               }
             ]
@@ -622,45 +622,45 @@
           {
             "name": "bridge.bufferData",
             "source": "payloads/bufferData.bin",
-            "size": 156,
+            "size": 136,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 24,
+                "offset": 16,
                 "anchor": "bridge.bufferData",
-                "addend": 116
+                "addend": 96
               },
               {
                 "type": "bl",
-                "offset": 32,
+                "offset": 24,
                 "anchor": "_objc_lookUpClass"
               },
               {
                 "type": "adrp_add",
-                "offset": 44,
+                "offset": 36,
                 "anchor": "bridge.bufferData",
-                "addend": 134
+                "addend": 114
               },
               {
                 "type": "bl",
-                "offset": 52,
+                "offset": 44,
                 "anchor": "_sel_registerName"
               },
               {
                 "type": "adrp_add",
-                "offset": 68,
+                "offset": 52,
                 "anchor": "bufferData"
               },
               {
                 "type": "b",
-                "offset": 84,
+                "offset": 76,
                 "anchor": "_objc_msgSend"
               },
               {
                 "type": "b",
-                "offset": 112,
+                "offset": 92,
                 "anchor": "bufferData"
               }
             ]
@@ -668,45 +668,45 @@
           {
             "name": "bridge.bufferLength",
             "source": "payloads/bufferLength.bin",
-            "size": 160,
+            "size": 140,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 24,
+                "offset": 16,
                 "anchor": "bridge.bufferLength",
-                "addend": 116
+                "addend": 96
               },
               {
                 "type": "bl",
-                "offset": 32,
+                "offset": 24,
                 "anchor": "_objc_lookUpClass"
               },
               {
                 "type": "adrp_add",
-                "offset": 44,
+                "offset": 36,
                 "anchor": "bridge.bufferLength",
-                "addend": 134
+                "addend": 114
               },
               {
                 "type": "bl",
-                "offset": 52,
+                "offset": 44,
                 "anchor": "_sel_registerName"
               },
               {
                 "type": "adrp_add",
-                "offset": 68,
+                "offset": 52,
                 "anchor": "bufferLength"
               },
               {
                 "type": "b",
-                "offset": 84,
+                "offset": 76,
                 "anchor": "_objc_msgSend"
               },
               {
                 "type": "b",
-                "offset": 112,
+                "offset": 92,
                 "anchor": "bufferLength"
               }
             ]
@@ -714,45 +714,45 @@
           {
             "name": "bridge.bufferFree",
             "source": "payloads/bufferFree.bin",
-            "size": 156,
+            "size": 136,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 24,
+                "offset": 16,
                 "anchor": "bridge.bufferFree",
-                "addend": 116
+                "addend": 96
               },
               {
                 "type": "bl",
-                "offset": 32,
+                "offset": 24,
                 "anchor": "_objc_lookUpClass"
               },
               {
                 "type": "adrp_add",
-                "offset": 44,
+                "offset": 36,
                 "anchor": "bridge.bufferFree",
-                "addend": 134
+                "addend": 114
               },
               {
                 "type": "bl",
-                "offset": 52,
+                "offset": 44,
                 "anchor": "_sel_registerName"
               },
               {
                 "type": "adrp_add",
-                "offset": 68,
+                "offset": 52,
                 "anchor": "bufferFree"
               },
               {
                 "type": "b",
-                "offset": 84,
+                "offset": 76,
                 "anchor": "_objc_msgSend"
               },
               {
                 "type": "b",
-                "offset": 112,
+                "offset": 92,
                 "anchor": "bufferFree"
               }
             ]
@@ -760,45 +760,45 @@
           {
             "name": "bridge.usageManager",
             "source": "payloads/usageManager.bin",
-            "size": 180,
+            "size": 188,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 24,
+                "offset": 28,
                 "anchor": "bridge.usageManager",
-                "addend": 124
+                "addend": 132
               },
               {
                 "type": "bl",
-                "offset": 32,
+                "offset": 36,
                 "anchor": "_objc_lookUpClass"
               },
               {
                 "type": "adrp_add",
-                "offset": 44,
+                "offset": 48,
                 "anchor": "bridge.usageManager",
-                "addend": 142
+                "addend": 150
               },
               {
                 "type": "bl",
-                "offset": 52,
+                "offset": 56,
                 "anchor": "_sel_registerName"
               },
               {
                 "type": "adrp_add",
-                "offset": 76,
+                "offset": 64,
                 "anchor": "usageManager"
               },
               {
                 "type": "b",
-                "offset": 92,
+                "offset": 100,
                 "anchor": "_objc_msgSend"
               },
               {
                 "type": "b",
-                "offset": 120,
+                "offset": 128,
                 "anchor": "usageManager"
               }
             ]
@@ -806,45 +806,45 @@
           {
             "name": "bridge.authInfo",
             "source": "payloads/authInfo.bin",
-            "size": 200,
+            "size": 228,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 24,
+                "offset": 36,
                 "anchor": "bridge.authInfo",
-                "addend": 128
+                "addend": 156
               },
               {
                 "type": "bl",
-                "offset": 32,
+                "offset": 44,
                 "anchor": "_objc_lookUpClass"
               },
               {
                 "type": "adrp_add",
-                "offset": 44,
+                "offset": 56,
                 "anchor": "bridge.authInfo",
-                "addend": 146
+                "addend": 174
               },
               {
                 "type": "bl",
-                "offset": 52,
+                "offset": 64,
                 "anchor": "_sel_registerName"
               },
               {
                 "type": "adrp_add",
-                "offset": 80,
+                "offset": 72,
                 "anchor": "authInfo"
               },
               {
                 "type": "b",
-                "offset": 96,
+                "offset": 116,
                 "anchor": "_objc_msgSend"
               },
               {
                 "type": "b",
-                "offset": 124,
+                "offset": 152,
                 "anchor": "authInfo"
               }
             ]

@@ -40,56 +40,12 @@ def branch(pc, target, link=False):
 
 
 def thunk(start, target, selector, arguments, imports):
-    """C arguments -> ObjC class method; fall back to the original if absent."""
-    words, relocations = [], []
-
-    def emit(word):
-        words.append(word)
-
-    def address(register, name):
-        relocations.append((len(words), register, name))
-        words.extend([0, 0])
-
-    def call(name):
-        emit(branch(start+len(words)*4, imports[name], True))
-
-    emit(0xD10183FF)  # sub sp, sp, #96
-    for register in range(0, 8, 2):
-        emit(0xA9000000 | ((register//2*16//8) << 15) | ((register+1) << 10) | (31 << 5) | register)
-    emit(0xA9047BFD)  # stp x29, x30, [sp,#64]
-    address(0, 'class')
-    call('_objc_lookUpClass')
-    cbz = len(words); emit(0)
-    emit(0xF9002BE0)  # str x0, [sp,#80]
-    address(0, 'selector')
-    call('_sel_registerName')
-    emit(0xAA0003E1)  # mov x1, x0
-    emit(0xF9402BE0)  # ldr x0, [sp,#80]
-    for register in range(arguments):
-        emit(0xF9400000 | (register << 10) | (31 << 5) | (register+2))
-    address(arguments+2, 'original')
-    emit(0xA9447BFD)
-    emit(0x910183FF)
-    emit(branch(start+len(words)*4, imports['_objc_msgSend']))
-    fallback = len(words)
-    for register in range(0, 8, 2):
-        emit(0xA9400000 | ((register//2*16//8) << 15) | ((register+1) << 10) | (31 << 5) | register)
-    emit(0xA9447BFD)
-    emit(0x910183FF)
-    emit(branch(start+len(words)*4, target))
-    words[cbz] = 0xB4000000 | ((fallback-cbz) << 5)
-    tail = b'TGExtraRustBridge\0' + selector.encode() + b'\0'
-    addresses = {'class': start+len(words)*4, 'selector': start+len(words)*4+18, 'original': target}
-    for i, register, name in relocations:
-        dest = addresses[name]
-        pages = ((dest & ~4095)-((start+i*4) & ~4095))//4096
-        if not -(1 << 20) <= pages < 1 << 20:
-            raise ValueError('arm64 ADRP out of range')
-        pages &= 0x1FFFFF
-        words[i] = 0x90000000 | (pages & 3) << 29 | (pages >> 2) << 5 | register
-        words[i+1] = 0x91000000 | (dest & 4095) << 10 | register << 5 | register
-    result = struct.pack('<'+'I'*len(words), *words)+tail
-    return result + b'\0' * (-len(result) % 4)
+    """Link the compiled C adapter for the standalone/offline patch path."""
+    from portable import payload_template
+    from payloads import link_payload
+    code, relocations = payload_template(selector, arguments, 'original')
+    return link_payload(code, relocations, start,
+                        {'original': target, 'bridge.original': start, **imports})
 
 
 def identify(macho, profile):
@@ -202,7 +158,7 @@ def make_patch(data, profile):
 def make_portable_patch(data, profile):
     from portable import build_profile
     runtime = inspect_runtime(data, profile)
-    return build_profile(*runtime, selectors=SELECTORS, thunk=thunk)
+    return build_profile(*runtime, selectors=SELECTORS)
 
 
 def apply_prepared(patch, metadata, app):
@@ -325,7 +281,8 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
         identifier = 'rust-'+patch['sha256'][:16]
         item['resources'] = [{'source': 'resources/TGExtraRustBridge.plist', 'destination': 'TGExtraRustBridge.plist'}]
     else:
-        identity = {'patch': patch, 'payloads': {source: hashlib.sha256(data).hexdigest() for source, data in files.items()}}
+        identity = {'patch': patch, 'payloads': {source: hashlib.sha256(data).hexdigest()
+                                               for source, data in files.items() if source.endswith('.bin')}}
         digest = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         identifier = 'rust-abi5-'+digest[:16]
         item['name'] = 'Rust MTProto ABI 5 / '+digest[:16]

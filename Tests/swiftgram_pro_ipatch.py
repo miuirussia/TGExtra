@@ -18,9 +18,15 @@ sys.path.insert(0, str(ROOT/'Tools'))
 from package_ipatch import write_archive
 from prepare_rust_patch import branch
 from RustBridge.macho import MachO
+from payloads import compile_payload
 
 
 class SwiftgramProIpatchTests(unittest.TestCase):
+    def test_c_adapter_matches_shipped_payload(self):
+        code, fixups = compile_payload(PROFILE/'payloads/status.c')
+        self.assertEqual(fixups, ())
+        self.assertEqual(code, (PROFILE/'payloads/status.bin').read_bytes())
+
     @unittest.skipUnless(platform.system() == 'Darwin' and platform.machine() == 'arm64',
                          'requires native Apple Silicon execution')
     def test_payload_preserves_the_reviewed_witness_abi_and_error_path(self):
@@ -60,9 +66,7 @@ str x0, [x19]
 ldp x29, x30, [sp, #16]
 ldr x19, [sp], #32
 ret
-.globl _ProStatusPayload
-_ProStatusPayload:
-''' + (PROFILE/'payloads/status.s').read_text())
+''')
             (root/'main.c').write_text(r'''
 #include <assert.h>
 #include <stdint.h>
@@ -83,7 +87,8 @@ int main(int argc, char **argv) {
 }
 ''')
             binary = root/'status-tests'
-            subprocess.run(['clang', '-Werror', str(root/'main.c'), str(root/'witness.s'),
+            subprocess.run(['clang', '-O2', '-Werror', str(root/'main.c'), str(root/'witness.s'),
+                            str(PROFILE/'payloads/status.c'),
                             '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
             symbols = {parts[-1]: int(parts[0], 16) for line in
@@ -95,7 +100,7 @@ int main(int argc, char **argv) {
             self.assertEqual(image.portable_fingerprint(witness, witness+40), profile['checks'][0]['fingerprint'])
             code = (PROFILE/'payloads/status.bin').read_bytes()
             offset = image.offset(payload)
-            self.assertEqual(image.data[offset:offset+len(code)], code, 'Assembly and shipped payload differ')
+            self.assertEqual(image.data[offset:offset+len(code)], code, 'C adapter and shipped payload differ')
             patched = bytearray(image.data)
             struct.pack_into('<I', patched, image.offset(witness+24), branch(witness+24, payload))
             struct.pack_into('<I', patched, offset+16, branch(payload+16, witness+28))

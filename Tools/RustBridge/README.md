@@ -41,3 +41,23 @@ Regenerate archives produced before recovery was added. New metadata includes
 BufferFree, NextRequestID, Send and Cancel, and the offline patch adds a context
 lookup thunk. Older metadata retains ordinary TL transformations but cannot
 start protected-forward recovery.
+
+Each `Patches/rust-abi5-*/payloads/<name>.c` compiles into an adjacent `<name>.bin`.
+Only C sources are versioned; binaries are generated and ignored by Git.
+These C sources implement the class lookup, named Objective-C call and
+missing-tweak fallback; the Python code no longer hand-encodes their instructions.
+`portable.py` emits the initial standalone sources for new profiles, and
+`Tools/payloads.py` compiles them and reads their Mach-O relocation tables.
+Existing profiles rebuild directly from their adjacent C files:
+
+~~~sh
+python3 Tools/build_payloads.py
+python3 Tools/build_payloads.py --check
+~~~
+
+Both commands require macOS with Apple Clang. Rebuilding updates payload blocks
+and their relocations, preserving the reviewed host-code checks. Rust directory
+identities change when the generated binary payload changes. The offline patch
+path links the same compiled C adapters. `.ipatch` archives include the C sources
+beside the binary payloads. See [Patches/README.md](../../Patches/README.md) for
+compiler reproducibility and validation requirements.

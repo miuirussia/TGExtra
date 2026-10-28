@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 Tools/build_payloads.py
 python3 Tests/check_resources.py
 python3 Tests/check_api_schema.py
 python3 Tests/host_schema.py
@@ -24,8 +25,8 @@ for source in Tests/Fixtures/NativeTL/{TLObject,TLSchemaLoader,TLEngine}.m; do
     clang -O2 -fno-objc-arc -I Tests/Fixtures/NativeTL/include -c "$source" -o "$test_build_dir/native-$(basename "$source").o"
 done
 clang -O2 -c Tests/Fixtures/NativeTL/Schema.c -o "$test_build_dir/native-schema.o"
-clang -x assembler-with-cpp -D_Original=_TGEFixtureRawConstructor -c Patches/native-tl-v1/payloads/constructor.s -o "$test_build_dir/native-constructor-thunk.o"
-clang -x assembler-with-cpp -D_Original=_TGEFixtureRawResult -c Patches/native-tl-v1/payloads/result.s -o "$test_build_dir/native-result-thunk.o"
+clang -O2 -Werror -DOriginal=TGEFixtureRawConstructor -c Patches/native-tl-v1/payloads/constructor.c -o "$test_build_dir/native-constructor-thunk.o"
+clang -O2 -Werror -DOriginal=TGEFixtureRawResult -c Patches/native-tl-v1/payloads/result.c -o "$test_build_dir/native-result-thunk.o"
 clang -fno-objc-arc -DTGEXTRA_TESTING -I Tests/Fixtures/NativeTL/include -c Tests/native_engine.m -o "$test_build_dir/native-engine-tests.o"
 clang -fobjc-arc -DTGEXTRA_TESTING -c Tests/Support/TestSupport.m -o "$test_build_dir/support.o"
 clang -fobjc-arc -DTGEXTRA_TESTING -c Sources/tgapi/DefaultsMigration.m -o "$test_build_dir/migration.o"

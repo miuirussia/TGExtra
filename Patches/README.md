@@ -4,7 +4,8 @@ Client profiles included in every GitHub ipatch release live in separate folders
 
 ~~~text
 Patches/<profile-id>/patch.json
-Patches/<profile-id>/payloads/<bridge-name>.bin
+Patches/<profile-id>/payloads/<bridge-name>.c
+Patches/<profile-id>/payloads/<bridge-name>.bin  # generated, ignored by Git
 ~~~
 
 Each patch.json contains name, required bundle_ids and binary_patches with a
@@ -20,6 +21,43 @@ and function offsets. No compatibility SHA-256, fixed framework path or copied
 metadata is needed. The engine still captures a full-file digest and exact
 preimages to protect application after planning.
 
+## Payload sources and rebuilding
+
+Only the standalone `.c` sources and profile definitions are versioned; `.bin`
+files are generated beside their same-named C sources and ignored by Git. This
+includes all ten Rust bridges in each profile. Rust adapters look up
+`TGExtraRustBridge`, register their named selector,
+and forward the original arguments plus the host function pointer to the class
+method. If the class is missing, they call the original host implementation.
+The register-sized parameters transport the reviewed generic arm64 ABI; the
+request types and ownership contract are in `Sources/tgapi/RustBridge.h`.
+
+On macOS with Apple Clang:
+
+~~~sh
+python3 Tools/build_payloads.py
+python3 Tools/build_payloads.py --check
+~~~
+
+No reference IPA is needed to rebuild existing payloads. The script compiles each
+adjacent source, updates block sizes and relocations, and renames Rust profiles
+when their binary identity changes. Reviewed anchors and compatibility checks are
+preserved. New Rust profiles export standalone C sources automatically; their
+initial source template lives in `Tools/RustBridge/portable.py`.
+
+`Tools/payloads.py` reads the compiler's Mach-O relocation tables rather than
+inferring instruction locations. Unsupported imports, sections and relocation
+forms are rejected. Payloads are compiled for generic arm64 with `-O2`, without
+stack-protector or unwind dependencies. Different Clang versions can produce
+different code and profile identities. Run the native bridge and engine tests
+after rebuilding. `bash Tests/run.sh` rebuilds all payloads automatically, so it
+also works in a fresh checkout with no `.bin` files. Before running individual
+Python tests or packaging manually, run `python3 Tools/build_payloads.py` first.
+The release packager includes the adjacent C sources in `.ipatch` archives too.
+GitHub Actions rebuilds payloads from these sources before running checks. It
+uploads the tested profiles as `compiled-payloads`; the ipatch job packages that
+artifact, including its generated sizes, relocations and Rust profile identities.
+
 ## Native TL decoder
 
 `native-tl-v1` accelerates the MtProtoKit response path on the reviewed Telegram
@@ -28,10 +66,10 @@ the constructor parser, its object-body parser, the function-result parser and
 the Swift top-level wrapper. Exactly one constructor call in that wrapper and
 one function-result call are redirected. Recursive native calls stay unchanged.
 
-`payloads/constructor.s` and `payloads/result.s` are the readable bridge sources.
-Each preserves parser arguments, resolves the exported TGExtra bridge and tail
-calls it with the original parser address. A missing tweak falls through to the
-original parser. No TL field offsets or policy conditions live in assembly.
+`payloads/constructor.c` and `payloads/result.c` are the compiled bridge sources.
+Each resolves the exported TGExtra bridge with `dlsym` and passes it the parser
+arguments and original parser address. A missing tweak falls through to the
+original parser. TL field offsets and policy conditions stay in the runtime.
 
 The engine generates `TGExtraNativeTL.plist` with the image UUID, parser offsets,
 bridge offsets and checked call sites. TGExtra verifies those locations and the
@@ -79,8 +117,11 @@ storage when Swift's error register x21 is nonzero. The patch redirects only the
 successful store at witness +24 to `payloads/status.bin`. That payload computes
 signed `max(2, x0)`, stores the value through x19, and returns to the existing
 epilogue at +28. The stack, preserved registers and error path are unchanged.
-`payloads/status.s` is the reviewable source; the native test checks that assembly
-matches the shipped bytes and exercises both success and error paths.
+`payloads/status.c` is the reviewable source. It includes the C meaning of the
+operation and a five-instruction naked adapter: this insertion uses the enclosing
+Swift witness's registers and stack, so an ordinary C function is unsuitable. The
+native test checks the compiled adapter against the shipped bytes and exercises
+both success and error paths.
 
 The reviewed reference is Swiftgram 13.1.1 (343, `app.swiftgram.ios`), generic
 arm64. V3 engine planning has been checked against that decrypted IPA. The type
@@ -153,11 +194,12 @@ differ. Modified binaries still need signing.
 ## Packaging and migration
 
 ~~~sh
+python3 Tools/build_payloads.py
 python3 Tools/package_ipatch.py --deb TGExtra.deb --patches Patches --output TGExtra.ipatch
 ~~~
 
 Every DEB variant embeds its matching DEB and all committed portable profiles in
-a version 3 archive, including declarations from `features.json`. Payload files
+a version 3 archive, including declarations from `features.json`. Payload files and their adjacent C sources
 are included automatically. Base Rust sets install the DEB; the Pro feature set
 does not reference or depend on it. The packager also accepts v1/v2 archives and
 preserves feature declarations, other client sets and the embedded DEB when
@@ -189,7 +231,7 @@ checks default-off, explicit off/on selection and the resolved binary edits.
 
 On Apple Silicon macOS the Rust test builds two native layouts, asks the engine to
 allocate/link production thunk templates, compares the linked bytes with the
-original generator and executes Objective-C argument, return, original-call and
+offline C-payload linker and executes Objective-C argument, return, original-call and
 missing-tweak fallback checks. It also checks fingerprint semantics. Native
 engine execution is skipped if the CLI or platform is unavailable. Device
 validation of the full Telegram/Rust integration is still required.

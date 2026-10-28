@@ -109,7 +109,7 @@ is decoded once and its object graph is returned to Telegram without serializing
 it. New entities and restored snapshots are materialized separately when needed.
 The policy source remains named Swift operations in `MessagePatches.swift`.
 
-The iPatch `native-tl-v1` profile redirects two root calls using reviewable assembly
+The iPatch `native-tl-v1` profile redirects two root calls using reviewable C
 bridges; DEB installations discover the same checked decoder and use
 `MSHookFunction` when available. Native ABI/code checks currently cover the generic
 arm64 engine in the two 13.1.1 references above. Changed decoders, unavailable
@@ -190,7 +190,9 @@ use MtProtoKit workers for the same account.
 
 Pushes to `main` run checks and publish rootful, rootless and roothide packages,
 plus a matching `.ipatch` for each DEB, to `prerelease`. Each ipatch embeds its
-corresponding DEB and all committed client patch sets. Tags publish versioned
+corresponding DEB and all client patch sets, rebuilt from their adjacent C sources.
+The checks job compiles and tests the payloads, then passes those exact profiles
+to the ipatch packaging job as a build artifact. Tags publish versioned
 releases. Install either the DEB or its ipatch; the ipatch requires a matching
 Rust compatibility profile and a v3-capable engine. Swiftgram Pro is an optional
 feature in those archives and is disabled by default.
@@ -246,7 +248,7 @@ bash Tests/run.sh --native-benchmark
 The suite covers privacy, message protection, edit history, account isolation,
 API compatibility and protected-copy recovery through mock MtProtoKit and Rust
 servers. The native fixture uses the reviewed Objective-C engine, the production
-assembly bridges and the existing test schema. It checks single decoding,
+C bridges and the existing test schema. It checks single decoding,
 optional-field presence, account isolation, rejected packets and ownership. Tests
 use in-memory preferences and temporary recovery journals.
 

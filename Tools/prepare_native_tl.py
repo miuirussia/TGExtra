@@ -10,8 +10,7 @@ from pathlib import Path
 import struct
 import sys
 import zipfile
-import subprocess
-import tempfile
+from payloads import ipatch_payload
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'Tools/RustBridge'))
@@ -23,45 +22,12 @@ REVIEWED = {
     'topLevel': (276, '88be5feef6018394f13e1f57b593cbe4e83287a33ceabd1713115449456af266'),
     'body': (1160, '3d37051922e8f7039866eaa979cb3d57b95dab0aaf3e2b39027bdbf44357b276'),
 }
-ENTRIES = {'constructor': ('TGExtraNativeConstructorBridge', 3), 'result': ('TGExtraNativeResultBridge', 2)}
+ENTRIES = ('constructor', 'result')
 
 
-def assembly_text(data):
-    position = 32
-    for _ in range(struct.unpack_from('<I', data, 16)[0]):
-        command, length = struct.unpack_from('<II', data, position)
-        if command == 0x19:
-            for i in range(struct.unpack_from('<I', data, position+64)[0]):
-                section = position+72+i*80
-                if data[section:section+16].rstrip(b'\0') == b'__text':
-                    size = struct.unpack_from('<Q', data, section+40)[0]
-                    offset = struct.unpack_from('<I', data, section+48)[0]
-                    return data[offset:offset+size]
-        position += length
-    raise ValueError('assembly has no text section')
-
-
-def payload_template(name):
-    source = ROOT/f'Patches/native-tl-v1/payloads/{name}.s'
-    with tempfile.TemporaryDirectory(prefix='tgextra-native-asm-') as directory:
-        obj = Path(directory)/'bridge.o'
-        subprocess.run(['clang', '-arch', 'arm64', '-c', str(source), '-o', str(obj)], check=True)
-        code = bytearray(assembly_text(obj.read_bytes()))
-    symbol, arguments = ENTRIES[name]
-    strings = code.index(symbol.encode()+b'\0')
-    relocations = []
-    for offset in range(0, strings, 4):
-        word = struct.unpack_from('<I', code, offset)[0]
-        if word & 0x7c000000 == 0x14000000 and word & 0x3ffffff == 0:
-            relocations.append({'type': 'bl' if word >> 31 else 'b', 'offset': offset,
-                                'anchor': '_dlsym' if word >> 31 else name})
-        elif word & 0x9f000000 == 0x90000000:
-            register = word & 31
-            relocation = {'type': 'adrp_add', 'offset': offset, 'anchor': name}
-            if register == 1: relocation.update(anchor='bridge.'+name, addend=strings)
-            elif register != arguments: raise ValueError('unexpected bridge address register')
-            relocations.append(relocation)
-    return bytes(code), relocations
+def payload_template(name, source=None):
+    return ipatch_payload(source if source is not None else ROOT/f'Patches/native-tl-v1/payloads/{name}.c', 'bridge.'+name,
+                          {'_Original': name, '_dlsym': '_dlsym'})
 
 
 def identify(image):
@@ -132,6 +98,7 @@ def generate(ipa, output, check=False):
         address, end = functions[name]
         code, relocations = payload_template(name)
         write(payloads/f'{name}.bin', code)
+        write(payloads/f'{name}.c', (ROOT/f'Patches/native-tl-v1/payloads/{name}.c').read_bytes())
         sites = [(pc, target) for pc, target in branches if target == address and
                  (name != 'constructor' or functions['topLevel'][0] <= pc < functions['topLevel'][1])]
         if len(sites) != 1: raise ValueError(f'expected one root call for {name}')

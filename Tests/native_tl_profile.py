@@ -22,7 +22,7 @@ PROFILE = ROOT/'Patches/native-tl-v1'
 
 
 class NativeTLProfileTests(unittest.TestCase):
-    def test_authored_assembly_matches_shipped_payload(self):
+    def test_compiled_c_matches_shipped_payload(self):
         profile = json.loads((PROFILE/'patch.json').read_text())['binary_patches'][0]['profile']
         for name in ('constructor', 'result'):
             code, relocations = payload_template(name)

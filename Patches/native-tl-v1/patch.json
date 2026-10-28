@@ -102,29 +102,29 @@
           {
             "name": "bridge.constructor",
             "source": "payloads/constructor.bin",
-            "size": 104,
+            "size": 148,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
               {
                 "type": "adrp_add",
-                "offset": 20,
+                "offset": 28,
                 "anchor": "bridge.constructor",
-                "addend": 72
+                "addend": 116
               },
               {
                 "type": "bl",
-                "offset": 28,
+                "offset": 40,
                 "anchor": "_dlsym"
               },
               {
                 "type": "adrp_add",
-                "offset": 56,
+                "offset": 52,
                 "anchor": "constructor"
               },
               {
                 "type": "b",
-                "offset": 68,
+                "offset": 112,
                 "anchor": "constructor"
               }
             ]
@@ -132,7 +132,7 @@
           {
             "name": "bridge.result",
             "source": "payloads/result.bin",
-            "size": 100,
+            "size": 120,
             "alignment": 4,
             "permissions": "rx",
             "relocations": [
@@ -140,21 +140,21 @@
                 "type": "adrp_add",
                 "offset": 20,
                 "anchor": "bridge.result",
-                "addend": 72
+                "addend": 92
               },
               {
                 "type": "bl",
-                "offset": 28,
+                "offset": 32,
                 "anchor": "_dlsym"
               },
               {
                 "type": "adrp_add",
-                "offset": 56,
+                "offset": 44,
                 "anchor": "result"
               },
               {
                 "type": "b",
-                "offset": 68,
+                "offset": 88,
                 "anchor": "result"
               }
             ]

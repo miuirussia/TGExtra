@@ -31,8 +31,17 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.BUILD_REF }}
+      - name: Compile patch payloads from C
+        run: python3 Tools/build_payloads.py
       - name: Protocol, patch packaging and release checks
         run: bash Tests/run.sh
+
+      - name: Upload tested patch profiles
+        uses: actions/upload-artifact@v7
+        with:
+          name: compiled-payloads
+          path: Patches/
+          if-no-files-found: error
 
   build:
     needs: checks
@@ -88,7 +97,7 @@ jobs:
           path: packages/*.deb
 
   ipatch:
-    needs: build
+    needs: [checks, build]
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v7
@@ -98,15 +107,22 @@ jobs:
       - name: Download all packages
         uses: actions/download-artifact@v8
         with:
+          pattern: '*-package'
           path: packages
           merge-multiple: true
+
+      - name: Download tested patch profiles compiled from C
+        uses: actions/download-artifact@v8
+        with:
+          name: compiled-payloads
+          path: .build/compiled-patches
 
       - name: Generate ipatch for every DEB
         shell: bash
         run: |
           set -euo pipefail
           for deb in packages/*.deb; do
-            python3 Tools/package_ipatch.py --deb "$deb" --patches Patches \
+            python3 Tools/package_ipatch.py --deb "$deb" --patches .build/compiled-patches \
               --output "${deb%.deb}.ipatch"
           done
 
@@ -131,6 +147,7 @@ jobs:
       - name: Download all packages
         uses: actions/download-artifact@v8
         with:
+          pattern: '*-package*'
           path: packages
           merge-multiple: true
 
@@ -227,4 +244,5 @@ jobs:
             rootless-package
             roothide-package
             ipatch-packages
+            compiled-payloads
           failOnError: false

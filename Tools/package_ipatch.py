@@ -102,6 +102,11 @@ def repository_sets(patches):
                     raise ValueError(f'patch resources cannot be symlinks: {path}')
             name = package_source(directory.name, str(source))
             files[name] = path.read_bytes()
+            if path.suffix == '.bin' and path.with_suffix('.c').exists():
+                companion = path.with_suffix('.c')
+                if companion.is_symlink():
+                    raise ValueError(f'patch resources cannot be symlinks: {companion}')
+                files[str(PurePosixPath(name).with_suffix('.c'))] = companion.read_bytes()
             resource['source'] = name
         sets.append(item)
     return sets, files
@@ -129,6 +134,10 @@ def write_archive(output, value, files):
         referenced.update(item.get('tweaks', []))
         referenced.update(resource['source'] for resource in sources(item))
     files = {**files, 'manifest.json': data}
+    # Keep reviewable C sources beside live payloads, including through merges.
+    # Legacy packages without source companions remain supported.
+    referenced.update(str(PurePosixPath(name).with_suffix('.c')) for name in list(referenced)
+                      if name.endswith('.bin') and str(PurePosixPath(name).with_suffix('.c')) in files)
     for name in referenced:
         relative_path(name)
         if name not in files:

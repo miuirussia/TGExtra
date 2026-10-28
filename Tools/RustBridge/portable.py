@@ -1,36 +1,58 @@
 """Build declarative ipatch v2 profiles from legacy-reviewed Rust machine code."""
-import struct
+import json
 
-from macho import signed, page_address
-
-
-def payload_template(selector, arguments, original, thunk):
-    # Generate with distinct temporary addresses, then turn every external
-    # instruction fixup into an engine relocation. Local CBZ stays exact.
-    start, target = 0x10000, 0x20000
-    imports = {'_objc_lookUpClass': 0x30000, '_sel_registerName': 0x40000, '_objc_msgSend': 0x50000}
-    names = {target: original, **{address: name for name, address in imports.items()}}
-    code = bytearray(thunk(start, target, selector, arguments, imports))
-    strings = code.index(b'TGExtraRustBridge\0')
-    relocations = []
-    for off in range(0, strings, 4):
-        word = struct.unpack_from('<I', code, off)[0]
-        if word & 0x7C000000 == 0x14000000:
-            destination = start+off+signed(word & 0x3FFFFFF, 26)*4
-            relocations.append({'type': 'bl' if word >> 31 else 'b', 'offset': off, 'anchor': names[destination]})
-            struct.pack_into('<I', code, off, word & 0xFC000000)
-        elif word & 0x9F000000 == 0x90000000:
-            add = struct.unpack_from('<I', code, off+4)[0]
-            destination = page_address(start+off, word)+(add >> 10 & 4095)
-            relocation = {'type': 'adrp_add', 'offset': off, 'anchor': original}
-            if destination != target:
-                relocation.update(anchor='bridge.'+original, addend=destination-start)
-            relocations.append(relocation)
-            struct.pack_into('<II', code, off, word & 0x9F00001F, add & ~0x3FFC00)
-    return bytes(code), relocations
+from payloads import ipatch_payload
 
 
-def build_profile(macho, functions, imports, branches, usage, auth_info, constructor, marker_address, *, selectors, thunk):
+def payload_source(selector, arguments, name):
+    """Emit a standalone, readable C source beside each exported binary."""
+    names = {
+        'engineCreate': ('threads', 'context', 'event', 'log'),
+        'sessionCreate': ('engine', 'setup'),
+        'sessionDestroy': ('engine', 'session'),
+        'send': ('engine', 'session', 'request'),
+        'cancel': ('engine', 'session', 'request'),
+        'bufferData': ('buffer',), 'bufferLength': ('buffer',), 'bufferFree': ('buffer',),
+        'usageManager': ('receiver', 'selector', 'info'),
+        'authInfo': ('receiver', 'selector', 'datacenter', 'authSelector'),
+    }.get(name, ('a', 'b', 'c', 'd')[:arguments])
+    if len(names) != arguments or not 1 <= arguments <= 4:
+        raise ValueError('unsupported Rust bridge argument count')
+    parameters = ', '.join('uintptr_t '+arg for arg in names)
+    values = ', '.join(names)
+    return f'''#include <stdint.h>
+
+// Generic arm64 register adapter for {name}: pointers/integers in x0...x3,
+// pointer/integer result in x0 (ignored by callers of void functions).
+// Request types and ownership: Sources/tgapi/RustBridge.{{h,m}}.
+// The patch linker resolves Original to the checked host implementation.
+__attribute__((visibility("hidden")))
+extern uintptr_t Original({parameters});
+extern void *objc_lookUpClass(const char *name);
+extern void *sel_registerName(const char *name);
+// Use a fixed signature so Apple's C ABI passes every argument in registers.
+extern uintptr_t BridgeSend(void *bridge, void *method, {parameters}, void *original)
+    __asm__("_objc_msgSend");
+
+uintptr_t RustBridge_{name}({parameters}) {{
+    void *bridge = objc_lookUpClass("TGExtraRustBridge");
+    if (!bridge) {{
+        return Original({values});
+    }}
+    void *method = sel_registerName({json.dumps(selector)});
+    return BridgeSend(bridge, method, {values}, (void *)Original);
+}}
+'''
+
+
+def payload_template(selector, arguments, original, source=None):
+    return ipatch_payload(source if source is not None else payload_source(selector, arguments, original), 'bridge.'+original,
+                          {'_Original': original, **{name: name for name in
+                           ('_objc_lookUpClass', '_sel_registerName', '_objc_msgSend')}},
+                          source_text=source is None)
+
+
+def build_profile(macho, functions, imports, branches, usage, auth_info, constructor, marker_address, *, selectors):
     anchors, checks, blocks, edits, files = [], [], [], [], {}
     profile = {'arch': 'arm64', 'header_reserve': 65536, 'anchors': anchors,
                'checks': checks, 'blocks': blocks, 'edits': edits}
@@ -95,9 +117,10 @@ def build_profile(macho, functions, imports, branches, usage, auth_info, constru
                 checks.append({'type': 'within', 'at': at, 'within': 'sessionInit'})
             edits.append({'anchor': at, 'replacement': '00000094' if instruction == 'bl' else '00000014',
                           'relocations': [{'type': instruction, 'offset': 0, 'anchor': 'bridge.'+name}]})
-        code, relocations = payload_template(selector, arguments, name, thunk)
+        code, relocations = payload_template(selector, arguments, name)
         source = 'payloads/'+name+'.bin'
         files[source] = code
+        files[source.removesuffix('.bin')+'.c'] = payload_source(selector, arguments, name).encode()
         blocks.append({'name': 'bridge.'+name, 'source': source, 'size': len(code), 'alignment': 4,
                        'permissions': 'rx', 'relocations': relocations})
     # The permanent auth query must follow usage/account binding. Additional
