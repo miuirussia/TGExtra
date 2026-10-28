@@ -213,6 +213,19 @@ Build with Theos and an iOS SDK:
 make package
 ```
 
+To run the GitHub Actions checks and build release DEBs and matching iPatches
+for rootful, rootless and roothide, limited to arm64, on macOS with Xcode:
+
+```sh
+brew install make ldid
+./build-arm64.sh
+```
+
+The script downloads `waruhachi/theos` and `waruhachi/sdks` from `main` on first
+use, or uses an existing Theos installation via `THEOS=/path/to/theos`.
+Packages are written to `packages/arm64/`. Package architecture labels follow
+the jailbreak scheme; all three dylibs contain only arm64 code.
+
 After editing translations, regenerate the embedded fallbacks:
 
 ```sh
