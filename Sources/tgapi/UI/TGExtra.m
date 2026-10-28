@@ -9,18 +9,20 @@
 
 #define TGLoc(key) [TGExtraLocalization localizedStringForKey:(key)]
 
-// Declared up here rather than beside the data source because methods above it
-// reload sections by index too — didChangeFakeLocation used a literal 3, which
-// silently pointed at the wrong section the moment a section was inserted.
+// Keep section identifiers shared by the data source and targeted reloads.
 typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
   GHOST_MODE = 0,
-  GHOST_EXCEPTIONS = 1,
-  MISC = 2,
-  FILE_FIXER = 3,
-  FAKE_LOCATION = 4,
-  LANGUAGE = 5,
-  MESSAGE_DATA = 6,
-  CREDITS = 7,
+  GHOST_EXCEPTIONS,
+  MESSAGE_HISTORY,
+  CONTENT_ACCESS,
+  MEDIA,
+  INTERFACE,
+  FAKE_LOCATION,
+  FILE_FIXER,
+  MESSAGE_DATA,
+  LANGUAGE,
+  CREDITS,
+  SECTION_COUNT,
 };
 
 static NSString *const kTGExtraTweakVersion = @"1.3.0";
@@ -37,6 +39,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 - (void)showRenamePromptForException:(NSDictionary *)entry;
 - (void)confirmClearMessageData;
 + (NSArray<NSString *> *)ghostSubFeatureKeys;
++ (NSArray<NSString *> *)featureKeysForSection:(NSInteger)section;
 @end
 
 @implementation TGExtra
@@ -231,11 +234,14 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 #pragma mark - UITableViewDataSource
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-  return 8;
+  return SECTION_COUNT;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView
     numberOfRowsInSection:(NSInteger)section {
+  NSArray<NSString *> *featureKeys = [TGExtra featureKeysForSection:section];
+  if (featureKeys) return featureKeys.count;
+
   switch (section) {
   case GHOST_MODE:
     return 2 + (self.isGhostModeExpanded ? [TGExtra ghostSubFeatureKeys].count : 0);
@@ -243,8 +249,6 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     // Falls back to a single explanatory row when the list is empty, so the
     // section never renders as a bare header.
     return MAX((NSInteger)[TGExtraGhostExceptions all].count, 1);
-  case MISC:
-    return 12;
   case FILE_FIXER:
     return 2;
   case FAKE_LOCATION:
@@ -269,8 +273,14 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     return TGLoc(@"GHOST_MODE_SECTION_HEADER");
   case GHOST_EXCEPTIONS:
     return TGLoc(@"GHOST_EXCEPTIONS_SECTION_HEADER");
-  case MISC:
-    return TGLoc(@"MISC_SECTION_HEADER");
+  case MESSAGE_HISTORY:
+    return TGLoc(@"MESSAGE_HISTORY_SECTION_HEADER");
+  case CONTENT_ACCESS:
+    return TGLoc(@"CONTENT_ACCESS_SECTION_HEADER");
+  case MEDIA:
+    return TGLoc(@"MEDIA_SECTION_HEADER");
+  case INTERFACE:
+    return TGLoc(@"INTERFACE_SECTION_HEADER");
   case FILE_FIXER:
     return TGLoc(@"FILE_FIXER_SECTION_HEADER");
   case FAKE_LOCATION:
@@ -511,69 +521,70 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     return cell;
 
-  } else if (indexPath.section == MISC) {
+  } else if ([TGExtra featureKeysForSection:indexPath.section] != nil) {
     cell = [self switchCellFromTableView:tableView];
     cell.imageView.image = nil;
     cell.accessoryType = UITableViewCellAccessoryNone;
+    NSString *switchKey = [self switchKeyForIndexPath:indexPath];
 
-    if (indexPath.row == 0) {
+    if ([switchKey isEqualToString:kDisableAllAds]) {
       cell.imageView.image = [UIImage systemImageNamed:@"nosign"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"DISABLE_ALL_ADS_TITLE");
       cell.detailTextLabel.text = TGLoc(@"DISABLE_ALL_ADS_SUBTITLE");
-    } else if (indexPath.row == 1) {
+    } else if ([switchKey isEqualToString:kDisableForwardRestriction]) {
       cell.imageView.image = [UIImage systemImageNamed:@"lock.open.fill"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"ENABLE_SAVING_PROTECTED_CONTENT_TITLE");
       cell.detailTextLabel.text =
           TGLoc(@"ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE");
-    } else if (indexPath.row == 2) {
+    } else if ([switchKey isEqualToString:kAntiRevoke]) {
       cell.imageView.image = [UIImage systemImageNamed:@"trash.slash.fill"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"ANTI_REVOKE_TITLE");
       cell.detailTextLabel.text = TGLoc(@"ANTI_REVOKE_SUBTITLE");
-    } else if (indexPath.row == 3) {
+    } else if ([switchKey isEqualToString:kAntiAutoDelete]) {
       cell.imageView.image =
           [UIImage systemImageNamed:@"clock.arrow.circlepath"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"ANTI_AUTO_DELETE_TITLE");
       cell.detailTextLabel.text = TGLoc(@"ANTI_AUTO_DELETE_SUBTITLE");
-    } else if (indexPath.row == 4) {
+    } else if ([switchKey isEqualToString:kDisableScreenshotNotification]) {
       cell.imageView.image = [UIImage systemImageNamed:@"camera.fill"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"ANTI_SCREENSHOT_TITLE");
       cell.detailTextLabel.text = TGLoc(@"ANTI_SCREENSHOT_SUBTITLE");
-    } else if (indexPath.row == 5) {
+    } else if ([switchKey isEqualToString:kAntiSelfDestruct]) {
       cell.imageView.image = [UIImage systemImageNamed:@"eye.fill"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"ANTI_SELF_DESTRUCT_TITLE");
       cell.detailTextLabel.text = TGLoc(@"ANTI_SELF_DESTRUCT_SUBTITLE");
-    } else if (indexPath.row == 6) {
+    } else if ([switchKey isEqualToString:kAntiEdit]) {
       cell.imageView.image = [UIImage systemImageNamed:@"pencil.slash"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"ANTI_EDIT_TITLE");
       cell.detailTextLabel.text = TGLoc(@"ANTI_EDIT_SUBTITLE");
-    } else if (indexPath.row == 7) {
+    } else if ([switchKey isEqualToString:kHideDisappearingLabel]) {
       cell.imageView.image = [UIImage systemImageNamed:@"text.badge.xmark"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"HIDE_DISAPPEARING_LABEL_TITLE");
       cell.detailTextLabel.text = TGLoc(@"HIDE_DISAPPEARING_LABEL_SUBTITLE");
-    } else if (indexPath.row == 8) {
+    } else if ([switchKey isEqualToString:kVideoToVoice]) {
       cell.imageView.image = [UIImage systemImageNamed:@"waveform.circle.fill"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"VIDEO_TO_VOICE_TITLE");
       cell.detailTextLabel.text = TGLoc(@"VIDEO_TO_VOICE_SUBTITLE");
-    } else if (indexPath.row == 9) {
+    } else if ([switchKey isEqualToString:kIgnorePrivateChatCopyProtection]) {
       cell.imageView.image = [UIImage systemImageNamed:@"doc.on.doc"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"IGNORE_PRIVATE_COPY_PROTECTION_TITLE");
       cell.detailTextLabel.text = TGLoc(@"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE");
-    } else if (indexPath.row == 10) {
+    } else if ([switchKey isEqualToString:kDisableDoubleTapReactions]) {
       cell.imageView.image = [UIImage systemImageNamed:@"hand.tap"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"DISABLE_DOUBLE_TAP_REACTIONS_TITLE");
       cell.detailTextLabel.text = TGLoc(@"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE");
-    } else if (indexPath.row == 11) {
+    } else if ([switchKey isEqualToString:kForceTLottie]) {
       cell.imageView.image = [UIImage systemImageNamed:@"play.rectangle"];
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"FORCE_TLOTTIE_TITLE");
@@ -585,7 +596,6 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       toggle = [[UISwitch alloc] init];
     }
 
-    NSString *switchKey = [self switchKeyForIndexPath:indexPath];
     toggle.on = [[NSUserDefaults standardUserDefaults] boolForKey:switchKey];
     toggle.accessibilityLabel = cell.textLabel.text;
     // Reset on every pass because cells are reused: a row disabled in an
@@ -972,7 +982,31 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   return keys;
 }
 
+// Row counts, switch labels and preference writes use the same category order.
++ (NSArray<NSString *> *)featureKeysForSection:(NSInteger)section {
+  switch (section) {
+  case MESSAGE_HISTORY:
+    return @[kAntiRevoke, kAntiAutoDelete, kAntiEdit];
+  case CONTENT_ACCESS:
+    return @[kDisableForwardRestriction, kIgnorePrivateChatCopyProtection,
+             kDisableScreenshotNotification, kAntiSelfDestruct,
+             kHideDisappearingLabel];
+  case MEDIA:
+    return @[kVideoToVoice, kForceTLottie];
+  case INTERFACE:
+    return @[kDisableAllAds, kDisableDoubleTapReactions];
+  default:
+    return nil;
+  }
+}
+
 - (NSString *)switchKeyForIndexPath:(NSIndexPath *)indexPath {
+  NSArray<NSString *> *featureKeys = [TGExtra featureKeysForSection:indexPath.section];
+  if (featureKeys) {
+    if (indexPath.row < 0 || indexPath.row >= (NSInteger)featureKeys.count) return nil;
+    return featureKeys[indexPath.row];
+  }
+
   // Sections are matched by enum, never by literal index — adding a section
   // used to silently shift every mapping below it.
   switch (indexPath.section) {
@@ -985,35 +1019,6 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     if (ghostRow < 0 || ghostRow >= (NSInteger)keys.count) return nil;
     return keys[ghostRow];
   }
-  case MISC:
-    switch (indexPath.row) {
-    case 0:
-      return kDisableAllAds;
-    case 1:
-      return kDisableForwardRestriction;
-    case 2:
-      return kAntiRevoke;
-    case 3:
-      return kAntiAutoDelete;
-    case 4:
-      return kDisableScreenshotNotification;
-    case 5:
-      return kAntiSelfDestruct;
-    case 6:
-      return kAntiEdit;
-    case 7:
-      return kHideDisappearingLabel;
-    case 8:
-      return kVideoToVoice;
-    case 9:
-      return kIgnorePrivateChatCopyProtection;
-    case 10:
-      return kDisableDoubleTapReactions;
-    case 11:
-      return kForceTLottie;
-    default:
-      return nil;
-    }
   case FILE_FIXER:
     if (indexPath.row == 0) return FILE_PICKER_FIX_KEY;
     return nil;

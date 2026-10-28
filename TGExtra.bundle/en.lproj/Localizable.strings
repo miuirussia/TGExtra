@@ -1,3 +1,9 @@
+/* Settings categories */
+"MESSAGE_HISTORY_SECTION_HEADER" = "Message history";
+"CONTENT_ACCESS_SECTION_HEADER" = "Content access";
+"MEDIA_SECTION_HEADER" = "Media and animations";
+"INTERFACE_SECTION_HEADER" = "Interface and gestures";
+
 /* Sections */
 "GHOST_MODE_SECTION_HEADER" = "Ghost Mode";
 "READ_RECEIPT_SECTION_HEADER" = "Read Receipts";

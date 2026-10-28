@@ -1,3 +1,9 @@
+/* Settings categories */
+"MESSAGE_HISTORY_SECTION_HEADER" = "Historique des messages";
+"CONTENT_ACCESS_SECTION_HEADER" = "Accès au contenu";
+"MEDIA_SECTION_HEADER" = "Médias et animations";
+"INTERFACE_SECTION_HEADER" = "Interface et gestes";
+
 /* GHOST_MODE Section */
 "GHOST_MODE_SECTION_HEADER" = "Mode Fantôme";
 "READ_RECEIPT_SECTION_HEADER" = "Accusés de Lecture";

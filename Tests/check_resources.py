@@ -12,14 +12,22 @@ sys.path.insert(0, str(ROOT / 'Tools'))
 from tl_schema import decode_schema
 menu = (ROOT / 'Sources/tgapi/UI/TGExtra.m').read_text()
 start = menu.rindex('- (NSString *)switchKeyForIndexPath:')
-keys = menu[start:]
-keys = keys[keys.index('  case MISC:'):keys.index('  case FILE_FIXER:')]
-rows = [int(row) for row in re.findall(r'case (\d+):', keys)]
-count = re.search(r'case MISC:\s*return (\d+);', menu)
-assert set(rows) == set(range(int(count[1]))), 'Every visible miscellaneous switch needs a settings key'
-cell = menu[menu.index('  } else if (indexPath.section == MISC)'):]
+categories = menu[menu.index('+ (NSArray<NSString *> *)featureKeysForSection:(NSInteger)section {'):start]
+feature_keys = re.findall(r'\bk\w+', categories)
+expected_features = {
+    'kDisableAllAds', 'kDisableForwardRestriction', 'kAntiRevoke', 'kAntiAutoDelete',
+    'kDisableScreenshotNotification', 'kAntiSelfDestruct', 'kAntiEdit',
+    'kHideDisappearingLabel', 'kVideoToVoice', 'kIgnorePrivateChatCopyProtection',
+    'kDisableDoubleTapReactions', 'kForceTLottie',
+}
+assert set(feature_keys) == expected_features, 'Keep every existing feature in the categorized menu'
+assert len(feature_keys) == len(expected_features), 'Each feature must appear in exactly one category'
+for section in ('MESSAGE_HISTORY', 'CONTENT_ACCESS', 'MEDIA', 'INTERFACE'):
+    assert re.search(r'case ' + section + r':\s*return @\[.+?\];', categories, re.S), f'Empty category: {section}'
+    assert f'TGLoc(@"{section}_SECTION_HEADER")' in menu, f'Missing category heading: {section}'
+cell = menu[menu.index('  } else if ([TGExtra featureKeysForSection:indexPath.section] != nil)'):]
 cell = cell[:cell.index('  } else if (indexPath.section == FILE_FIXER)')]
-assert set(map(int, re.findall(r'indexPath.row == (\d+)', cell))) == set(rows), 'Switch labels and settings keys must use the same rows'
+assert set(re.findall(r'isEqualToString:(k\w+)', cell)) == expected_features, 'Each categorized switch needs its own label'
 
 ghost_keys = menu[menu.index('+ (NSArray<NSString *> *)ghostSubFeatureKeys {'):]
 ghost_keys = re.findall(r'kDisable\w+', ghost_keys[:ghost_keys.index('return keys;')])
@@ -33,7 +41,7 @@ for index, (key, label) in enumerate([
 assert 'self.isGhostModeExpanded ? [TGExtra ghostSubFeatureKeys].count : 0' in menu, 'Expanded Ghost Mode rows must include every subfeature'
 
 preferences = (ROOT / 'Sources/tgapi/Preferences.m').read_text()
-switch_keys = set(re.findall(r'return (k\w+|FILE_PICKER_FIX_KEY|FAKE_LOCATION_ENABLED_KEY);', menu[start:]))
+switch_keys = set(feature_keys) | set(re.findall(r'return (k\w+|FILE_PICKER_FIX_KEY|FAKE_LOCATION_ENABLED_KEY);', menu[start:]))
 assert all(key in preferences for key in switch_keys | set(ghost_keys)), 'Every switch needs durable storage'
 
 pattern = re.compile(r'^\s*"((?:[^"\\]|\\.)*)"\s*=\s*"((?:[^"\\]|\\.)*)"\s*;\s*$', re.M)

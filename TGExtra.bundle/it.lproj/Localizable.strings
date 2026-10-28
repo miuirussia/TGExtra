@@ -1,3 +1,9 @@
+/* Settings categories */
+"MESSAGE_HISTORY_SECTION_HEADER" = "Cronologia dei messaggi";
+"CONTENT_ACCESS_SECTION_HEADER" = "Accesso ai contenuti";
+"MEDIA_SECTION_HEADER" = "Media e animazioni";
+"INTERFACE_SECTION_HEADER" = "Interfaccia e gesti";
+
 
 
 /* Sections */

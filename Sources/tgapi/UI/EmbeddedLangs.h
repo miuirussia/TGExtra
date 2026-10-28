@@ -3,6 +3,10 @@
 static inline NSDictionary *GetAllTranslations(NSString *code) {
     if ([code isEqualToString:@"ar"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"سجل الرسائل",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"الوصول إلى المحتوى",
+            @"MEDIA_SECTION_HEADER": @"الوسائط والرسوم المتحركة",
+            @"INTERFACE_SECTION_HEADER": @"الواجهة والإيماءات",
             @"GHOST_MODE_SECTION_HEADER": @"وضع الشبح",
             @"READ_RECEIPT_SECTION_HEADER": @"إيصالات القراءة",
             @"MISC_SECTION_HEADER": @"متنوع",
@@ -133,6 +137,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"cn"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"消息历史",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"内容访问",
+            @"MEDIA_SECTION_HEADER": @"媒体与动画",
+            @"INTERFACE_SECTION_HEADER": @"界面与手势",
             @"GHOST_MODE_SECTION_HEADER": @"隐身模式",
             @"READ_RECEIPT_SECTION_HEADER": @"阅读回执",
             @"MISC_SECTION_HEADER": @"其他",
@@ -263,6 +271,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"en"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"Message history",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"Content access",
+            @"MEDIA_SECTION_HEADER": @"Media and animations",
+            @"INTERFACE_SECTION_HEADER": @"Interface and gestures",
             @"GHOST_MODE_SECTION_HEADER": @"Ghost Mode",
             @"READ_RECEIPT_SECTION_HEADER": @"Read Receipts",
             @"MISC_SECTION_HEADER": @"Privacy & Extras",
@@ -393,6 +405,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"es"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"Historial de mensajes",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"Acceso al contenido",
+            @"MEDIA_SECTION_HEADER": @"Multimedia y animaciones",
+            @"INTERFACE_SECTION_HEADER": @"Interfaz y gestos",
             @"GHOST_MODE_SECTION_HEADER": @"Modo Fantasma",
             @"READ_RECEIPT_SECTION_HEADER": @"Confirmaciones de Lectura",
             @"MISC_SECTION_HEADER": @"Misceláneo",
@@ -523,6 +539,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"fr"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"Historique des messages",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"Accès au contenu",
+            @"MEDIA_SECTION_HEADER": @"Médias et animations",
+            @"INTERFACE_SECTION_HEADER": @"Interface et gestes",
             @"GHOST_MODE_SECTION_HEADER": @"Mode Fantôme",
             @"READ_RECEIPT_SECTION_HEADER": @"Accusés de Lecture",
             @"MISC_SECTION_HEADER": @"Divers",
@@ -653,6 +673,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"it"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"Cronologia dei messaggi",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"Accesso ai contenuti",
+            @"MEDIA_SECTION_HEADER": @"Media e animazioni",
+            @"INTERFACE_SECTION_HEADER": @"Interfaccia e gesti",
             @"GHOST_MODE_SECTION_HEADER": @"Modalità Fantasma",
             @"READ_RECEIPT_SECTION_HEADER": @"Conferme di lettura",
             @"MISC_SECTION_HEADER": @"Varie",
@@ -783,6 +807,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"ja"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"メッセージ履歴",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"コンテンツへのアクセス",
+            @"MEDIA_SECTION_HEADER": @"メディアとアニメーション",
+            @"INTERFACE_SECTION_HEADER": @"インターフェースとジェスチャー",
             @"GHOST_MODE_SECTION_HEADER": @"ゴーストモード",
             @"READ_RECEIPT_SECTION_HEADER": @"既読通知",
             @"MISC_SECTION_HEADER": @"その他",
@@ -913,6 +941,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"ru"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"История сообщений",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"Доступ к контенту",
+            @"MEDIA_SECTION_HEADER": @"Медиа и анимации",
+            @"INTERFACE_SECTION_HEADER": @"Интерфейс и жесты",
             @"GHOST_MODE_SECTION_HEADER": @"Режим призрака",
             @"READ_RECEIPT_SECTION_HEADER": @"Отчёты о прочтении",
             @"MISC_SECTION_HEADER": @"Приватность и функции",
@@ -1043,6 +1075,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"tw"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"訊息歷史",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"內容存取",
+            @"MEDIA_SECTION_HEADER": @"媒體與動畫",
+            @"INTERFACE_SECTION_HEADER": @"介面與手勢",
             @"GHOST_MODE_SECTION_HEADER": @"隱身模式",
             @"READ_RECEIPT_SECTION_HEADER": @"已讀通知",
             @"MISC_SECTION_HEADER": @"其它",
@@ -1173,6 +1209,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
     }
     if ([code isEqualToString:@"vn"]) {
         return @{
+            @"MESSAGE_HISTORY_SECTION_HEADER": @"Lịch sử tin nhắn",
+            @"CONTENT_ACCESS_SECTION_HEADER": @"Truy cập nội dung",
+            @"MEDIA_SECTION_HEADER": @"Phương tiện và hoạt ảnh",
+            @"INTERFACE_SECTION_HEADER": @"Giao diện và cử chỉ",
             @"GHOST_MODE_SECTION_HEADER": @"Chế độ ma",
             @"READ_RECEIPT_SECTION_HEADER": @"Trạng thái đã đọc",
             @"MISC_SECTION_HEADER": @"Khác",

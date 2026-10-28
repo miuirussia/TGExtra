@@ -1,3 +1,9 @@
+/* Settings categories */
+"MESSAGE_HISTORY_SECTION_HEADER" = "メッセージ履歴";
+"CONTENT_ACCESS_SECTION_HEADER" = "コンテンツへのアクセス";
+"MEDIA_SECTION_HEADER" = "メディアとアニメーション";
+"INTERFACE_SECTION_HEADER" = "インターフェースとジェスチャー";
+
 /* Sections */
 "GHOST_MODE_SECTION_HEADER" = "ゴーストモード";
 "READ_RECEIPT_SECTION_HEADER" = "既読通知";

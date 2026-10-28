@@ -1,3 +1,9 @@
+/* Settings categories */
+"MESSAGE_HISTORY_SECTION_HEADER" = "Lịch sử tin nhắn";
+"CONTENT_ACCESS_SECTION_HEADER" = "Truy cập nội dung";
+"MEDIA_SECTION_HEADER" = "Phương tiện và hoạt ảnh";
+"INTERFACE_SECTION_HEADER" = "Giao diện và cử chỉ";
+
 /* Sections */
 "GHOST_MODE_SECTION_HEADER" = "Chế độ ma";
 "READ_RECEIPT_SECTION_HEADER" = "Trạng thái đã đọc";

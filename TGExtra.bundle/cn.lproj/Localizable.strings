@@ -1,3 +1,9 @@
+/* Settings categories */
+"MESSAGE_HISTORY_SECTION_HEADER" = "消息历史";
+"CONTENT_ACCESS_SECTION_HEADER" = "内容访问";
+"MEDIA_SECTION_HEADER" = "媒体与动画";
+"INTERFACE_SECTION_HEADER" = "界面与手势";
+
 /* GHOST_MODE Section */
 "GHOST_MODE_SECTION_HEADER" = "隐身模式";
 "READ_RECEIPT_SECTION_HEADER" = "阅读回执";

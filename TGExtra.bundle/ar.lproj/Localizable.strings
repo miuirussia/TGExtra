@@ -1,3 +1,9 @@
+/* Settings categories */
+"MESSAGE_HISTORY_SECTION_HEADER" = "سجل الرسائل";
+"CONTENT_ACCESS_SECTION_HEADER" = "الوصول إلى المحتوى";
+"MEDIA_SECTION_HEADER" = "الوسائط والرسوم المتحركة";
+"INTERFACE_SECTION_HEADER" = "الواجهة والإيماءات";
+
 /* GHOST_MODE Section */
 "GHOST_MODE_SECTION_HEADER" = "وضع الشبح";
 "READ_RECEIPT_SECTION_HEADER" = "إيصالات القراءة";

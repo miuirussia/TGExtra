@@ -1,3 +1,9 @@
+/* Settings categories */
+"MESSAGE_HISTORY_SECTION_HEADER" = "История сообщений";
+"CONTENT_ACCESS_SECTION_HEADER" = "Доступ к контенту";
+"MEDIA_SECTION_HEADER" = "Медиа и анимации";
+"INTERFACE_SECTION_HEADER" = "Интерфейс и жесты";
+
 /* GHOST_MODE Section */
 "GHOST_MODE_SECTION_HEADER" = "Режим призрака";
 "READ_RECEIPT_SECTION_HEADER" = "Отчёты о прочтении";
