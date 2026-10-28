@@ -2,8 +2,8 @@
 #import <QuartzCore/QuartzCore.h>
 #import <objc/runtime.h>
 #import <math.h>
+#import "SettingsNavigation.h"
 
-void showUI(void);
 BOOL TGExtraIsTelegramSupportLabel(NSString *label);
 
 @interface ASDisplayNode : NSObject
@@ -124,9 +124,10 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
         if ([node respondsToSelector:@selector(image)]) {
             UIImage *image = [(ASImageNode *)node image];
             if (!image || frame.size.width <= 0.0 || frame.size.height <= 0.0) continue;
-            if (frame.origin.x > width / 2.0 && frame.size.width < 20.0) {
+            // Telegram's disclosure asset has a 24x24 canvas, including transparent padding.
+            if (frame.origin.x > width / 2.0 && frame.size.width <= 40.0 && frame.size.height <= 40.0) {
                 self.referenceArrowFrame = frame;
-                self.disclosureView.image = image;
+                self.disclosureView.image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
             } else if (frame.size.width <= 40.0 && frame.size.height <= 40.0 && frame.origin.x < width / 2.0) {
                 self.referenceIconFrame = frame;
             }
@@ -167,7 +168,7 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
     self.alpha = highlighted ? 0.65 : 1.0;
 }
 - (void)openMenu {
-    showUI();
+    TGExtraShowSettings();
 }
 @end
 
