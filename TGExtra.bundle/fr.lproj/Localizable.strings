@@ -168,3 +168,6 @@
 
 
 "SETTINGS_SAVE_FAILED" = "Impossible d’enregistrer les réglages. Réessayez avant de redémarrer l’application.";
+
+"DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Désactiver les réactions par double appui";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Empêche d’ajouter une réaction en touchant deux fois un message. Les boutons de réaction et le menu par appui long restent disponibles.";

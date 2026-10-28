@@ -169,3 +169,6 @@
 
 
 "SETTINGS_SAVE_FAILED" = "Could not save settings. Try again before restarting the app.";
+
+"DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Disable double-tap reactions";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Prevent double-tapping messages from adding a reaction. Use reaction buttons or the long-press menu instead.";

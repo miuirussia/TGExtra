@@ -168,3 +168,6 @@
 
 
 "SETTINGS_SAVE_FAILED" = "無法儲存設定。請在重新啟動 App 前重試。";
+
+"DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "停用點兩下回應";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "點兩下訊息時不新增回應。仍可透過回應按鈕或長按選單新增回應。";

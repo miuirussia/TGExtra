@@ -168,3 +168,6 @@
 
 
 "SETTINGS_SAVE_FAILED" = "Không thể lưu cài đặt. Hãy thử lại trước khi khởi động lại ứng dụng.";
+
+"DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Tắt thả cảm xúc bằng chạm hai lần";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Không thả cảm xúc khi chạm hai lần vào tin nhắn. Bạn vẫn có thể dùng nút cảm xúc hoặc menu nhấn giữ.";

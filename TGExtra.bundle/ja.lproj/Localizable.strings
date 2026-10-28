@@ -168,3 +168,6 @@
 
 
 "SETTINGS_SAVE_FAILED" = "設定を保存できませんでした。アプリを再起動する前にもう一度お試しください。";
+
+"DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "ダブルタップでのリアクションを無効化";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "メッセージをダブルタップしてもリアクションを付けません。リアクションボタンや長押しメニューは引き続き使えます。";

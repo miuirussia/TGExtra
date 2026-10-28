@@ -30,6 +30,8 @@ the Chats tab five times.
   Duration and audio are preserved; 24/30 fps videos are unchanged.
 - Fix the Files picker and clear its temporary cache.
 - Fake location and ten interface languages.
+- Disable double-tap reactions on messages while keeping reaction buttons and
+  the long-press menu available.
 - Optional local Swiftgram Pro features through an iPatch v3 feature selected
   when building the IPA. Telegram Premium and server-provided services are separate.
 

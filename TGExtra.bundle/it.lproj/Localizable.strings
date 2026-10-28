@@ -170,3 +170,6 @@
 
 
 "SETTINGS_SAVE_FAILED" = "Impossibile salvare le impostazioni. Riprova prima di riavviare l’app.";
+
+"DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Disattiva le reazioni con doppio tocco";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Impedisce di aggiungere una reazione toccando due volte un messaggio. Puoi usare i pulsanti delle reazioni o il menu con pressione prolungata.";

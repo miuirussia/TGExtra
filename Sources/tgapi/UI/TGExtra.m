@@ -244,7 +244,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     // section never renders as a bare header.
     return MAX((NSInteger)[TGExtraGhostExceptions all].count, 1);
   case MISC:
-    return 10;
+    return 11;
   case FILE_FIXER:
     return 2;
   case FAKE_LOCATION:
@@ -568,6 +568,11 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       cell.imageView.tintColor = [self dynamicColorBW];
       cell.textLabel.text = TGLoc(@"IGNORE_PRIVATE_COPY_PROTECTION_TITLE");
       cell.detailTextLabel.text = TGLoc(@"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE");
+    } else if (indexPath.row == 10) {
+      cell.imageView.image = [UIImage systemImageNamed:@"hand.tap"];
+      cell.imageView.tintColor = [self dynamicColorBW];
+      cell.textLabel.text = TGLoc(@"DISABLE_DOUBLE_TAP_REACTIONS_TITLE");
+      cell.detailTextLabel.text = TGLoc(@"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE");
     }
 
     UISwitch *toggle = (UISwitch *)cell.accessoryView;
@@ -997,6 +1002,8 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       return kVideoToVoice;
     case 9:
       return kIgnorePrivateChatCopyProtection;
+    case 10:
+      return kDisableDoubleTapReactions;
     default:
       return nil;
     }

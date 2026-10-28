@@ -45,6 +45,9 @@ for arch in arm64 arm64e; do
         -fobjc-arc -Werror -Wno-deprecated-declarations -c \
         "$test_build_dir/SettingsMenu.xm.mm" -o "$test_build_dir/SettingsMenu-$arch.o"
     clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+        -fobjc-arc -Werror -Wno-deprecated-declarations -I Sources/tgapi -c \
+        "$test_build_dir/DoubleTapReactions.xm.mm" -o "$test_build_dir/DoubleTapReactions-$arch.o"
+    clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations \
         -I "$test_build_dir" -I Sources/tgapi/UI -I Sources/tgapiC/include -c \
         "$test_build_dir/UIHooks.xm.mm" -o "$test_build_dir/UIHooks-$arch.o"

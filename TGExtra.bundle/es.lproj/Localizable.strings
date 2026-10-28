@@ -171,3 +171,6 @@
 
 
 "SETTINGS_SAVE_FAILED" = "No se pudieron guardar los ajustes. Inténtalo de nuevo antes de reiniciar la app.";
+
+"DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Desactivar reacciones con doble toque";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Evita añadir una reacción al tocar dos veces un mensaje. Puedes usar los botones de reacción o el menú al mantener pulsado.";

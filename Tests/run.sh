@@ -9,6 +9,7 @@ python3 Tests/native_tl_profile.py
 python3 Tests/settings_support_labels.py
 python3 Tests/settings_apply.py
 python3 Tests/settings_persistence.py
+python3 Tests/double_tap_reactions.py
 python3 Tests/swiftgram_pro_ipatch.py
 python3 Tests/edit_badge_refresh.py
 python3 Tests/rust_thunks.py

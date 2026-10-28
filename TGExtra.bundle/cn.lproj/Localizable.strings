@@ -170,3 +170,6 @@
 
 
 "SETTINGS_SAVE_FAILED" = "无法保存设置。请在重启应用前重试。";
+
+"DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "禁用双击回应";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "双击消息时不添加回应。仍可通过回应按钮或长按菜单添加回应。";

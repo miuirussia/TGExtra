@@ -125,6 +125,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"تم تغيير الوسائط",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"تم تغيير التنسيق",
             @"SETTINGS_SAVE_FAILED": @"تعذر حفظ الإعدادات. حاول مرة أخرى قبل إعادة تشغيل التطبيق.",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"تعطيل التفاعلات بالنقر المزدوج",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"منع إضافة تفاعل عند النقر مرتين على الرسالة. تظل التفاعلات متاحة عبر الأزرار وقائمة الضغط المطوّل.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -251,6 +253,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"媒体已更改",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"格式已更改",
             @"SETTINGS_SAVE_FAILED": @"无法保存设置。请在重启应用前重试。",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"禁用双击回应",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"双击消息时不添加回应。仍可通过回应按钮或长按菜单添加回应。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -377,6 +381,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Media changed",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Formatting changed",
             @"SETTINGS_SAVE_FAILED": @"Could not save settings. Try again before restarting the app.",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Disable double-tap reactions",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Prevent double-tapping messages from adding a reaction. Use reaction buttons or the long-press menu instead.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -503,6 +509,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Contenido multimedia modificado",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Formato modificado",
             @"SETTINGS_SAVE_FAILED": @"No se pudieron guardar los ajustes. Inténtalo de nuevo antes de reiniciar la app.",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Desactivar reacciones con doble toque",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Evita añadir una reacción al tocar dos veces un mensaje. Puedes usar los botones de reacción o el menú al mantener pulsado.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -629,6 +637,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Média modifié",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Mise en forme modifiée",
             @"SETTINGS_SAVE_FAILED": @"Impossible d’enregistrer les réglages. Réessayez avant de redémarrer l’application.",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Désactiver les réactions par double appui",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Empêche d’ajouter une réaction en touchant deux fois un message. Les boutons de réaction et le menu par appui long restent disponibles.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -755,6 +765,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Contenuto multimediale modificato",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Formattazione modificata",
             @"SETTINGS_SAVE_FAILED": @"Impossibile salvare le impostazioni. Riprova prima di riavviare l’app.",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Disattiva le reazioni con doppio tocco",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Impedisce di aggiungere una reazione toccando due volte un messaggio. Puoi usare i pulsanti delle reazioni o il menu con pressione prolungata.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -881,6 +893,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"メディアが変更されました",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"書式が変更されました",
             @"SETTINGS_SAVE_FAILED": @"設定を保存できませんでした。アプリを再起動する前にもう一度お試しください。",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"ダブルタップでのリアクションを無効化",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"メッセージをダブルタップしてもリアクションを付けません。リアクションボタンや長押しメニューは引き続き使えます。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1007,6 +1021,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Медиа изменено",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Форматирование изменено",
             @"SETTINGS_SAVE_FAILED": @"Не удалось сохранить настройки. Повторите попытку перед перезапуском приложения.",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Отключить реакции по даблтапу",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Не ставить реакцию двойным нажатием на сообщение. Реакции доступны через кнопки и меню по долгому нажатию.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1133,6 +1149,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"媒體已變更",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"格式已變更",
             @"SETTINGS_SAVE_FAILED": @"無法儲存設定。請在重新啟動 App 前重試。",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"停用點兩下回應",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"點兩下訊息時不新增回應。仍可透過回應按鈕或長按選單新增回應。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1259,6 +1277,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"EDIT_HISTORY_MEDIA_CHANGED": @"Đã thay đổi nội dung đa phương tiện",
             @"EDIT_HISTORY_FORMAT_CHANGED": @"Đã thay đổi định dạng",
             @"SETTINGS_SAVE_FAILED": @"Không thể lưu cài đặt. Hãy thử lại trước khi khởi động lại ứng dụng.",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Tắt thả cảm xúc bằng chạm hai lần",
+            @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Không thả cảm xúc khi chạm hai lần vào tin nhắn. Bạn vẫn có thể dùng nút cảm xúc hoặc menu nhấn giữ.",
         };
     }
     return nil;

@@ -71,6 +71,7 @@
 #define kDisableAllAds @"disableAllAds"
 #define kDisableForwardRestriction @"disableForwardRestriction"
 #define kIgnorePrivateChatCopyProtection @"TGExtraIgnorePrivateChatCopyProtection"
+#define kDisableDoubleTapReactions @"TGExtraDisableDoubleTapReactions"
 
 // Anti-features
 #define kAntiRevoke @"TGExtraAntiRevoke"
