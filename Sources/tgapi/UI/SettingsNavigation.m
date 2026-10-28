@@ -4,22 +4,24 @@
 // Telegram's navigation stack requires Display.ViewController instances.
 // Keep our UIKit screen separate while providing a horizontal transition back
 // to the exact settings screen that opened it.
-@interface TGExtraSettingsNavigationController : UINavigationController
-    <UIViewControllerTransitioningDelegate, UIViewControllerAnimatedTransitioning,
-     UIGestureRecognizerDelegate>
+// UIKit navigation controllers also manage their own transitions. Use a
+// separate delegate so their internal transition callbacks stay untouched.
+@interface TGExtraSettingsTransition : NSObject
+    <UIViewControllerTransitioningDelegate, UIViewControllerAnimatedTransitioning>
 @property(nonatomic) BOOL opening;
 @property(nonatomic, strong) UIPercentDrivenInteractiveTransition *backTransition;
+@end
+
+@interface TGExtraSettingsNavigationController : UINavigationController <UIGestureRecognizerDelegate>
+@property(nonatomic, strong) TGExtraSettingsTransition *settingsTransition;
 @end
 
 @implementation TGExtraSettingsNavigationController
 - (void)viewDidLoad {
     [super viewDidLoad];
-    UIBarButtonItem *back = [[UIBarButtonItem alloc]
-        initWithImage:[UIImage systemImageNamed:@"chevron.left"]
-        style:UIBarButtonItemStylePlain target:self action:@selector(closeSettings)];
-    back.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"CLOSE"];
-    self.viewControllers.firstObject.navigationItem.leftBarButtonItem = back;
-
+    // This controller has a single root screen. Its built-in pop gesture cannot
+    // pop that root and must not compete with our dismiss gesture.
+    self.interactivePopGestureRecognizer.enabled = NO;
     UIScreenEdgePanGestureRecognizer *gesture = [[UIScreenEdgePanGestureRecognizer alloc]
         initWithTarget:self action:@selector(swipeBack:)];
     gesture.edges = UIRectEdgeLeft;
@@ -27,8 +29,19 @@
     [self.view addGestureRecognizer:gesture];
 }
 
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    // initWithRootViewController: can load the navigation view before installing
+    // its root. Configure the item once the child hierarchy is in place.
+    UIBarButtonItem *back = [[UIBarButtonItem alloc]
+        initWithImage:[UIImage systemImageNamed:@"chevron.left"]
+        style:UIBarButtonItemStylePlain target:self action:@selector(closeSettings)];
+    back.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"CLOSE"];
+    self.viewControllers.firstObject.navigationItem.leftBarButtonItem = back;
+}
+
 - (void)closeSettings {
-    [self dismissViewControllerAnimated:YES completion:nil];
+    [self.presentingViewController dismissViewControllerAnimated:YES completion:nil];
 }
 
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gesture {
@@ -41,30 +54,30 @@
     CGFloat progress = MAX(0.0, MIN(1.0, [gesture translationInView:self.view].x / width));
     switch (gesture.state) {
         case UIGestureRecognizerStateBegan:
-            self.backTransition = [UIPercentDrivenInteractiveTransition new];
+            self.settingsTransition.backTransition = [UIPercentDrivenInteractiveTransition new];
             [self closeSettings];
             break;
         case UIGestureRecognizerStateChanged:
-            [self.backTransition updateInteractiveTransition:progress];
+            [self.settingsTransition.backTransition updateInteractiveTransition:progress];
             break;
         case UIGestureRecognizerStateEnded:
             if (progress > 0.4 || [gesture velocityInView:self.view].x > 600.0) {
-                [self.backTransition finishInteractiveTransition];
+                [self.settingsTransition.backTransition finishInteractiveTransition];
             } else {
-                [self.backTransition cancelInteractiveTransition];
+                [self.settingsTransition.backTransition cancelInteractiveTransition];
             }
-            self.backTransition = nil;
             break;
         case UIGestureRecognizerStateCancelled:
         case UIGestureRecognizerStateFailed:
-            [self.backTransition cancelInteractiveTransition];
-            self.backTransition = nil;
+            [self.settingsTransition.backTransition cancelInteractiveTransition];
             break;
         default:
             break;
     }
 }
+@end
 
+@implementation TGExtraSettingsTransition
 - (id<UIViewControllerAnimatedTransitioning>)animationControllerForPresentedController:(UIViewController *)presented
     presentingController:(UIViewController *)presenting sourceController:(UIViewController *)source {
     self.opening = YES;
@@ -109,11 +122,12 @@
             if (reducedMotion) from.alpha = opening ? 1.0 : 0.0;
             else from.transform = CGAffineTransformMakeTranslation(opening ? -width * 0.3 : width, 0.0);
         } completion:^(BOOL finished) {
+            [context completeTransition:!context.transitionWasCancelled];
             from.transform = CGAffineTransformIdentity;
             to.transform = CGAffineTransformIdentity;
             from.alpha = 1.0;
             to.alpha = 1.0;
-            [context completeTransition:!context.transitionWasCancelled];
+            self.backTransition = nil;
         }];
 }
 @end
@@ -127,6 +141,7 @@ void TGExtraShowSettings(void) {
     TGExtraSettingsNavigationController *navigation = [[TGExtraSettingsNavigationController alloc]
         initWithRootViewController:[TGExtra new]];
     navigation.modalPresentationStyle = UIModalPresentationFullScreen;
-    navigation.transitioningDelegate = navigation;
+    navigation.settingsTransition = [TGExtraSettingsTransition new];
+    navigation.transitioningDelegate = navigation.settingsTransition;
     [presenter presentViewController:navigation animated:YES completion:nil];
 }
