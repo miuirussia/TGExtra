@@ -173,3 +173,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Disattiva le reazioni con doppio tocco";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Impedisce di aggiungere una reazione toccando due volte un messaggio. Puoi usare i pulsanti delle reazioni o il menu con pressione prolungata.";
+
+"FORCE_TLOTTIE_TITLE" = "Forza tlottie";
+"FORCE_TLOTTIE_SUBTITLE" = "Usa tlottie anziché rlottie per le nuove animazioni da renderizzare. Richiede un client con tlottie. Riavvia dopo la modifica; i fotogrammi nella cache vengono mantenuti.";

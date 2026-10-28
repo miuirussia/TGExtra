@@ -46,6 +46,7 @@ int main(int argc, const char **argv) {
             [defaults setBool:hidden forKey:kDisableOnlineStatus];
             [defaults setBool:!hidden forKey:kIgnorePrivateChatCopyProtection];
             [defaults setBool:hidden forKey:kDisableDoubleTapReactions];
+            [defaults setBool:hidden forKey:kForceTLottie];
             [defaults setBool:NO forKey:kGhostModeEnabled];
             [defaults setObject:@"ru" forKey:@"TGExtraLanguage"];
             [defaults setObject:@12.34 forKey:FAKE_LATITUDE_KEY];
@@ -59,6 +60,7 @@ int main(int argc, const char **argv) {
             NSCAssert([defaults boolForKey:kDisableOnlineStatus] == hidden, @"Restore an explicit online-status value");
             NSCAssert([defaults boolForKey:kIgnorePrivateChatCopyProtection] == !hidden, @"Restore the private-chat copy option");
             NSCAssert([defaults boolForKey:kDisableDoubleTapReactions] == hidden, @"Restore the double-tap reaction option");
+            NSCAssert([defaults boolForKey:kForceTLottie] == hidden, @"Restore the forced tlottie option");
             NSCAssert(![defaults boolForKey:kGhostModeEnabled], @"False must override stale true defaults despite enabled subfeatures");
             NSCAssert([[defaults objectForKey:@"TGExtraLanguage"] isEqual:@"ru"], @"Preserve the selected language");
             NSCAssert([[defaults objectForKey:FAKE_LATITUDE_KEY] isEqual:@12.34], @"Preserve coordinates");
@@ -71,6 +73,7 @@ int main(int argc, const char **argv) {
             NSCAssert([defaults boolForKey:kDisableOnlineStatus], @"Missing or corrupt files preserve legacy settings");
             NSCAssert(![defaults boolForKey:kIgnorePrivateChatCopyProtection], @"A fresh install keeps the private-chat copy option off");
             NSCAssert(![defaults boolForKey:kDisableDoubleTapReactions], @"A fresh install keeps double-tap reactions enabled");
+            NSCAssert(![defaults boolForKey:kForceTLottie], @"A fresh install keeps the client's renderer selection");
         }
         NSCAssert([[defaults objectForKey:@"HostSetting"] isEqual:@"keep"], @"Never restore the host app's settings");
         NSCAssert([[defaults objectForKey:@"TGExtraEditHistory"] isEqual:@{@"keep": @YES}], @"Never restore message data with settings");
@@ -101,6 +104,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-persistence-') as tmp:
         assert saved['disableOnlineStatus'] == hidden
         assert saved['TGExtraIgnorePrivateChatCopyProtection'] == (not hidden)
         assert saved['TGExtraDisableDoubleTapReactions'] == hidden
+        assert saved['TGExtraForceTLottie'] == hidden
         assert 'HostSetting' not in saved and 'TGExtraEditHistory' not in saved
         # Even an unexpected field in the file cannot overwrite unrelated defaults.
         saved.update(HostSetting='replace', TGExtraEditHistory={})

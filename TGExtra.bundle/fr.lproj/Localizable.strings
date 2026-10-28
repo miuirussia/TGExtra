@@ -171,3 +171,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Désactiver les réactions par double appui";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Empêche d’ajouter une réaction en touchant deux fois un message. Les boutons de réaction et le menu par appui long restent disponibles.";
+
+"FORCE_TLOTTIE_TITLE" = "Forcer tlottie";
+"FORCE_TLOTTIE_SUBTITLE" = "Utiliser tlottie au lieu de rlottie pour les nouvelles animations à rendre. Nécessite un client intégrant tlottie. Redémarrez après modification ; les images en cache sont conservées.";

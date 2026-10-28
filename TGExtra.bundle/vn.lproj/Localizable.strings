@@ -171,3 +171,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Tắt thả cảm xúc bằng chạm hai lần";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Không thả cảm xúc khi chạm hai lần vào tin nhắn. Bạn vẫn có thể dùng nút cảm xúc hoặc menu nhấn giữ.";
+
+"FORCE_TLOTTIE_TITLE" = "Buộc dùng tlottie";
+"FORCE_TLOTTIE_SUBTITLE" = "Dùng tlottie thay cho rlottie để kết xuất hoạt ảnh mới. Yêu cầu ứng dụng có tlottie. Khởi động lại sau khi thay đổi; các khung hình đã lưu trong bộ nhớ đệm được giữ lại.";

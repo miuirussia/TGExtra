@@ -28,6 +28,8 @@ for arch in arm64 arm64e; do
     clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations -c \
         Sources/tgapi/Preferences.m -o "$test_build_dir/Preferences-$arch.o"
+    clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+        -fobjc-arc -Werror -c Sources/tgapi/ForceTLottie.m -o "$test_build_dir/ForceTLottie-$arch.o"
     clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations \
         -I Sources/tgapi -I Sources/tgapiC/include -c \

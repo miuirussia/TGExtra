@@ -174,3 +174,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Desactivar reacciones con doble toque";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Evita añadir una reacción al tocar dos veces un mensaje. Puedes usar los botones de reacción o el menú al mantener pulsado.";
+
+"FORCE_TLOTTIE_TITLE" = "Forzar tlottie";
+"FORCE_TLOTTIE_SUBTITLE" = "Usar tlottie en lugar de rlottie para renderizar nuevas animaciones. Requiere un cliente con tlottie. Reinicia la app tras cambiar esta opción; se conservan los fotogramas en caché.";

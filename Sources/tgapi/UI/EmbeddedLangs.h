@@ -127,6 +127,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"تعذر حفظ الإعدادات. حاول مرة أخرى قبل إعادة تشغيل التطبيق.",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"تعطيل التفاعلات بالنقر المزدوج",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"منع إضافة تفاعل عند النقر مرتين على الرسالة. تظل التفاعلات متاحة عبر الأزرار وقائمة الضغط المطوّل.",
+            @"FORCE_TLOTTIE_TITLE": @"فرض استخدام tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"استخدام tlottie بدلاً من rlottie لعرض إطارات الرسوم الجديدة. يتطلب عميلاً يتضمن tlottie. أعد تشغيل التطبيق بعد التغيير؛ تبقى الإطارات المخزنة مؤقتاً.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -255,6 +257,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"无法保存设置。请在重启应用前重试。",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"禁用双击回应",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"双击消息时不添加回应。仍可通过回应按钮或长按菜单添加回应。",
+            @"FORCE_TLOTTIE_TITLE": @"强制使用 tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"使用 tlottie 而非 rlottie 渲染新的动画帧。需要客户端内置 tlottie。更改后请重启应用；已缓存的帧将保留。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -383,6 +387,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"Could not save settings. Try again before restarting the app.",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Disable double-tap reactions",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Prevent double-tapping messages from adding a reaction. Use reaction buttons or the long-press menu instead.",
+            @"FORCE_TLOTTIE_TITLE": @"Force tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"Use tlottie instead of rlottie for newly rendered animations. Requires a client with tlottie. Restart the app after changing this option; cached frames are kept.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -511,6 +517,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"No se pudieron guardar los ajustes. Inténtalo de nuevo antes de reiniciar la app.",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Desactivar reacciones con doble toque",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Evita añadir una reacción al tocar dos veces un mensaje. Puedes usar los botones de reacción o el menú al mantener pulsado.",
+            @"FORCE_TLOTTIE_TITLE": @"Forzar tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"Usar tlottie en lugar de rlottie para renderizar nuevas animaciones. Requiere un cliente con tlottie. Reinicia la app tras cambiar esta opción; se conservan los fotogramas en caché.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -639,6 +647,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"Impossible d’enregistrer les réglages. Réessayez avant de redémarrer l’application.",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Désactiver les réactions par double appui",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Empêche d’ajouter une réaction en touchant deux fois un message. Les boutons de réaction et le menu par appui long restent disponibles.",
+            @"FORCE_TLOTTIE_TITLE": @"Forcer tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"Utiliser tlottie au lieu de rlottie pour les nouvelles animations à rendre. Nécessite un client intégrant tlottie. Redémarrez après modification ; les images en cache sont conservées.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -767,6 +777,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"Impossibile salvare le impostazioni. Riprova prima di riavviare l’app.",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Disattiva le reazioni con doppio tocco",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Impedisce di aggiungere una reazione toccando due volte un messaggio. Puoi usare i pulsanti delle reazioni o il menu con pressione prolungata.",
+            @"FORCE_TLOTTIE_TITLE": @"Forza tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"Usa tlottie anziché rlottie per le nuove animazioni da renderizzare. Richiede un client con tlottie. Riavvia dopo la modifica; i fotogrammi nella cache vengono mantenuti.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -895,6 +907,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"設定を保存できませんでした。アプリを再起動する前にもう一度お試しください。",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"ダブルタップでのリアクションを無効化",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"メッセージをダブルタップしてもリアクションを付けません。リアクションボタンや長押しメニューは引き続き使えます。",
+            @"FORCE_TLOTTIE_TITLE": @"tlottie を強制使用",
+            @"FORCE_TLOTTIE_SUBTITLE": @"新しく描画するアニメーションに rlottie の代わりに tlottie を使用します。tlottie 内蔵のクライアントが必要です。変更後はアプリを再起動してください。キャッシュ済みのフレームは保持されます。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1023,6 +1037,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"Не удалось сохранить настройки. Повторите попытку перед перезапуском приложения.",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Отключить реакции по даблтапу",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Не ставить реакцию двойным нажатием на сообщение. Реакции доступны через кнопки и меню по долгому нажатию.",
+            @"FORCE_TLOTTIE_TITLE": @"Принудительно использовать tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"Использовать tlottie вместо rlottie для новых кадров анимаций. Нужен клиент со встроенным tlottie. После изменения перезапустите приложение; готовые кадры в кеше сохранятся.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1151,6 +1167,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"無法儲存設定。請在重新啟動 App 前重試。",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"停用點兩下回應",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"點兩下訊息時不新增回應。仍可透過回應按鈕或長按選單新增回應。",
+            @"FORCE_TLOTTIE_TITLE": @"強制使用 tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"使用 tlottie 而非 rlottie 繪製新的動畫影格。需要客戶端內建 tlottie。變更後請重新啟動應用程式；已快取的影格將保留。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1279,6 +1297,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_SAVE_FAILED": @"Không thể lưu cài đặt. Hãy thử lại trước khi khởi động lại ứng dụng.",
             @"DISABLE_DOUBLE_TAP_REACTIONS_TITLE": @"Tắt thả cảm xúc bằng chạm hai lần",
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Không thả cảm xúc khi chạm hai lần vào tin nhắn. Bạn vẫn có thể dùng nút cảm xúc hoặc menu nhấn giữ.",
+            @"FORCE_TLOTTIE_TITLE": @"Buộc dùng tlottie",
+            @"FORCE_TLOTTIE_SUBTITLE": @"Dùng tlottie thay cho rlottie để kết xuất hoạt ảnh mới. Yêu cầu ứng dụng có tlottie. Khởi động lại sau khi thay đổi; các khung hình đã lưu trong bộ nhớ đệm được giữ lại.",
         };
     }
     return nil;

@@ -32,6 +32,10 @@ the Chats tab five times.
 - Fake location and ten interface languages.
 - Disable double-tap reactions on messages while keeping reaction buttons and
   the long-press menu available.
+- Force tlottie instead of rlottie for newly rendered animations on clients
+  with the built-in TLottieAnimation renderer. Restart after changing the option;
+  existing cached frames are preserved. Clients without the compatible renderer
+  keep their original behavior.
 - Optional local Swiftgram Pro features through an iPatch v3 feature selected
   when building the IPA. Telegram Premium and server-provided services are separate.
 

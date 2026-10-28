@@ -170,3 +170,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "تعطيل التفاعلات بالنقر المزدوج";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "منع إضافة تفاعل عند النقر مرتين على الرسالة. تظل التفاعلات متاحة عبر الأزرار وقائمة الضغط المطوّل.";
+
+"FORCE_TLOTTIE_TITLE" = "فرض استخدام tlottie";
+"FORCE_TLOTTIE_SUBTITLE" = "استخدام tlottie بدلاً من rlottie لعرض إطارات الرسوم الجديدة. يتطلب عميلاً يتضمن tlottie. أعد تشغيل التطبيق بعد التغيير؛ تبقى الإطارات المخزنة مؤقتاً.";

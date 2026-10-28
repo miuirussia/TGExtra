@@ -171,3 +171,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "ダブルタップでのリアクションを無効化";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "メッセージをダブルタップしてもリアクションを付けません。リアクションボタンや長押しメニューは引き続き使えます。";
+
+"FORCE_TLOTTIE_TITLE" = "tlottie を強制使用";
+"FORCE_TLOTTIE_SUBTITLE" = "新しく描画するアニメーションに rlottie の代わりに tlottie を使用します。tlottie 内蔵のクライアントが必要です。変更後はアプリを再起動してください。キャッシュ済みのフレームは保持されます。";

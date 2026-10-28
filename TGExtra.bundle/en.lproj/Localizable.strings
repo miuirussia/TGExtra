@@ -172,3 +172,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Disable double-tap reactions";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Prevent double-tapping messages from adding a reaction. Use reaction buttons or the long-press menu instead.";
+
+"FORCE_TLOTTIE_TITLE" = "Force tlottie";
+"FORCE_TLOTTIE_SUBTITLE" = "Use tlottie instead of rlottie for newly rendered animations. Requires a client with tlottie. Restart the app after changing this option; cached frames are kept.";

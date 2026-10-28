@@ -173,3 +173,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "禁用双击回应";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "双击消息时不添加回应。仍可通过回应按钮或长按菜单添加回应。";
+
+"FORCE_TLOTTIE_TITLE" = "强制使用 tlottie";
+"FORCE_TLOTTIE_SUBTITLE" = "使用 tlottie 而非 rlottie 渲染新的动画帧。需要客户端内置 tlottie。更改后请重启应用；已缓存的帧将保留。";

@@ -171,3 +171,6 @@
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "停用點兩下回應";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "點兩下訊息時不新增回應。仍可透過回應按鈕或長按選單新增回應。";
+
+"FORCE_TLOTTIE_TITLE" = "強制使用 tlottie";
+"FORCE_TLOTTIE_SUBTITLE" = "使用 tlottie 而非 rlottie 繪製新的動畫影格。需要客戶端內建 tlottie。變更後請重新啟動應用程式；已快取的影格將保留。";
