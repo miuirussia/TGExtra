@@ -9,7 +9,7 @@ same reviewed Rust engine. Unrecognized machine code fails closed. Clients
 without Rust keep the existing MtProtoKit hooks.
 
 No application bundle ID, framework name, UUID or file offset is used for source
-recognition. The generator now emits ipatch v2 profiles with engine-specific
+recognition. The generator now emits ipatch v4 documents with engine-specific
 `arm64-reloc-v1` fingerprints, counted calls, relocatable payloads and generated
 metadata. The old review fingerprints in `abi5.json` remain separate and gate
 which input code may produce a new profile. The engine can reuse a profile for

@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'Tools'))
 from prepare_rust_patch import SELECTORS, thunk, engine_plan, apply_engine_plan
 from RustBridge.macho import MachO
 from portable import payload_template
-from package_ipatch import write_archive
+from package_ipatch import write_archive, document
 from build_payloads import rebuild
 
 
@@ -37,14 +37,14 @@ class PortableRustTests(unittest.TestCase):
             patches = Path(directory)
             profile = patches/original.name
             shutil.copytree(original, profile)
-            before = json.loads((profile/'patch.json').read_text())['binary_patches'][0]['profile']
+            before = json.loads((profile/'patch.json').read_text())['components'][0]['variants'][0]['binaries'][0]
             source = profile/'payloads/send.c'
             changed = source.read_text().replace('"TGExtraRustBridge"', '"AbsentRustBridge!"')
             source.write_text(changed)
             rebuild(patches)
             rebuilt, = patches.glob('rust-abi5-*')
             self.assertNotEqual(profile, rebuilt)
-            after = json.loads((rebuilt/'patch.json').read_text())['binary_patches'][0]['profile']
+            after = json.loads((rebuilt/'patch.json').read_text())['components'][0]['variants'][0]['binaries'][0]
             for key in ('anchors', 'checks', 'edits', 'generated_resources'):
                 self.assertEqual(before[key], after[key])
             self.assertEqual((rebuilt/'payloads/send.c').read_text(), changed)
@@ -56,10 +56,10 @@ class PortableRustTests(unittest.TestCase):
         sets = list(profiles.glob('rust-abi5-*/patch.json'))
         self.assertTrue(sets)
         for path in sets:
-            profile = json.loads(path.read_text())['binary_patches'][0]['profile']
-            self.assertEqual(len(profile['blocks']), len(SELECTORS))
+            profile = json.loads(path.read_text())['components'][0]['variants'][0]['binaries'][0]
+            self.assertEqual(len(profile['payloads']), len(SELECTORS))
             for name, (selector, arguments) in SELECTORS.items():
-                block = next(b for b in profile['blocks'] if b['name'] == 'bridge.'+name)
+                block = next(b for b in profile['payloads'] if b['id'] == 'bridge.'+name)
                 code, relocations = payload_template(selector, arguments, name,
                                                      source=path.parent/Path(block['source']).with_suffix('.c'))
                 self.assertEqual(code, (path.parent/block['source']).read_bytes(), (path.parent.name, name))
@@ -117,7 +117,7 @@ class PortableRustTests(unittest.TestCase):
                 with zipfile.ZipFile(ipa, 'w') as archive:
                     archive.writestr('Payload/Harness.app/Info.plist', info)
                     archive.writestr('Payload/Harness.app/Harness', original)
-                anchors = [{'name': name, 'type': 'import_stub', 'import': name}
+                anchors = [{'id': 'import.'+name.lstrip('_'), 'find': {'import_stub': {'import': name}}}
                            for name in ('_objc_lookUpClass', '_sel_registerName', '_objc_msgSend')]
                 blocks, edits, files = [], [], {}
                 selectors = ['one:original:', 'two:b:original:', 'three:b:c:original:', 'four:b:c:d:original:']
@@ -130,19 +130,21 @@ class PortableRustTests(unittest.TestCase):
                     source = 'payloads/'+name+'.bin'
                     files[source] = code
                     anchors.extend([
-                        {'name': target, 'type': 'symbol', 'target': {'type': 'symbol', 'arch': 'arm64', 'name': f'_RustOriginal{arguments}'}},
-                        {'name': 'slot'+name, 'type': 'symbol', 'target': {'type': 'symbol', 'arch': 'arm64', 'name': '_RustThunk'+name}},
+                        {'id': target, 'find': {'symbol': {'name': f'_RustOriginal{arguments}'}}},
+                        {'id': 'slot'+name, 'find': {'symbol': {'name': '_RustThunk'+name}}},
                     ])
-                    blocks.append({'name': 'bridge.'+target, 'source': source, 'size': len(code), 'alignment': 4,
+                    blocks.append({'id': 'bridge.'+target, 'source': source, 'size': len(code), 'alignment': 4,
                                    'permissions': 'rx', 'relocations': relocations})
-                    edits.append({'anchor': 'slot'+name, 'expected': '00000000', 'replacement': '00000014',
-                                  'relocations': [{'type': 'b', 'offset': 0, 'anchor': 'bridge.'+target}]})
-                profile = {'arch': 'arm64', 'anchors': anchors, 'blocks': blocks, 'edits': edits,
+                    edits.append({'id': 'redirect-'+name, 'at': {'anchor': 'slot'+name},
+                                  'expect': {'bytes': '00000000'}, 'replace': {'bytes': '00000014',
+                                  'relocations': [{'type': 'b', 'offset': 0, 'anchor': 'bridge.'+target}]}})
+                profile = {'arch': 'arm64', 'anchors': anchors, 'payloads': blocks, 'edits': edits,
                            'generated_resources': [{'destination': 'TGExtraRustBridge.plist', 'arch': 'arm64',
                                                     'values': {'ABI': {'type': 'uint', 'integer': 5}, 'UUID': {'type': 'uuid'}}}]}
                 package = root/'thunks.ipatch'
-                write_archive(package, {'format': 'ipatch', 'version': 2, 'name': 'Native bridge test', 'patch_sets': [
-                    {'name': 'thunks', 'bundle_ids': ['test.rust.thunks'], 'binary_patches': [{'path': 'Harness', 'profile': profile}]}]}, files)
+                write_archive(package, document('Native bridge test', [
+                    {'id': 'thunks', 'bundle_ids': ['test.rust.thunks'],
+                     'binaries': [{'id': 'runtime', 'path': 'Harness', **profile}]}]), files)
                 plan = engine_plan(engine, ipa, package)
                 self.assertEqual(executable.read_bytes(), original, 'planning modified the input')
                 linked = plan['profiles'][0]['plan']
@@ -158,7 +160,7 @@ class PortableRustTests(unittest.TestCase):
                     target = 'original'+name
                     block = linked['anchors']['bridge.'+target][0]
                     expected = thunk(block['va'], addresses[target], selectors[arguments-1], arguments,
-                                     {key: addresses[key] for key in ('_objc_lookUpClass', '_sel_registerName', '_objc_msgSend')})
+                                     {key: addresses['import.'+key.lstrip('_')] for key in ('_objc_lookUpClass', '_sel_registerName', '_objc_msgSend')})
                     if name == 'Fallback':
                         expected = expected.replace(b'TGExtraRustBridge\0', b'AbsentRustBridge!\0')
                     self.assertEqual(by_offset[block['file_offset']], expected)

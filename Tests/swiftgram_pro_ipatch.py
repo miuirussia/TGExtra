@@ -96,8 +96,8 @@ int main(int argc, char **argv) {
                        if len(parts := line.split()) == 3 and parts[1] in ('T', 't')}
             image = MachO(binary.read_bytes())
             witness, payload = symbols['_Witness'], symbols['_ProStatusPayload']
-            profile = json.loads((PROFILE/'patch.json').read_text())['binary_patches'][0]['profile']
-            self.assertEqual(image.portable_fingerprint(witness, witness+40), profile['checks'][0]['fingerprint'])
+            profile = json.loads((PROFILE/'patch.json').read_text())['components'][0]['variants'][0]['binaries'][0]
+            self.assertEqual(image.portable_fingerprint(witness, witness+40), profile['checks'][0]['assert']['function']['fingerprint'])
             code = (PROFILE/'payloads/status.bin').read_bytes()
             offset = image.offset(payload)
             self.assertEqual(image.data[offset:offset+len(code)], code, 'C adapter and shipped payload differ')
@@ -110,14 +110,12 @@ int main(int argc, char **argv) {
             subprocess.run([str(binary), 'enabled'], check=True)
 
     @unittest.skipUnless(os.environ.get('IPATCH_ENGINE_CLI') and os.environ.get('SWIFTGRAM_REFERENCE_IPA'),
-                         'requires a v3 engine and SWIFTGRAM_REFERENCE_IPA')
-    def test_real_v3_feature_selection_and_profile(self):
+                         'requires a v4 engine and SWIFTGRAM_REFERENCE_IPA')
+    def test_real_v4_feature_selection_and_profile(self):
         with tempfile.TemporaryDirectory(prefix='tgextra-pro-engine-') as directory:
             root = Path(directory)
             archive = root/'SwiftgramPro.ipatch'
-            value = {'format': 'ipatch', 'version': 3, 'name': 'Swiftgram Pro',
-                     'features': json.loads((ROOT/'Patches/features.json').read_text()),
-                     'patch_sets': [json.loads((PROFILE/'patch.json').read_text())]}
+            value = json.loads((PROFILE/'patch.json').read_text())
             write_archive(archive, value, {'payloads/status.bin': (PROFILE/'payloads/status.bin').read_bytes()})
             for enabled in (None, False, True):
                 selection = root/'selection.json'

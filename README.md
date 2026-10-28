@@ -156,7 +156,7 @@ bytes preserves its protection flags. Other edits can still require serializing
 the prepared copy; `shouldReserialize` documents this retained legacy behavior.
 
 Telegram 13.1's optional Rust MTProto transport requires a binary patch. Release
-ipatch packages include the client patch sets in [`Patches/`](Patches/README.md).
+ipatch v4 packages include the client components in [`Patches/`](Patches/README.md).
 iOSPatchingEngine v2 selects profiles by the original bundle ID and verified
 machine-code structure, finds the runtime, links bridge payloads and generates
 metadata for the selected image. It records input digests before applying edits.

@@ -8,11 +8,17 @@ Patches/<profile-id>/payloads/<bridge-name>.c
 Patches/<profile-id>/payloads/<bridge-name>.bin  # generated, ignored by Git
 ~~~
 
-Each patch.json contains name, required bundle_ids and binary_patches with a
-portable profile. `features.json` declares the optional iPatch v3 components;
-a set's `feature` binds it to a declaration. Sets without `feature` remain
-mandatory base functionality. Payload sources are relative to the profile
-folder. Packaging rebases them under the archive's payloads/ root.
+Each `patch.json` is a complete ipatch v4 author document with `components`,
+`variants` and flattened `binaries`. All mandatory profiles share the `required`
+component, displayed as **TGExtra**, with `match: "all_matching"`, preserving the previous base-group
+selection behavior. `swiftgram-pro` is a separate optional component, disabled
+by default; its name, description and defaults live in its own document.
+Payload sources are relative to the profile folder. Packaging rebases them under
+the archive's `payloads/` root.
+
+Display names are **Native TL Decoder**, **Rust MTProto Bridge** and
+**Swiftgram Pro**. Rust content hashes remain in profile IDs and directory names
+so rebuilding changed payloads still produces a distinct identity.
 
 For the Rust bridge, the engine discovers exactly one
 compatible Mach-O, validates functions and call counts, allocates header padding,
@@ -103,7 +109,7 @@ edits and a 20-byte arm64 payload; the TGExtra DEB contains no Pro implementatio
 preference or menu item. Disabling it requires rebuilding the original IPA with
 the feature off. The feature does not require the TGExtra runtime to execute.
 
-`swiftgram-pro-status-v1/patch.json` uses v3 Swift metadata anchors to require:
+`swiftgram-pro-status-v1/patch.json` uses v4 Swift metadata anchors to require:
 
 - The nongeneric struct `TelegramUIPreferences.SGStatus` with exactly one mutable
   `status: Swift.Int64` field (field flags 2).
@@ -124,7 +130,7 @@ native test checks the compiled adapter against the shipped bytes and exercises
 both success and error paths.
 
 The reviewed reference is Swiftgram 13.1.1 (343, `app.swiftgram.ios`), generic
-arm64. V3 engine planning has been checked against that decrypted IPA. The type
+arm64. V4 engine planning has been checked against that decrypted IPA. The type
 and code checks permit relinking that preserves those constraints; changed code,
 metadata or architecture needs another reviewed profile. No arm64e compatibility
 is claimed. Device validation of the complete Pro behavior is still required.
@@ -165,8 +171,7 @@ a thin or FAT input. These profiles do not target arm64e.
 
 ## Engine validation and application
 
-Build the CLI from iOSPatchingEngine's server directory (v3 for release packages
-with optional features; v2 is sufficient for standalone Rust-only profiles):
+Build the v4 CLI from iOSPatchingEngine's server directory:
 
 ~~~sh
 go build -o /path/to/ipatch ./cmd/ipatch
@@ -187,7 +192,7 @@ edits and generated metadata to an extracted copy. The input IPA is never modifi
 Without --engine, --apply-app retains the standalone offline application path:
 it derives hash-pinned edits and metadata for the exact input and applies them
 locally without a private engine checkout. The exported release archive still
-uses portable v2 operations.
+uses portable v4 operations.
 Both paths use the same reviewed bridge code; their allocation addresses can
 differ. Modified binaries still need signing.
 
@@ -198,18 +203,27 @@ python3 Tools/build_payloads.py
 python3 Tools/package_ipatch.py --deb TGExtra.deb --patches Patches --output TGExtra.ipatch
 ~~~
 
-Every DEB variant embeds its matching DEB and all committed portable profiles in
-a version 3 archive, including declarations from `features.json`. Payload files and their adjacent C sources
-are included automatically. Base Rust sets install the DEB; the Pro feature set
-does not reference or depend on it. The packager also accepts v1/v2 archives and
-preserves feature declarations, other client sets and the embedded DEB when
-merging an update. A v2 update cannot downgrade an existing v3 archive.
-Profiles with the same feature, original anchors and checks are replaced on
-update, preserving their combined explicit bundle IDs; distinct compatibility
-profiles remain separate. Conflicting feature declarations are rejected.
+Every DEB variant embeds its matching DEB and all committed profiles in a
+version 4 archive. Payload files and their adjacent C sources are included
+automatically. Mandatory variants install the DEB; the optional Pro component
+does not reference or depend on it. The packager accepts v4 archives for updates
+and preserves component metadata, match policies, other client variants and the
+embedded DEB. Older archives must be migrated to v4 before merging.
+Composable profiles with the same original compatibility proofs are replaced on
+update, preserving their combined explicit bundle IDs; distinct profiles remain
+separate. Conflicting component definitions and duplicate IDs are rejected.
+Exclusive (`exactly_one`) components retain their selection policy and update
+variants by ID.
 
-The generator's --legacy option remains available to create a hash-pinned v1
-package explicitly.
+Each source can also be checked and packed directly with the engine:
+
+~~~sh
+/path/to/ipatch -check Patches/native-tl-v1/patch.json
+/path/to/ipatch -pack Patches/native-tl-v1/patch.json -output NativeTL.ipatch
+~~~
+
+The generator's `--legacy` option selects hash-pinned full-file edits instead of
+portable operations; both modes emit v4 documents.
 
 Clients without Rust generate no new package and keep existing MtProtoKit hooks.
 Protected-forward recovery retains the shared ForwardCopy state machine,
@@ -226,7 +240,7 @@ IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/rust_portable.py
 ~~~
 
 The Pro test executes the shipped payload against the reviewed witness calling
-convention on Apple Silicon. With a v3 CLI and a compatible reference IPA it also
+convention on Apple Silicon. With a v4 CLI and a compatible reference IPA it also
 checks default-off, explicit off/on selection and the resolved binary edits.
 
 On Apple Silicon macOS the Rust test builds two native layouts, asks the engine to

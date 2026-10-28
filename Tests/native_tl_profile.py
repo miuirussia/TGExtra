@@ -23,17 +23,17 @@ PROFILE = ROOT/'Patches/native-tl-v1'
 
 class NativeTLProfileTests(unittest.TestCase):
     def test_compiled_c_matches_shipped_payload(self):
-        profile = json.loads((PROFILE/'patch.json').read_text())['binary_patches'][0]['profile']
+        profile = json.loads((PROFILE/'patch.json').read_text())['components'][0]['variants'][0]['binaries'][0]
         for name in ('constructor', 'result'):
             code, relocations = payload_template(name)
             self.assertEqual(code, (PROFILE/f'payloads/{name}.bin').read_bytes())
-            block = next(b for b in profile['blocks'] if b['name'] == 'bridge.'+name)
+            block = next(b for b in profile['payloads'] if b['id'] == 'bridge.'+name)
             self.assertEqual(block['relocations'], relocations)
             self.assertEqual(block['size'], len(code))
-        constructor = next(a for a in profile['anchors'] if a['name'] == 'constructorCalls')
-        self.assertEqual((constructor['count'], constructor['within']), (1, 'topLevel'))
-        self.assertEqual(next(a['count'] for a in profile['anchors'] if a['name'] == 'resultCalls'), 1)
-        self.assertEqual([a['import'] for a in profile['anchors'] if a['type'] == 'import_stub'], ['_dlsym'])
+        constructor = next(a for a in profile['anchors'] if a['id'] == 'constructorCalls')
+        self.assertEqual((constructor['count'], constructor['find']['calls']['within']), (1, 'topLevel'))
+        self.assertEqual(next(a['count'] for a in profile['anchors'] if a['id'] == 'resultCalls'), 1)
+        self.assertEqual([a['find']['import_stub']['import'] for a in profile['anchors'] if 'import_stub' in a['find']], ['_dlsym'])
 
     def test_reviewed_images_and_runtime_matcher(self):
         images = list((ROOT/'packages').glob('*_v13.1.1.ipa'))
@@ -65,10 +65,10 @@ class NativeTLProfileTests(unittest.TestCase):
     @unittest.skipUnless(os.environ.get('IPATCH_ENGINE_CLI'), 'requires the real iPatch engine CLI')
     def test_engine_plans_both_reference_clients(self):
         profile = json.loads((PROFILE/'patch.json').read_text())
-        files = {b['source']: (PROFILE/b['source']).read_bytes() for b in profile['binary_patches'][0]['profile']['blocks']}
+        files = {b['source']: (PROFILE/b['source']).read_bytes() for b in profile['components'][0]['variants'][0]['binaries'][0]['payloads']}
         with tempfile.TemporaryDirectory(prefix='tgextra-native-profile-') as directory:
             package = Path(directory)/'native.ipatch'
-            write_archive(package, {'format':'ipatch', 'version':3, 'name':'Native TL test', 'patch_sets':[profile]}, files)
+            write_archive(package, profile, files)
             images = list((ROOT/'packages').glob('*_v13.1.1.ipa'))
             if not images: self.skipTest('reference IPAs are not present')
             for ipa in images:

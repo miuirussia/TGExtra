@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate a portable Rust FFI bridge ipatch v2 from a reviewed decrypted IPA."""
+"""Generate a portable Rust FFI bridge ipatch v4 from a reviewed decrypted IPA."""
 import argparse
 import base64
 import copy
@@ -16,7 +16,9 @@ import subprocess
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'RustBridge'))
 from macho import MachO, signed
-from package_ipatch import write_archive, sources, package_source
+from package_ipatch import write_archive, sources, package_source, document
+
+PATCH_NAME = 'Rust MTProto Bridge'
 
 SELECTORS = {
     'engineCreate': ('engineCreate:context:event:log:original:', 4),
@@ -45,7 +47,8 @@ def thunk(start, target, selector, arguments, imports):
     from payloads import link_payload
     code, relocations = payload_template(selector, arguments, 'original')
     return link_payload(code, relocations, start,
-                        {'original': target, 'bridge.original': start, **imports})
+                        {'original': target, 'bridge.original': start,
+                         **{'import.'+name.lstrip('_'): address for name, address in imports.items()}})
 
 
 def identify(macho, profile):
@@ -205,7 +208,7 @@ def engine_plan(engine, ipa, output, plan_file=None):
         plan_file.write_text(result.stdout)
     report = json.loads(result.stdout)
     if result.returncode or report.get('error'):
-        raise ValueError('v2 engine validation failed: '+report.get('error', f'exit {result.returncode}'))
+        raise ValueError('v4 engine validation failed: '+report.get('error', f'exit {result.returncode}'))
     return report['plan']
 
 
@@ -275,8 +278,14 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
         print('No Rust runtime; existing MtProtoKit hooks apply (no ipatch generated)')
         return
     patch, files, binary_path, original = found[0]
-    name = f"{info.get('CFBundleDisplayName', info.get('CFBundleName', 'Client'))} {info.get('CFBundleShortVersionString', '')} ({info.get('CFBundleVersion', '')})"
-    item = {'name': name, 'bundle_ids': [info['CFBundleIdentifier']], 'binary_patches': [patch]}
+    name = PATCH_NAME
+    offline_patch = copy.deepcopy(patch) if legacy else None
+    if legacy:
+        patch = {'id': 'runtime', 'path': patch['path'], 'sha256': patch['sha256'], 'edits': [
+            {'id': f'edit-{index+1}', 'at': {'file_offset': edit['target']['offset']},
+             'expect': {'bytes': edit['expected']}, 'replace': {'bytes': edit['replacement']}}
+            for index, edit in enumerate(patch['edits'])]}
+    item = {'bundle_ids': [info['CFBundleIdentifier']], 'binaries': [patch]}
     if legacy:
         identifier = 'rust-'+patch['sha256'][:16]
         item['resources'] = [{'source': 'resources/TGExtraRustBridge.plist', 'destination': 'TGExtraRustBridge.plist'}]
@@ -285,32 +294,32 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
                                                for source, data in files.items() if source.endswith('.bin')}}
         digest = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
         identifier = 'rust-abi5-'+digest[:16]
-        item['name'] = 'Rust MTProto ABI 5 / '+digest[:16]
+    item.update(id=identifier, description=name)
     if export:
         previous_path = export/identifier/'patch.json'
         if not legacy and previous_path.exists():
-            previous = json.loads(previous_path.read_text())
-            if previous['binary_patches'] != item['binary_patches']:
+            previous = json.loads(previous_path.read_text())['components'][0]['variants'][0]
+            if previous['binaries'] != item['binaries']:
                 raise ValueError('existing profile identity has different binary instructions')
             item['bundle_ids'] = sorted(set(item['bundle_ids']) | set(previous['bundle_ids']))
-        for relative, data in {'patch.json': (json.dumps(item, indent=2)+'\n').encode(), **files}.items():
+        for relative, data in {'patch.json': (json.dumps(document(name, [item]), indent=2)+'\n').encode(), **files}.items():
             destination = export/identifier/relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(data)
     for reference in sources(item):
         reference['source'] = package_source(identifier, reference['source'])
-    write_archive(output, {'format': 'ipatch', 'version': 1 if legacy else 2, 'name': name, 'patch_sets': [item]},
+    write_archive(output, document(name, [item]),
                   {package_source(identifier, source): data for source, data in files.items()})
     plan = engine_plan(engine, ipa, output, plan_file) if engine else None
     if apply_app:
         if plan and not legacy:
             target = apply_engine_plan(plan, apply_app, binary_path)
         elif legacy:
-            target = apply_prepared(patch, plistlib.loads(files['resources/TGExtraRustBridge.plist']), apply_app)
+            target = apply_prepared(offline_patch, plistlib.loads(files['resources/TGExtraRustBridge.plist']), apply_app)
         else:
             # Apply verified edits without a private engine checkout.
             # This applies the same reviewed hooks locally; the release package
-            # itself contains portable v2 operations, not these fixed offsets.
+            # itself contains portable v4 operations, not these fixed offsets.
             offline, metadata = make_patch(original, profile)
             offline['path'] = binary_path
             for edit in offline['edits']:
@@ -318,7 +327,7 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
             target = apply_prepared(offline, metadata, apply_app)
         if paths_file:
             paths_file.write_text(str(target)+'\n')
-    print(f'Created {output}: ipatch v{1 if legacy else 2}, {binary_path}')
+    print(f'Created {output}: ipatch v4, {binary_path}')
 
 
 if __name__ == '__main__':
@@ -329,8 +338,8 @@ if __name__ == '__main__':
     parser.add_argument('--apply-app', type=Path)
     parser.add_argument('--patched-paths-file', type=Path)
     parser.add_argument('--allow-no-rust', action='store_true')
-    parser.add_argument('--legacy', action='store_true', help='emit a hash-pinned v1 package for older engines')
-    parser.add_argument('--engine', type=Path, help='v2 ipatch CLI binary; validate the package and use its plan for --apply-app')
+    parser.add_argument('--legacy', action='store_true', help='emit hash-pinned full-file edits in a v4 package')
+    parser.add_argument('--engine', type=Path, help='v4 ipatch CLI binary; validate the package and use its plan for --apply-app')
     parser.add_argument('--plan-file', type=Path, help='save the engine dry-run JSON (requires --engine)')
     args = parser.parse_args()
     try:

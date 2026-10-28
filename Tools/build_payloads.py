@@ -7,7 +7,7 @@ from pathlib import Path
 
 from payloads import compile_payload
 from prepare_native_tl import payload_template as native_payload
-from prepare_rust_patch import SELECTORS
+from prepare_rust_patch import PATCH_NAME, SELECTORS
 from portable import payload_template as rust_payload
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,10 +33,11 @@ def rebuild(patches, check=False):
             continue
         if identifier != 'native-tl-v1' and not identifier.startswith('rust-abi5-'):
             continue
-        patch, = item['binary_patches']
+        variant, = item['components'][0]['variants']
+        patch, = variant['binaries']
         files = {}
-        for block in patch['profile']['blocks']:
-            name = block['name'].removeprefix('bridge.')
+        for block in patch['payloads']:
+            name = block['id'].removeprefix('bridge.')
             source = path.parent/Path(block['source']).with_suffix('.c')
             if identifier == 'native-tl-v1':
                 code, relocations = native_payload(name, source=source)
@@ -50,7 +51,8 @@ def rebuild(patches, check=False):
                                                    for source, data in files.items()}}
             digest = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()[:16]
             destination = patches/('rust-abi5-'+digest)
-            item['name'] = 'Rust MTProto ABI 5 / '+digest
+            item['name'] = PATCH_NAME
+            variant.update(id='rust-abi5-'+digest, description=item['name'])
             if check and destination != path.parent:
                 raise ValueError(f'stale Rust profile identity: {path.parent}')
             if not check and destination != path.parent and destination.exists():

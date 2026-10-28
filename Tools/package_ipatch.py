@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package a DEB with client patch sets, or update an existing ipatch package."""
+"""Package a DEB with client components, or update an existing ipatch package."""
 import argparse
 import copy
 import json
@@ -33,47 +33,62 @@ def read_archive(path):
     return files
 
 
+def validate_components(value):
+    if (value.get('format') != 'ipatch' or value.get('version') != 4 or
+            not isinstance(value.get('name'), str) or not value['name'] or
+            set(value) - {'format', 'version', 'name', 'components'}):
+        raise ValueError('expected an ipatch v4 document')
+    components = value.get('components')
+    if not isinstance(components, list) or not 1 <= len(components) <= 256:
+        raise ValueError('ipatch requires 1–256 components')
+    if sum(bool(c.get('optional')) for c in components) > 128:
+        raise ValueError('ipatch exceeds 128 optional components')
+    def ids(items):
+        seen = set()
+        for item in items:
+            identifier = item.get('id')
+            if (not isinstance(identifier, str) or
+                    not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}', identifier) or
+                    identifier.startswith('ipatch.')):
+                raise ValueError(f'invalid ipatch ID: {identifier}')
+            if identifier in seen:
+                raise ValueError(f'duplicate ipatch ID: {identifier}')
+            seen.add(identifier)
+    ids(components)
+    for component in components:
+        if (not component.get('name') or component.get('match') not in ('all_matching', 'exactly_one') or
+                not component.get('variants') or
+                component.get('default_enabled') and not component.get('optional')):
+            raise ValueError('invalid component definition')
+        ids(component['variants'])
+        for variant in component['variants']:
+            if not variant.get('bundle_ids') or not variant.get('binaries'):
+                raise ValueError('variant requires bundle_ids and binaries')
+            ids(variant['binaries'])
+            for binary in variant['binaries']:
+                if 'profile' in binary:
+                    raise ValueError('v4 binaries cannot contain profile')
+                ids([entry for key in ('anchors', 'checks', 'payloads', 'edits')
+                     for entry in binary.get(key, [])])
+
+
 def manifest(files):
+    if 'config.json' in files:
+        raise ValueError('ipatch cannot also contain config.json')
     value = json.loads(files['manifest.json'])
-    if value.get('format') != 'ipatch' or value.get('version') not in (1, 2, 3) or not value.get('patch_sets') or 'config.json' in files:
-        raise ValueError('expected a version 1, 2 or 3 ipatch with nonempty patch_sets')
-    validate_features(value)
+    validate_components(value)
     return value
 
 
-def merge_features(target, definitions):
-    if not isinstance(definitions, list):
-        raise ValueError('features must be an array')
-    seen = set()
-    for definition in definitions:
-        if not isinstance(definition, dict) or not isinstance(definition.get('id'), str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,127}', definition['id']):
-            raise ValueError('invalid feature definition')
-        identifier = definition['id']
-        if identifier in seen:
-            raise ValueError(f'duplicate feature definition: {identifier}')
-        seen.add(identifier)
-        normalized = {**definition, 'default_enabled': definition.get('default_enabled', False)}
-        if identifier in target and target[identifier] != normalized:
-            raise ValueError(f'conflicting feature definition: {identifier}')
-        target[identifier] = normalized
-    if len(target) > 128:
-        raise ValueError('ipatch exceeds 128 features')
-
-
-def validate_features(value):
-    definitions = {}
-    merge_features(definitions, value.get('features', []))
-    used = {item['feature'] for item in value['patch_sets'] if 'feature' in item}
-    if used != definitions.keys():
-        raise ValueError('every feature must be declared and referenced by a patch set')
-    if ('features' in value or used) and value['version'] < 3:
-        raise ValueError('optional features require ipatch v3')
+def document(name, variants):
+    return {'format': 'ipatch', 'version': 4, 'name': name, 'components': [
+        {'id': 'required', 'name': 'TGExtra', 'match': 'all_matching', 'variants': variants}]}
 
 
 def sources(item):
     yield from item.get('resources', [])
-    for binary in item['binary_patches']:
-        yield from binary.get('profile', {}).get('blocks', [])
+    for binary in item['binaries']:
+        yield from (payload for payload in binary.get('payloads', []) if 'source' in payload)
 
 
 def package_source(identifier, source):
@@ -83,59 +98,69 @@ def package_source(identifier, source):
     return f'patches/{identifier}/{source}'
 
 
-def repository_sets(patches):
-    sets, files = [], {}
+def repository_components(patches):
+    components, files = [], {}
     for directory in sorted(patches.iterdir()):
         if not directory.is_dir():
             continue
         if directory.is_symlink():
             raise ValueError(f'patch resources cannot be symlinks: {directory}')
-        item = json.loads((directory/'patch.json').read_text())
-        if item.get('tweaks'):
-            raise ValueError('client patch sets cannot include tweaks')
-        for resource in sources(item):
-            source = relative_path(resource['source'])
-            path = directory
-            for component in source.parts:
-                path = path/component
-                if path.is_symlink():
-                    raise ValueError(f'patch resources cannot be symlinks: {path}')
-            name = package_source(directory.name, str(source))
-            files[name] = path.read_bytes()
-            if path.suffix == '.bin' and path.with_suffix('.c').exists():
-                companion = path.with_suffix('.c')
-                if companion.is_symlink():
-                    raise ValueError(f'patch resources cannot be symlinks: {companion}')
-                files[str(PurePosixPath(name).with_suffix('.c'))] = companion.read_bytes()
-            resource['source'] = name
-        sets.append(item)
-    return sets, files
+        value = json.loads((directory/'patch.json').read_text())
+        validate_components(value)
+        for component in value['components']:
+            for item in component['variants']:
+                if item.get('tweaks'):
+                    raise ValueError('client variants cannot include tweaks')
+                for resource in sources(item):
+                    source = relative_path(resource['source'])
+                    path = directory
+                    for part in source.parts:
+                        path = path/part
+                        if path.is_symlink():
+                            raise ValueError(f'patch resources cannot be symlinks: {path}')
+                    name = package_source(directory.name, str(source))
+                    files[name] = path.read_bytes()
+                    if path.suffix == '.bin' and path.with_suffix('.c').exists():
+                        companion = path.with_suffix('.c')
+                        if companion.is_symlink():
+                            raise ValueError(f'patch resources cannot be symlinks: {companion}')
+                        files[str(PurePosixPath(name).with_suffix('.c'))] = companion.read_bytes()
+                    resource['source'] = name
+            components.append(component)
+    return components, files
 
 
-def set_key(item):
-    if any('profile' in patch for patch in item['binary_patches']):
-        compatibility = copy.deepcopy(item['binary_patches'])
-        for patch in compatibility:
-            if 'profile' in patch:
-                patch['profile'] = {key: value for key, value in patch['profile'].items()
-                                    if key in ('arch', 'anchors', 'checks')}
-        return ('portable', item.get('feature'), json.dumps(compatibility, sort_keys=True, separators=(',', ':')))
+def portable(item):
+    return any(binary.get('anchors') for binary in item['binaries'])
+
+
+def variant_key(item):
+    if portable(item):
+        compatibility = []
+        for binary in item['binaries']:
+            proof = {key: value for key, value in binary.items()
+                     if key in ('path', 'search', 'sha256', 'arch', 'anchors', 'checks')}
+            proof['edit_proofs'] = [{'at': edit['at'], 'expect': edit['expect']}
+                                    for edit in binary.get('edits', []) if 'expect' in edit]
+            compatibility.append(proof)
+        return ('portable', json.dumps(compatibility, sort_keys=True, separators=(',', ':')))
     return (tuple(sorted(item['bundle_ids'])),
-            tuple(sorted((patch['path'], patch.get('sha256')) for patch in item['binary_patches'])), item.get('feature'))
+            tuple(sorted((binary['path'], binary.get('sha256')) for binary in item['binaries'])))
 
 
 def write_archive(output, value, files):
-    validate_features(value)
+    validate_components(value)
     data = (json.dumps(value, separators=(',', ':'))+'\n').encode()
     if len(data) > 1 << 20:
         raise ValueError('ipatch manifest exceeds 1 MiB')
     referenced = {'manifest.json'}
-    for item in value['patch_sets']:
-        referenced.update(item.get('tweaks', []))
-        referenced.update(resource['source'] for resource in sources(item))
+    for component in value['components']:
+        for item in component['variants']:
+            referenced.update(item.get('tweaks', []))
+            referenced.update(resource['source'] for resource in sources(item))
     files = {**files, 'manifest.json': data}
     # Keep reviewable C sources beside live payloads, including through merges.
-    # Legacy packages without source companions remain supported.
+    # Source companions are optional in imported v4 packages.
     referenced.update(str(PurePosixPath(name).with_suffix('.c')) for name in list(referenced)
                       if name.endswith('.bin') and str(PurePosixPath(name).with_suffix('.c')) in files)
     for name in referenced:
@@ -160,60 +185,64 @@ def package(output, deb=None, patches=None, base=None, merges=(), retire_patches
     if base:
         files = read_archive(base)
         value = manifest(files)
-        base_sets = [item for item in value['patch_sets'] if not item.get('feature')]
-        tweaks = base_sets[0].get('tweaks', []) if base_sets else []
-        if any(item.get('tweaks', []) != tweaks for item in base_sets):
-            raise ValueError('base package must use the same tweaks in every base client set')
+        base_variants = [variant for component in value['components'] if not component.get('optional')
+                         for variant in component['variants']]
+        tweaks = base_variants[0].get('tweaks', []) if base_variants else []
+        if any(item.get('tweaks', []) != tweaks for item in base_variants):
+            raise ValueError('base package must use the same tweaks in every mandatory variant')
     else:
         data = deb.read_bytes()
         if deb.suffix != '.deb' or not data.startswith(b'!<arch>\n'):
             raise ValueError('expected a Debian archive')
         tweak = 'tweaks/'+deb.name
         tweaks, files = [tweak], {tweak: data}
-        value = {'format': 'ipatch', 'version': 1, 'name': deb.stem, 'patch_sets': []}
-    features = {}
-    merge_features(features, value.get('features', []))
+        value = {'format': 'ipatch', 'version': 4, 'name': 'TGExtra', 'components': []}
     collections = []
     if patches:
-        collections.append(repository_sets(patches))
-        declarations = patches/'features.json'
-        if declarations.exists():
-            merge_features(features, json.loads(declarations.read_text()))
+        collections.append(repository_components(patches))
     for archive in merges:
         entries = read_archive(archive)
         options = manifest(entries)
-        merge_features(features, options.get('features', []))
-        value['version'] = max(value['version'], options['version'])
-        if any(item.get('tweaks') for item in options['patch_sets']):
+        if any(item.get('tweaks') for component in options['components'] for item in component['variants']):
             raise ValueError('merged client packages cannot include tweaks')
-        collections.append((options['patch_sets'], entries))
-    for sets, entries in collections:
-        for original in sets:
-            item = copy.deepcopy(original)
-            if not item.get('feature'):
-                item['tweaks'] = list(tweaks)
-            key = set_key(item)
-            if key[0] == 'portable':
-                item['bundle_ids'] = sorted(set(item['bundle_ids']).union(
-                    *(old['bundle_ids'] for old in value['patch_sets'] if set_key(old) == key)))
-            value['patch_sets'] = [old for old in value['patch_sets'] if set_key(old) != key]
-            value['patch_sets'].append(item)
+        collections.append((options['components'], entries))
+    for components, entries in collections:
+        for original in components:
+            incoming = copy.deepcopy(original)
+            target = next((c for c in value['components'] if c['id'] == incoming['id']), None)
+            if target is None:
+                target = {**incoming, 'variants': []}
+                value['components'].append(target)
+            metadata = lambda c: {**{k: v for k, v in c.items() if k != 'variants'},
+                                  'optional': c.get('optional', False),
+                                  'default_enabled': c.get('default_enabled', False)}
+            if metadata(target) != metadata(incoming):
+                raise ValueError(f'conflicting component definition: {incoming["id"]}')
+            for item in incoming['variants']:
+                if not target.get('optional'):
+                    item['tweaks'] = list(tweaks)
+                # Preserve exclusive alternatives by ID. Composable profiles also
+                # replace equivalent compatibility proofs and union authorized IDs.
+                matches = [old for old in target['variants'] if
+                           (variant_key(old) == variant_key(item) if target['match'] == 'all_matching'
+                            else old['id'] == item['id'])]
+                if portable(item) and target['match'] == 'all_matching':
+                    item['bundle_ids'] = sorted(set(item['bundle_ids']).union(*(old['bundle_ids'] for old in matches)))
+                target['variants'] = [old for old in target['variants'] if old not in matches]
+                target['variants'].append(item)
         files.update({name: data for name, data in entries.items() if name != 'manifest.json'})
-    if any('profile' in patch for item in value['patch_sets'] for patch in item['binary_patches']):
-        value['version'] = max(value['version'], 2)
-        if retire_patches:
-            retired, _ = repository_sets(retire_patches)
-            portable_ids = {bundle for item in value['patch_sets']
-                            if not item.get('feature') and any('profile' in patch for patch in item['binary_patches']) for bundle in item['bundle_ids']}
-            keys = {set_key(item) for item in retired if set(item['bundle_ids']) <= portable_ids}
-            value['patch_sets'] = [item for item in value['patch_sets'] if set_key(item) not in keys]
-    if not value['patch_sets']:
-        raise ValueError('ipatch requires at least one client patch set')
-    if features:
-        value['features'] = list(features.values())
-        value['version'] = 3
+    if retire_patches:
+        retired, _ = repository_components(retire_patches)
+        for component in value['components']:
+            if component.get('optional'):
+                continue
+            portable_ids = {bundle for item in component['variants'] if portable(item) for bundle in item['bundle_ids']}
+            keys = {variant_key(item) for c in retired if c['id'] == component['id']
+                    for item in c['variants'] if set(item['bundle_ids']) <= portable_ids}
+            component['variants'] = [item for item in component['variants'] if variant_key(item) not in keys]
     write_archive(output, value, files)
-    print(f'Created {output}: {len(value["patch_sets"])} client patch sets')
+    count = sum(len(c['variants']) for c in value['components'])
+    print(f'Created {output}: ipatch v4, {count} client variants')
 
 
 if __name__ == '__main__':
@@ -225,7 +254,7 @@ if __name__ == '__main__':
     parser.add_argument('--patches', type=Path)
     parser.add_argument('--merge', nargs='*', type=Path, default=[])
     parser.add_argument('--retire-patches', type=Path,
-                        help='remove these exact legacy set identities when packaging portable replacements')
+                        help='remove these exact hash-pinned variant identities when packaging portable replacements')
     args = parser.parse_args()
     try:
         package(args.output, args.deb, args.patches, args.base, args.merge, args.retire_patches)

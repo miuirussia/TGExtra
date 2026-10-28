@@ -11,6 +11,7 @@ import struct
 import sys
 import zipfile
 from payloads import ipatch_payload
+from package_ipatch import document
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'Tools/RustBridge'))
@@ -27,7 +28,7 @@ ENTRIES = ('constructor', 'result')
 
 def payload_template(name, source=None):
     return ipatch_payload(source if source is not None else ROOT/f'Patches/native-tl-v1/payloads/{name}.c', 'bridge.'+name,
-                          {'_Original': name, '_dlsym': '_dlsym'})
+                          {'_Original': name, '_dlsym': 'import.dlsym'})
 
 
 def identify(image):
@@ -83,12 +84,12 @@ def generate(ipa, output, check=False):
                 info.append((image, identify(image)))
         if len(info) != 1: raise ValueError('expected one native TL image')
     image, functions = info[0]
-    profile = {'arch': 'arm64', 'header_reserve': 4096, 'anchors': [], 'checks': [], 'blocks': [], 'edits': []}
+    profile = {'arch': 'arm64', 'header_reserve': 4096, 'anchors': [], 'checks': [], 'payloads': [], 'edits': []}
     anchors, checks = profile['anchors'], profile['checks']
     for name, (a, b) in functions.items():
-        anchors.append({'name': name, 'type': 'function', 'fingerprint': image.portable_fingerprint(a, b)})
+        anchors.append({'id': name, 'find': {'function': {'fingerprint': image.portable_fingerprint(a, b)}}})
     for imp in ('_dlsym',):
-        anchors.append({'name': imp, 'type': 'import_stub', 'import': imp})
+        anchors.append({'id': 'import.'+imp.lstrip('_'), 'find': {'import_stub': {'import': imp}}})
     branches = list(image.branches())
     values = {'ABI': {'type': 'uint', 'integer': 1}, 'UUID': {'type': 'uuid'}}
     output.mkdir(parents=True, exist_ok=True)
@@ -102,18 +103,19 @@ def generate(ipa, output, check=False):
         sites = [(pc, target) for pc, target in branches if target == address and
                  (name != 'constructor' or functions['topLevel'][0] <= pc < functions['topLevel'][1])]
         if len(sites) != 1: raise ValueError(f'expected one root call for {name}')
-        anchor = {'name': name+'Calls', 'type': 'calls', 'to': name, 'count': len(sites)}
-        if name == 'constructor': anchor['within'] = 'topLevel'
+        anchor = {'id': name+'Calls', 'count': len(sites), 'find': {'calls': {'to': name}}}
+        if name == 'constructor': anchor['find']['calls']['within'] = 'topLevel'
         anchors.append(anchor)
         for index, (pc, _) in enumerate(sites):
             at = name+'Call'+str(index)
-            anchors.append({'name': at, 'type': 'select', 'from': name+'Calls', 'index': index})
+            anchors.append({'id': at, 'find': {'select': {'from': name+'Calls', 'index': index}}})
             instruction = 'bl' if image.u32(image.offset(pc)) >> 31 else 'b'
-            checks.append({'type': 'branch', 'at': at, 'to': name, 'instruction': instruction})
-            profile['edits'].append({'anchor': at, 'replacement': '00000094' if instruction == 'bl' else '00000014',
-                'relocations': [{'type': instruction, 'offset': 0, 'anchor': 'bridge.'+name}]})
+            checks.append({'id': 'verify-'+at, 'at': {'anchor': at}, 'assert': {'branch': {'to': name, 'instruction': instruction}}})
+            profile['edits'].append({'id': 'redirect-'+at, 'at': {'anchor': at}, 'replace': {
+                'bytes': '00000094' if instruction == 'bl' else '00000014',
+                'relocations': [{'type': instruction, 'offset': 0, 'anchor': 'bridge.'+name}]}})
             values[at] = {'type': 'image_offset', 'anchor': at}
-        profile['blocks'].append({'name': 'bridge.'+name, 'source': 'payloads/'+name+'.bin', 'size': len(code),
+        profile['payloads'].append({'id': 'bridge.'+name, 'source': 'payloads/'+name+'.bin', 'size': len(code),
             'alignment': 4, 'permissions': 'rx', 'relocations': relocations})
         values[name] = {'type': 'image_offset', 'anchor': name}
         values['bridge.'+name] = {'type': 'image_offset', 'anchor': 'bridge.'+name}
@@ -125,8 +127,9 @@ def generate(ipa, output, check=False):
     arrays.append('static const uint32_t native_body[][2] = {\n' + ''.join(
         f'    {{0x{word:08x}, 0x{mask:08x}}},\n' for word, mask in matcher(raw)) + '};\n')
     profile['generated_resources'] = [{'destination': 'TGExtraNativeTL.plist', 'arch': 'arm64', 'values': values}]
-    package = {'name': 'Native TL engine v1', 'bundle_ids': ['ph.telegra.Telegraph', 'app.swiftgram.ios'],
-        'binary_patches': [{'search': {'roots': ['.'], 'max_candidates': 128, 'max_bytes': 1 << 30}, 'profile': profile}]}
+    package = document('Native TL Decoder', [{'id': 'native-tl-v1', 'description': 'Native TL Decoder',
+        'bundle_ids': ['ph.telegra.Telegraph', 'app.swiftgram.ios'], 'binaries': [{'id': 'runtime',
+        'search': {'roots': ['.'], 'max_candidates': 128, 'max_bytes': 1 << 30}, **profile}]}])
     write(output/'patch.json', json.dumps(package, indent=2)+'\n')
     write(ROOT/'Sources/tgapiC/NativeTLProfile.inc', '// Generated by Tools/prepare_native_tl.py from reviewed parser bodies.\n' + ''.join(arrays))
 
