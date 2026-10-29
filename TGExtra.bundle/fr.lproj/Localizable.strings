@@ -194,3 +194,7 @@
 "DEBUG_LOG_COPY" = "Copier";
 "DEBUG_LOG_CLEAR" = "Effacer";
 "DEBUG_LOG_EMPTY" = "Aucune entrée de diagnostic pour le moment.";
+
+/* Recording button */
+"HIDE_RECORDING_BUTTON_TITLE" = "Supprimer le bouton d’enregistrement";
+"HIDE_RECORDING_BUTTON_SUBTITLE" = "Supprimer le bouton des messages vocaux et vidéos circulaires dans Telegram et Swiftgram. Appliquez les modifications pour redémarrer l’app.";

@@ -194,3 +194,7 @@
 "DEBUG_LOG_COPY" = "Sao chép";
 "DEBUG_LOG_CLEAR" = "Xóa";
 "DEBUG_LOG_EMPTY" = "Chưa có bản ghi chẩn đoán.";
+
+/* Recording button */
+"HIDE_RECORDING_BUTTON_TITLE" = "Xóa nút ghi âm và quay video";
+"HIDE_RECORDING_BUTTON_SUBTITLE" = "Xóa hoàn toàn nút ghi tin nhắn thoại và video tròn trong Telegram và Swiftgram. Áp dụng thay đổi để khởi động lại ứng dụng.";

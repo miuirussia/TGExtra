@@ -193,3 +193,7 @@
 "DEBUG_LOG_COPY" = "نسخ";
 "DEBUG_LOG_CLEAR" = "مسح";
 "DEBUG_LOG_EMPTY" = "لا توجد سجلات تشخيص بعد.";
+
+/* Recording button */
+"HIDE_RECORDING_BUTTON_TITLE" = "إزالة زر التسجيل";
+"HIDE_RECORDING_BUTTON_SUBTITLE" = "إزالة زر تسجيل الرسائل الصوتية والفيديو الدائري في Telegram وSwiftgram. طبّق التغييرات لإعادة تشغيل التطبيق.";

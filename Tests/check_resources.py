@@ -16,7 +16,7 @@ expected_features = {
     'kDisableAllAds', 'kDisableForwardRestriction', 'kAntiRevoke', 'kAntiAutoDelete',
     'kDisableScreenshotNotification', 'kAntiSelfDestruct', 'kAntiEdit',
     'kHideDisappearingLabel', 'kVideoToVoice', 'kIgnorePrivateChatCopyProtection',
-    'kDisableDoubleTapReactions', 'kForceTLottie',
+    'kDisableDoubleTapReactions', 'kHideRecordingButton', 'kForceTLottie',
 }
 categories = rows[rows.index('+ (NSArray<TGExtraSettingRow *> *)featureRowsForSection:'):rows.index('+ (TGExtraSettingRow *)rowForSection:')]
 feature_keys = re.findall(r'rowWithKey:(k\w+)', categories)

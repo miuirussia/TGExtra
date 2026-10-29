@@ -72,6 +72,7 @@
 #define kDisableForwardRestriction @"disableForwardRestriction"
 #define kIgnorePrivateChatCopyProtection @"TGExtraIgnorePrivateChatCopyProtection"
 #define kDisableDoubleTapReactions @"TGExtraDisableDoubleTapReactions"
+#define kHideRecordingButton @"TGExtraHideRecordingButton"
 #define kForceTLottie @"TGExtraForceTLottie"
 
 // Anti-features

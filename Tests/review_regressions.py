@@ -105,7 +105,7 @@ int main(void) { @autoreleasepool {
     NSCAssert([[TGExtraSettingRow.ghostRows valueForKey:@"key"] isEqual:ghostKeys], @"Keep every Ghost toggle in order");
     NSDictionary *sections = @{@(MESSAGE_HISTORY): @[kAntiRevoke, kAntiAutoDelete, kAntiEdit],
         @(CONTENT_ACCESS): @[kDisableForwardRestriction, kIgnorePrivateChatCopyProtection, kDisableScreenshotNotification, kAntiSelfDestruct, kHideDisappearingLabel],
-        @(MEDIA): @[kVideoToVoice, kForceTLottie], @(INTERFACE): @[kDisableAllAds, kDisableDoubleTapReactions]};
+        @(MEDIA): @[kVideoToVoice, kForceTLottie], @(INTERFACE): @[kDisableAllAds, kDisableDoubleTapReactions, kHideRecordingButton]};
     for (NSNumber *section in sections) {
         NSArray *rows = [TGExtraSettingRow featureRowsForSection:section.integerValue];
         NSCAssert([[rows valueForKey:@"key"] isEqual:sections[section]], @"Keep all categorized toggles");

@@ -99,6 +99,8 @@
                 subtitle:@"DISABLE_ALL_ADS_SUBTITLE" icon:@"nosign"],
             [self rowWithKey:kDisableDoubleTapReactions title:@"DISABLE_DOUBLE_TAP_REACTIONS_TITLE"
                 subtitle:@"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" icon:@"hand.tap"],
+            [self rowWithKey:kHideRecordingButton title:@"HIDE_RECORDING_BUTTON_TITLE"
+                subtitle:@"HIDE_RECORDING_BUTTON_SUBTITLE" icon:@"mic.slash"],
         ],
         };
     });

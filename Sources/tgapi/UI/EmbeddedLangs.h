@@ -143,6 +143,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"نسخ",
             @"DEBUG_LOG_CLEAR": @"مسح",
             @"DEBUG_LOG_EMPTY": @"لا توجد سجلات تشخيص بعد.",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"إزالة زر التسجيل",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"إزالة زر تسجيل الرسائل الصوتية والفيديو الدائري في Telegram وSwiftgram. طبّق التغييرات لإعادة تشغيل التطبيق.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -287,6 +289,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"复制",
             @"DEBUG_LOG_CLEAR": @"清除",
             @"DEBUG_LOG_EMPTY": @"暂无诊断记录。",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"移除录制按钮",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"完全移除 Telegram 和 Swiftgram 中的语音及圆形视频录制按钮。应用更改以重启应用。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -431,6 +435,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"Copy",
             @"DEBUG_LOG_CLEAR": @"Clear",
             @"DEBUG_LOG_EMPTY": @"No diagnostic entries yet.",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"Remove Recording Button",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Remove the voice and round-video recording button in Telegram and Swiftgram. Apply changes to restart the app.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -575,6 +581,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"Copiar",
             @"DEBUG_LOG_CLEAR": @"Borrar",
             @"DEBUG_LOG_EMPTY": @"Todavía no hay registros de diagnóstico.",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"Quitar botón de grabación",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Quitar el botón para grabar mensajes de voz y vídeos circulares en Telegram y Swiftgram. Aplica los cambios para reiniciar la app.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -719,6 +727,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"Copier",
             @"DEBUG_LOG_CLEAR": @"Effacer",
             @"DEBUG_LOG_EMPTY": @"Aucune entrée de diagnostic pour le moment.",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"Supprimer le bouton d’enregistrement",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Supprimer le bouton des messages vocaux et vidéos circulaires dans Telegram et Swiftgram. Appliquez les modifications pour redémarrer l’app.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -863,6 +873,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"Copia",
             @"DEBUG_LOG_CLEAR": @"Cancella",
             @"DEBUG_LOG_EMPTY": @"Nessuna voce diagnostica al momento.",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"Rimuovi pulsante di registrazione",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Rimuovi il pulsante per registrare messaggi vocali e video circolari in Telegram e Swiftgram. Applica le modifiche per riavviare l’app.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -1007,6 +1019,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"コピー",
             @"DEBUG_LOG_CLEAR": @"消去",
             @"DEBUG_LOG_EMPTY": @"診断記録はまだありません。",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"録音・録画ボタンを削除",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Telegram と Swiftgram のボイスメッセージと丸型動画の録音・録画ボタンを完全に削除します。変更を適用するとアプリが再起動します。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1151,6 +1165,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"Копировать",
             @"DEBUG_LOG_CLEAR": @"Очистить",
             @"DEBUG_LOG_EMPTY": @"Диагностических записей пока нет.",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"Убрать кнопку записи",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Полностью убрать кнопку записи голосовых и кружков в Telegram и Swiftgram. Примените изменения для перезапуска приложения.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1295,6 +1311,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"複製",
             @"DEBUG_LOG_CLEAR": @"清除",
             @"DEBUG_LOG_EMPTY": @"尚無診斷記錄。",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"移除錄製按鈕",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"完全移除 Telegram 和 Swiftgram 中的語音及圓形影片錄製按鈕。套用變更以重新啟動應用程式。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1439,6 +1457,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DEBUG_LOG_COPY": @"Sao chép",
             @"DEBUG_LOG_CLEAR": @"Xóa",
             @"DEBUG_LOG_EMPTY": @"Chưa có bản ghi chẩn đoán.",
+            @"HIDE_RECORDING_BUTTON_TITLE": @"Xóa nút ghi âm và quay video",
+            @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Xóa hoàn toàn nút ghi tin nhắn thoại và video tròn trong Telegram và Swiftgram. Áp dụng thay đổi để khởi động lại ứng dụng.",
         };
     }
     return nil;

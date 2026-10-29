@@ -39,6 +39,10 @@ the Chats tab five times.
 - Fake location and ten interface languages.
 - Disable double-tap reactions on messages while keeping reaction buttons and
   the long-press menu available.
+- Remove the voice/round-video recording button in Telegram and Swiftgram from
+  **Interface and gestures**. Apply changes and relaunch after toggling the option.
+  The recording button, its glass background and icon mask are detached from the
+  view hierarchy; sending text and expanding the media keyboard remain available.
 - Force tlottie instead of rlottie for newly rendered animations on clients
   with the built-in TLottieAnimation renderer. Restart after changing the option;
   existing cached frames are preserved. Clients without the compatible renderer

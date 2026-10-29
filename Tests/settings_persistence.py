@@ -47,6 +47,7 @@ int main(int argc, const char **argv) {
             [defaults setBool:!hidden forKey:kIgnorePrivateChatCopyProtection];
             [defaults setBool:hidden forKey:kDisableDoubleTapReactions];
             [defaults setBool:hidden forKey:kForceTLottie];
+            [defaults setBool:hidden forKey:kHideRecordingButton];
             [defaults setBool:hidden forKey:kVideoToVoice];
             [defaults setBool:NO forKey:kGhostModeEnabled];
             [defaults setObject:@"ru" forKey:@"TGExtraLanguage"];
@@ -62,6 +63,7 @@ int main(int argc, const char **argv) {
             NSCAssert([defaults boolForKey:kIgnorePrivateChatCopyProtection] == !hidden, @"Restore the private-chat copy option");
             NSCAssert([defaults boolForKey:kDisableDoubleTapReactions] == hidden, @"Restore the double-tap reaction option");
             NSCAssert([defaults boolForKey:kForceTLottie] == hidden, @"Restore the forced tlottie option");
+            NSCAssert([defaults boolForKey:kHideRecordingButton] == hidden, @"Restore recording button removal");
             NSCAssert([defaults boolForKey:kVideoToVoice] == hidden, @"Restore the video-to-voice checkbox");
             NSCAssert(![defaults boolForKey:kGhostModeEnabled], @"False must override stale true defaults despite enabled subfeatures");
             NSCAssert([[defaults objectForKey:@"TGExtraLanguage"] isEqual:@"ru"], @"Preserve the selected language");
@@ -76,6 +78,7 @@ int main(int argc, const char **argv) {
             NSCAssert(![defaults boolForKey:kIgnorePrivateChatCopyProtection], @"A fresh install keeps the private-chat copy option off");
             NSCAssert(![defaults boolForKey:kDisableDoubleTapReactions], @"A fresh install keeps double-tap reactions enabled");
             NSCAssert(![defaults boolForKey:kForceTLottie], @"A fresh install keeps the client's renderer selection");
+            NSCAssert(![defaults boolForKey:kHideRecordingButton], @"Recording button removal defaults off");
             NSCAssert(![defaults boolForKey:kVideoToVoice], @"Video to voice defaults off");
         }
         NSCAssert([[defaults objectForKey:@"HostSetting"] isEqual:@"keep"], @"Never restore the host app's settings");
@@ -108,6 +111,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-persistence-') as tmp:
         assert saved['TGExtraIgnorePrivateChatCopyProtection'] == (not hidden)
         assert saved['TGExtraDisableDoubleTapReactions'] == hidden
         assert saved['TGExtraForceTLottie'] == hidden
+        assert saved['TGExtraHideRecordingButton'] == hidden
         assert saved['TGExtraVideoToVoice'] == hidden
         assert 'HostSetting' not in saved and 'TGExtraEditHistory' not in saved
         # Even an unexpected field in the file cannot overwrite unrelated defaults.

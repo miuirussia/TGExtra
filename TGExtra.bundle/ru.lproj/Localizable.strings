@@ -197,3 +197,7 @@
 "DEBUG_LOG_COPY" = "Копировать";
 "DEBUG_LOG_CLEAR" = "Очистить";
 "DEBUG_LOG_EMPTY" = "Диагностических записей пока нет.";
+
+/* Recording button */
+"HIDE_RECORDING_BUTTON_TITLE" = "Убрать кнопку записи";
+"HIDE_RECORDING_BUTTON_SUBTITLE" = "Полностью убрать кнопку записи голосовых и кружков в Telegram и Swiftgram. Примените изменения для перезапуска приложения.";

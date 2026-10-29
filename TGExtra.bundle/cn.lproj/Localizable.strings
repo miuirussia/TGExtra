@@ -196,3 +196,7 @@
 "DEBUG_LOG_COPY" = "复制";
 "DEBUG_LOG_CLEAR" = "清除";
 "DEBUG_LOG_EMPTY" = "暂无诊断记录。";
+
+/* Recording button */
+"HIDE_RECORDING_BUTTON_TITLE" = "移除录制按钮";
+"HIDE_RECORDING_BUTTON_SUBTITLE" = "完全移除 Telegram 和 Swiftgram 中的语音及圆形视频录制按钮。应用更改以重启应用。";
