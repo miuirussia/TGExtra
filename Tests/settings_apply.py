@@ -143,3 +143,126 @@ with tempfile.TemporaryDirectory(prefix='tgextra-apply-') as tmp:
     subprocess.run(['clang', '-fobjc-arc', '-Werror', '-framework', 'Foundation',
                     '-I' + str(ROOT / 'Sources/tgapi'), str(harness), '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True)
+
+# Exercise the language action with the real localization resolver and an in-memory defaults store.
+language_source = (ROOT / 'Sources/tgapi/UI/LanguageSelector.m').read_text()
+language_actions = language_source[language_source.index('- (void)closeTapped {'):language_source.rindex('@end')]
+initial_selection = language_source[language_source.index('    self.initialLanguageCode ='):language_source.index('    // Hardcoded full list')]
+localization_source = (ROOT / 'Sources/tgapi/UI/TGExtraLocalization.m').read_text()
+localization_body = localization_source[localization_source.index('@interface TGExtraLocalization ()'):]
+
+language_support = r'''
+#import "EmbeddedLangs.h"
+#define UIAlertActionStyleDestructive 2
+@interface TGLocalization : NSObject
+@property NSDictionary *strings;
+- (instancetype)initWithVersion:(int)version code:(id)code dict:(id)dict isActive:(BOOL)active;
+- (NSString *)get:(NSString *)key;
+@end
+@implementation TGLocalization
+- (instancetype)initWithVersion:(int)version code:(id)code dict:(id)dict isActive:(BOOL)active {
+    if ((self = [super init])) _strings = dict;
+    return self;
+}
+- (NSString *)get:(NSString *)key { return self.strings[key] ?: key; }
+@end
+@interface TGExtraLocalization : NSObject
+@property TGLocalization *localization;
+@property(nonatomic, copy, readonly) NSString *languageCode;
++ (instancetype)shared;
++ (NSString *)localizedStringForKey:(NSString *)key;
+@end
+static NSString *TGExtraBundlePath(void) { return nil; }
+'''
+
+language_ui = r'''
+@interface LanguageDefaults : NSUserDefaults
+@property NSMutableDictionary *values;
+@end
+@implementation LanguageDefaults
+- (instancetype)init { if ((self = [super init])) _values = [NSMutableDictionary new]; return self; }
+- (id)objectForKey:(NSString *)key { return self.values[key]; }
+- (NSString *)stringForKey:(NSString *)key { return self.values[key]; }
+- (void)setObject:(id)value forKey:(NSString *)key { self.values[key] = value; }
+- (void)removeObjectForKey:(NSString *)key { [self.values removeObjectForKey:key]; }
+- (BOOL)synchronize { [events addObject:@"save"]; return NO; }
+@end
+@interface TableStub : NSObject
+- (void)reloadData;
+@end
+@implementation TableStub
+- (void)reloadData {}
+@end
+@interface TGExtra (Dismiss)
+- (void)dismissViewControllerAnimated:(BOOL)animated completion:(id)completion;
+@end
+@implementation TGExtra (Dismiss)
+- (void)dismissViewControllerAnimated:(BOOL)animated completion:(id)completion { [events addObject:@"dismiss"]; }
+@end
+@interface LanguageSelector : TGExtra
+@property NSString *initialLanguageCode;
+@property NSString *selectedLanguageCode;
+@property TableStub *tableView;
+- (void)configure;
+- (void)applyTapped;
+@end
+@implementation LanguageSelector
+'''
+
+language_tests = r'''
+@end
+int main(int argc, const char **argv) { @autoreleasepool {
+    events = [NSMutableArray new];
+    LanguageDefaults *defaults = [LanguageDefaults new];
+    Method defaultsMethod = class_getClassMethod(NSUserDefaults.class, @selector(standardUserDefaults));
+    method_setImplementation(defaultsMethod, imp_implementationWithBlock(^id(id cls) { return defaults; }));
+    NSString *device = @(argv[1]), *expected = @(argv[2]);
+    Method preferred = class_getClassMethod(NSLocale.class, @selector(preferredLanguages));
+    method_setImplementation(preferred, imp_implementationWithBlock(^id(id cls) { return @[device]; }));
+    if (argc > 3) [defaults setObject:@(argv[3]) forKey:@"TGExtraLanguage"];
+    NSCAssert([TGExtraLocalization.shared.languageCode isEqual:expected], @"Resolve the actual default/explicit language");
+    LanguageSelector *selector = [LanguageSelector new];
+    [selector configure];
+    NSCAssert([selector.initialLanguageCode isEqual:expected] && [selector.selectedLanguageCode isEqual:expected], @"Mark the language actually displayed");
+    [selector applyTapped];
+    NSCAssert([events isEqual:@[@"dismiss"]], @"Unchanged language does not restart");
+    [events removeAllObjects];
+    NSString *chosen = [expected isEqual:@"en"] ? @"ru" : @"en";
+    selector.selectedLanguageCode = chosen;
+    [selector applyTapped];
+    NSCAssert(events.count == 0 && selector.alert.actions.count == 2, @"Changing the automatic language requires confirmation");
+    UIAlertAction *cancel = selector.alert.actions.lastObject;
+    cancel.handler(cancel);
+    NSCAssert([selector.selectedLanguageCode isEqual:expected], @"Cancel restores selection");
+    [events removeAllObjects];
+    id previous = [defaults objectForKey:@"TGExtraLanguage"];
+    selector.selectedLanguageCode = chosen;
+    [selector applyTapped];
+    fileSaveSucceeds = NO;
+    UIAlertAction *confirm = selector.alert.actions.firstObject;
+    confirm.handler(confirm);
+    NSArray *failed = @[@"file", [TGExtraLocalization localizedStringForKey:@"SETTINGS_SAVE_FAILED"]];
+    NSCAssert([events isEqual:failed], @"A failed save reports failure without suspend/exit");
+    NSCAssert([[defaults objectForKey:@"TGExtraLanguage"] isEqual:previous] || (!previous && ![defaults objectForKey:@"TGExtraLanguage"]), @"Failure preserves the old preference, including its absence");
+    [events removeAllObjects];
+    fileSaveSucceeds = YES;
+    [selector applyTapped];
+    confirm = selector.alert.actions.firstObject;
+    confirm.handler(confirm);
+    NSArray *saved = @[@"file", @"save", @"suspend", @"exit"];
+    NSCAssert([events isEqual:saved] && [[defaults stringForKey:@"TGExtraLanguage"] isEqual:chosen], @"Persist selection before restarting even if CFPreferences sync fails");
+    puts("PASS actual language selection, automatic/explicit fallback, cancellation, save failure rollback and restart ordering");
+} return 0; }
+'''
+
+with tempfile.TemporaryDirectory(prefix='tgextra-language-') as tmp:
+    path = Path(tmp)
+    harness = path / 'language.m'
+    harness.write_text(support + apply_changes + '\n@end\n' + language_support + localization_body + language_ui
+                       + '- (void)configure {\n' + initial_selection + '}\n' + language_actions + language_tests)
+    binary = path / 'language-tests'
+    subprocess.run(['clang', '-fobjc-arc', '-Werror', '-framework', 'Foundation',
+                    '-I' + str(ROOT / 'Sources/tgapi'), '-I' + str(ROOT / 'Sources/tgapi/UI'),
+                    str(harness), '-o', str(binary)], check=True)
+    for arguments in [('ru-RU', 'ru'), ('zh-Hant-TW', 'tw'), ('de-DE', 'en'), ('ru-RU', 'en', 'en'), ('en-US', 'en', 'unknown')]:
+        subprocess.run([str(binary), *arguments], check=True)

@@ -14,7 +14,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    self.initialLanguageCode = [[NSUserDefaults standardUserDefaults] stringForKey:@"TGExtraLanguage"] ?: @"en";
+    self.initialLanguageCode = TGExtraLocalization.shared.languageCode;
     self.selectedLanguageCode = self.initialLanguageCode;
 
     // Hardcoded full list if langs.json is completely unavailable
@@ -135,8 +135,14 @@
     UIAlertAction *restartAction = [UIAlertAction actionWithTitle:@"Restart"
                                                             style:UIAlertActionStyleDestructive
                                                           handler:^(UIAlertAction *action) {
+        id previousLanguage = [NSUserDefaults.standardUserDefaults objectForKey:@"TGExtraLanguage"];
         [[NSUserDefaults standardUserDefaults] setObject:self.selectedLanguageCode forKey:@"TGExtraLanguage"];
-        TGExtraSavePreferences();
+        if (!TGExtraSavePreferences()) {
+            if (previousLanguage) [NSUserDefaults.standardUserDefaults setObject:previousLanguage forKey:@"TGExtraLanguage"];
+            else [NSUserDefaults.standardUserDefaults removeObjectForKey:@"TGExtraLanguage"];
+            TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"SETTINGS_SAVE_FAILED"]);
+            return;
+        }
         [[NSUserDefaults standardUserDefaults] synchronize];
 
         [[UIApplication sharedApplication] performSelector:@selector(suspend)];

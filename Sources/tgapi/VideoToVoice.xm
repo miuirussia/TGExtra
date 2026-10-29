@@ -517,24 +517,8 @@ static UIView *tgextraFindSubviewByClassSubstring(UIView *root, NSString *needle
     return nil;
 }
 
-/// Where the button goes.
-///
-/// Two attempts got this wrong before the source settled it.
-///
-/// The first placed it at the view's own safeAreaInsets, which come back as
-/// zero — the gallery lays its overlay out against insets the controller hands
-/// it, not against the view hierarchy — so the button landed under the Dynamic
-/// Island and could not be tapped.
-///
-/// The second mirrored Telegram's selection checkmark onto the opposite edge.
-/// That reads well in portrait and is exactly backwards in landscape: the
-/// checkmark sits opposite the landscape toolbar, which fills a whole side
-/// edge, so "the other side" is precisely the side that is already occupied.
-/// Rotating the phone dropped the button on top of the toolbar.
-///
-/// So: the checkmark's own side, directly below it. That corner is the one
-/// Telegram keeps clear in every orientation — the toolbar, the photo counter
-/// and the selected-photos strip all cluster on the far side of it.
+// Place the toggle below Telegram's checkmark, clear of the landscape toolbar.
+// Clamp both fallback and measured positions to the visible safe area.
 static CGRect tgextraVoiceButtonFrame(UIView *interfaceView) {
     CGFloat side = kTGExtraVoiceButtonSide;
     UIWindow *window = interfaceView.window;

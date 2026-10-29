@@ -3,27 +3,12 @@
 #import "../Headers.h"
 #import "../Logger/Logger.h"
 #import "Icons.h"
+#import "SettingsRows.h"
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 
 #define TGLoc(key) [TGExtraLocalization localizedStringForKey:(key)]
-
-// Keep section identifiers shared by the data source and targeted reloads.
-typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
-  GHOST_MODE = 0,
-  GHOST_EXCEPTIONS,
-  MESSAGE_HISTORY,
-  CONTENT_ACCESS,
-  MEDIA,
-  INTERFACE,
-  FAKE_LOCATION,
-  FILE_FIXER,
-  MESSAGE_DATA,
-  LANGUAGE,
-  CREDITS,
-  SECTION_COUNT,
-};
 
 static NSString *const kTGExtraTweakVersion = @"1.3.0";
 
@@ -38,8 +23,6 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 - (void)openProfileForException:(NSDictionary *)entry;
 - (void)showRenamePromptForException:(NSDictionary *)entry;
 - (void)confirmClearMessageData;
-+ (NSArray<NSString *> *)ghostSubFeatureKeys;
-+ (NSArray<NSString *> *)featureKeysForSection:(NSInteger)section;
 @end
 
 @implementation TGExtra
@@ -239,12 +222,12 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 
 - (NSInteger)tableView:(UITableView *)tableView
     numberOfRowsInSection:(NSInteger)section {
-  NSArray<NSString *> *featureKeys = [TGExtra featureKeysForSection:section];
-  if (featureKeys) return featureKeys.count;
+  NSArray *rows = [TGExtraSettingRow featureRowsForSection:section];
+  if (rows) return rows.count;
 
   switch (section) {
   case GHOST_MODE:
-    return 2 + (self.isGhostModeExpanded ? [TGExtra ghostSubFeatureKeys].count : 0);
+    return 2 + (self.isGhostModeExpanded ? [TGExtraSettingRow ghostRows].count : 0);
   case GHOST_EXCEPTIONS:
     // Falls back to a single explanatory row when the list is empty, so the
     // section never renders as a bare header.
@@ -335,134 +318,35 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
          cellForRowAtIndexPath:(NSIndexPath *)indexPath {
   UITableViewCell *cell;
 
-  if (indexPath.section == GHOST_MODE) {
-    if (indexPath.row == 1) {
-      cell = [self normalCellFromTableView:tableView];
-      cell.textLabel.text = TGLoc(@"ADVANCED_SETTINGS_TITLE");
-      cell.detailTextLabel.text = self.isGhostModeExpanded ? TGLoc(@"ADVANCED_SETTINGS_HIDE") : TGLoc(@"ADVANCED_SETTINGS_SHOW");
-      cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-      cell.accessoryView = nil;
-      cell.imageView.image = [UIImage systemImageNamed:@"slider.horizontal.3"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      return cell;
-    }
-
+  TGExtraSettingRow *setting = [TGExtraSettingRow rowForSection:indexPath.section row:indexPath.row];
+  if (setting) {
     cell = [self switchCellFromTableView:tableView];
-    cell.imageView.image = nil;
-
-    if (indexPath.row == 0) {
-      cell.textLabel.text = TGLoc(@"GHOST_MODE_SECTION_HEADER");
-      cell.detailTextLabel.text = TGLoc(@"GHOST_MODE_SUBTITLE");
-      cell.imageView.image = [UIImage systemImageNamed:@"eye.slash.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-    } else {
-      NSInteger ghostRow = indexPath.row - 2;
-      if (ghostRow == 0) {
-        cell.textLabel.text = TGLoc(@"DISABLE_ONLINE_STATUS_TITLE");
-        cell.detailTextLabel.text = TGLoc(@"DISABLE_ONLINE_STATUS_SUBTITLE");
-      } else if (ghostRow == 1) {
-        cell.textLabel.text = TGLoc(@"DISABLE_TYPING_STATUS_TITLE");
-        cell.detailTextLabel.text = TGLoc(@"DISABLE_TYPING_STATUS_SUBTITLE");
-      } else if (ghostRow == 2) {
-        cell.textLabel.text = TGLoc(@"DISABLE_RECORDING_VIDEO_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_RECORDING_VIDEO_STATUS_SUBTITLE");
-      } else if (ghostRow == 3) {
-        cell.textLabel.text = TGLoc(@"DISABLE_UPLOADING_VIDEO_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_UPLOADING_VIDEO_STATUS_SUBTITLE");
-      } else if (ghostRow == 4) {
-        cell.textLabel.text = TGLoc(@"DISABLE_VC_MESSAGE_RECORDING_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_VC_MESSAGE_RECORDING_STATUS_SUBTITLE");
-      } else if (ghostRow == 5) {
-        cell.textLabel.text = TGLoc(@"DISABLE_VC_MESSAGE_UPLOADING_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_VC_MESSAGE_UPLOADING_STATUS_SUBTITLE");
-      } else if (ghostRow == 6) {
-        cell.textLabel.text = TGLoc(@"DISABLE_UPLOADING_PHOTO_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_UPLOADING_PHOTO_STATUS_SUBTITLE");
-      } else if (ghostRow == 7) {
-        cell.textLabel.text = TGLoc(@"DISABLE_UPLOADING_FILE_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_UPLOADING_FILE_STATUS_SUBTITLE");
-      } else if (ghostRow == 8) {
-        cell.textLabel.text = TGLoc(@"DISABLE_CHOOSING_LOCATION_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_CHOOSING_LOCATION_STATUS_SUBTITLE");
-      } else if (ghostRow == 9) {
-        cell.textLabel.text = TGLoc(@"DISABLE_CHOOSING_CONTACT_TITLE");
-        cell.detailTextLabel.text = TGLoc(@"DISABLE_CHOOSING_CONTACT_SUBTITLE");
-      } else if (ghostRow == 10) {
-        cell.textLabel.text = TGLoc(@"DISABLE_PLAYING_GAME_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_PLAYING_GAME_STATUS_SUBTITLE");
-      } else if (ghostRow == 11) {
-        cell.textLabel.text =
-            TGLoc(@"DISABLE_RECORDING_ROUND_VIDEO_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_RECORDING_ROUND_VIDEO_STATUS_SUBTITLE");
-      } else if (ghostRow == 12) {
-        cell.textLabel.text =
-            TGLoc(@"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_TITLE");
-      } else if (ghostRow == 13) {
-        cell.textLabel.text =
-            TGLoc(@"DISABLE_SPEAKING_IN_GROUP_CALL_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_SPEAKING_IN_GROUP_CALL_STATUS_SUBTITLE");
-      } else if (ghostRow == 14) {
-        cell.textLabel.text = TGLoc(@"DISABLE_CHOOSING_STICKER_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_CHOOSING_STICKER_STATUS_SUBTITLE");
-      } else if (ghostRow == 15) {
-        cell.textLabel.text = TGLoc(@"DISABLE_EMOJI_INTERACTION_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_EMOJI_INTERACTION_STATUS_SUBTITLE");
-      } else if (ghostRow == 16) {
-        cell.textLabel.text =
-            TGLoc(@"DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE");
-      } else if (ghostRow == 17) {
-        cell.textLabel.text = TGLoc(@"DISABLE_MESSAGE_READ_RECEIPT_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE");
-      } else if (ghostRow == 18) {
-        cell.textLabel.text = TGLoc(@"DISABLE_REACTION_READ_RECEIPT_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_REACTION_READ_RECEIPT_SUBTITLE");
-      } else if (ghostRow == 19) {
-        cell.textLabel.text = TGLoc(@"DISABLE_MENTION_READ_RECEIPT_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_MENTION_READ_RECEIPT_SUBTITLE");
-      } else if (ghostRow == 20) {
-        cell.textLabel.text = TGLoc(@"DISABLE_STORY_READ_RECEIPT_TITLE");
-        cell.detailTextLabel.text =
-            TGLoc(@"DISABLE_STORY_READ_RECEIPT_SUBTITLE");
-      }
-    }
-
-    UISwitch *toggle = (UISwitch *)cell.accessoryView;
-    if (!toggle || ![toggle isKindOfClass:[UISwitch class]]) {
-      toggle = [[UISwitch alloc] init];
-    }
-
-    NSString *switchKey = [self switchKeyForIndexPath:indexPath];
-    toggle.on = [[NSUserDefaults standardUserDefaults] boolForKey:switchKey];
+    cell.textLabel.text = TGLoc(setting.titleKey);
+    cell.detailTextLabel.text = TGLoc(setting.subtitleKey);
+    cell.imageView.image = setting.icon.length ? [UIImage systemImageNamed:setting.icon] : nil;
+    cell.imageView.tintColor = [self dynamicColorBW];
+    cell.accessoryType = UITableViewCellAccessoryNone;
+    UISwitch *toggle = [cell.accessoryView isKindOfClass:UISwitch.class] ? (UISwitch *)cell.accessoryView : [UISwitch new];
+    toggle.on = [NSUserDefaults.standardUserDefaults boolForKey:setting.key];
+    toggle.enabled = YES;
     toggle.accessibilityLabel = cell.textLabel.text;
-    [toggle addTarget:self
-                  action:@selector(switchChanged:)
-        forControlEvents:UIControlEventValueChanged];
-    toggle.tag = 1000 + (indexPath.section * 1000) + indexPath.row;
+    [toggle addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
+    toggle.tag = 1000 + indexPath.section * 1000 + indexPath.row;
     cell.accessoryView = toggle;
-
     cell.textLabel.numberOfLines = 0;
     cell.detailTextLabel.numberOfLines = 0;
     return cell;
+  }
 
+  if (indexPath.section == GHOST_MODE) {
+    cell = [self normalCellFromTableView:tableView];
+    cell.textLabel.text = TGLoc(@"ADVANCED_SETTINGS_TITLE");
+    cell.detailTextLabel.text = self.isGhostModeExpanded ? TGLoc(@"ADVANCED_SETTINGS_HIDE") : TGLoc(@"ADVANCED_SETTINGS_SHOW");
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    cell.accessoryView = nil;
+    cell.imageView.image = [UIImage systemImageNamed:@"slider.horizontal.3"];
+    cell.imageView.tintColor = [self dynamicColorBW];
+    return cell;
   } else if (indexPath.section == GHOST_EXCEPTIONS) {
     cell = [self normalCellFromTableView:tableView];
     cell.accessoryView = nil;
@@ -521,114 +405,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     return cell;
 
-  } else if ([TGExtra featureKeysForSection:indexPath.section] != nil) {
-    cell = [self switchCellFromTableView:tableView];
-    cell.imageView.image = nil;
-    cell.accessoryType = UITableViewCellAccessoryNone;
-    NSString *switchKey = [self switchKeyForIndexPath:indexPath];
-
-    if ([switchKey isEqualToString:kDisableAllAds]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"nosign"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"DISABLE_ALL_ADS_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"DISABLE_ALL_ADS_SUBTITLE");
-    } else if ([switchKey isEqualToString:kDisableForwardRestriction]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"lock.open.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"ENABLE_SAVING_PROTECTED_CONTENT_TITLE");
-      cell.detailTextLabel.text =
-          TGLoc(@"ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE");
-    } else if ([switchKey isEqualToString:kAntiRevoke]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"trash.slash.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"ANTI_REVOKE_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"ANTI_REVOKE_SUBTITLE");
-    } else if ([switchKey isEqualToString:kAntiAutoDelete]) {
-      cell.imageView.image =
-          [UIImage systemImageNamed:@"clock.arrow.circlepath"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"ANTI_AUTO_DELETE_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"ANTI_AUTO_DELETE_SUBTITLE");
-    } else if ([switchKey isEqualToString:kDisableScreenshotNotification]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"camera.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"ANTI_SCREENSHOT_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"ANTI_SCREENSHOT_SUBTITLE");
-    } else if ([switchKey isEqualToString:kAntiSelfDestruct]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"eye.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"ANTI_SELF_DESTRUCT_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"ANTI_SELF_DESTRUCT_SUBTITLE");
-    } else if ([switchKey isEqualToString:kAntiEdit]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"pencil.slash"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"ANTI_EDIT_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"ANTI_EDIT_SUBTITLE");
-    } else if ([switchKey isEqualToString:kHideDisappearingLabel]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"text.badge.xmark"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"HIDE_DISAPPEARING_LABEL_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"HIDE_DISAPPEARING_LABEL_SUBTITLE");
-    } else if ([switchKey isEqualToString:kVideoToVoice]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"waveform.circle.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"VIDEO_TO_VOICE_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"VIDEO_TO_VOICE_SUBTITLE");
-    } else if ([switchKey isEqualToString:kIgnorePrivateChatCopyProtection]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"doc.on.doc"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"IGNORE_PRIVATE_COPY_PROTECTION_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE");
-    } else if ([switchKey isEqualToString:kDisableDoubleTapReactions]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"hand.tap"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"DISABLE_DOUBLE_TAP_REACTIONS_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE");
-    } else if ([switchKey isEqualToString:kForceTLottie]) {
-      cell.imageView.image = [UIImage systemImageNamed:@"play.rectangle"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"FORCE_TLOTTIE_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"FORCE_TLOTTIE_SUBTITLE");
-    }
-
-    UISwitch *toggle = (UISwitch *)cell.accessoryView;
-    if (!toggle || ![toggle isKindOfClass:[UISwitch class]]) {
-      toggle = [[UISwitch alloc] init];
-    }
-
-    toggle.on = [[NSUserDefaults standardUserDefaults] boolForKey:switchKey];
-    toggle.accessibilityLabel = cell.textLabel.text;
-    // Reset on every pass because cells are reused: a row disabled in an
-    // earlier build would otherwise carry that state onto a working row.
-    toggle.enabled = YES;
-    [toggle addTarget:self
-                  action:@selector(switchChanged:)
-        forControlEvents:UIControlEventValueChanged];
-    toggle.tag = 1000 + (indexPath.section * 1000) + indexPath.row;
-    cell.accessoryView = toggle;
-
-    cell.textLabel.numberOfLines = 0;
-    cell.detailTextLabel.numberOfLines = 0;
-    return cell;
   } else if (indexPath.section == FILE_FIXER) {
-    if (indexPath.row == 0) {
-      cell = [self switchCellFromTableView:tableView];
-      cell.imageView.image = [UIImage systemImageNamed:@"folder.fill.badge.gear"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"FIX_FILE_PICKER_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"FIX_FILE_PICKER_SUBTITLE");
-      UISwitch *toggle = (UISwitch *)cell.accessoryView;
-      if (!toggle || ![toggle isKindOfClass:[UISwitch class]]) toggle = [[UISwitch alloc] init];
-      NSString *switchKey = [self switchKeyForIndexPath:indexPath];
-      toggle.on = [[NSUserDefaults standardUserDefaults] boolForKey:switchKey];
-    toggle.accessibilityLabel = cell.textLabel.text;
-      [toggle addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
-      toggle.tag = 1000 + (indexPath.section * 1000) + indexPath.row;
-      cell.accessoryView = toggle;
-      cell.textLabel.numberOfLines = 0;
-      cell.detailTextLabel.numberOfLines = 0;
-      return cell;
-    }
     cell = [self normalCellFromTableView:tableView];
     cell.textLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_TITLE");
     cell.detailTextLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_SUBTITLE");
@@ -653,21 +430,6 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     cell.detailTextLabel.numberOfLines = 0;
     return cell;
   } else if (indexPath.section == FAKE_LOCATION) {
-    if (indexPath.row == 0) {
-      cell = [self switchCellFromTableView:tableView];
-      cell.imageView.image = [UIImage systemImageNamed:@"location.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"ENABLE_FAKE_LOCATION_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"ENABLE_FAKE_LOCATION_SUBTITLE");
-      UISwitch *toggle = (UISwitch *)cell.accessoryView;
-      if (!toggle || ![toggle isKindOfClass:[UISwitch class]]) toggle = [[UISwitch alloc] init];
-      NSString *switchKey = [self switchKeyForIndexPath:indexPath];
-      toggle.on = [[NSUserDefaults standardUserDefaults] boolForKey:switchKey];
-    toggle.accessibilityLabel = cell.textLabel.text;
-      [toggle addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
-      toggle.tag = 1000 + (indexPath.section * 1000) + indexPath.row;
-      cell.accessoryView = toggle;
-    }
     if (indexPath.row == 1) {
       cell = [self normalCellFromTableView:tableView];
       cell.imageView.image = [UIImage systemImageNamed:@"location.fill"];
@@ -983,74 +745,8 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   }
 }
 
-// Single source of truth for the Ghost Mode sub-feature toggles: their order
-// here is their row order in the expanded section, and -anyGhostSubFeatureEnabled
-// reads the same array rather than repeating the list.
-+ (NSArray<NSString *> *)ghostSubFeatureKeys {
-  static NSArray<NSString *> *keys = nil;
-  static dispatch_once_t onceToken;
-  dispatch_once(&onceToken, ^{
-    keys = @[
-      kDisableOnlineStatus, kDisableTypingStatus, kDisableRecordingVideoStatus,
-      kDisableUploadingVideoStatus, kDisableRecordingVoiceStatus,
-      kDisableUploadingVoiceStatus, kDisableUploadingPhotoStatus,
-      kDisableUploadingFileStatus, kDisableChoosingLocationStatus,
-      kDisableChoosingContactStatus, kDisablePlayingGameStatus,
-      kDisableRecordingRoundVideoStatus, kDisableUploadingRoundVideoStatus,
-      kDisableSpeakingInGroupCallStatus, kDisableChoosingStickerStatus,
-      kDisableEmojiInteractionStatus, kDisableEmojiAcknowledgementStatus,
-      kDisableMessageReadReceipt, kDisableReactionReadReceipt,
-      kDisableMentionReadReceipt, kDisableStoriesReadReceipt
-    ];
-  });
-  return keys;
-}
-
-// Row counts, switch labels and preference writes use the same category order.
-+ (NSArray<NSString *> *)featureKeysForSection:(NSInteger)section {
-  switch (section) {
-  case MESSAGE_HISTORY:
-    return @[kAntiRevoke, kAntiAutoDelete, kAntiEdit];
-  case CONTENT_ACCESS:
-    return @[kDisableForwardRestriction, kIgnorePrivateChatCopyProtection,
-             kDisableScreenshotNotification, kAntiSelfDestruct,
-             kHideDisappearingLabel];
-  case MEDIA:
-    return @[kVideoToVoice, kForceTLottie];
-  case INTERFACE:
-    return @[kDisableAllAds, kDisableDoubleTapReactions];
-  default:
-    return nil;
-  }
-}
-
 - (NSString *)switchKeyForIndexPath:(NSIndexPath *)indexPath {
-  NSArray<NSString *> *featureKeys = [TGExtra featureKeysForSection:indexPath.section];
-  if (featureKeys) {
-    if (indexPath.row < 0 || indexPath.row >= (NSInteger)featureKeys.count) return nil;
-    return featureKeys[indexPath.row];
-  }
-
-  // Sections are matched by enum, never by literal index — adding a section
-  // used to silently shift every mapping below it.
-  switch (indexPath.section) {
-  case GHOST_MODE: {
-    if (indexPath.row == 0) return kGhostModeEnabled;
-    if (indexPath.row < 2) return nil;
-
-    NSInteger ghostRow = indexPath.row - 2;
-    NSArray<NSString *> *keys = [TGExtra ghostSubFeatureKeys];
-    if (ghostRow < 0 || ghostRow >= (NSInteger)keys.count) return nil;
-    return keys[ghostRow];
-  }
-  case FILE_FIXER:
-    if (indexPath.row == 0) return FILE_PICKER_FIX_KEY;
-    return nil;
-  case FAKE_LOCATION:
-    return FAKE_LOCATION_ENABLED_KEY;
-  default:
-    return nil;
-  }
+  return [TGExtraSettingRow rowForSection:indexPath.section row:indexPath.row].key;
 }
 
 - (NSString *)sizeOfUglyFileFixDirectory {
@@ -1087,8 +783,8 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 }
 
 - (BOOL)anyGhostSubFeatureEnabled {
-  for (NSString *key in [TGExtra ghostSubFeatureKeys]) {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:key])
+  for (TGExtraSettingRow *row in [TGExtraSettingRow ghostRows]) {
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:row.key])
       return YES;
   }
   return NO;

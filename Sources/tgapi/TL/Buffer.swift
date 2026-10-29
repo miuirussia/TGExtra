@@ -292,17 +292,18 @@ public class Buffer: CustomStringConvertible {
     }
     
     public func appendBuffer(_ buffer: Buffer) {
-        if self.capacity < self._size + buffer._size {
-            self.capacity = self._size + buffer._size + 128
-            if self.data == nil {
-                self.data = malloc(Int(self.capacity))!
+        // Delegate allocation and size tracking to the byte append operation.
+        // Snapshot self-appends before a possible realloc invalidates the source.
+        if buffer === self {
+            let bytes = buffer.makeData()
+            bytes.withUnsafeBytes { raw in
+                if let base = raw.baseAddress { appendBytes(base, length: UInt(raw.count)) }
             }
-            else {
-                self.data = realloc(self.data, Int(self.capacity))!
-            }
+            return
         }
-        
-        memcpy(self.data?.advanced(by: Int(self._size)), buffer.data, Int(buffer._size))
+        if buffer._size > 0, let bytes = buffer.data {
+            appendBytes(bytes, length: buffer._size)
+        }
     }
     
     public func appendInt32(_ value: Int32) {

@@ -6,11 +6,12 @@
 // Every test write stays in memory, including writes from Swift queues.
 @interface MemoryDefaults : NSUserDefaults
 @property NSMutableDictionary *values;
+@property NSMutableDictionary<NSString *, NSNumber *> *writes;
 @end
 @implementation MemoryDefaults
-- (instancetype)init { if ((self = [super init])) _values = [NSMutableDictionary new]; return self; }
+- (instancetype)init { if ((self = [super init])) _values = [NSMutableDictionary new]; _writes = [NSMutableDictionary new]; return self; }
 - (id)objectForKey:(NSString *)key { @synchronized(self) { return self.values[key]; } }
-- (void)setObject:(id)value forKey:(NSString *)key { @synchronized(self) { self.values[key] = value; } }
+- (void)setObject:(id)value forKey:(NSString *)key { @synchronized(self) { self.values[key] = value; self.writes[key] = @([self.writes[key] unsignedIntegerValue] + 1); } }
 - (void)removeObjectForKey:(NSString *)key { @synchronized(self) { [self.values removeObjectForKey:key]; } }
 - (BOOL)boolForKey:(NSString *)key { return [[self objectForKey:key] boolValue]; }
 - (NSInteger)integerForKey:(NSString *)key { return [[self objectForKey:key] integerValue]; }
@@ -29,6 +30,11 @@ NSUserDefaults *TGExtraUseTestDefaults(void) {
     Method method = class_getClassMethod(NSUserDefaults.class, @selector(standardUserDefaults));
     method_setImplementation(method, imp_implementationWithBlock(^id(id cls) { return defaults; }));
     return defaults;
+}
+
+NSUInteger TGExtraTestPreferenceWriteCount(NSString *key) {
+    MemoryDefaults *defaults = (id)NSUserDefaults.standardUserDefaults;
+    @synchronized(defaults) { return [defaults.writes[key] unsignedIntegerValue]; }
 }
 
 @implementation MTRequest

@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 NSUserDefaults *TGExtraUseTestDefaults(void);
+NSUInteger TGExtraTestPreferenceWriteCount(NSString *key);
 void TGExtraTestHandlersAndMigration(void);
 NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journalDirectory);
 

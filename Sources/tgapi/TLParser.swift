@@ -12,6 +12,8 @@ class TLParser: NSObject {
     // cleared: evicting them would silently re-enable a later server deletion.
     private static var messageMarkers = [EditKey: Int]()
     private static var markersLoaded = false
+    private static var markersDirty = false
+    private static var markerBatchDepth = 0
     private static let deletedMarker = 1
     private static let disappearingMarker = 2
     private static let autoDeleteMarker = 4
@@ -87,6 +89,14 @@ class TLParser: NSObject {
     }
 
     private static func persistMarkers() {
+        markersDirty = true
+        if markerBatchDepth == 0 { flushMarkers() }
+    }
+
+    // Packet processing updates the in-memory map immediately and persists it once.
+    private static func flushMarkers() {
+        guard markersDirty else { return }
+        markersDirty = false
         UserDefaults.standard.set(Dictionary(uniqueKeysWithValues: messageMarkers.map {
             ($0.key.storageKey, $0.value)
         }), forKey: markerUdKey)
@@ -110,7 +120,7 @@ class TLParser: NSObject {
         processingLock.lock()
         loadMarkers()
         processingLock.unlock()
-        loadEditHistory()
+        editHistoryStore.load()
         installApiLogger()
     }
 
@@ -265,71 +275,11 @@ class TLParser: NSObject {
         return (ids, peer)
     }
 
-    // MARK: - Anti-Edit
+    // MARK: - Edit history
 
-    /// Every text version of a message we have seen, oldest first. Element 0 is
-    /// the earliest text observed while Anti-Edit was enabled.
-    ///
-    /// Writes take a barrier synchronously rather than asynchronously: a single
-    /// pass over a response records an original and then reads it back, so the
-    /// ordering has to be deterministic.
-    private static let editQueue = DispatchQueue(label: "com.tgextra.editHistory",
-                                                 attributes: .concurrent)
-
-    /// Account record, conversation and message number are all required:
-    /// two accounts can have different messages under the same peer and id.
-    private struct EditKey: Hashable {
-        let account: String
-        let peer: Int64
-        let id: Int32
-        let namespace: Int32
-
-        var storageKey: String {
-            let base = "\(account):\(peer):\(id)"
-            return namespace == 0 ? base : "\(base):\(namespace)"
-        }
-
-        init(account: String, peer: Int64, id: Int32, namespace: Int32 = 0) {
-            self.account = account
-            self.peer = peer
-            self.id = id
-            self.namespace = namespace
-        }
-
-        init?(storageKey: String) {
-            let parts = storageKey.split(separator: ":")
-            guard parts.count == 3 || parts.count == 4,
-                  let peer = Int64(parts[1]), let id = Int32(parts[2]) else { return nil }
-            self.account = String(parts[0])
-            self.peer = peer
-            self.id = id
-            if parts.count == 4 {
-                guard let namespace = Int32(parts[3]) else { return nil }
-                self.namespace = namespace
-            } else { self.namespace = 0 }
-        }
-    }
-
-    private struct EditEntry {
-        var versions: [String]
-        var editDate: Int32?
-        var contents: [[String: Data]]
-    }
-
-    private static var _editHistory = [EditKey: EditEntry]()
-    // Only unedited originals can be evicted; unrelated traffic must not erase
-    // versions which cannot be fetched again.
-    private static var _originalOrder = [EditKey]()
-    private static var _editLoaded = false
-    private static var _editPersistScheduled = false
-    private static var _editPersistGeneration: UInt64 = 0
-    private static let editUdKey = "TGExtraEditHistoryByAccount"
-    // Older keys are left intact. Their entries have no account identity and
-    // cannot safely be attributed to any of the current accounts.
-
-    private static let maxTrackedOriginals = 2000
-    private static let maxVersionsPerMessage = 20
-
+    private typealias EditKey = MessageKey
+    private typealias RenderedMessage = RenderedMessageReader.RenderedMessage
+    private static let editHistoryStore = MessageHistoryStore()
 
     private static var isAntiEditEnabled: Bool {
         return MessagePatches.Settings().keepEditHistory
@@ -394,77 +344,12 @@ class TLParser: NSObject {
         }
     }
 
-    private static func loadEditHistory() {
-        editQueue.async(flags: .barrier) {
-            guard !_editLoaded else { return }
-            _editLoaded = true
-            guard let saved = UserDefaults.standard.dictionary(forKey: editUdKey) as? [String: [String: Any]] else { return }
-            for (key, value) in saved {
-                guard let editKey = EditKey(storageKey: key),
-                      let versions = value["versions"] as? [String], !versions.isEmpty else { continue }
-                let savedContents = value["contents"] as? [[String: Data]] ?? []
-                let contents = savedContents.count == versions.count ? savedContents : Array(repeating: [:], count: versions.count)
-                _editHistory[editKey] = EditEntry(versions: versions,
-                    editDate: (value["editDate"] as? NSNumber)?.int32Value, contents: contents)
-                if versions.count == 1 { _originalOrder.append(editKey) }
-            }
-            trimOriginalsLocked()
-            diag("anti-edit loaded \(_editHistory.count) account-scoped entries")
-        }
-    }
-
-    /// Must be called with the edit barrier held.
-    private static func trimOriginalsLocked() {
-        while _originalOrder.count > maxTrackedOriginals {
-            _editHistory.removeValue(forKey: _originalOrder.removeFirst())
-        }
-    }
-
-    /// Writes the whole map out. Must be called with the barrier held.
-    private static func writeEditHistoryLocked() {
-        var out = [String: [String: Any]]()
-        for (key, entry) in _editHistory {
-            var value: [String: Any] = ["versions": entry.versions, "contents": entry.contents]
-            if let date = entry.editDate { value["editDate"] = NSNumber(value: date) }
-            out[key.storageKey] = value
-        }
-        UserDefaults.standard.set(out, forKey: editUdKey)
-        diag("anti-edit persisted \(out.count) account-scoped entries")
-    }
-
-    /// Coalesced write-back, for recording originals. Must be called with the
-    /// barrier held.
-    ///
-    /// An original is recorded for *every* message that passes through, so
-    /// persisting each one eagerly would mean a UserDefaults write per message.
-    /// An original not yet flushed can be lost if the app is killed before
-    /// this write, so keep the delay short.
-    private static func scheduleEditPersistLocked() {
-        guard !_editPersistScheduled else { return }
-        _editPersistScheduled = true
-        let generation = _editPersistGeneration
-        editQueue.asyncAfter(deadline: .now() + 5.0, flags: .barrier) {
-            guard generation == _editPersistGeneration else { return }
-            _editPersistScheduled = false
-            writeEditHistoryLocked()
-        }
-    }
-
     /// Clears only TGExtra's message metadata, across all accounts. Serialize
     /// with network parsing and drain pending writes before removing storage.
     @objc static func clearMessageData() {
         processingLock.lock()
         defer { processingLock.unlock() }
-        editQueue.sync(flags: .barrier) {
-            _editLoaded = true
-            _editHistory.removeAll()
-            _originalOrder.removeAll()
-            _editPersistGeneration &+= 1
-            _editPersistScheduled = false
-            for key in [editUdKey, "TGExtraEditHistoryByPeer", "TGExtraEditHistory", "TGExtraEditHistoryPeers"] {
-                UserDefaults.standard.removeObject(forKey: key)
-            }
-        }
+        editHistoryStore.clear()
         snapshotsLoaded = true
         snapshots.removeAll()
         snapshotOrder.removeAll()
@@ -473,6 +358,7 @@ class TLParser: NSObject {
         UserDefaults.standard.removeObject(forKey: snapshotUdKey)
         markersLoaded = true
         messageMarkers.removeAll()
+        markersDirty = false
         contentReadStates.removeAll()
         contentReadOrder.removeAll()
         for key in [markerUdKey, "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"] {
@@ -490,7 +376,7 @@ class TLParser: NSObject {
                                    editDate: Int32?, allowUndatedEdit: Bool = false, content: [String: Data] = [:]) -> Bool {
         guard id != 0, peer != 0, let account = processingHistoryAccount else { return false }
         let key = EditKey(account: account, peer: peer, id: id, namespace: processingNamespace)
-        return recordText(text, key: key, editDate: editDate, allowUndatedEdit: allowUndatedEdit, content: content)
+        return editHistoryStore.record(text, key: key, editDate: editDate, allowUndatedEdit: allowUndatedEdit, content: content)
     }
 
     /// Old archives did not record direction. Remove a message's saved versions
@@ -498,12 +384,7 @@ class TLParser: NSObject {
     private static func discardOwnEditHistory(id: Int32, peer: Int64, account: String?, namespace: Int32) {
         guard let account = account else { return }
         let key = EditKey(account: account, peer: peer, id: id, namespace: namespace)
-        let removed = editQueue.sync(flags: .barrier) { () -> Bool in
-            guard _editHistory.removeValue(forKey: key) != nil else { return false }
-            _originalOrder.removeAll { $0 == key }
-            writeEditHistoryLocked()
-            return true
-        }
+        let removed = editHistoryStore.discard(key)
         if removed { notifyMessageEdited(key) }
     }
 
@@ -511,63 +392,6 @@ class TLParser: NSObject {
         guard let account = account, case let .peerUser(data)? = author,
               let ownId = UserDefaults.standard.dictionary(forKey: ownUserIdsKey)?[account] as? NSNumber else { return false }
         return data.userId == ownId.int64Value
-    }
-
-    private static func contentDiffers(_ lhs: [String: Data], _ rhs: [String: Data], fields: [String]) -> Bool {
-        return fields.contains { field in
-            guard let before = lhs[field], let after = rhs[field] else { return false }
-            return before != after
-        }
-    }
-
-    private static func recordText(_ text: String, key: EditKey, editDate: Int32?,
-                                   allowUndatedEdit: Bool = false, content: [String: Data],
-                                   localSnapshot: Bool = false) -> Bool {
-        return editQueue.sync(flags: .barrier) {
-            guard var entry = _editHistory[key] else {
-                _editHistory[key] = EditEntry(versions: [text], editDate: editDate, contents: [content])
-                _originalOrder.append(key)
-                trimOriginalsLocked()
-                scheduleEditPersistLocked()
-                return false
-            }
-            guard editDate != nil || allowUndatedEdit else { return false }
-            if let date = editDate, let latestDate = entry.editDate, date < latestDate { return false }
-            let previousContent = entry.contents.last ?? [:]
-            let contentChanged = contentDiffers(previousContent, content, fields: ["entities", "mediaIdentity", "rich"])
-            // UI can still display the previous item while a network edit is
-            // already recorded. Equal second-resolution dates cannot establish
-            // that a different cache snapshot is newer. Network updates retain
-            // their existing arrival-order handling for equal dates.
-            if localSnapshot, let latestDate = entry.editDate {
-                guard let date = editDate else { return false }
-                if date <= latestDate && (entry.versions.last != text || contentChanged) { return false }
-            }
-            let dateChanged = editDate != nil && entry.editDate != editDate
-            if let date = editDate { entry.editDate = date }
-            guard entry.versions.last != text || contentChanged else {
-                let merged = previousContent.merging(content) { _, observed in observed }
-                let learnedContent = merged != previousContent
-                if learnedContent { entry.contents[entry.contents.count - 1] = merged }
-                if dateChanged || learnedContent {
-                    _editHistory[key] = entry
-                    if entry.versions.count > 1 { writeEditHistoryLocked() }
-                    else { scheduleEditPersistLocked() }
-                }
-                return false
-            }
-            if entry.versions.count == 1 { _originalOrder.removeAll { $0 == key } }
-            entry.versions.append(text)
-            entry.contents.append(content)
-            if entry.versions.count > maxVersionsPerMessage {
-                let removed = 1..<(entry.versions.count - maxVersionsPerMessage + 1)
-                entry.versions.removeSubrange(removed)
-                entry.contents.removeSubrange(removed)
-            }
-            _editHistory[key] = entry
-            writeEditHistoryLocked()
-            return true
-        }
     }
 
     /// The conversation a message belongs to, as one number.
@@ -588,25 +412,13 @@ class TLParser: NSObject {
     @objc(editHistoryForId:peer:account:messageNamespace:) static func editHistory(forId id: NSNumber, peer: NSNumber?, account: String?, namespace: NSNumber? = nil) -> [String]? {
         guard let account = account, let peer = peer, peer.int64Value != 0 else { return nil }
         let key = EditKey(account: account, peer: peer.int64Value, id: id.int32Value, namespace: namespace?.int32Value ?? 0)
-        let versions = editQueue.sync { _editHistory[key]?.versions }
-        guard let versions = versions, versions.count > 1 else { return nil }
-        return versions
+        return editHistoryStore.versions(for: key)
     }
 
     @objc(editRevisionDetailsForId:peer:account:messageNamespace:) static func editRevisionDetails(forId id: NSNumber, peer: NSNumber?, account: String?, namespace: NSNumber?) -> [[String: Any]]? {
         guard let account = account, let peer = peer else { return nil }
         let key = EditKey(account: account, peer: peer.int64Value, id: id.int32Value, namespace: namespace?.int32Value ?? 0)
-        return editQueue.sync {
-            guard let entry = _editHistory[key], entry.versions.count > 1 else { return nil }
-            return entry.contents.enumerated().map { index, content in
-                let previous = index > 0 ? entry.contents[index - 1] : content
-                let richFormattingChanged = index > 0 && entry.versions[index] == entry.versions[index - 1] &&
-                    contentDiffers(previous, content, fields: ["rich"])
-                return ["text": entry.versions[index], "content": content,
-                        "mediaChanged": contentDiffers(previous, content, fields: ["mediaIdentity"]),
-                        "formatChanged": contentDiffers(previous, content, fields: ["entities"]) || richFormattingChanged]
-            }
-        }
+        return editHistoryStore.details(for: key)
     }
 
     private static func revisionContent(entities: [Api.MessageEntity]?, media: Api.MessageMedia?, rich: Api.RichMessage?) -> [String: Data] {
@@ -670,12 +482,7 @@ class TLParser: NSObject {
         return pieces.joined(separator: value is Api.RichMessage || mirror.displayStyle == .collection ? "\n" : "")
     }
 
-    /// Same job for the compact update forms. Telegram does not wrap a plain
-    /// one-to-one or group text message in a full Message object — it sends
-    /// updateShortMessage / updateShortChatMessage, which carry the text inline.
-    /// Those are the ones an ordinary conversation actually arrives as, so
-    /// missing them meant Anti-Edit never recorded anything in the very case it
-    /// exists for. Outgoing messages are excluded from edit history.
+    // Compact text updates have no full Message object; record their incoming originals too.
     private static func recordShortFormOriginal(id: Int32, text: String, peer: Int64, entities: [Api.MessageEntity]?, outgoing: Bool) {
         if outgoing {
             discardOwnEditHistory(id: id, peer: peer, account: processingHistoryAccount, namespace: processingNamespace)
@@ -687,14 +494,7 @@ class TLParser: NSObject {
         _ = recordText(text, forId: id, peer: peer, editDate: nil, content: revisionContent(entities: entities, media: nil, rich: nil))
     }
 
-    /// Files what a message currently says. First sighting becomes the original;
-    /// any later text that differs is appended as another version.
-    ///
-    /// The message is never rewritten. The bubble goes on showing exactly what
-    /// the server sent — the edited text — and the earlier versions stay
-    /// reachable through the pencil badge. Substituting the original into the
-    /// bubble instead, as this used to, meant the reader could see that an edit
-    /// had happened but never what it said.
+    // Record incoming revisions without changing the text Telegram displays.
     private static func trackMessageVersions(_ apiMsg: Api.Message, allowUndatedEdit: Bool = false) {
         guard case let .message(data) = apiMsg else { return }
         guard data.id != 0 else { return }
@@ -721,13 +521,7 @@ class TLParser: NSObject {
         msgs.forEach { trackMessageVersions($0) }
     }
 
-    /// Applies every message-level rewrite to a batch arriving from the network,
-    /// along with the chat list it came with.
-    ///
-    /// stripTTLMessage's own change flag used to be discarded at each call site:
-    /// a batch was rebuilt only when Anti-Edit, the deleted indicator or the
-    /// chat rewrite had fired, so a history load whose *only* change was TTL
-    /// stripping was computed and then thrown away.
+    // Recover validation gaps, record revisions and apply message/chat policies together.
     private static func patchMessageBatch(_ msgs: [Api.Message], chats: [Api.Chat])
             -> (messages: [Api.Message], chats: [Api.Chat], changed: Bool) {
         let (messages, restored) = restoreValidatedMessages(msgs)
@@ -747,119 +541,52 @@ class TLParser: NSObject {
 
     /// Look up stored fields only, including Optional values and base classes.
     /// Never asks Telegram for its computed message/firstMessage properties.
-    private static func storedField(_ name: String, in value: Any) -> Any? {
-        var mirror: Mirror? = Mirror(reflecting: unwrapOptional(value))
-        while let current = mirror {
-            if let field = current.children.first(where: { $0.label == name }) { return field.value }
-            mirror = current.superclassMirror
-        }
-        return nil
-    }
-
     /// Reuse the current chat's side-button palette without linking Telegram UI types.
     @objc static func editHistoryButtonColorsFromNode(_ node: Any) -> [String: Any]? {
         var theme: Any = node
         for field in ["item", "presentationData", "theme"] {
-            guard let next = storedField(field, in: theme) else { return nil }
-            theme = unwrapOptional(next)
+            guard let next = RenderedMessageReader.storedField(field, in: theme) else { return nil }
+            theme = RenderedMessageReader.unwrapOptional(next)
         }
-        guard let wallpaper = storedField("wallpaper", in: theme),
-              let baseTheme = storedField("theme", in: theme),
-              let chat = storedField("chat", in: baseTheme),
-              let message = storedField("message", in: chat) else { return nil }
-        let wallpaperCase = Mirror(reflecting: unwrapOptional(wallpaper)).children.first
+        guard let wallpaper = RenderedMessageReader.storedField("wallpaper", in: theme),
+              let baseTheme = RenderedMessageReader.storedField("theme", in: theme),
+              let chat = RenderedMessageReader.storedField("chat", in: baseTheme),
+              let message = RenderedMessageReader.storedField("message", in: chat) else { return nil }
+        let wallpaperCase = Mirror(reflecting: RenderedMessageReader.unwrapOptional(wallpaper)).children.first
         // This is the same special case as Telegram's bubbleVariableColor.
-        let plainWhite = wallpaperCase.map { $0.label == "color" && rawNumber($0.value) == 0xffffff } ?? false
+        let plainWhite = wallpaperCase.map { $0.label == "color" && RenderedMessageReader.rawNumber($0.value) == 0xffffff } ?? false
         let variant = plainWhite ? "withoutWallpaper" : "withWallpaper"
         var colors: [String: Any] = [:]
         for (key, field) in [("fill", "shareButtonFillColor"), ("foreground", "shareButtonForegroundColor"),
                              ("stroke", "shareButtonStrokeColor")] {
-            guard let variable = storedField(field, in: message),
-                  let color = storedField(variant, in: variable) else { continue }
+            guard let variable = RenderedMessageReader.storedField(field, in: message),
+                  let color = RenderedMessageReader.storedField(variant, in: variable) else { continue }
             colors[key] = color
         }
         return colors.isEmpty ? nil : colors
     }
 
-    private struct RenderedMessage {
-        let value: Any
-        let id: Int32
-        let peer: Int64
-        let namespace: Int32
-    }
-
-    private static func renderedMessage(_ value: Any) -> RenderedMessage? {
-        let message = unwrapOptional(value)
-        guard let messageId = storedField("id", in: message),
-              let idValue = storedField("id", in: messageId), let rawId = rawNumber(idValue),
-              let id = Int32(exactly: rawId), id != 0,
-              let namespaceValue = storedField("namespace", in: messageId),
-              let rawNamespace = rawNumber(namespaceValue), let namespace = Int32(exactly: rawNamespace),
-              let peerId = storedField("peerId", in: messageId),
-              let peer = peerKey(fromPeerId: peerId), peer != 0 else { return nil }
-        return RenderedMessage(value: message, id: id, peer: peer, namespace: namespace)
-    }
-
-    private static func tupleMessage(_ value: Any) -> Any? {
-        let value = unwrapOptional(value)
-        if Mirror(reflecting: value).displayStyle == .tuple {
-            return storedField("message", in: value) ?? storedField(".0", in: value)
-        }
-        return value
-    }
-
-    /// ChatMessageItemContent.message(message:read:selection:attributes:location:)
-    /// and .group(messages: [(Message, Bool, Selection, Attributes, Location?)]).
-    private static func renderedMessages(from item: Any) -> [RenderedMessage] {
-        guard let content = storedField("content", in: item) else { return [] }
-        let mirror = Mirror(reflecting: unwrapOptional(content))
-        guard mirror.displayStyle == .enum, let payload = mirror.children.first else { return [] }
-        switch payload.label {
-        case "message":
-            guard let value = tupleMessage(payload.value), let message = renderedMessage(value) else { return [] }
-            return [message]
-        case "group":
-            let group = storedField("messages", in: payload.value) ?? payload.value
-            let collection = Mirror(reflecting: unwrapOptional(group))
-            guard collection.displayStyle == .collection else { return [] }
-            // Do not choose a later member when the leading message is unknown.
-            // That would bind the pencil to a different message from firstMessage.
-            var result = [RenderedMessage]()
-            for row in collection.children {
-                guard let value = tupleMessage(row.value), let message = renderedMessage(value) else { return [] }
-                result.append(message)
-            }
-            return result
-        default: return []
-        }
-    }
-
-    private static func renderedMessagesFromNode(_ node: Any) -> [RenderedMessage] {
-        guard let item = storedField("item", in: node) else { return [] }
-        return renderedMessages(from: item)
-    }
-
     @objc static func getMessageId(from item: Any) -> NSNumber? {
-        return renderedMessages(from: item).first.map { NSNumber(value: $0.id) }
+        return RenderedMessageReader.renderedMessages(from: item).first.map { NSNumber(value: $0.id) }
     }
 
     @objc static func getMessageIdFromNode(_ node: Any) -> NSNumber? {
-        return renderedMessagesFromNode(node).first.map { NSNumber(value: $0.id) }
+        return RenderedMessageReader.renderedMessagesFromNode(node).first.map { NSNumber(value: $0.id) }
     }
 
     @objc static func getMessagePeerKeyFromNode(_ node: Any) -> NSNumber? {
-        return renderedMessagesFromNode(node).first.map { NSNumber(value: $0.peer) }
+        return RenderedMessageReader.renderedMessagesFromNode(node).first.map { NSNumber(value: $0.peer) }
     }
 
     @objc static func getMessageNamespaceFromNode(_ node: Any) -> NSNumber? {
-        return renderedMessagesFromNode(node).first.map { NSNumber(value: $0.namespace) }
+        return RenderedMessageReader.renderedMessagesFromNode(node).first.map { NSNumber(value: $0.namespace) }
     }
 
     /// TGExtra-internal bridge. One read supplies every component of identity.
     /// Observations use explicit keys and never change the network parser's scope.
     @objc(messageStateFromNode:observe:) static func messageState(from node: Any, observe: Bool) -> [String: Any]? {
-        guard let item = storedField("item", in: node) else { return nil }
-        let messages = renderedMessages(from: item)
+        guard let item = RenderedMessageReader.storedField("item", in: node) else { return nil }
+        let messages = RenderedMessageReader.renderedMessages(from: item)
         guard let first = messages.first, let account = findHistoryAccount(in: item, depth: 0) else { return nil }
         if observe {
             for message in messages {
@@ -871,8 +598,8 @@ class TLParser: NSObject {
     }
 
     @objc static func hasAdMessageFromNode(_ node: Any) -> Bool {
-        return renderedMessagesFromNode(node).contains { message in
-            let attributes = storedField("attributes", in: message.value) as? [Any] ?? []
+        return RenderedMessageReader.renderedMessagesFromNode(node).contains { message in
+            let attributes = RenderedMessageReader.storedField("attributes", in: message.value) as? [Any] ?? []
             return attributes.contains { String(reflecting: type(of: $0)).split(separator: ".").last == "AdMessageAttribute" }
         }
     }
@@ -936,12 +663,12 @@ class TLParser: NSObject {
         // A wire message has one primary attachment. Extra local media (for
         // example an unsupported wrapper) must not masquerade as its absence.
         guard media.count == 1, let value = media.first else { return nil }
-        if let image = storedField("imageId", in: value),
-           let id = storedField("id", in: image).flatMap({ rawNumber($0) }) {
+        if let image = RenderedMessageReader.storedField("imageId", in: value),
+           let id = RenderedMessageReader.storedField("id", in: image).flatMap({ RenderedMessageReader.rawNumber($0) }) {
             return Data("photo:\(id)".utf8)
         }
-        if let file = storedField("fileId", in: value),
-           let id = storedField("id", in: file).flatMap({ rawNumber($0) }) {
+        if let file = RenderedMessageReader.storedField("fileId", in: value),
+           let id = RenderedMessageReader.storedField("id", in: file).flatMap({ RenderedMessageReader.rawNumber($0) }) {
             return Data("document:\(id)".utf8)
         }
         return nil
@@ -949,36 +676,36 @@ class TLParser: NSObject {
 
     private static func recordRenderedMessage(_ message: RenderedMessage, account: String) {
         // Postbox MessageFlags.Incoming is bit 2 (wire Message.out is bit 1).
-        guard let flags = storedField("flags", in: message.value).flatMap({ rawNumber($0) }) else { return }
+        guard let flags = RenderedMessageReader.storedField("flags", in: message.value).flatMap({ RenderedMessageReader.rawNumber($0) }) else { return }
         if flags & (1 << 2) == 0 {
             discardOwnEditHistory(id: message.id, peer: message.peer, account: account, namespace: message.namespace)
             return
         }
         guard isAntiEditEnabled else { return }
-        guard let text = storedField("text", in: message.value) as? String else { return }
+        guard let text = RenderedMessageReader.storedField("text", in: message.value) as? String else { return }
         var editDate: Int32?
         var content = [String: Data]()
-        if let attributes = storedField("attributes", in: message.value) as? [Any] {
+        if let attributes = RenderedMessageReader.storedField("attributes", in: message.value) as? [Any] {
             // Attributes are stored, unlike Message.editedTime / item.message.
             var entities: [Any]? = []
             for attribute in attributes {
                 let name = String(reflecting: type(of: attribute)).split(separator: ".").last
                 if name == "EditedMessageAttribute" {
-                    guard let date = storedField("date", in: attribute).flatMap({ rawNumber($0) }),
+                    guard let date = RenderedMessageReader.storedField("date", in: attribute).flatMap({ RenderedMessageReader.rawNumber($0) }),
                           let parsedDate = Int32(exactly: date) else { return }
                     editDate = parsedDate
                 }
                 if name == "TextEntitiesMessageAttribute" {
-                    entities = storedField("entities", in: attribute) as? [Any]
+                    entities = RenderedMessageReader.storedField("entities", in: attribute) as? [Any]
                 }
             }
             if let entities = entities { content["entities"] = storedEntities(entities) }
         }
-        if let media = storedField("media", in: message.value) as? [Any] {
+        if let media = RenderedMessageReader.storedField("media", in: message.value) as? [Any] {
             content["mediaIdentity"] = storedMediaIdentity(media)
         }
         let key = EditKey(account: account, peer: message.peer, id: message.id, namespace: message.namespace)
-        if recordText(text, key: key, editDate: editDate, content: content, localSnapshot: true) {
+        if editHistoryStore.record(text, key: key, editDate: editDate, content: content, localSnapshot: true) {
             notifyMessageEdited(key)
         }
     }
@@ -992,40 +719,6 @@ class TLParser: NSObject {
     }
 
     /// Unwrap Postbox's PeerId.Namespace / PeerId.Id stored rawValue fields.
-    private static func rawNumber(_ value: Any) -> Int64? {
-        let value = unwrapOptional(value)
-        if let v = value as? Int64 { return v }
-        if let v = value as? Int32 { return Int64(v) }
-        if let v = value as? UInt32 { return Int64(v) }
-        guard let raw = storedField("rawValue", in: value) else { return nil }
-        if let v = raw as? Int64 { return v }
-        if let v = raw as? Int32 { return Int64(v) }
-        if let v = raw as? UInt32 { return Int64(v) }
-        return nil
-    }
-
-    private static func unwrapOptional(_ value: Any) -> Any {
-        var current = value
-        while true {
-            let mirror = Mirror(reflecting: current)
-            guard mirror.displayStyle == .optional,
-                  let inner = mirror.children.first?.value else { return current }
-            current = inner
-        }
-    }
-
-    private static func peerKey(fromPeerId value: Any) -> Int64? {
-        guard let nsValue = storedField("namespace", in: value), let namespace = rawNumber(nsValue),
-              let idValue = storedField("id", in: value), let id = rawNumber(idValue),
-              id > 0, id <= Int64.max - 1_000_000_000_000 else { return nil }
-        switch namespace {
-        case 0: return id
-        case 1: return -id
-        case 2: return -(1_000_000_000_000 + id)
-        default: return nil
-        }
-    }
-
     /// Walk only the node -> item -> context -> account chain, never the
     /// global shared context or the account currently selected in another UI.
     @objc static func getHistoryAccountFromNode(_ node: Any) -> String? {
@@ -1034,7 +727,7 @@ class TLParser: NSObject {
 
     private static func findHistoryAccount(in wrapped: Any, depth: Int) -> String? {
         guard depth <= 6 else { return nil }
-        var mirror: Mirror? = Mirror(reflecting: unwrapOptional(wrapped))
+        var mirror: Mirror? = Mirror(reflecting: RenderedMessageReader.unwrapOptional(wrapped))
         while let current = mirror {
             for child in current.children {
                 if child.label == "basePath", let path = child.value as? String,
@@ -1347,7 +1040,7 @@ class TLParser: NSObject {
 
     private static func findNodeAccountPeerId(_ wrapped: Any, depth: Int) -> NSNumber? {
         guard depth <= 6 else { return nil }
-        var mirror: Mirror? = Mirror(reflecting: unwrapOptional(wrapped))
+        var mirror: Mirror? = Mirror(reflecting: RenderedMessageReader.unwrapOptional(wrapped))
         while let current = mirror {
             for child in current.children {
                 if child.label == "account", let id = findOwnPeerId(child.value, depth: 0) { return id }
@@ -1808,18 +1501,7 @@ class TLParser: NSObject {
         }
     }
 
-    /// Anti-Revoke, applied to a parsed deletion instead of raw bytes.
-    ///
-    /// The byte scanner in Hooks.xm only ever sees the push stream. A deletion
-    /// in a channel or supergroup normally reaches the client inside
-    /// updates.getChannelDifference — an RPC reply, gzipped, so the scanner
-    /// sweeps compressed bytes and finds nothing. That is the whole reason
-    /// Anti-Revoke held in private chats and not in groups or channels.
-    ///
-    /// Returns the replacement id list, or nil when nothing needs changing.
-    /// Ids are zeroed rather than dropped, exactly as the byte path does: the
-    /// count, pts and pts_count stay as the server sent them, and message 0
-    /// exists nowhere, so Telegram applies the deletion to nothing.
+    // Zero only protected IDs, preserving vector length and server synchronization counters.
     private static func neutralizeDeletions(_ ids: [Int32], peer: Int64) -> [Int32]? {
         let settings = packetSettings
         guard settings.protectsAnyDeletions else { return nil }
@@ -2060,6 +1742,7 @@ class TLParser: NSObject {
 
     @objc static func stripAntiSelfDestruct(_ data: NSData, account: String?) -> NSData? {
         processingLock.lock()
+        markerBatchDepth += 1
         let previousSettings = processingSettings
         processingSettings = previousSettings ?? MessagePatches.Settings(snapshot: true)
         if !tracksContentReads {
@@ -2072,6 +1755,8 @@ class TLParser: NSObject {
         defer {
             processingHistoryAccount = previousAccount
             processingSettings = previousSettings
+            markerBatchDepth -= 1
+            if markerBatchDepth == 0 { flushMarkers() }
             processingLock.unlock()
         }
         guard let patched = patchResponse(data, depth: 0), patched.length >= 4 else { return nil }
@@ -2273,12 +1958,7 @@ class TLParser: NSObject {
                 break
             }
         } else if let difference = result as? Api.updates.Difference {
-            // updates.getDifference is how the client catches up after a cold
-            // start or a spell in the background, and the server answers it with
-            // the *current* state: edited text, TTL flags intact. Leaving it
-            // unpatched let it overwrite everything the live-update path had
-            // already fixed, which is why the pencil and the intercepted
-            // one-time media only survived until the app was reopened.
+            // Catch-up responses must apply the same policies as live updates.
             switch difference {
             case let .difference(data):
                 let p = patchMessageBatch(data.newMessages, chats: data.chats)
@@ -2298,13 +1978,7 @@ class TLParser: NSObject {
                 break
             }
         } else if let difference = result as? Api.updates.ChannelDifference {
-            // The channel-level counterpart of the block above, and the one that
-            // actually carries traffic for channels and supergroups: opening one
-            // fetches its difference rather than replaying the account update
-            // stream. Without a case here, a channel's new messages arrived
-            // unpatched and its deletions went through untouched — which is why
-            // the one-time marker vanished on re-entering a chat and Anti-Revoke
-            // looked like it only worked in private chats.
+            // Channel differences also carry messages and deletions.
             switch difference {
             case let .channelDifference(data):
                 let p = patchMessageBatch(data.newMessages, chats: data.chats)
@@ -2418,6 +2092,7 @@ class TLParser: NSObject {
 
     static func patchNative(_ root: Any, account: String?, function: Int32, request: Data?) -> Any? {
         processingLock.lock()
+        markerBatchDepth += 1
         let previousAccount = processingHistoryAccount
         let previousSettings = processingSettings
         let previousNamespace = processingNamespace
@@ -2437,6 +2112,8 @@ class TLParser: NSObject {
         defer {
             processingHistoryAccount = previousAccount; processingSettings = previousSettings
             processingNamespace = previousNamespace; requestedMessageIds = previousIds; requestedMessagePeer = previousPeer
+            markerBatchDepth -= 1
+            if markerBatchDepth == 0 { flushMarkers() }
             processingLock.unlock()
         }
         if !settings.tracksContentReads { contentReadStates.removeAll(); contentReadOrder.removeAll() }

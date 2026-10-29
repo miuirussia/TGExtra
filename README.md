@@ -148,7 +148,11 @@ fixtures are tested; the complete integration still needs on-device validation.
 `Api.parse` only decodes. Setting keys, activation conditions and message field
 operations live together in
 [`MessagePatches.swift`](Sources/tgapi/TL/MessagePatches.swift). `TLParser.swift`
-supplies account/classification context and handles persistence. The rules use
+supplies account/classification context and coordinates persistence.
+[`MessageHistory.swift`](Sources/tgapi/MessageHistory.swift) owns revision retention
+and storage; [`RenderedMessageReader.swift`](Sources/tgapi/RenderedMessageReader.swift)
+reads stored UI message fields. Message markers are persisted once per processed
+packet. The rules use
 named operations from
 [`DataPatches.swift`](Sources/tgapi/TL/DataPatches.swift):
 

@@ -18,8 +18,8 @@ OUTPUT = ROOT / "Sources/tgapi/TL/ApiViews.swift"
 
 def generate(schema):
     # Views contain no constructor IDs, wire offsets or parser/serializer tables.
-    paths = [ROOT / "Sources/tgapi/TLParser.swift", ROOT / "Sources/tgapi/ForwardCopy.swift",
-             ROOT / "Sources/tgapi/TL/MessagePatches.swift"]
+    paths = sorted((ROOT / "Sources/tgapi").glob("*.swift"))
+    paths += [ROOT / "Sources/tgapi/TL/MessagePatches.swift"]
     paths += sorted((ROOT / "Tests").glob("*.swift"))
     code = "\n".join(p.read_text() for p in paths)
     cases = set(re.findall(r"\.([a-z]\w*)", code))

@@ -24,77 +24,46 @@ bool shouldFixFilePicker() {
 
 %end
 
+// Give each selection its own directory so equal file names cannot collide.
+// A failed relocation leaves the host's original URL available to its handler.
+static NSURL *TGExtraRelocatePickedFile(NSURL *url) {
+    if (!url.isFileURL) return url;
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSURL *root = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:FILE_PICKER_PATH]];
+    NSURL *directory = [root URLByAppendingPathComponent:NSUUID.UUID.UUIDString isDirectory:YES];
+    NSError *error = nil;
+    if (![manager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:&error]) {
+        customLog2(@"[TGExtra] Cannot create picker cache: %@", error);
+        return url;
+    }
+    NSURL *destination = [directory URLByAppendingPathComponent:url.lastPathComponent];
+    if ([manager moveItemAtURL:url toURL:destination error:&error]) return destination;
+    [manager removeItemAtURL:directory error:NULL];
+    customLog2(@"[TGExtra] Cannot relocate picked file: %@", error);
+    return url;
+}
+
 %hook LegacyMediaPickerUIICloudFileController
 
-- (void)documentPicker:(id)picker didPickDocumentAtURL:(NSURL *)docUrl {
-
-	if (!shouldFixFilePicker()) {
-		%orig;
-		return;
-	}
-
-    if (!docUrl) return;
-
-    NSURL *url = docUrl;
-
-    NSString *customFolderName = [NSString stringWithFormat:@"tgextra-%@", [[NSUUID UUID] UUIDString]];
-	NSString *uglyHackPath = [NSTemporaryDirectory() stringByAppendingPathComponent:FILE_PICKER_PATH];
-	NSString *ourPath = [uglyHackPath stringByAppendingPathComponent:customFolderName];
-
-
-    NSFileManager *manager = [NSFileManager defaultManager];
-    if (![manager fileExistsAtPath:ourPath]) {
-        [manager createDirectoryAtPath:ourPath
-           withIntermediateDirectories:YES
-                            attributes:nil
-                                 error:nil];
+- (void)documentPicker:(id)picker didPickDocumentAtURL:(NSURL *)url {
+    if (!shouldFixFilePicker() || !url) {
+        %orig;
+        return;
     }
-
-    NSString *fileName = [url lastPathComponent];
-    NSString *destinationPath = [ourPath stringByAppendingPathComponent:fileName];
-    NSURL *destinationURL = [NSURL fileURLWithPath:destinationPath];
-
-    [manager moveItemAtURL:url toURL:destinationURL error:nil];
-
-    %orig(picker, destinationURL);
+    %orig(picker, TGExtraRelocatePickedFile(url));
 }
 
 - (void)documentPicker:(id)picker didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
-	if (!shouldFixFilePicker()) {
-		%orig;
-		return;
-	}
-
-    NSMutableArray *newURLs = [NSMutableArray array];
-
-    if (urls.count > 0) {
-        NSString *customFolderName = [NSString stringWithFormat:@"tgextra-%@", [[NSUUID UUID] UUIDString]];
-        NSString *uglyHackPath = [NSTemporaryDirectory() stringByAppendingPathComponent:FILE_PICKER_PATH];
-		NSString *ourPath = [uglyHackPath stringByAppendingPathComponent:customFolderName];
-
-        NSFileManager *manager = [NSFileManager defaultManager];
-        if (![manager fileExistsAtPath:ourPath]) {
-            [manager createDirectoryAtPath:ourPath
-               withIntermediateDirectories:YES
-                                attributes:nil
-                                     error:nil];
-        }
-
-        for (NSURL *url in urls) {
-            NSString *fileName = [url lastPathComponent];
-            NSString *destinationPath = [ourPath stringByAppendingPathComponent:fileName];
-            NSURL *destinationURL = [NSURL fileURLWithPath:destinationPath];
-
-            [manager moveItemAtURL:url toURL:destinationURL error:nil];
-            [newURLs addObject:destinationURL];
-        }
+    if (!shouldFixFilePicker()) {
+        %orig;
+        return;
     }
-
-    %orig(picker, newURLs);
+    NSMutableArray<NSURL *> *relocated = [NSMutableArray arrayWithCapacity:urls.count];
+    for (NSURL *url in urls) [relocated addObject:TGExtraRelocatePickedFile(url)];
+    %orig(picker, relocated);
 }
 
 %end
-
 
 %hook NSURL
 
@@ -127,14 +96,14 @@ static void initFileHooks() {
 
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.4 * NSEC_PER_SEC)), dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0),	^{
 
-		int numClasses = objc_getClassList(NULL, 0);
-		Class *classes = (__unsafe_unretained Class *)malloc(sizeof(Class) * numClasses);
-		numClasses = objc_getClassList(classes, numClasses);
+		unsigned int numClasses = 0;
+		Class *classes = objc_copyClassList(&numClasses);
+		if (!classes) return;
 
 		Class DocumentPickerViewController = Nil;
 		Class LegacyICloudFileController = Nil;
 
-		for (int i = 0; i < numClasses; i++) {
+		for (unsigned int i = 0; i < numClasses; i++) {
 			Class cls = classes[i];
 			NSString *className = NSStringFromClass(cls);
 

@@ -223,40 +223,6 @@ static void clearTGExtraEditBadgeBinding(UIButton *badge);
 %end
 %end
 
-// Postbox.Message used to be hooked here, overriding -isCopyProtected and
-// -adAttribute. Checked against release-12.9.2: neither can ever have run.
-//
-// `Message` is `public final class Message` with no NSObject anywhere in
-// Postbox/Sources/Message.swift, so there is no Objective-C class to hook, and
-// both properties are computed in TelegramCore extensions
-// (Utils/MessageUtils.swift, TelegramEngine/Messages/Message.swift) without
-// @objc — Swift dispatches them directly, never through objc_msgSend.
-//
-// Both features are already served where they actually work: copy protection is
-// cleared off the wire in TLParser.stripNoForwards, and sponsored messages are
-// blocked at the request layer in FunctionHandler.m.
-
-// Send as Voice used to live here, as a %hook on
-// _TtC12TelegramCore16TelegramMediaFile overriding -isVoice. It never ran, for
-// two independent reasons:
-//
-//   * the mangled name is wrong — "TelegramMediaFile" is 17 characters, not 16,
-//     so the class was never found and %hook quietly did nothing;
-//   * even spelled correctly it would not have fired. TelegramMediaFile is a
-//     plain Swift class and isVoice is a computed property, so the call never
-//     goes through objc_msgSend and there is no method to swap out.
-//
-// The voice flag is set on the outgoing request instead — see
-// TLParser.rewriteVoiceUpload. That reaches the recipient as well, which the
-// local override never could.
-
-// ChatMessageItem and ApiChat carried the same -noForwards override, and they
-// are gone for the same kind of reason. In release-12.9.2 ChatMessageItem is a
-// *protocol* (Components/Chat/ChatMessageItem/Sources/ChatMessageItem.swift)
-// with no noForwards member at all, and the string "ApiChat" does not occur
-// anywhere in the tree. objc_getClass returned nil for both, so %init simply
-// skipped them.
-
 static BOOL _tgextraGestureAttached = NO;
 
 // Helper target object for late-attached gestures
@@ -402,7 +368,7 @@ void showUI() {
     if ([parentCls containsString:@"ChatMessage"]) return;
 
     if (!tgextraLabelIsSupportRow(label)) {
-        customLog2(@"[TGExtra] unmatched label: %@", label);
+        tgextraDiag("unmatched settings label: %{public}@", label);
         return;
     }
 
@@ -738,11 +704,7 @@ static void updateGhostExceptionButtonAppearance(UIButton *button, BOOL isExcept
 
 @end
 
-// Hops to the main thread: AsyncDisplayKit runs -layout off-main, and this adds
-// a subview and reads its geometry.
-// Reports each distinct (class, peerId) pair once, plus a one-shot structural
-// dump of the first header node whose peer failed to resolve. Purely diagnostic
-// — compiled out with TGEXTRA_DIAG.
+// Profile diagnostics are compiled out with TGEXTRA_DIAG.
 static void tgextraDiagProfileNode(NSString *cls, long long peerId, ASDisplayNode *node) {
 #if TGEXTRA_DIAG
     static NSMutableSet *seen = nil;
@@ -1339,15 +1301,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
 
     NSString *cls = NSStringFromClass([self class]);
 
-    // Was: anything whose class mentioned Profile, UserInfo, ContactInfo,
-    // PeerInfo, UserNode or Settings. Measured on iMe that matched 18 distinct
-    // node classes — its whole SettingsUI module answers to "Settings" and every
-    // row of the settings list answers to "PeerInfo". Each match then had its
-    // text nodes scanned and a badge planted, which is why the tag turned up
-    // floating off the top of the screen and again inside the Support page.
-    //
-    // The real profile header is the node the eye button has always been
-    // restricted to. The badge belongs on the same one.
+    // Only profile headers own these badges. ASDisplayNode.layout runs on main.
     BOOL isProfileHeader = [cls containsString:@"PeerInfoHeaderNode"];
 
     if (isProfileHeader) {

@@ -1,5 +1,6 @@
 import Foundation
 import tgapiC
+import TestSupport
 
 func testMessagePatchSettings() {
     typealias Setting = MessagePatches.Setting
@@ -376,4 +377,39 @@ func testOptimizedWirePaths() {
           "A packet snapshot stays stable while later operations see new settings")
     flags()
     print("PASS schema-validated views, nested byte-copy invalidation, mutable buffers and settings snapshots")
+}
+
+func testBufferAppends() {
+    let left = Buffer(data: Data([1, 2]))
+    let right = Buffer(data: Data([3, 4]))
+    left.appendBuffer(right)
+    check(left.makeData() == Data([1, 2, 3, 4]) && left.size == 4, "Buffer append retains all bytes and updates size")
+    left.appendBuffer(Buffer())
+    left.appendInt32(5)
+    check(left.makeData().prefix(4) == Data([1, 2, 3, 4]) && left.size == 8, "A following write does not overwrite appended bytes")
+    let growing = Buffer(data: Data(repeating: 42, count: 1024))
+    growing.appendBuffer(growing)
+    check(growing.makeData() == Data(repeating: 42, count: 2048), "Self-append survives realloc")
+    let empty = Buffer()
+    empty.appendBuffer(empty)
+    check(empty.size == 0, "Empty self-append")
+}
+
+func testMarkerBatchPersistence() {
+    flags("TGExtraAntiAutoDelete", "TGExtraAntiRevoke")
+    let key = "TGExtraMessageMarkersByAccount"
+    let before = TGExtraTestPreferenceWriteCount(key)
+    let messages = (990_000..<990_020).map { message(Int32($0), ttl: 60) }
+    let packet = Api.messages.Messages.messages(.init(messages: messages, topics: [], chats: [], users: []))
+    _ = strip(serialized(packet), account: "account-marker-batch")
+    check(TGExtraTestPreferenceWriteCount(key) == before + 1, "One timer packet persists all markers once")
+    let saved = defaults.dictionary(forKey: key)!
+    check(messages.allSatisfy { saved["account-marker-batch:0:\(messageData($0).id)"] as? Int == 4 },
+          "The packet's markers are durable before parsing returns")
+    let repeatCount = TGExtraTestPreferenceWriteCount(key)
+    _ = strip(serialized(packet), account: "account-marker-batch")
+    check(TGExtraTestPreferenceWriteCount(key) == repeatCount, "An unchanged packet does not rewrite markers")
+    TLParser.addDeletedId(990_021, peer: 42, account: "account-marker-batch")
+    check(TGExtraTestPreferenceWriteCount(key) == repeatCount + 1, "A standalone marker remains immediately durable")
+    flags()
 }

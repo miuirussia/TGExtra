@@ -1,4 +1,5 @@
 #import "Headers.h"
+#import "../Location.h"
 #import <objc/runtime.h>
 
 @interface LocationSelector ()
@@ -89,16 +90,8 @@
 }
 
 - (void)loadDefaultLocation {
-  CGFloat savedLongitude =
-      [[NSUserDefaults standardUserDefaults] floatForKey:FAKE_LONGITUDE_KEY];
-  CGFloat savedLatitude =
-      [[NSUserDefaults standardUserDefaults] floatForKey:FAKE_LATITUDE_KEY];
-
   CLLocationCoordinate2D centerCoordinate;
-  if (savedLongitude && savedLatitude) {
-    centerCoordinate =
-        CLLocationCoordinate2DMake(savedLatitude, savedLongitude);
-    // Add a pin for the saved location
+  if (TGExtraSavedCoordinate(NSUserDefaults.standardUserDefaults, &centerCoordinate)) {
     [self addPinAtCoordinate:centerCoordinate
                    withTitle:@"Last Selected Location"];
   } else {
@@ -123,9 +116,9 @@
   [self addPinAtCoordinate:coordinate withTitle:@"Selected Location"];
 
   // Save the selected location to UserDefaults
-  [[NSUserDefaults standardUserDefaults] setFloat:coordinate.longitude
+  [[NSUserDefaults standardUserDefaults] setDouble:coordinate.longitude
                                            forKey:FAKE_LONGITUDE_KEY];
-  [[NSUserDefaults standardUserDefaults] setFloat:coordinate.latitude
+  [[NSUserDefaults standardUserDefaults] setDouble:coordinate.latitude
                                            forKey:FAKE_LATITUDE_KEY];
   TGExtraSavePreferences();
   [[NSUserDefaults standardUserDefaults] synchronize];

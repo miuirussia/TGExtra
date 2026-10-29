@@ -20,7 +20,7 @@ done < <(find Sources -name '*.xm' -print)
 # Compile the actual hooks against UIKit. UIHooks includes roothide.h through
 # its shared header but uses none of its definitions; packaging provides the
 # real header. Linux can generate Mach-O objects but cannot run UIKit.
-: > "$test_build_dir/roothide.h"
+printf '%s\n' '#define jbroot(path) (path)' > "$test_build_dir/roothide.h"
 for arch in arm64 arm64e; do
     clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations \
@@ -35,6 +35,17 @@ for arch in arm64 arm64e; do
         Sources/tgapi/Preferences.m -o "$test_build_dir/Preferences-$arch.o"
     clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -c Sources/tgapi/ForceTLottie.m -o "$test_build_dir/ForceTLottie-$arch.o"
+    for source in SettingsRows LanguageSelector LocationSelector TGExtraLocalization; do
+        clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+            -fobjc-arc -Werror -Wno-deprecated-declarations -I "$test_build_dir" \
+            -c "Sources/tgapi/UI/$source.m" -o "$test_build_dir/$source-$arch.o"
+    done
+    for source in FilePickerFix LocationHook; do
+        clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+            -fobjc-arc -Werror -Wno-deprecated-declarations -I "$test_build_dir" \
+            -I Sources/tgapi -I Sources/tgapiC/include \
+            -c "$test_build_dir/$source.xm.mm" -o "$test_build_dir/$source-$arch.o"
+    done
     for source in PaidMediaDownload PaidMediaImport PaidMediaSave; do
         clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
             -fobjc-arc -Werror -Wno-deprecated-declarations -I Sources/tgapiC/include -I "$test_build_dir" \

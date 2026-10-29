@@ -696,5 +696,7 @@ testSnapshotApiCompatibility()
 testHostSchemaCodec()
 testExplicitDataPatches()
 testMessagePatchSettings()
+testBufferAppends()
+testMarkerBatchPersistence()
 
 testOptimizedWirePaths()

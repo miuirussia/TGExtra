@@ -71,6 +71,7 @@ NSString *TGExtraBundlePath(void) {
 // Private interface to store our own strings dict
 @interface TGExtraLocalization ()
 @property(nonatomic, strong) NSDictionary *strings;
+@property(nonatomic, copy, readwrite) NSString *languageCode;
 @end
 
 @implementation TGExtraLocalization
@@ -133,6 +134,7 @@ static NSString *TGExtraLanguageMatchingDevice(void) {
     dict = GetAllTranslations(@"en");
   }
 
+  self.languageCode = lang;
   self.strings = dict;
 
   if (dict && dict.count > 0) {
