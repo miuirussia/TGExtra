@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import "Headers.h"
+#import "../PaidMedia.h"
 #import "../Logger/Logger.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
@@ -980,6 +981,10 @@ static ASDisplayNode *tgextraMessageNodeForView(UIView *view) {
 %hook _ASDisplayView
 - (void)layoutSubviews {
     %orig;
+    if ([(UIView *)self respondsToSelector:@selector(asyncdisplaykit_node)]) {
+        TGExtraUpdatePaidMediaSaveButton([(UIView *)self asyncdisplaykit_node]);
+        TGExtraUpdatePaidMediaCapture([(UIView *)self asyncdisplaykit_node]);
+    }
     ASDisplayNode *node = tgextraMessageNodeForView((UIView *)self);
     if (node) scheduleTGExtraEditBadgeUpdate(node);
 }
@@ -990,6 +995,10 @@ static ASDisplayNode *tgextraMessageNodeForView(UIView *view) {
 %hook _ASDisplayView
 - (void)didMoveToWindow {
     %orig;
+    if ([(UIView *)self respondsToSelector:@selector(asyncdisplaykit_node)]) {
+        TGExtraUpdatePaidMediaSaveButton([(UIView *)self asyncdisplaykit_node]);
+        TGExtraUpdatePaidMediaCapture([(UIView *)self asyncdisplaykit_node]);
+    }
     ASDisplayNode *node = tgextraMessageNodeForView((UIView *)self);
     if (node) scheduleTGExtraEditBadgeUpdate(node);
 }

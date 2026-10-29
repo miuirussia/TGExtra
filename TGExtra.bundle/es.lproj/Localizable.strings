@@ -183,3 +183,10 @@
 
 "FORCE_TLOTTIE_TITLE" = "Forzar tlottie";
 "FORCE_TLOTTIE_SUBTITLE" = "Usar tlottie en lugar de rlottie para renderizar nuevas animaciones. Requiere un cliente con tlottie. Reinicia la app tras cambiar esta opción; se conservan los fotogramas en caché.";
+
+// Purchased media export
+"PAID_MEDIA_SAVE" = "Guardar contenido comprado";
+"PAID_MEDIA_SAVING" = "Descargando contenido…";
+"PAID_MEDIA_SAVED" = "Guardado en Fotos";
+"PAID_MEDIA_SAVE_FAILED" = "No se pudo guardar. Vuelve a abrir el contenido e inténtalo de nuevo.";
+"PAID_MEDIA_PHOTOS_DENIED" = "Permite añadir fotos en Ajustes de iOS e inténtalo de nuevo.";

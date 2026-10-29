@@ -180,3 +180,10 @@
 
 "FORCE_TLOTTIE_TITLE" = "強制使用 tlottie";
 "FORCE_TLOTTIE_SUBTITLE" = "使用 tlottie 而非 rlottie 繪製新的動畫影格。需要客戶端內建 tlottie。變更後請重新啟動應用程式；已快取的影格將保留。";
+
+// Purchased media export
+"PAID_MEDIA_SAVE" = "儲存已購買的媒體";
+"PAID_MEDIA_SAVING" = "正在下載媒體…";
+"PAID_MEDIA_SAVED" = "已儲存至照片";
+"PAID_MEDIA_SAVE_FAILED" = "無法儲存媒體。請重新開啟後再試一次。";
+"PAID_MEDIA_PHOTOS_DENIED" = "請在 iOS 設定中允許加入照片後再試一次。";

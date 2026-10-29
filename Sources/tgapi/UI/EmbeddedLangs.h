@@ -133,6 +133,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"منع إضافة تفاعل عند النقر مرتين على الرسالة. تظل التفاعلات متاحة عبر الأزرار وقائمة الضغط المطوّل.",
             @"FORCE_TLOTTIE_TITLE": @"فرض استخدام tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"استخدام tlottie بدلاً من rlottie لعرض إطارات الرسوم الجديدة. يتطلب عميلاً يتضمن tlottie. أعد تشغيل التطبيق بعد التغيير؛ تبقى الإطارات المخزنة مؤقتاً.",
+            @"PAID_MEDIA_SAVE": @"حفظ الوسائط المشتراة",
+            @"PAID_MEDIA_SAVING": @"جارٍ تنزيل الوسائط…",
+            @"PAID_MEDIA_SAVED": @"تم الحفظ في الصور",
+            @"PAID_MEDIA_SAVE_FAILED": @"تعذر حفظ الوسائط. افتحها مجددًا وحاول مرة أخرى.",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"اسمح بإضافة الصور في إعدادات iOS وحاول مرة أخرى.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -267,6 +272,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"双击消息时不添加回应。仍可通过回应按钮或长按菜单添加回应。",
             @"FORCE_TLOTTIE_TITLE": @"强制使用 tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"使用 tlottie 而非 rlottie 渲染新的动画帧。需要客户端内置 tlottie。更改后请重启应用；已缓存的帧将保留。",
+            @"PAID_MEDIA_SAVE": @"保存已购买的媒体",
+            @"PAID_MEDIA_SAVING": @"正在下载媒体…",
+            @"PAID_MEDIA_SAVED": @"已保存到照片",
+            @"PAID_MEDIA_SAVE_FAILED": @"无法保存媒体。请重新打开后重试。",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"请在 iOS 设置中允许添加照片后重试。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -401,6 +411,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Prevent double-tapping messages from adding a reaction. Use reaction buttons or the long-press menu instead.",
             @"FORCE_TLOTTIE_TITLE": @"Force tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"Use tlottie instead of rlottie for newly rendered animations. Requires a client with tlottie. Restart the app after changing this option; cached frames are kept.",
+            @"PAID_MEDIA_SAVE": @"Save purchased media",
+            @"PAID_MEDIA_SAVING": @"Downloading media…",
+            @"PAID_MEDIA_SAVED": @"Saved to Photos",
+            @"PAID_MEDIA_SAVE_FAILED": @"Could not save media. Reopen it and try again.",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"Allow adding photos in iOS Settings and try again.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -535,6 +550,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Evita añadir una reacción al tocar dos veces un mensaje. Puedes usar los botones de reacción o el menú al mantener pulsado.",
             @"FORCE_TLOTTIE_TITLE": @"Forzar tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"Usar tlottie en lugar de rlottie para renderizar nuevas animaciones. Requiere un cliente con tlottie. Reinicia la app tras cambiar esta opción; se conservan los fotogramas en caché.",
+            @"PAID_MEDIA_SAVE": @"Guardar contenido comprado",
+            @"PAID_MEDIA_SAVING": @"Descargando contenido…",
+            @"PAID_MEDIA_SAVED": @"Guardado en Fotos",
+            @"PAID_MEDIA_SAVE_FAILED": @"No se pudo guardar. Vuelve a abrir el contenido e inténtalo de nuevo.",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"Permite añadir fotos en Ajustes de iOS e inténtalo de nuevo.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -669,6 +689,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Empêche d’ajouter une réaction en touchant deux fois un message. Les boutons de réaction et le menu par appui long restent disponibles.",
             @"FORCE_TLOTTIE_TITLE": @"Forcer tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"Utiliser tlottie au lieu de rlottie pour les nouvelles animations à rendre. Nécessite un client intégrant tlottie. Redémarrez après modification ; les images en cache sont conservées.",
+            @"PAID_MEDIA_SAVE": @"Enregistrer le média acheté",
+            @"PAID_MEDIA_SAVING": @"Téléchargement du média…",
+            @"PAID_MEDIA_SAVED": @"Enregistré dans Photos",
+            @"PAID_MEDIA_SAVE_FAILED": @"Impossible d’enregistrer le média. Rouvrez-le et réessayez.",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"Autorisez l’ajout de photos dans les réglages iOS et réessayez.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -803,6 +828,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Impedisce di aggiungere una reazione toccando due volte un messaggio. Puoi usare i pulsanti delle reazioni o il menu con pressione prolungata.",
             @"FORCE_TLOTTIE_TITLE": @"Forza tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"Usa tlottie anziché rlottie per le nuove animazioni da renderizzare. Richiede un client con tlottie. Riavvia dopo la modifica; i fotogrammi nella cache vengono mantenuti.",
+            @"PAID_MEDIA_SAVE": @"Salva il contenuto acquistato",
+            @"PAID_MEDIA_SAVING": @"Download del contenuto…",
+            @"PAID_MEDIA_SAVED": @"Salvato in Foto",
+            @"PAID_MEDIA_SAVE_FAILED": @"Impossibile salvare il contenuto. Riaprilo e riprova.",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"Consenti l’aggiunta di foto nelle impostazioni iOS e riprova.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -937,6 +967,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"メッセージをダブルタップしてもリアクションを付けません。リアクションボタンや長押しメニューは引き続き使えます。",
             @"FORCE_TLOTTIE_TITLE": @"tlottie を強制使用",
             @"FORCE_TLOTTIE_SUBTITLE": @"新しく描画するアニメーションに rlottie の代わりに tlottie を使用します。tlottie 内蔵のクライアントが必要です。変更後はアプリを再起動してください。キャッシュ済みのフレームは保持されます。",
+            @"PAID_MEDIA_SAVE": @"購入済みメディアを保存",
+            @"PAID_MEDIA_SAVING": @"メディアをダウンロード中…",
+            @"PAID_MEDIA_SAVED": @"写真に保存しました",
+            @"PAID_MEDIA_SAVE_FAILED": @"メディアを保存できませんでした。開き直して再試行してください。",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"iOSの設定で写真の追加を許可して再試行してください。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1071,6 +1106,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Не ставить реакцию двойным нажатием на сообщение. Реакции доступны через кнопки и меню по долгому нажатию.",
             @"FORCE_TLOTTIE_TITLE": @"Принудительно использовать tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"Использовать tlottie вместо rlottie для новых кадров анимаций. Нужен клиент со встроенным tlottie. После изменения перезапустите приложение; готовые кадры в кеше сохранятся.",
+            @"PAID_MEDIA_SAVE": @"Сохранить купленное медиа",
+            @"PAID_MEDIA_SAVING": @"Загрузка медиа…",
+            @"PAID_MEDIA_SAVED": @"Сохранено в Фото",
+            @"PAID_MEDIA_SAVE_FAILED": @"Не удалось сохранить медиа. Откройте его заново и повторите попытку.",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"Разрешите добавление фото в настройках iOS и повторите попытку.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1205,6 +1245,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"點兩下訊息時不新增回應。仍可透過回應按鈕或長按選單新增回應。",
             @"FORCE_TLOTTIE_TITLE": @"強制使用 tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"使用 tlottie 而非 rlottie 繪製新的動畫影格。需要客戶端內建 tlottie。變更後請重新啟動應用程式；已快取的影格將保留。",
+            @"PAID_MEDIA_SAVE": @"儲存已購買的媒體",
+            @"PAID_MEDIA_SAVING": @"正在下載媒體…",
+            @"PAID_MEDIA_SAVED": @"已儲存至照片",
+            @"PAID_MEDIA_SAVE_FAILED": @"無法儲存媒體。請重新開啟後再試一次。",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"請在 iOS 設定中允許加入照片後再試一次。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1339,6 +1384,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE": @"Không thả cảm xúc khi chạm hai lần vào tin nhắn. Bạn vẫn có thể dùng nút cảm xúc hoặc menu nhấn giữ.",
             @"FORCE_TLOTTIE_TITLE": @"Buộc dùng tlottie",
             @"FORCE_TLOTTIE_SUBTITLE": @"Dùng tlottie thay cho rlottie để kết xuất hoạt ảnh mới. Yêu cầu ứng dụng có tlottie. Khởi động lại sau khi thay đổi; các khung hình đã lưu trong bộ nhớ đệm được giữ lại.",
+            @"PAID_MEDIA_SAVE": @"Lưu nội dung đã mua",
+            @"PAID_MEDIA_SAVING": @"Đang tải nội dung…",
+            @"PAID_MEDIA_SAVED": @"Đã lưu vào Ảnh",
+            @"PAID_MEDIA_SAVE_FAILED": @"Không thể lưu nội dung. Hãy mở lại và thử lại.",
+            @"PAID_MEDIA_PHOTOS_DENIED": @"Cho phép thêm ảnh trong Cài đặt iOS rồi thử lại.",
         };
     }
     return nil;

@@ -180,3 +180,10 @@
 
 "FORCE_TLOTTIE_TITLE" = "Forcer tlottie";
 "FORCE_TLOTTIE_SUBTITLE" = "Utiliser tlottie au lieu de rlottie pour les nouvelles animations à rendre. Nécessite un client intégrant tlottie. Redémarrez après modification ; les images en cache sont conservées.";
+
+// Purchased media export
+"PAID_MEDIA_SAVE" = "Enregistrer le média acheté";
+"PAID_MEDIA_SAVING" = "Téléchargement du média…";
+"PAID_MEDIA_SAVED" = "Enregistré dans Photos";
+"PAID_MEDIA_SAVE_FAILED" = "Impossible d’enregistrer le média. Rouvrez-le et réessayez.";
+"PAID_MEDIA_PHOTOS_DENIED" = "Autorisez l’ajout de photos dans les réglages iOS et réessayez.";

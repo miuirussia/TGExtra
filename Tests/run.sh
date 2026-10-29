@@ -13,6 +13,8 @@ python3 Tests/double_tap_reactions.py
 python3 Tests/force_tlottie.py
 python3 Tests/swiftgram_pro_ipatch.py
 python3 Tests/edit_badge_refresh.py
+python3 Tests/paid_media_download.py
+python3 Tests/paid_media_capture.py
 python3 Tests/rust_thunks.py
 python3 Tests/rust_patching.py
 python3 Tests/rust_portable.py
@@ -50,7 +52,7 @@ clang -fobjc-arc -Werror -DTGEXTRA_TESTING -ISources/tgapiC/include -c Tests/for
 optimization=-Onone
 if [[ "${1:-}" == "--benchmark" || "${1:-}" == "--native-benchmark" ]]; then optimization=-O; fi
 swiftc "$optimization" -whole-module-optimization -I Sources/tgapiC/include -I Tests/Support -module-cache-path "$test_build_dir/cache" \
-    Sources/tgapi/TL/*.swift Sources/tgapi/TLParser.swift Sources/tgapi/ForwardCopy.swift Tests/content_settings.swift Tests/api_compatibility.swift Tests/forward_copy.swift Tests/message_protection.swift Tests/read_contents.swift Tests/own_user_accounts.swift Tests/rendered_messages.swift Tests/host_runtime.swift Tests/codec_benchmark.swift Tests/native_engine.swift Tests/main.swift \
+    Sources/tgapi/TL/*.swift Sources/tgapi/TLParser.swift Sources/tgapi/ForwardCopy.swift Sources/tgapi/PaidMedia.swift Tests/paid_media.swift Tests/content_settings.swift Tests/api_compatibility.swift Tests/forward_copy.swift Tests/message_protection.swift Tests/read_contents.swift Tests/own_user_accounts.swift Tests/rendered_messages.swift Tests/host_runtime.swift Tests/codec_benchmark.swift Tests/native_engine.swift Tests/main.swift \
     "$test_build_dir"/*.o -lz -Xlinker -export_dynamic -o "$test_build_dir/TGExtraTests"
 export TGEXTRA_TL_SCHEMA="$test_build_dir/Tests/Fixtures/TelegramApiSchema.zlib"
 if [[ "${1:-}" == "--benchmark" || "${1:-}" == "--native-benchmark" ]]; then

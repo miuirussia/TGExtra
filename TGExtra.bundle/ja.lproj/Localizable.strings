@@ -180,3 +180,10 @@
 
 "FORCE_TLOTTIE_TITLE" = "tlottie を強制使用";
 "FORCE_TLOTTIE_SUBTITLE" = "新しく描画するアニメーションに rlottie の代わりに tlottie を使用します。tlottie 内蔵のクライアントが必要です。変更後はアプリを再起動してください。キャッシュ済みのフレームは保持されます。";
+
+// Purchased media export
+"PAID_MEDIA_SAVE" = "購入済みメディアを保存";
+"PAID_MEDIA_SAVING" = "メディアをダウンロード中…";
+"PAID_MEDIA_SAVED" = "写真に保存しました";
+"PAID_MEDIA_SAVE_FAILED" = "メディアを保存できませんでした。開き直して再試行してください。";
+"PAID_MEDIA_PHOTOS_DENIED" = "iOSの設定で写真の追加を許可して再試行してください。";

@@ -181,3 +181,10 @@
 
 "FORCE_TLOTTIE_TITLE" = "Force tlottie";
 "FORCE_TLOTTIE_SUBTITLE" = "Use tlottie instead of rlottie for newly rendered animations. Requires a client with tlottie. Restart the app after changing this option; cached frames are kept.";
+
+// Purchased media export
+"PAID_MEDIA_SAVE" = "Save purchased media";
+"PAID_MEDIA_SAVING" = "Downloading media…";
+"PAID_MEDIA_SAVED" = "Saved to Photos";
+"PAID_MEDIA_SAVE_FAILED" = "Could not save media. Reopen it and try again.";
+"PAID_MEDIA_PHOTOS_DENIED" = "Allow adding photos in iOS Settings and try again.";

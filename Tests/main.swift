@@ -685,6 +685,7 @@ print("PASS message database clearing, legacy removal, delayed writes, notificat
 
 testReadContents()
 testMessageProtection()
+testPaidMedia()
 testForwardCopies()
 testForwardCopies(rust: true)
 testUpdatedApi()

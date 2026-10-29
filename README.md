@@ -20,6 +20,11 @@ the Chats tab five times.
   Online status stays hidden globally.
 - Save protected content and forward it as a new copy, preserving formatting,
   captions and albums. Supports photos, videos, documents, audio and voice messages.
+- Save purchased photos and videos from the gallery, including purchases opened
+  from Stars transaction history. Enable saving protected content, then use the
+  download button at the bottom left. Files are copied from the complete cache or
+  downloaded through the owning account before being added to Photos.
+  The same switch allows screenshots of unlocked photos and videos in the gallery.
 - Ignore copy protection in private chats with a separate switch.
 - Keep deleted messages and messages with chat auto-delete timers.
 - Keep edit history; tap the pencil beside a message to view revisions.
@@ -79,6 +84,12 @@ Protected forwarding downloads and uploads a new copy without the original
 author header. It needs access to the source, permission to send in the destination
 and temporary disk space. Polls, stickers, custom emoji media, paid or disappearing
 media, rich-message bodies and some forward options are unsupported.
+
+Purchased-media saving exports the selected unlocked photo or video. Locked
+previews are excluded. If a file reference has expired, reopen the purchase and
+retry. Screenshot protection is removed for unlocked paid gallery items while
+the saving-protected-content switch is enabled.
+The gallery integration uses host Swift reflection and requires device validation.
 
 Edit history records other people's messages observed while the feature is
 enabled, including formatting and attachment changes. Each edited message keeps

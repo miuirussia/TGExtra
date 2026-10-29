@@ -182,3 +182,10 @@
 
 "FORCE_TLOTTIE_TITLE" = "强制使用 tlottie";
 "FORCE_TLOTTIE_SUBTITLE" = "使用 tlottie 而非 rlottie 渲染新的动画帧。需要客户端内置 tlottie。更改后请重启应用；已缓存的帧将保留。";
+
+// Purchased media export
+"PAID_MEDIA_SAVE" = "保存已购买的媒体";
+"PAID_MEDIA_SAVING" = "正在下载媒体…";
+"PAID_MEDIA_SAVED" = "已保存到照片";
+"PAID_MEDIA_SAVE_FAILED" = "无法保存媒体。请重新打开后重试。";
+"PAID_MEDIA_PHOTOS_DENIED" = "请在 iOS 设置中允许添加照片后重试。";

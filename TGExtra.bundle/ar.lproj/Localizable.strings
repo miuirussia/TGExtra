@@ -179,3 +179,10 @@
 
 "FORCE_TLOTTIE_TITLE" = "فرض استخدام tlottie";
 "FORCE_TLOTTIE_SUBTITLE" = "استخدام tlottie بدلاً من rlottie لعرض إطارات الرسوم الجديدة. يتطلب عميلاً يتضمن tlottie. أعد تشغيل التطبيق بعد التغيير؛ تبقى الإطارات المخزنة مؤقتاً.";
+
+// Purchased media export
+"PAID_MEDIA_SAVE" = "حفظ الوسائط المشتراة";
+"PAID_MEDIA_SAVING" = "جارٍ تنزيل الوسائط…";
+"PAID_MEDIA_SAVED" = "تم الحفظ في الصور";
+"PAID_MEDIA_SAVE_FAILED" = "تعذر حفظ الوسائط. افتحها مجددًا وحاول مرة أخرى.";
+"PAID_MEDIA_PHOTOS_DENIED" = "اسمح بإضافة الصور في إعدادات iOS وحاول مرة أخرى.";
