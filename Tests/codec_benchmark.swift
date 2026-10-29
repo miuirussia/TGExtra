@@ -40,5 +40,20 @@ func runCodecBenchmarks() {
     measure("patch/forward/history100") { let out = TLParser.stripAntiSelfDestruct(bytes, account: nil)!; precondition(out == bytes); return out.length }
     flags("TGExtraAntiAutoDelete")
     measure("patch/ttl/history100") { let out = TLParser.stripAntiSelfDestruct(timedBytes, account: nil)!; precondition(out == bytes); return out.length }
+    flags()
+    let reply = serialized(Api.Bool.boolTrue)
+    let uploadMethod = NSNumber(value: TLMethodID.uploadSaveFilePart.id!)
+    for size in [0, 512 * 1024] {
+        let payload = Api.functions.upload.saveFilePart(fileId: 1, filePart: 0,
+            bytes: Buffer(data: Data(repeating: 42, count: size))).1.makeData() as NSData
+        measure("request/method/upload\(size)", iterations: 1000) {
+            precondition(TLParser.requestMethod(payload) == .uploadSaveFilePart)
+            return payload.length
+        }
+        measure("response/upload\(size)", iterations: 1000) {
+            precondition(TLParser.handleResponse(reply, functionID: uploadMethod, account: nil, requestPayload: payload) == nil)
+            return reply.length
+        }
+    }
     print("CHECKSUM \(checksum)")
 }

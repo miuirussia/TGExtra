@@ -7,7 +7,8 @@ enum TLCodec {
     }
 
     static func parse(_ reader: BufferReader, descriptor: TLConstructor, depth: Int = 0) -> TLRecord? {
-        guard depth < 128, let schema = HostSchema.shared, descriptor.typeIndex < schema.types.count else { return nil }
+        guard depth < 128, let schema = HostSchema.shared,
+              descriptor.typeIndex == 65535 || descriptor.typeIndex < schema.types.count else { return nil }
         return descriptor.fields.withUnsafeBufferPointer { fields in
             let wireStart = Int(reader.offset)
             var values = [Any?](repeating: nil, count: descriptor.fields.count)
@@ -30,7 +31,7 @@ enum TLCodec {
                     wireFields[field.name] = start..<Int(reader.offset)
                 }
             }
-            let result = TLRecord(descriptor: descriptor, type: schema.types[descriptor.typeIndex], values: values)
+            let result = TLRecord(descriptor: descriptor, type: descriptor.typeIndex == 65535 ? "!Function" : schema.types[descriptor.typeIndex], values: values)
             result.wireFields = wireFields
             result.wireSource = reader.wireSource
             result.wireRange = wireStart..<Int(reader.offset)
@@ -108,7 +109,7 @@ enum TLCodec {
         }
     }
 
-    private static func read(_ field: TLField, reader: BufferReader, depth: Int) -> Any? {
+    static func read(_ field: TLField, reader: BufferReader, depth: Int) -> Any? {
         if field.kind != 7 { return readValue(field.kind, field: field, reader: reader, depth: depth) }
         if field.boxedVector, reader.readInt32() != vector { return nil }
         guard let count = reader.readInt32(), count >= 0, Int(count) <= reader.remaining / 4 else { return nil }

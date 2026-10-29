@@ -231,6 +231,27 @@ public final class TLRecord: TLSerializable, TLValue {
         T.canReadTL(self[name] ?? NSNull())
     }
 
+    func normalizeOptionalFlags(sourcePresenceMasks: [String: Int32] = [:]) {
+        guard let descriptor = descriptor else { return }
+        var masks = [Int: Int32](), present = [Int: Int32]()
+        for field in descriptor.fields where field.flagsIndex >= 0 {
+            let mask = Int32(1) << field.flagBit
+            masks[field.flagsIndex, default: 0] |= mask
+            if self[field.name] != nil { present[field.flagsIndex, default: 0] |= mask }
+        }
+        // Generated helpers receive the reviewed source layout's flag word.
+        // Remove its presence bits even when the newer host removed a field.
+        for (name, mask) in sourcePresenceMasks {
+            if let index = descriptor.fieldIndices[name] { masks[index, default: 0] |= mask }
+        }
+        for (index, mask) in masks {
+            let name = descriptor.fields[index].name
+            guard let flags = self[name] as? Int32 else { continue }
+            let updated = (flags & ~mask) | present[index, default: 0]
+            if updated != flags { self[name] = updated }
+        }
+    }
+
     func recordChange(_ change: TLFieldChange) { changes.append(change) }
 
     func retainUnwrittenFields(from original: TLRecord) {

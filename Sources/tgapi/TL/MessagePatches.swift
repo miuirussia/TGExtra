@@ -113,10 +113,10 @@ enum MessagePatches {
     }
 
     static func refreshContentConfigurationRequest(_ payload: NSData) -> NSData? {
-        guard payload.length == 8 else { return nil }
-        let reader = BufferReader(Buffer(nsData: payload))
-        guard reader.readInt32() == 0x61e3f854, let hash = reader.readInt32(), hash != 0 else { return nil }
-        return Api.functions.help.getAppConfig(hash: 0).1.makeValidData() as NSData?
+        guard let record = TLParser.request(payload), record.method == .helpGetAppConfig,
+              let hash = record["hash"] as? Int32, hash != 0 else { return nil }
+        record["hash"] = Int32(0)
+        return record.serializedData().map { $0 as NSData }
     }
 
     @discardableResult

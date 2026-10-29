@@ -60,85 +60,23 @@ extension TLParser {
         return media
     }
 
-    static func skipBoxed(_ reader: BufferReader) -> Bool {
-        guard let signature = reader.readInt32() else { return false }
-        return Api.parse(reader, signature: signature) != nil
-    }
-
-    static func rewriteMultiMedia(_ payload: Data, reader: BufferReader) -> NSData? {
-        let vectorStart = Int(reader.offset)
-        guard reader.readInt32() == 481674261 else { return nil }   // Vector
-        guard let items = Api.parseVector(reader, elementSignature: 0,
-                                          elementType: Api.InputSingleMedia.self) else { return nil }
-        let vectorEnd = Int(reader.offset)
-
+    @objc static func rewriteVoiceUpload(_ data: NSData) -> NSData? {
+        guard MessagePatches.Settings().videoToVoice, let method = requestMethod(data),
+              [TLMethodID.messagesSendMedia, .messagesUploadMedia, .messagesSendMultiMedia].contains(method),
+              let record = request(data) else { return nil }
         var changed = false
-        let rewritten: [Api.InputSingleMedia] = items.map { item in
-            guard case let .inputSingleMedia(data) = item,
-                  voiceMedia(from: data.media) != nil else { return item }
-            changed = true
-            return item
+        if method == .messagesSendMultiMedia {
+            guard let items = record["multiMedia"] as? [TLRecord] else { return nil }
+            for item in items {
+                guard let mediaRecord = item["media"] as? TLRecord,
+                      let media = Api.InputMedia(mediaRecord), voiceMedia(from: media) != nil else { continue }
+                changed = true
+            }
+        } else if let mediaRecord = record["media"] as? TLRecord,
+                  let media = Api.InputMedia(mediaRecord) {
+            changed = voiceMedia(from: media) != nil
         }
         guard changed else { return nil }
-
-        let vectorBuffer = Buffer()
-        vectorBuffer.appendInt32(481674261)
-        vectorBuffer.appendInt32(Int32(rewritten.count))
-        for item in rewritten { item.serialize(vectorBuffer, true) }
-        guard vectorBuffer.isValid else { return nil }
-
-        var out = Data()
-        out.append(payload.subdata(in: 0 ..< vectorStart))
-        out.append(vectorBuffer.makeData())
-        out.append(payload.subdata(in: vectorEnd ..< payload.count))
-        return out as NSData
-    }
-
-    @objc static func rewriteVoiceUpload(_ data: NSData) -> NSData? {
-        guard MessagePatches.Settings().videoToVoice else { return nil }
-
-        let payload = data as Data
-        let reader = BufferReader(Buffer(data: payload))
-        guard let functionId = reader.readInt32() else { return nil }
-
-        switch functionId {
-        case TLMethodID.messagesSendMedia:   // messages.sendMedia
-            guard let flags = reader.readInt32() else { return nil }
-            guard skipBoxed(reader) else { return nil }                  // peer
-            if (Int(flags) & (1 << 0)) != 0 {
-                guard skipBoxed(reader) else { return nil }              // reply_to
-            }
-        case TLMethodID.messagesUploadMedia:  // messages.uploadMedia
-            guard let flags = reader.readInt32() else { return nil }
-            if (Int(flags) & (1 << 0)) != 0 {
-                guard parseString(reader) != nil else { return nil }     // business_connection_id
-            }
-            guard skipBoxed(reader) else { return nil }                  // peer
-        case TLMethodID.messagesSendMultiMedia:  // messages.sendMultiMedia — several clips picked at once
-            guard let flags = reader.readInt32() else { return nil }
-            guard skipBoxed(reader) else { return nil }                  // peer
-            if (Int(flags) & (1 << 0)) != 0 {
-                guard skipBoxed(reader) else { return nil }              // reply_to
-            }
-            return rewriteMultiMedia(payload, reader: reader)
-        default:
-            return nil
-        }
-
-        let mediaStart = Int(reader.offset)
-        guard let signature = reader.readInt32(), signature == 58495792 else { return nil }
-        guard let media = Api.parse(reader, signature: signature) as? Api.InputMedia else { return nil }
-        let mediaEnd = Int(reader.offset)
-        guard let rewritten = voiceMedia(from: media) else { return nil }
-
-        let mediaBuffer = Buffer()
-        rewritten.serialize(mediaBuffer, true)
-        guard mediaBuffer.isValid else { return nil }
-
-        var out = Data()
-        out.append(payload.subdata(in: 0 ..< mediaStart))
-        out.append(mediaBuffer.makeData())
-        out.append(payload.subdata(in: mediaEnd ..< payload.count))
-        return out as NSData
+        return record.serializedData().map { $0 as NSData }
     }
 }

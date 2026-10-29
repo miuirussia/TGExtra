@@ -29,6 +29,11 @@ def generate(schema):
     types &= set(schema["types"])
     methods = set(".".join(m) for m in re.findall(r"Api\.functions\.(\w+)\.(\w+)", code))
     methods = [f for f in schema["functions"] if f["name"] in methods]
+    catalog = (ROOT / "Sources/tgapi/TLMethodID.swift").read_text()
+    method_cases = {name: case for case, name in re.findall(r'case (\w+) = "([^"]+)"', catalog)}
+    missing = {f["name"] for f in methods} - method_cases.keys()
+    if missing:
+        raise ValueError("add methods to TLMethodID.swift: " + ", ".join(sorted(missing)))
 
     def field_type(field):
         def kind_type(kind):
@@ -92,10 +97,16 @@ def generate(schema):
         params = ", ".join(f'`{v["name"]}`: {field_type(v)}' for v in f["fields"])
         out += [f"\npublic extension Api.functions.{namespace} {{\n",
                 f"    static func {name}({params}) -> (FunctionDescription, Buffer) {{\n",
-                f'        let record = TLRecord(function: "{f["name"]}")\n']
+                f'        let record = TLRecord(function: .{method_cases[f["name"]]})\n']
         out += [f'        record.set("{v["name"]}", `{v["name"]}`)\n' for v in f["fields"]]
-        out += ["        let buffer = Buffer()\n", "        record.serialize(buffer, true)\n",
-                f'        return (FunctionDescription(name: "{f["name"]}", parameters: []), buffer)\n', "    }\n", "}\n"]
+        masks = {}
+        for field in f["fields"]:
+            if field["flags_index"] >= 0:
+                flag_name = f["fields"][field["flags_index"]]["name"]
+                masks[flag_name] = masks.get(flag_name, 0) | (1 << field["flag_bit"])
+        mask_literal = "[" + ", ".join(f'"{name}": Int32(bitPattern: {value})' for name, value in sorted(masks.items())) + "]" if masks else "[:]"
+        out += [f"        record.normalizeOptionalFlags(sourcePresenceMasks: {mask_literal})\n", "        let buffer = Buffer()\n", "        record.serialize(buffer, true)\n",
+                f'        return (FunctionDescription(name: TLMethodID.{method_cases[f["name"]]}.rawValue, parameters: []), buffer)\n', "    }\n", "}\n"]
     # Validate a policy view once when loading a host constructor. Decoding has
     # already checked wire values, so subsequent view access needs no field walk.
     out += ["\nextension Api {\n",

@@ -1,3 +1,4 @@
+#import "Compatibility.h"
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import "Constants.h"
@@ -102,7 +103,10 @@ static BOOL TGExtraHasVisibleNonRecordingAction(id node) {
 __attribute__((constructor)) static void TGExtraInstallRecordingButton(void) {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 2), dispatch_get_main_queue(), ^{
         TGExtraRestorePreferences();
-        if (![NSUserDefaults.standardUserDefaults boolForKey:kHideRecordingButton]) return;
+        if (![NSUserDefaults.standardUserDefaults boolForKey:kHideRecordingButton]) {
+            TGExtraRecordHookStatus(@"Recording button", @"disabled at launch");
+            return;
+        }
         Class actions = NSClassFromString(@"ChatTextInputActionButtonsNode.ChatTextInputActionButtonsNode")
             ?: NSClassFromString(@"TelegramUI.ChatTextInputActionButtonsNode");
         Class button = NSClassFromString(@"ChatTextInputMediaRecordingButton.ChatTextInputMediaRecordingButton")
@@ -116,6 +120,7 @@ __attribute__((constructor)) static void TGExtraInstallRecordingButton(void) {
             moved && method_getNumberOfArguments(moved) == 2 &&
             began && method_getNumberOfArguments(began) == 2) {
             %init(TGExtraRecordingButton, TGExtraRecordingActionButtonsNode = actions, TGExtraMediaRecordingButton = button);
+            TGExtraRecordHookStatus(@"Recording button", @"installed");
             Class panel = NSClassFromString(@"ChatTextInputPanelNode.ChatTextInputPanelNode")
                 ?: NSClassFromString(@"TelegramUI.ChatTextInputPanelNode");
             Class glass = NSClassFromString(@"GlassBackgroundComponent.GlassBackgroundView");
@@ -123,7 +128,12 @@ __attribute__((constructor)) static void TGExtraInstallRecordingButton(void) {
                 class_getInstanceMethod(panel, @selector(didEnterHierarchy)) &&
                 class_getInstanceMethod(glass, @selector(layoutSubviews))) {
                 %init(TGExtraRecordingInputLayout, TGExtraRecordingInputPanelNode = panel, TGExtraRecordingInputGlassView = glass);
+                TGExtraRecordHookStatus(@"Recording input layout", @"installed");
+            } else {
+                TGExtraRecordHookStatus(@"Recording input layout", @"unavailable: panel or glass interface");
             }
+        } else {
+            TGExtraRecordHookStatus(@"Recording button", @"unavailable: action/button interface");
         }
     });
 }

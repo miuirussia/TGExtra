@@ -101,6 +101,14 @@ static void initializeBridge(void) {
         syntheticBuffers = [NSMutableSet new];
     });
 }
+NSString *TGExtraRustCompatibilityStatus(void) {
+    initializeBridge();
+    @synchronized(bridgeLock) {
+        if (engines.count) return [NSString stringWithFormat:@"active, %lu engine(s)", (unsigned long)engines.count];
+    }
+    NSString *path = [NSBundle.mainBundle pathForResource:@"TGExtraRustBridge" ofType:@"plist"];
+    return path ? @"profile metadata present; no active engine observed" : @"no profile metadata or active engine; required for Rust transport";
+}
 static NSValue *pointerKey(const void *pointer) { return [NSValue valueWithPointer:pointer]; }
 
 static void flushDependents(TGERustEngine *engine, TGERustSession *session, uint64_t completed) {
@@ -447,12 +455,11 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         NSDictionary *contentPolicy = [TLParser readMessageContentsPolicy:pending.payload account:state.account];
         if (contentPolicy[@"payload"]) pending.payload = contentPolicy[@"payload"];
         if (contentPolicy[@"response"]) pending.fakeResponse = contentPolicy[@"response"];
-        int32_t function = 0;
-        [pending.payload getBytes:&function length:4];
-        pending.guardsDependency = function == 0x13704a7c && state.service &&
+        pending.guardsDependency = [TLParser isForwardRequest:pending.payload] && state.service &&
             [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction];
-        uint32_t nearestDC = 0x1fb33026; // help.getNearestDc
-        pending.wire = pending.fakeResponse ? [NSData dataWithBytes:&nearestDC length:4] : pending.payload;
+        NSData *replacement = pending.fakeResponse ? [TLParser privacyReplacementRequest] : nil;
+        if (pending.fakeResponse && !replacement) pending.fakeResponse = nil;
+        pending.wire = replacement ?: pending.payload;
         TGERustRequest rewritten = *request;
         rewritten.body = (TGERustBytes){pending.wire.bytes, pending.wire.length};
         pending.request = rewritten;

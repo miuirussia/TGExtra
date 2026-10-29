@@ -43,22 +43,16 @@ for path in (ROOT / 'Sources/tgapi').rglob('*'):
             used.update(re.findall(r'(?:title|subtitle):@"([^"]+)"', path.read_text()))
 assert used <= english.keys(), f'Missing UI keys: {used - english.keys()}'
 
-constants = (ROOT / 'Sources/tgapi/Constants.h').read_text()
 api = decode_schema(zlib.decompress((ROOT / 'Tests/Fixtures/TelegramApiSchema.zlib').read_bytes()))
-for constant, function in {
-    'kMessagesSendMedia': 'sendMedia', 'kMessagesSendMultiMedia': 'sendMultiMedia',
-    'kMessagesUploadMedia': 'uploadMedia', 'kMessagesReadMessageContents': 'readMessageContents',
-    'kChannelsReadMessageContents': 'readMessageContents', 'kGetSponsoredMessages': 'getSponsoredMessages',
-    'kMessagesSetTypingAction': 'setTyping', 'kMessagesReadHistory': 'readHistory',
-    'kMessagesReadMentions': 'readMentions', 'kMessagesReadReactions': 'readReactions',
-    'kStoriesReadStories': 'readStories', 'kSendScreenshotNotification': 'sendScreenshotNotification',
-    'kGetAppConfig': 'getAppConfig',
-}.items():
-    value = re.search(r'^#define ' + constant + r' (-?\d+)', constants, re.M)[1]
-    constructors = [f['id'] for f in api['functions'] if f['name'].endswith('.' + function)]
-    assert int(value) & 0xffffffff in constructors, f'{constant} is out of date with the host API'
+method_ids = (ROOT / 'Sources/tgapi/TLMethodID.swift').read_text()
+assert not re.search(r'Int32\s*=\s*-?\d+', method_ids), 'Production method IDs must come from the host'
+methods = set(re.findall(r'case \w+ = "([^"]+)"', method_ids))
+assert methods and methods <= {f['name'] for f in api['functions']}, 'Named methods must exist in the reference schema'
 for path in (ROOT / 'Sources').rglob('*'):
     if path.suffix in ('.h', '.m', '.xm', '.swift'):
+        if path.name != 'TLMethodID.swift':
+            literals = set(re.findall(r'"(\w+\.\w+)"', path.read_text()))
+            assert not literals & {f['name'] for f in api['functions']}, f'Method names must come from TLMethodID.swift: {path}'
         assert not re.search(r'kConfirmCalls|kDownloadSpeedBoost|kCustomStars|CONFIRM_CALLS|DOWNLOAD_BOOST|CUSTOM_STARS|MxApiCompat', path.read_text()), f'Excluded feature in {path}'
 with tempfile.TemporaryDirectory() as tmp:
     output = Path(tmp) / 'EmbeddedLangs.h'

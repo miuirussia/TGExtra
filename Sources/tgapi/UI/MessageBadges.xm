@@ -1,3 +1,4 @@
+#import "../Compatibility.h"
 #import "MessageBadges.h"
 #import "../Headers.h"
 #import "../PaidMedia.h"
@@ -135,7 +136,13 @@ void TGExtraStartMessageBadges(void) { [TGExtraAntiRevokeUpdater shared]; }
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 2), dispatch_get_main_queue(), ^{
         Class view = objc_getClass("_ASDisplayView");
         Method getter = class_getInstanceMethod(view, @selector(asyncdisplaykit_node));
-        if (!getter || method_getNumberOfArguments(getter) != 2) return;
+        if (!getter || method_getNumberOfArguments(getter) != 2) {
+            TGExtraRecordHookStatus(@"Message badges / paid media", @"unavailable: display view accessor");
+            return;
+        }
+        TGExtraRecordHookStatus(@"Message badges / paid media",
+            class_getInstanceMethod(view, @selector(layoutSubviews)) && class_getInstanceMethod(view, @selector(didMoveToWindow))
+                ? @"installed" : @"partial: display view lifecycle");
         if (class_getInstanceMethod(view, @selector(layoutSubviews))) { %init(TGExtraMessageViewLayout, _ASDisplayView = view); }
         if (class_getInstanceMethod(view, @selector(didMoveToWindow))) { %init(TGExtraMessageViewWindow, _ASDisplayView = view); }
     });

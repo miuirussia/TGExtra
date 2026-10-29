@@ -11,6 +11,7 @@
     logContent = [NSString stringWithFormat:@"...(last 3000 chars)\n%@",
                   [logContent substringFromIndex:logContent.length - 3000]];
   }
+  logContent = [NSString stringWithFormat:@"%@\n\n%@", [TLParser compatibilityReport], logContent];
   for (NSString *key in @[@"TGExtraCaptureHookStatus", @"TGExtraCaptureCanvasStatus", @"TGExtraPaidCaptureStatus",
                          @"TGExtraPaidMediaLastImport", @"TGExtraPaidMediaLastError"]) {
     NSString *entry = [NSUserDefaults.standardUserDefaults stringForKey:key];

@@ -88,18 +88,6 @@ class TLParser: NSObject {
                           namespace: namespace?.int32Value ?? 0) & disappearingMarker != 0
     }
 
-    @objc static func fakeUpdatesResponse() -> NSData {
-        let buffer = Buffer()
-        buffer.appendInt32(1957577280) // updates
-        for _ in 0..<3 {
-            buffer.appendInt32(481674261)
-            buffer.appendInt32(0)
-        }
-        buffer.appendInt32(Int32(Date().timeIntervalSince1970))
-        buffer.appendInt32(0)
-        return buffer.makeData() as NSData
-    }
-
     static func serializeBoxed(_ obj: Any) -> NSData {
         let outBuf = Buffer()
         Api.serializeObject(obj, buffer: outBuf, boxed: true)

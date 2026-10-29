@@ -241,14 +241,11 @@ func testMissingHostSchema() {
     request.appendInt32(1234)
     check(TLParser.rewriteAppConfigRequest(request.makeData() as NSData) == nil,
           "Do not emit an incomplete request without host metadata")
-    let reply = BufferReader(Buffer(nsData: TLParser.fakeUpdatesResponse()))
-    check(reply.readInt32() == 1957577280, "Request privacy replies work without schema metadata")
-    for _ in 0..<3 {
-        check(reply.readInt32() == 481674261 && reply.readInt32() == 0, "An empty updates vector is complete")
-    }
-    check(reply.readInt32() != nil && reply.readInt32() == 0 && reply.remaining == 0,
-          "The synthetic privacy reply includes its synchronization trailer")
-    print("PASS missing host schema: original responses, safe request fallback and privacy replies")
+    check(TLMethodID.messagesForward.id == nil && TLParser.requestMethod(request.makeData() as NSData) == nil,
+          "Missing schema cannot match an outgoing method")
+    check(TLParser.emptyResponse(method: .messagesSendScreenshotNotification, constructor: "updates") == nil &&
+          TLParser.privacyReplacementRequest() == nil, "No stale synthetic packets without host metadata")
+    print("PASS missing host schema: original responses and unavailable request policies")
 }
 
 func testHostSchemaCodec() {

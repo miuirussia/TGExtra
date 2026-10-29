@@ -21,160 +21,92 @@ extension TLParser {
         return false
     }
 
-    static func patchHistoryWithOpaquePeers(_ data: NSData, signature: Int32) -> NSData? {
-        let reader = BufferReader(Buffer(nsData: data))
-        reader.skip(4)
-
-        func object<T>(_ type: T.Type) -> T? {
-            guard let constructor = reader.readInt32() else { return nil }
-            return Api.parse(reader, signature: constructor) as? T
-        }
-        func vector<T>(_ type: T.Type) -> [T]? {
-            guard reader.readInt32() == 481674261,
-                  let count = reader.readInt32(), count >= 0,
-                  Int(count) <= (data.length - Int(reader.offset)) / 4 else { return nil }
-            var values = [T]()
-            for _ in 0..<count {
-                guard let value = object(type) else { return nil }
-                values.append(value)
+    private static func minimumWireSize(_ field: TLField, depth: Int = 0) -> Int? {
+        guard depth < 16 else { return nil }
+        if field.flagsIndex >= 0 { return 0 }
+        switch field.kind {
+        case 0, 4, 5: return 4
+        case 1, 3: return 8
+        case 2: return 32
+        case 7: return field.boxedVector ? 8 : 4
+        case 6:
+            guard let schema = HostSchema.shared else { return nil }
+            let constructors = schema.constructors.values.filter { $0.typeIndex == field.typeIndex }
+            let sizes = constructors.compactMap { constructor -> Int? in
+                let sizes = constructor.fields.map { minimumWireSize($0, depth: depth + 1) }
+                guard sizes.allSatisfy({ $0 != nil }) else { return nil }
+                return sizes.compactMap { $0 }.reduce(field.bare ? 0 : 4, +)
             }
-            return values
+            return sizes.min()
+        default: return nil
         }
-
-        var flags: Int32 = 0
-        var hasTopics = false
-        var hasUpdates = false
-        var hasEncrypted = false
-        var suffixBytes = 0
-        switch signature {
-        case 494135274: // messages.messages
-            hasTopics = true
-        case -948520370, 1595959062: // channelMessages, messagesSlice
-            guard let value = reader.readInt32(), reader.readInt32() != nil else { return nil }
-            flags = value
-            if signature == -948520370 {
-                guard reader.readInt32() != nil else { return nil } // count (after pts)
-            } else if flags & (1 << 0) != 0 {
-                guard reader.readInt32() != nil else { return nil } // next_rate
-            }
-            if flags & (1 << 2) != 0 {
-                guard reader.readInt32() != nil else { return nil }
-            }
-            if signature == 1595959062 && flags & (1 << 3) != 0 {
-                guard object(Api.SearchPostsFlood.self) != nil else { return nil }
-            }
-            hasTopics = true
-        case 364538944, 1910543603, 863093588: // dialogs, dialogsSlice, peerDialogs
-            if signature == 1910543603 {
-                guard reader.readInt32() != nil else { return nil }
-            }
-            guard vector(Api.Dialog.self) != nil else { return nil }
-            if signature == 863093588 { suffixBytes = 24 } // updates.State
-        case -1506535550: // discussionMessage
-            guard let value = reader.readInt32() else { return nil }
-            flags = value
-        case 543450958: // channelDifference
-            guard let value = reader.readInt32(), reader.readInt32() != nil else { return nil }
-            if value & (1 << 1) != 0 {
-                guard reader.readInt32() != nil else { return nil }
-            }
-            hasUpdates = true
-        case -1531132162: // channelDifferenceTooLong
-            guard let value = reader.readInt32() else { return nil }
-            if value & (1 << 1) != 0 {
-                guard reader.readInt32() != nil else { return nil }
-            }
-            guard object(Api.Dialog.self) != nil else { return nil }
-        case 16030880, -1459938943: // difference, differenceSlice
-            hasEncrypted = true
-            hasUpdates = true
-            suffixBytes = 24
-        default:
-            return nil
-        }
-
-        let messageStart = Int(reader.offset)
-        guard let messages = vector(Api.Message.self) else { return nil }
-        let messageEnd = Int(reader.offset)
-        if hasTopics {
-            guard vector(Api.ForumTopic.self) != nil else { return nil }
-        }
-        if hasEncrypted {
-            guard vector(Api.EncryptedMessage.self) != nil else { return nil }
-        }
-        var updates = [Api.Update]()
-        let updateStart = Int(reader.offset)
-        var updateEnd = updateStart
-        if hasUpdates {
-            guard let values = vector(Api.Update.self) else { return nil }
-            updates = values
-            updateEnd = Int(reader.offset)
-        }
-        if signature == -1506535550 {
-            for bit in 0...2 where flags & (1 << bit) != 0 {
-                guard reader.readInt32() != nil else { return nil }
-            }
-            guard reader.readInt32() != nil else { return nil } // unread_count
-        }
-        guard hasUnknownPeer(reader, length: data.length, usersFirst: false,
-                             suffixBytes: suffixBytes) else { return nil }
-        MessagePatches.prepareDecodedObjects(in: reader)
-        let batch = patchMessageBatch(messages, chats: [])
-        let (patchedUpdates, changedUpdates) = stripTTLUpdates(updates)
-        guard MessagePatches.shouldReserialize(changed: batch.changed || changedUpdates, settings: packetSettings) else {
-            return reader.dataApplyingPatches()
-        }
-        func boxedVector(_ values: [Any]) -> Data? {
-            let buffer = Buffer()
-            buffer.appendInt32(481674261)
-            buffer.appendInt32(Int32(values.count))
-            for value in values { Api.serializeObject(value, buffer: buffer, boxed: true) }
-            return buffer.makeValidData()
-        }
-        var replacements = [(Range<Int>, Data)]()
-        guard let encodedMessages = boxedVector(batch.messages) else { return nil }
-        replacements.append((messageStart..<messageEnd, encodedMessages))
-        if hasUpdates {
-            guard let encodedUpdates = boxedVector(patchedUpdates) else { return nil }
-            replacements.append((updateStart..<updateEnd, encodedUpdates))
-        }
-        return reader.dataApplyingPatches(replacing: replacements)
     }
 
-    static func patchUpdateVector(_ data: NSData, signature: Int32) -> NSData? {
-        guard signature == 1957577280 || signature == 1918567619 else { return nil }
+    static func patchHistoryWithOpaquePeers(_ data: NSData, signature: Int32) -> NSData? {
+        guard let schema = HostSchema.shared, let descriptor = schema.constructors[signature] else { return nil }
+        let type = schema.types[descriptor.typeIndex]
+        let supported = ["messages.Messages", "messages.Dialogs", "messages.PeerDialogs", "messages.DiscussionMessage",
+                         "updates.Difference", "updates.ChannelDifference", "Updates"]
+        guard supported.contains(type) else { return nil }
         let reader = BufferReader(Buffer(nsData: data))
         reader.skip(4)
-        guard reader.readInt32() == 481674261,
-              let count = reader.readInt32(), count >= 0,
-              Int(count) <= (data.length - 12) / 4 else { return nil }
-
-        var updates = [(update: Api.Update, start: Int, length: Int)]()
-        for _ in 0..<count {
+        var values = [Any?](repeating: nil, count: descriptor.fields.count)
+        var ranges = [String: Range<Int>]()
+        var foundOpaquePeer = false
+        for (index, field) in descriptor.fields.enumerated() {
+            if field.flagsIndex >= 0 {
+                guard let flags = values[field.flagsIndex] as? Int32 else { return nil }
+                if flags & (1 << field.flagBit) == 0 { continue }
+            }
+            if ["users", "chats"].contains(field.name) {
+                // Preserve the opaque suffix byte-for-byte. Only accept the two
+                // adjacent peer vectors, with the host-defined minimum trailer.
+                guard index + 1 < descriptor.fields.count else { return nil }
+                let second = descriptor.fields[index + 1]
+                guard Set([field.name, second.name]) == Set(["users", "chats"]),
+                      [field, second].allSatisfy({ $0.kind == 7 && $0.boxedVector && $0.elementKind == 6 }) else { return nil }
+                let sizes = descriptor.fields.dropFirst(index + 2).map { minimumWireSize($0) }
+                guard sizes.allSatisfy({ $0 != nil }) else { return nil }
+                foundOpaquePeer = hasUnknownPeer(reader, length: data.length, usersFirst: field.name == "users",
+                                                 suffixBytes: sizes.compactMap { $0 }.reduce(0, +))
+                break
+            }
             let start = Int(reader.offset)
-            guard let constructor = reader.readInt32(),
-                  let update = Api.parse(reader, signature: constructor) as? Api.Update else {
-                return nil
-            }
-            updates.append((update, start, Int(reader.offset) - start))
+            guard let value = TLCodec.read(field, reader: reader, depth: 1) else { return nil }
+            values[index] = value
+            ranges[field.name] = start..<Int(reader.offset)
         }
-        let tail = Int(reader.offset)
-        let minimumTail = signature == 1918567619 ? 28 : 24
-        guard data.length - tail >= minimumTail else { return nil }
-
-        guard hasUnknownPeer(reader, length: data.length, usersFirst: true,
-                             suffixBytes: signature == 1918567619 ? 12 : 8) else { return nil }
+        guard foundOpaquePeer else { return nil }
         MessagePatches.prepareDecodedObjects(in: reader)
-
         var replacements = [(Range<Int>, Data)]()
-        for entry in updates {
-            let (patched, changed) = stripTTLUpdate(entry.update)
-            if MessagePatches.shouldReserialize(changed: changed, settings: packetSettings) {
-                let encoded = serializeBoxed(patched)
-                guard encoded.length >= 4 else { return nil }
-                replacements.append((entry.start..<entry.start + entry.length, encoded as Data))
-            }
+        var changed = false
+        for name in ["messages", "newMessages"] {
+            guard let index = descriptor.fieldIndices[name], let raw = values[index] as? [TLRecord],
+                  let range = ranges[name] else { continue }
+            let messages = raw.compactMap(Api.Message.init)
+            guard messages.count == raw.count else { return nil }
+            let batch = patchMessageBatch(messages, chats: [])
+            changed = changed || batch.changed
+            let buffer = Buffer()
+            buffer.appendInt32(481674261); buffer.appendInt32(Int32(batch.messages.count))
+            for message in batch.messages { message.serialize(buffer, true) }
+            guard let encoded = buffer.makeValidData() else { return nil }
+            replacements.append((range, encoded))
         }
+        for name in ["updates", "otherUpdates"] {
+            guard let index = descriptor.fieldIndices[name], let raw = values[index] as? [TLRecord],
+                  let range = ranges[name] else { continue }
+            let updates = raw.compactMap(Api.Update.init)
+            guard updates.count == raw.count else { return nil }
+            let (patched, modified) = stripTTLUpdates(updates)
+            changed = changed || modified
+            let buffer = Buffer()
+            buffer.appendInt32(481674261); buffer.appendInt32(Int32(patched.count))
+            for update in patched { update.serialize(buffer, true) }
+            guard let encoded = buffer.makeValidData() else { return nil }
+            replacements.append((range, encoded))
+        }
+        guard MessagePatches.shouldReserialize(changed: changed, settings: packetSettings) else { return reader.dataApplyingPatches() }
         return reader.dataApplyingPatches(replacing: replacements)
     }
 }

@@ -17,7 +17,11 @@
                                duration:(NSInteger)duration
                                waveform:(NSData *)waveform;
 + (BOOL)isMessageSelfDestructing:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
-+ (NSData *)fakeUpdatesResponse;
++ (NSData *)fakeResponseForPayload:(NSData *)payload;
++ (NSData *)rewriteRequestPayload:(NSData *)payload;
++ (BOOL)isForwardRequest:(NSData *)payload;
++ (NSData *)privacyReplacementRequest;
++ (NSString *)compatibilityReport;
 + (NSData *)rewriteVoiceUpload:(NSData *)data;
 + (NSData *)rewriteAppConfigRequest:(NSData *)data;
 + (NSDictionary<NSString *, NSData *> *)readMessageContentsPolicy:(NSData *)payload account:(NSString *)account;
@@ -67,13 +71,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void handleOnlineStatus(MTRequest *request, NSData *payload);
-void handleSetTyping(MTRequest *request, NSData *payload);
-void handleMessageReadReceipt(MTRequest *request, NSData *payload);
-void handleStoriesReadReceipt(MTRequest *request, NSData *payload);
-void handleGetSponsoredMessages(MTRequest *request, NSData *payload);
-void handleChannelsReadReceipt(MTRequest *request, NSData *payload);
-void handleSendScreenshotNotification(MTRequest *request, NSData *payload);
 BOOL TGExtraIsPreparingReadContentsRequest(MTRequest *request);
 void TGExtraPrepareReadContentsRequest(MTRequest *request, NSString *account);
 NSData *TGExtraFakeResponseForPayload(NSData *payload);

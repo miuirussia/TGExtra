@@ -48,12 +48,26 @@ Releases include rootful, rootless and roothide DEBs, with a matching `.ipatch`
 for each package. Install the DEB or use the `.ipatch` with iOSPatchingEngine v4.
 Clients using Rust MTProto need a matching compatibility profile.
 
-Telegram/Swiftgram 13.1 or newer is required. The reference builds are Telegram
-13.1.1 (35634) and Swiftgram 13.1.1 (343, `app.swiftgram.ios`). TGExtra reads the
-installed app's TL schema; message policies require a compatible embedded table.
+The reference builds are Telegram 13.1.1 (35634) and Swiftgram 13.1.1
+(343, `app.swiftgram.ios`). Compatibility with newer builds depends on their
+protocol table, transport ABI and private UI interfaces, rather than the version
+number alone. TGExtra reads the installed app's TLS1 v3 schema, including outgoing
+method IDs, request field order, optional presence bits and synthetic response
+layouts. Request rewrites preserve fields introduced by the host. Missing or
+incompatible metadata leaves the original request or response unchanged; protocol
+privacy and message protection are unavailable without a compatible table.
 UI hooks depend on the client's private interfaces. The native decoder and Rust
 patches have passed fixture and patch-application checks; full integration still
 needs on-device validation.
+
+**Message Data → Debug Log** includes the current schema, method availability,
+native decoder, observed Rust integration and UI hook installation status.
+Finding a UI interface does not validate the Swift stored fields used by that
+feature. Standalone TL `true` flags (such as `noforwards`, `silent` and `voice`)
+are absent from TLS1 and retain reviewed bit mappings. Unknown protected-forward
+options are rejected. Changed Rust/native machine code still requires a reviewed
+profile; these checks are never relaxed automatically. A new client bundle ID
+must also be added to the injection filter and applicable patch profiles.
 
 Restart Telegram after installing an update to refresh iOS content restrictions.
 After changing the private-chat copy protection option, reopen the other person's
@@ -176,7 +190,9 @@ bash Tests/run.sh
 ```
 
 The suite covers privacy, message protection, edit history, account isolation,
-API compatibility and protected-copy recovery. Benchmarks are available separately:
+API compatibility and protected-copy recovery. It also mutates a host schema to
+check changed method/constructor IDs, reordered request fields, added required
+fields and moved optional presence bits. Benchmarks are available separately:
 
 ```sh
 bash Tests/run.sh --benchmark

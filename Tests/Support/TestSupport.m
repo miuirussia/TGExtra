@@ -1,7 +1,13 @@
+#import "RequestFixtures.h"
 #import "TestSupport.h"
 #import "../../Sources/tgapi/Headers.h"
 #import "../../Sources/tgapi/GhostExceptions.h"
 #import <objc/runtime.h>
+
+static void TGExtraApplyRequestPolicy(MTRequest *request, NSData *payload) {
+    NSData *response = TGExtraFakeResponseForPayload(payload);
+    if (response) request.fakeData = response;
+}
 
 // Every test write stays in memory, including writes from Swift queues.
 @interface MemoryDefaults : NSUserDefaults
@@ -152,28 +158,24 @@ void TGExtraTestHandlersAndMigration(void) {
 
     [TGExtraGhostExceptions addPeerId:123 name:@"Test" username:@"test"];
     MTRequest *request = [MTRequest new];
-    handleSetTyping(request, typingPayload(123, kActionIDTyping));
+    TGExtraApplyRequestPolicy(request, typingPayload(123, kActionIDTyping));
     NSCAssert(!request.fakeData, @"An exception sees typing");
-    handleSetTyping(request, typingPayload(456, kActionIDTyping));
+    TGExtraApplyRequestPolicy(request, typingPayload(456, kActionIDTyping));
     NSCAssert(request.fakeData, @"Other peers do not see typing");
     request.fakeData = nil;
     NSData *valid = typingPayload(456, kActionIDTyping);
     for (NSUInteger length = 0; length < valid.length; length++) {
-        handleSetTyping(request, [valid subdataWithRange:NSMakeRange(0, length)]);
+        TGExtraApplyRequestPolicy(request, [valid subdataWithRange:NSMakeRange(0, length)]);
         NSCAssert(!request.fakeData, @"Truncated requests pass through");
     }
     [defaults setBool:NO forKey:kGhostModeEnabled];
-    handleSetTyping(request, valid);
+    TGExtraApplyRequestPolicy(request, valid);
     NSCAssert(!request.fakeData, @"Master toggle disables filtering");
     [defaults setBool:YES forKey:kGhostModeEnabled];
     [defaults setBool:YES forKey:kDisableOnlineStatus];
     int32_t online[] = {kAccountUpdateOnlineStatus, (int32_t)0xbc799737};
-    handleOnlineStatus(request, [NSData dataWithBytes:online length:sizeof(online)]);
+    TGExtraApplyRequestPolicy(request, [NSData dataWithBytes:online length:sizeof(online)]);
     NSCAssert(request.fakeData, @"Online status remains hidden even with exceptions");
-    request.fakeData = nil;
-    [defaults setBool:YES forKey:kDisableScreenshotNotification];
-    handleSendScreenshotNotification(request, valid);
-    NSCAssert(request.fakeData.length > 4, @"Screenshot response is Updates, not Bool");
     [TGExtraGhostExceptions removePeerId:123];
     [defaults setBool:NO forKey:kDisableScreenshotNotification];
     NSLog(@"PASS defaults migration, ghost exceptions and request handlers");

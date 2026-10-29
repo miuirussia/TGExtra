@@ -13,6 +13,8 @@ NSString *TGExtraHistoryAccountForRequestService(id service);
 void TGExtraSetHistoryRequestService(id request, id service);
 NSString *TGExtraHistoryAccountForRequest(id request);
 BOOL TGExtraIsGhostException(int64_t userId);
+NSString *TGExtraRustCompatibilityStatus(void);
+NSDictionary<NSString *, NSString *> *TGExtraInstalledHookStatuses(void);
 
 #ifdef __cplusplus
 }

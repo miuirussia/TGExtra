@@ -121,7 +121,7 @@ extension TLParser {
         guard let result = Api.parse(reader, signature: signature) else {
             diagUnparsed(signature)
             if let patched = patchHistoryWithOpaquePeers(data, signature: signature) { return patched }
-            return patchUpdateVector(data, signature: signature)
+            return nil
         }
 
         guard reader.offset == UInt(data.length) else { return nil }
@@ -159,9 +159,9 @@ extension TLParser {
         processingHistoryAccount = account
         processingSettings = MessagePatches.Settings(snapshot: true)
         let settings = packetSettings
-        switch function {
-        case TLMethodID.messagesGetScheduledHistory, TLMethodID.messagesGetScheduledMessages: processingNamespace = 3
-        case TLMethodID.messagesGetQuickReplyMessages: processingNamespace = 5
+        switch TLMethodID(signature: function) {
+        case .messagesGetScheduledHistory, .messagesGetScheduledMessages: processingNamespace = 3
+        case .messagesGetQuickReplyMessages: processingNamespace = 5
         default: processingNamespace = 0
         }
         let validation = validationRequest(request as NSData?, function: function)
@@ -212,8 +212,6 @@ extension TLParser {
         return context.commit(output, allChanges: MessagePatches.shouldReserialize(changed: changed, settings: settings))
     }
 
-    static let peerLookupFunctions: Set<Int32> = [TLMethodID.usersGetFullUser, TLMethodID.usersGetUsers, TLMethodID.contactsResolveUsername]
-
     static func harvestPeerNames(_ data: NSData) {
         let reader = BufferReader(Buffer(data: data as Data))
         guard let signature = reader.readInt32() else { return }
@@ -246,13 +244,16 @@ extension TLParser {
             requestedMessageIds = previousIds
             requestedMessagePeer = previousPeer
         }
-        if peerLookupFunctions.contains(functionID.int32Value) {
+        let method = TLMethodID(signature: functionID.int32Value)
+        switch method {
+        case .usersGetFullUser, .usersGetUsers, .contactsResolveUsername:
             harvestPeerNames(data)
+        default: break
         }
         let namespace: Int32
-        switch functionID.int32Value {
-        case TLMethodID.messagesGetScheduledHistory, TLMethodID.messagesGetScheduledMessages: namespace = 3 // scheduled history / messages
-        case TLMethodID.messagesGetQuickReplyMessages: namespace = 5 // quick replies
+        switch method {
+        case .messagesGetScheduledHistory, .messagesGetScheduledMessages: namespace = 3 // scheduled history / messages
+        case .messagesGetQuickReplyMessages: namespace = 5 // quick replies
         default: namespace = 0
         }
         return withNamespace(namespace) { stripAntiSelfDestruct(data, account: account) }

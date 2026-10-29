@@ -48,55 +48,47 @@ final class ForwardCopyPlan: NSObject {
 
     @objc(initWithPayload:)
     init?(payload: Data) {
-        let reader = BufferReader(Buffer(data: payload))
-        guard reader.readInt32() == TLMethodID.messagesForward, let flags = reader.readInt32() else { return nil }
-        let supported: Int32 = [5, 6, 8, 9, 10, 11, 12, 13, 14, 19, 21, 22].reduce(0) { $0 | (1 << $1) }
-        guard flags & ~supported == 0 else { return nil }
-        func peer() -> Api.InputPeer? {
-            guard let signature = reader.readInt32() else { return nil }
-            return Api.parse(reader, signature: signature) as? Api.InputPeer
+        guard let record = HostSchema.shared?.request(payload), record.method == .messagesForward,
+              let descriptor = record.descriptor, let rawFlags = record["flags"] as? Int32,
+              let sourceRecord = record["fromPeer"] as? TLRecord, let source = Api.InputPeer(sourceRecord),
+              let destinationRecord = record["toPeer"] as? TLRecord, let destination = Api.InputPeer(destinationRecord),
+              let ids = record["id"] as? [Int32], !ids.isEmpty, ids.count <= 100, ids.allSatisfy({ $0 > 0 }),
+              let randomIds = record["randomId"] as? [Int64], randomIds.count == ids.count,
+              randomIds.allSatisfy({ $0 != 0 }), Set(ids).count == ids.count,
+              Set(randomIds).count == randomIds.count else { return nil }
+        let optionalBits = [("topMsgId", 9), ("replyTo", 22), ("scheduleDate", 10), ("sendAs", 13), ("allowPaidStars", 21)]
+        let knownFields = Set(["flags", "fromPeer", "toPeer", "id", "randomId"] + optionalBits.map { $0.0 })
+        guard descriptor.fields.allSatisfy({ knownFields.contains($0.name) || record[$0.name] == nil }) else { return nil }
+        // Standalone true flags are absent from TLS1. Keep their reviewed meanings,
+        // while resolving every value-bearing optional flag from the host table.
+        let booleanMask: Int32 = [5, 6, 8, 11, 12, 14, 19].reduce(0) { $0 | (1 << $1) }
+        var supported = booleanMask
+        var flags = rawFlags & booleanMask
+        for (name, bit) in optionalBits {
+            if let location = TLDataPatch(record).presenceFlag(for: name), location.field == "flags" {
+                supported |= location.mask
+                if record[name] != nil { flags |= 1 << bit }
+            }
         }
-        guard let source = peer(), reader.readInt32() == 481674261,
-              let count = reader.readInt32(), count > 0, count <= 100,
-              payload.count >= Int(count) * 12 + 24 else { return nil }
-        var ids = [Int32]()
-        for _ in 0..<count {
-            guard let id = reader.readInt32(), id > 0 else { return nil }
-            ids.append(id)
-        }
-        guard reader.readInt32() == 481674261, reader.readInt32() == count else { return nil }
-        var randomIds = [Int64]()
-        for _ in 0..<count {
-            guard let id = reader.readInt64(), id != 0 else { return nil }
-            randomIds.append(id)
-        }
-        guard Set(ids).count == ids.count, Set(randomIds).count == randomIds.count,
-              let destination = peer() else { return nil }
-        let topId = flags & (1 << 9) != 0 ? reader.readInt32() : nil
-        if flags & (1 << 9) != 0 && topId == nil { return nil }
-        var reply: Api.InputReplyTo?
-        if flags & (1 << 22) != 0 {
-            guard let signature = reader.readInt32(),
-                  let value = Api.parse(reader, signature: signature) as? Api.InputReplyTo else { return nil }
-            reply = value
-        }
+        guard rawFlags & ~supported == 0 else { return nil }
+        guard record.canRead("topMsgId", as: Int32?.self), record.canRead("replyTo", as: Api.InputReplyTo?.self),
+              record.canRead("scheduleDate", as: Int32?.self), record.canRead("sendAs", as: Api.InputPeer?.self),
+              record.canRead("allowPaidStars", as: Int64?.self) else { return nil }
+        let topId = record["topMsgId"] as? Int32
+        var reply = (record["replyTo"] as? TLRecord).flatMap(Api.InputReplyTo.init)
         if let topId = topId {
             if case let .inputReplyToMessage(value)? = reply {
-                value.flags |= 1
-                value.topMsgId = topId
+                guard TLDataPatch(value.record).setOptionalField("topMsgId", topId) || value.topMsgId == topId else { return nil }
             } else if reply == nil {
-                reply = .inputReplyToMessage(.init(flags: 1, replyToMsgId: topId, topMsgId: topId,
+                reply = .inputReplyToMessage(.init(flags: 0, replyToMsgId: topId, topMsgId: topId,
                     replyToPeerId: nil, quoteText: nil, quoteEntities: nil, quoteOffset: nil,
                     monoforumPeerId: nil, todoItemId: nil, pollOption: nil, quoteRich: nil))
+                reply?.record.normalizeOptionalFlags()
             } else { return nil }
         }
-        let schedule = flags & (1 << 10) != 0 ? reader.readInt32() : nil
-        if flags & (1 << 10) != 0 && schedule == nil { return nil }
-        let sendAs = flags & (1 << 13) != 0 ? peer() : nil
-        if flags & (1 << 13) != 0 && sendAs == nil { return nil }
-        let paid = flags & (1 << 21) != 0 ? reader.readInt64() : nil
-        if flags & (1 << 21) != 0 && paid == nil { return nil }
-        guard reader.offset == UInt(payload.count) else { return nil }
+        let schedule = record["scheduleDate"] as? Int32
+        let sendAs = (record["sendAs"] as? TLRecord).flatMap(Api.InputPeer.init)
+        let paid = record["allowPaidStars"] as? Int64
         self.flags = flags; self.source = source; self.destination = destination
         self.ids = ids; self.randomIds = randomIds; self.topId = topId
         self.reply = reply; self.schedule = schedule; self.sendAs = sendAs; self.paidStars = paid

@@ -1,3 +1,4 @@
+#import "Compatibility.h"
 #import <UIKit/UIKit.h>
 #import <UIKit/UIGestureRecognizerSubclass.h>
 #import <objc/runtime.h>
@@ -56,6 +57,9 @@ __attribute__((constructor)) static void TGExtraInstallDoubleTapReactions(void) 
         if (began && method_getNumberOfArguments(began) == 4 &&
             state && method_getNumberOfArguments(state) == 3) {
             %init(TGExtraDoubleTapReactions, TGExtraReactionTapRecognizer = recognizer);
+            TGExtraRecordHookStatus(@"Double-tap reactions", @"installed");
+        } else {
+            TGExtraRecordHookStatus(@"Double-tap reactions", @"unavailable: recognizer ABI");
         }
     });
 }

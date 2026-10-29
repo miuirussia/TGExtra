@@ -1,3 +1,4 @@
+#import "Compatibility.h"
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
 #import <objc/runtime.h>
@@ -59,6 +60,9 @@ __attribute__((constructor)) static void TGExtraInstallForceTLottie(void) {
             Method initializer = class_getInstanceMethod(rlottie,
                 @selector(initWithData:fitzModifier:colorReplacements:cacheKey:));
             TGExtraOriginalLottieInit = (TGExtraLottieInitializer)method_setImplementation(initializer, (IMP)TGExtraLottieInit);
+            TGExtraRecordHookStatus(@"tlottie", @"installed");
+        } else {
+            TGExtraRecordHookStatus(@"tlottie", @"unavailable: renderer ABI");
         }
     }
 }

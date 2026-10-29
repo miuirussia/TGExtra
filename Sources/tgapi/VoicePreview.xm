@@ -1,3 +1,4 @@
+#import "Compatibility.h"
 #import "Headers.h"
 #import "UI/Headers.h"
 #import "VoiceSelection.h"
@@ -195,5 +196,8 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
         class_getInstanceMethod(preview, @selector(layoutSubviews)) &&
         class_getInstanceMethod(preview, @selector(hitTest:withEvent:))) {
         %init(TGExtraVoicePreview);
+        TGExtraRecordHookStatus(@"Voice preview", @"installed");
+    } else {
+        TGExtraRecordHookStatus(@"Voice preview", @"unavailable: gallery interface");
     }
 }

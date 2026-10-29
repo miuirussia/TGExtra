@@ -968,24 +968,6 @@ public extension Api {
 }
 
 public extension Api {
-    enum EncryptedMessage: TLObjectView {
-        public static let tlTypeName = "EncryptedMessage"
-        case other(TLRecord)
-        public init?(_ record: TLRecord) {
-            guard record.typeName == Self.tlTypeName else { return nil }
-            switch record.constructorName {
-            default: self = .other(record)
-            }
-        }
-        public var record: TLRecord {
-            switch self {
-            case let .other(record): return record
-            }
-        }
-    }
-}
-
-public extension Api {
     enum EphemeralMessage: TLObjectView {
         public static let tlTypeName = "EphemeralMessage"
         public final class Cons_ephemeralMessage: TLPayload {
@@ -1082,24 +1064,6 @@ public extension Api {
         public var record: TLRecord {
             switch self {
             case let .ephemeralMessage(value): return value.record
-            case let .other(record): return record
-            }
-        }
-    }
-}
-
-public extension Api {
-    enum ForumTopic: TLObjectView {
-        public static let tlTypeName = "ForumTopic"
-        case other(TLRecord)
-        public init?(_ record: TLRecord) {
-            guard record.typeName == Self.tlTypeName else { return nil }
-            switch record.constructorName {
-            default: self = .other(record)
-            }
-        }
-        public var record: TLRecord {
-            switch self {
             case let .other(record): return record
             }
         }
@@ -5559,7 +5523,7 @@ public extension Api.messages {
                 get { record.value("messages") }
                 set { record.set("messages", newValue) }
             }
-            public var `topics`: [Api.ForumTopic] {
+            public var `topics`: [TLRecord] {
                 get { record.value("topics") }
                 set { record.set("topics", newValue) }
             }
@@ -5571,7 +5535,7 @@ public extension Api.messages {
                 get { record.value("users") }
                 set { record.set("users", newValue) }
             }
-            public init(`flags`: Int32, `pts`: Int32, `count`: Int32, `offsetIdOffset`: Int32?, `messages`: [Api.Message], `topics`: [Api.ForumTopic], `chats`: [Api.Chat], `users`: [Api.User]) {
+            public init(`flags`: Int32, `pts`: Int32, `count`: Int32, `offsetIdOffset`: Int32?, `messages`: [Api.Message], `topics`: [TLRecord], `chats`: [Api.Chat], `users`: [Api.User]) {
                 super.init(type: "messages.Messages", constructor: "channelMessages")
                 record.set("flags", `flags`)
                 record.set("pts", `pts`)
@@ -5590,7 +5554,7 @@ public extension Api.messages {
                 get { record.value("messages") }
                 set { record.set("messages", newValue) }
             }
-            public var `topics`: [Api.ForumTopic] {
+            public var `topics`: [TLRecord] {
                 get { record.value("topics") }
                 set { record.set("topics", newValue) }
             }
@@ -5602,7 +5566,7 @@ public extension Api.messages {
                 get { record.value("users") }
                 set { record.set("users", newValue) }
             }
-            public init(`messages`: [Api.Message], `topics`: [Api.ForumTopic], `chats`: [Api.Chat], `users`: [Api.User]) {
+            public init(`messages`: [Api.Message], `topics`: [TLRecord], `chats`: [Api.Chat], `users`: [Api.User]) {
                 super.init(type: "messages.Messages", constructor: "messages")
                 record.set("messages", `messages`)
                 record.set("topics", `topics`)
@@ -5637,7 +5601,7 @@ public extension Api.messages {
                 get { record.value("messages") }
                 set { record.set("messages", newValue) }
             }
-            public var `topics`: [Api.ForumTopic] {
+            public var `topics`: [TLRecord] {
                 get { record.value("topics") }
                 set { record.set("topics", newValue) }
             }
@@ -5649,7 +5613,7 @@ public extension Api.messages {
                 get { record.value("users") }
                 set { record.set("users", newValue) }
             }
-            public init(`flags`: Int32, `count`: Int32, `nextRate`: Int32?, `offsetIdOffset`: Int32?, `searchFlood`: Api.SearchPostsFlood?, `messages`: [Api.Message], `topics`: [Api.ForumTopic], `chats`: [Api.Chat], `users`: [Api.User]) {
+            public init(`flags`: Int32, `count`: Int32, `nextRate`: Int32?, `offsetIdOffset`: Int32?, `searchFlood`: Api.SearchPostsFlood?, `messages`: [Api.Message], `topics`: [TLRecord], `chats`: [Api.Chat], `users`: [Api.User]) {
                 super.init(type: "messages.Messages", constructor: "messagesSlice")
                 record.set("flags", `flags`)
                 record.set("count", `count`)
@@ -5668,11 +5632,11 @@ public extension Api.messages {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "channelMessages" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("count", as: Int32.self) && record.canRead("offsetIdOffset", as: Int32?.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
+            case "channelMessages" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("pts", as: Int32.self) && record.canRead("count", as: Int32.self) && record.canRead("offsetIdOffset", as: Int32?.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [TLRecord].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .channelMessages(Cons_channelMessages(record: record))
-            case "messages" where record.hasCompatibleView || (record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
+            case "messages" where record.hasCompatibleView || (record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [TLRecord].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .messages(Cons_messages(record: record))
-            case "messagesSlice" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("count", as: Int32.self) && record.canRead("nextRate", as: Int32?.self) && record.canRead("offsetIdOffset", as: Int32?.self) && record.canRead("searchFlood", as: Api.SearchPostsFlood?.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [Api.ForumTopic].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
+            case "messagesSlice" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("count", as: Int32.self) && record.canRead("nextRate", as: Int32?.self) && record.canRead("offsetIdOffset", as: Int32?.self) && record.canRead("searchFlood", as: Api.SearchPostsFlood?.self) && record.canRead("messages", as: [Api.Message].self) && record.canRead("topics", as: [TLRecord].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self)):
                 self = .messagesSlice(Cons_messagesSlice(record: record))
             default: self = .other(record)
             }
@@ -5992,7 +5956,7 @@ public extension Api.updates {
                 get { record.value("newMessages") }
                 set { record.set("newMessages", newValue) }
             }
-            public var `newEncryptedMessages`: [Api.EncryptedMessage] {
+            public var `newEncryptedMessages`: [TLRecord] {
                 get { record.value("newEncryptedMessages") }
                 set { record.set("newEncryptedMessages", newValue) }
             }
@@ -6012,7 +5976,7 @@ public extension Api.updates {
                 get { record.value("state") }
                 set { record.set("state", newValue) }
             }
-            public init(`newMessages`: [Api.Message], `newEncryptedMessages`: [Api.EncryptedMessage], `otherUpdates`: [Api.Update], `chats`: [Api.Chat], `users`: [Api.User], `state`: Api.updates.State) {
+            public init(`newMessages`: [Api.Message], `newEncryptedMessages`: [TLRecord], `otherUpdates`: [Api.Update], `chats`: [Api.Chat], `users`: [Api.User], `state`: Api.updates.State) {
                 super.init(type: "updates.Difference", constructor: "difference")
                 record.set("newMessages", `newMessages`)
                 record.set("newEncryptedMessages", `newEncryptedMessages`)
@@ -6029,7 +5993,7 @@ public extension Api.updates {
                 get { record.value("newMessages") }
                 set { record.set("newMessages", newValue) }
             }
-            public var `newEncryptedMessages`: [Api.EncryptedMessage] {
+            public var `newEncryptedMessages`: [TLRecord] {
                 get { record.value("newEncryptedMessages") }
                 set { record.set("newEncryptedMessages", newValue) }
             }
@@ -6049,7 +6013,7 @@ public extension Api.updates {
                 get { record.value("intermediateState") }
                 set { record.set("intermediateState", newValue) }
             }
-            public init(`newMessages`: [Api.Message], `newEncryptedMessages`: [Api.EncryptedMessage], `otherUpdates`: [Api.Update], `chats`: [Api.Chat], `users`: [Api.User], `intermediateState`: Api.updates.State) {
+            public init(`newMessages`: [Api.Message], `newEncryptedMessages`: [TLRecord], `otherUpdates`: [Api.Update], `chats`: [Api.Chat], `users`: [Api.User], `intermediateState`: Api.updates.State) {
                 super.init(type: "updates.Difference", constructor: "differenceSlice")
                 record.set("newMessages", `newMessages`)
                 record.set("newEncryptedMessages", `newEncryptedMessages`)
@@ -6065,9 +6029,9 @@ public extension Api.updates {
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
             switch record.constructorName {
-            case "difference" where record.hasCompatibleView || (record.canRead("newMessages", as: [Api.Message].self) && record.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("state", as: Api.updates.State.self)):
+            case "difference" where record.hasCompatibleView || (record.canRead("newMessages", as: [Api.Message].self) && record.canRead("newEncryptedMessages", as: [TLRecord].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("state", as: Api.updates.State.self)):
                 self = .difference(Cons_difference(record: record))
-            case "differenceSlice" where record.hasCompatibleView || (record.canRead("newMessages", as: [Api.Message].self) && record.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("intermediateState", as: Api.updates.State.self)):
+            case "differenceSlice" where record.hasCompatibleView || (record.canRead("newMessages", as: [Api.Message].self) && record.canRead("newEncryptedMessages", as: [TLRecord].self) && record.canRead("otherUpdates", as: [Api.Update].self) && record.canRead("chats", as: [Api.Chat].self) && record.canRead("users", as: [Api.User].self) && record.canRead("intermediateState", as: Api.updates.State.self)):
                 self = .differenceSlice(Cons_differenceSlice(record: record))
             default: self = .other(record)
             }
@@ -6309,39 +6273,42 @@ public extension Api.wallet {
 
 public extension Api.functions.channels {
     static func getMessages(`channel`: Api.InputChannel, `id`: [Api.InputMessage]) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "channels.getMessages")
+        let record = TLRecord(function: .channelsGetMessages)
         record.set("channel", `channel`)
         record.set("id", `id`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "channels.getMessages", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.channelsGetMessages.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.channels {
     static func readMessageContents(`channel`: Api.InputChannel, `id`: [Int32]) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "channels.readMessageContents")
+        let record = TLRecord(function: .channelsReadContents)
         record.set("channel", `channel`)
         record.set("id", `id`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "channels.readMessageContents", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.channelsReadContents.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.help {
     static func getAppConfig(`hash`: Int32) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "help.getAppConfig")
+        let record = TLRecord(function: .helpGetAppConfig)
         record.set("hash", `hash`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "help.getAppConfig", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.helpGetAppConfig.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func forwardMessages(`flags`: Int32, `fromPeer`: Api.InputPeer, `id`: [Int32], `randomId`: [Int64], `toPeer`: Api.InputPeer, `topMsgId`: Int32?, `replyTo`: Api.InputReplyTo?, `scheduleDate`: Int32?, `scheduleRepeatPeriod`: Int32?, `sendAs`: Api.InputPeer?, `quickReplyShortcut`: TLRecord?, `effect`: Int64?, `videoTimestamp`: Int32?, `allowPaidStars`: Int64?, `suggestedPost`: TLRecord?) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.forwardMessages")
+        let record = TLRecord(function: .messagesForward)
         record.set("flags", `flags`)
         record.set("fromPeer", `fromPeer`)
         record.set("id", `id`)
@@ -6357,71 +6324,77 @@ public extension Api.functions.messages {
         record.set("videoTimestamp", `videoTimestamp`)
         record.set("allowPaidStars", `allowPaidStars`)
         record.set("suggestedPost", `suggestedPost`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: ["flags": Int32(bitPattern: 32908800)])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.forwardMessages", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesForward.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func getMessages(`id`: [Api.InputMessage]) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.getMessages")
+        let record = TLRecord(function: .messagesGetMessages)
         record.set("id", `id`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.getMessages", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesGetMessages.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func readHistory(`peer`: Api.InputPeer, `maxId`: Int32) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.readHistory")
+        let record = TLRecord(function: .messagesReadHistory)
         record.set("peer", `peer`)
         record.set("maxId", `maxId`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.readHistory", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesReadHistory.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func readMentions(`flags`: Int32, `peer`: Api.InputPeer, `topMsgId`: Int32?) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.readMentions")
+        let record = TLRecord(function: .messagesReadMentions)
         record.set("flags", `flags`)
         record.set("peer", `peer`)
         record.set("topMsgId", `topMsgId`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: ["flags": Int32(bitPattern: 1)])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.readMentions", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesReadMentions.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func readMessageContents(`id`: [Int32]) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.readMessageContents")
+        let record = TLRecord(function: .messagesReadContents)
         record.set("id", `id`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.readMessageContents", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesReadContents.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func readReactions(`flags`: Int32, `peer`: Api.InputPeer, `topMsgId`: Int32?, `savedPeerId`: Api.InputPeer?) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.readReactions")
+        let record = TLRecord(function: .messagesReadReactions)
         record.set("flags", `flags`)
         record.set("peer", `peer`)
         record.set("topMsgId", `topMsgId`)
         record.set("savedPeerId", `savedPeerId`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: ["flags": Int32(bitPattern: 3)])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.readReactions", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesReadReactions.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func sendMedia(`flags`: Int32, `peer`: Api.InputPeer, `replyTo`: Api.InputReplyTo?, `media`: Api.InputMedia, `message`: String, `randomId`: Int64, `replyMarkup`: TLRecord?, `entities`: [Api.MessageEntity]?, `scheduleDate`: Int32?, `scheduleRepeatPeriod`: Int32?, `sendAs`: Api.InputPeer?, `quickReplyShortcut`: TLRecord?, `effect`: Int64?, `allowPaidStars`: Int64?, `suggestedPost`: TLRecord?) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.sendMedia")
+        let record = TLRecord(function: .messagesSendMedia)
         record.set("flags", `flags`)
         record.set("peer", `peer`)
         record.set("replyTo", `replyTo`)
@@ -6437,15 +6410,16 @@ public extension Api.functions.messages {
         record.set("effect", `effect`)
         record.set("allowPaidStars", `allowPaidStars`)
         record.set("suggestedPost", `suggestedPost`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: ["flags": Int32(bitPattern: 23471117)])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.sendMedia", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesSendMedia.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func sendMessage(`flags`: Int32, `peer`: Api.InputPeer, `replyTo`: Api.InputReplyTo?, `message`: String, `randomId`: Int64, `replyMarkup`: TLRecord?, `entities`: [Api.MessageEntity]?, `scheduleDate`: Int32?, `scheduleRepeatPeriod`: Int32?, `sendAs`: Api.InputPeer?, `quickReplyShortcut`: TLRecord?, `effect`: Int64?, `allowPaidStars`: Int64?, `suggestedPost`: TLRecord?, `richMessage`: TLRecord?) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.sendMessage")
+        let record = TLRecord(function: .messagesSendMessage)
         record.set("flags", `flags`)
         record.set("peer", `peer`)
         record.set("replyTo", `replyTo`)
@@ -6461,15 +6435,16 @@ public extension Api.functions.messages {
         record.set("allowPaidStars", `allowPaidStars`)
         record.set("suggestedPost", `suggestedPost`)
         record.set("richMessage", `richMessage`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: ["flags": Int32(bitPattern: 31859725)])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.sendMessage", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesSendMessage.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func sendMultiMedia(`flags`: Int32, `peer`: Api.InputPeer, `replyTo`: Api.InputReplyTo?, `multiMedia`: [Api.InputSingleMedia], `scheduleDate`: Int32?, `sendAs`: Api.InputPeer?, `quickReplyShortcut`: TLRecord?, `effect`: Int64?, `allowPaidStars`: Int64?) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.sendMultiMedia")
+        let record = TLRecord(function: .messagesSendMultiMedia)
         record.set("flags", `flags`)
         record.set("peer", `peer`)
         record.set("replyTo", `replyTo`)
@@ -6479,67 +6454,72 @@ public extension Api.functions.messages {
         record.set("quickReplyShortcut", `quickReplyShortcut`)
         record.set("effect", `effect`)
         record.set("allowPaidStars", `allowPaidStars`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: ["flags": Int32(bitPattern: 2499585)])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.sendMultiMedia", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesSendMultiMedia.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.messages {
     static func uploadMedia(`flags`: Int32, `businessConnectionId`: String?, `peer`: Api.InputPeer, `media`: Api.InputMedia) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "messages.uploadMedia")
+        let record = TLRecord(function: .messagesUploadMedia)
         record.set("flags", `flags`)
         record.set("businessConnectionId", `businessConnectionId`)
         record.set("peer", `peer`)
         record.set("media", `media`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: ["flags": Int32(bitPattern: 1)])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "messages.uploadMedia", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.messagesUploadMedia.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.upload {
     static func getFile(`flags`: Int32, `location`: Api.InputFileLocation, `offset`: Int64, `limit`: Int32) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "upload.getFile")
+        let record = TLRecord(function: .uploadGetFile)
         record.set("flags", `flags`)
         record.set("location", `location`)
         record.set("offset", `offset`)
         record.set("limit", `limit`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "upload.getFile", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.uploadGetFile.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.upload {
     static func saveBigFilePart(`fileId`: Int64, `filePart`: Int32, `fileTotalParts`: Int32, `bytes`: Buffer) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "upload.saveBigFilePart")
+        let record = TLRecord(function: .uploadSaveBigFilePart)
         record.set("fileId", `fileId`)
         record.set("filePart", `filePart`)
         record.set("fileTotalParts", `fileTotalParts`)
         record.set("bytes", `bytes`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "upload.saveBigFilePart", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.uploadSaveBigFilePart.rawValue, parameters: []), buffer)
     }
 }
 
 public extension Api.functions.upload {
     static func saveFilePart(`fileId`: Int64, `filePart`: Int32, `bytes`: Buffer) -> (FunctionDescription, Buffer) {
-        let record = TLRecord(function: "upload.saveFilePart")
+        let record = TLRecord(function: .uploadSaveFilePart)
         record.set("fileId", `fileId`)
         record.set("filePart", `filePart`)
         record.set("bytes", `bytes`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
         let buffer = Buffer()
         record.serialize(buffer, true)
-        return (FunctionDescription(name: "upload.saveFilePart", parameters: []), buffer)
+        return (FunctionDescription(name: TLMethodID.uploadSaveFilePart.rawValue, parameters: []), buffer)
     }
 }
 
 extension Api {
     static func supportsView(_ constructor: TLConstructor, type: String, types: [String]) -> Swift.Bool {
         switch (type, constructor.name) {
-        case ("updates.Difference", "difference"): return constructor.canRead("newMessages", as: [Api.Message].self, types: types) && constructor.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self, types: types) && constructor.canRead("otherUpdates", as: [Api.Update].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("state", as: Api.updates.State.self, types: types)
+        case ("updates.Difference", "difference"): return constructor.canRead("newMessages", as: [Api.Message].self, types: types) && constructor.canRead("newEncryptedMessages", as: [TLRecord].self, types: types) && constructor.canRead("otherUpdates", as: [Api.Update].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("state", as: Api.updates.State.self, types: types)
         case ("InputMedia", "inputMediaUploadedDocument"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("file", as: Api.InputFile.self, types: types) && constructor.canRead("thumb", as: Api.InputFile?.self, types: types) && constructor.canRead("mimeType", as: String.self, types: types) && constructor.canRead("attributes", as: [Api.DocumentAttribute].self, types: types) && constructor.canRead("stickers", as: [Api.InputDocument]?.self, types: types) && constructor.canRead("videoCover", as: Api.InputPhoto?.self, types: types) && constructor.canRead("videoTimestamp", as: Int32?.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types)
         case ("MessageMedia", "messageMediaDice"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("value", as: Int32.self, types: types) && constructor.canRead("emoticon", as: String.self, types: types) && constructor.canRead("gameOutcome", as: TLRecord?.self, types: types)
         case ("upload.File", "file"): return constructor.canRead("type", as: Api.storage.FileType.self, types: types) && constructor.canRead("mtime", as: Int32.self, types: types) && constructor.canRead("bytes", as: Buffer.self, types: types)
@@ -6552,7 +6532,7 @@ extension Api {
         case ("Reaction", "reactionEmoji"): return constructor.canRead("emoticon", as: String.self, types: types)
         case ("Update", "updateEditChannelMessage"): return constructor.canRead("message", as: Api.Message.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
         case ("InputSingleMedia", "inputSingleMedia"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("media", as: Api.InputMedia.self, types: types) && constructor.canRead("randomId", as: Int64.self, types: types) && constructor.canRead("message", as: String.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types)
-        case ("messages.Messages", "messages"): return constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [Api.ForumTopic].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("messages.Messages", "messages"): return constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [TLRecord].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
         case ("InputUser", "inputUserFromMessage"): return constructor.canRead("peer", as: Api.InputPeer.self, types: types) && constructor.canRead("msgId", as: Int32.self, types: types) && constructor.canRead("userId", as: Int64.self, types: types)
         case ("Update", "updateMessageReactions"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("peer", as: Api.Peer.self, types: types) && constructor.canRead("msgId", as: Int32.self, types: types) && constructor.canRead("topMsgId", as: Int32?.self, types: types) && constructor.canRead("savedPeerId", as: Api.Peer?.self, types: types) && constructor.canRead("reactions", as: Api.MessageReactions.self, types: types)
         case ("Update", "updateNewMessage"): return constructor.canRead("message", as: Api.Message.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
@@ -6591,7 +6571,7 @@ extension Api {
         case ("Update", "updateDeleteEphemeralMessages"): return constructor.canRead("peer", as: Api.Peer.self, types: types) && constructor.canRead("ids", as: [Int32].self, types: types)
         case ("Peer", "peerUser"): return constructor.canRead("userId", as: Int64.self, types: types)
         case ("InputChannel", "inputChannelFromMessage"): return constructor.canRead("peer", as: Api.InputPeer.self, types: types) && constructor.canRead("msgId", as: Int32.self, types: types) && constructor.canRead("channelId", as: Int64.self, types: types)
-        case ("messages.Messages", "messagesSlice"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("count", as: Int32.self, types: types) && constructor.canRead("nextRate", as: Int32?.self, types: types) && constructor.canRead("offsetIdOffset", as: Int32?.self, types: types) && constructor.canRead("searchFlood", as: Api.SearchPostsFlood?.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [Api.ForumTopic].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("messages.Messages", "messagesSlice"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("count", as: Int32.self, types: types) && constructor.canRead("nextRate", as: Int32?.self, types: types) && constructor.canRead("offsetIdOffset", as: Int32?.self, types: types) && constructor.canRead("searchFlood", as: Api.SearchPostsFlood?.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [TLRecord].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
         case ("Update", "updateNewChannelMessage"): return constructor.canRead("message", as: Api.Message.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
         case ("users.Users", "users"): return constructor.canRead("users", as: [Api.User].self, types: types)
         case ("DocumentAttribute", "documentAttributeSticker"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("alt", as: String.self, types: types) && constructor.canRead("stickerset", as: TLRecord.self, types: types) && constructor.canRead("maskCoords", as: TLRecord?.self, types: types)
@@ -6646,7 +6626,7 @@ extension Api {
         case ("messages.DiscussionMessage", "discussionMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("maxId", as: Int32?.self, types: types) && constructor.canRead("readInboxMaxId", as: Int32?.self, types: types) && constructor.canRead("readOutboxMaxId", as: Int32?.self, types: types) && constructor.canRead("unreadCount", as: Int32.self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
         case ("InputMessage", "inputMessageID"): return constructor.canRead("id", as: Int32.self, types: types)
         case ("InputMedia", "inputMediaDocument"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Api.InputDocument.self, types: types) && constructor.canRead("videoCover", as: Api.InputPhoto?.self, types: types) && constructor.canRead("videoTimestamp", as: Int32?.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types) && constructor.canRead("query", as: String?.self, types: types)
-        case ("updates.Difference", "differenceSlice"): return constructor.canRead("newMessages", as: [Api.Message].self, types: types) && constructor.canRead("newEncryptedMessages", as: [Api.EncryptedMessage].self, types: types) && constructor.canRead("otherUpdates", as: [Api.Update].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("intermediateState", as: Api.updates.State.self, types: types)
+        case ("updates.Difference", "differenceSlice"): return constructor.canRead("newMessages", as: [Api.Message].self, types: types) && constructor.canRead("newEncryptedMessages", as: [TLRecord].self, types: types) && constructor.canRead("otherUpdates", as: [Api.Update].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("intermediateState", as: Api.updates.State.self, types: types)
         case ("storage.FileType", "fileUnknown"): return constructor.fields.isEmpty
         case ("User", "user"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("flags2", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64?.self, types: types) && constructor.canRead("firstName", as: String?.self, types: types) && constructor.canRead("lastName", as: String?.self, types: types) && constructor.canRead("username", as: String?.self, types: types) && constructor.canRead("phone", as: String?.self, types: types) && constructor.canRead("photo", as: TLRecord?.self, types: types) && constructor.canRead("status", as: TLRecord?.self, types: types) && constructor.canRead("botInfoVersion", as: Int32?.self, types: types) && constructor.canRead("restrictionReason", as: [Api.RestrictionReason]?.self, types: types) && constructor.canRead("botInlinePlaceholder", as: String?.self, types: types) && constructor.canRead("langCode", as: String?.self, types: types) && constructor.canRead("emojiStatus", as: TLRecord?.self, types: types) && constructor.canRead("usernames", as: [Api.Username]?.self, types: types) && constructor.canRead("storiesMaxId", as: TLRecord?.self, types: types) && constructor.canRead("color", as: TLRecord?.self, types: types) && constructor.canRead("profileColor", as: TLRecord?.self, types: types) && constructor.canRead("botActiveUsers", as: Int32?.self, types: types) && constructor.canRead("botVerificationIcon", as: Int64?.self, types: types) && constructor.canRead("sendPaidMessagesStars", as: Int64?.self, types: types) && constructor.canRead("linkedCommunityId", as: Int64?.self, types: types)
         case ("Update", "updateChannelAvailableMessages"): return constructor.canRead("channelId", as: Int64.self, types: types) && constructor.canRead("availableMinId", as: Int32.self, types: types)
@@ -6663,7 +6643,7 @@ extension Api {
         case ("JSONObjectValue", "jsonObjectValue"): return constructor.canRead("key", as: String.self, types: types) && constructor.canRead("value", as: Api.JSONValue.self, types: types)
         case ("Update", "updateDeleteChannelMessages"): return constructor.canRead("channelId", as: Int64.self, types: types) && constructor.canRead("messages", as: [Int32].self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types)
         case ("JSONValue", "jsonBool"): return constructor.canRead("value", as: Api.Bool.self, types: types)
-        case ("messages.Messages", "channelMessages"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("count", as: Int32.self, types: types) && constructor.canRead("offsetIdOffset", as: Int32?.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [Api.ForumTopic].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
+        case ("messages.Messages", "channelMessages"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("count", as: Int32.self, types: types) && constructor.canRead("offsetIdOffset", as: Int32?.self, types: types) && constructor.canRead("messages", as: [Api.Message].self, types: types) && constructor.canRead("topics", as: [TLRecord].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types)
         case ("MessageEntity", "messageEntityCustomEmoji"): return constructor.canRead("offset", as: Int32.self, types: types) && constructor.canRead("length", as: Int32.self, types: types) && constructor.canRead("documentId", as: Int64.self, types: types)
         case ("Config", "config"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("expires", as: Int32.self, types: types) && constructor.canRead("testMode", as: Api.Bool.self, types: types) && constructor.canRead("thisDc", as: Int32.self, types: types) && constructor.canRead("dcOptions", as: [TLRecord].self, types: types) && constructor.canRead("dcTxtDomainName", as: String.self, types: types) && constructor.canRead("chatSizeMax", as: Int32.self, types: types) && constructor.canRead("megagroupSizeMax", as: Int32.self, types: types) && constructor.canRead("forwardedCountMax", as: Int32.self, types: types) && constructor.canRead("onlineUpdatePeriodMs", as: Int32.self, types: types) && constructor.canRead("offlineBlurTimeoutMs", as: Int32.self, types: types) && constructor.canRead("offlineIdleTimeoutMs", as: Int32.self, types: types) && constructor.canRead("onlineCloudTimeoutMs", as: Int32.self, types: types) && constructor.canRead("notifyCloudDelayMs", as: Int32.self, types: types) && constructor.canRead("notifyDefaultDelayMs", as: Int32.self, types: types) && constructor.canRead("pushChatPeriodMs", as: Int32.self, types: types) && constructor.canRead("pushChatLimit", as: Int32.self, types: types) && constructor.canRead("editTimeLimit", as: Int32.self, types: types) && constructor.canRead("revokeTimeLimit", as: Int32.self, types: types) && constructor.canRead("revokePmTimeLimit", as: Int32.self, types: types) && constructor.canRead("ratingEDecay", as: Int32.self, types: types) && constructor.canRead("stickersRecentLimit", as: Int32.self, types: types) && constructor.canRead("channelsReadMediaPeriod", as: Int32.self, types: types) && constructor.canRead("tmpSessions", as: Int32?.self, types: types) && constructor.canRead("callReceiveTimeoutMs", as: Int32.self, types: types) && constructor.canRead("callRingTimeoutMs", as: Int32.self, types: types) && constructor.canRead("callConnectTimeoutMs", as: Int32.self, types: types) && constructor.canRead("callPacketTimeoutMs", as: Int32.self, types: types) && constructor.canRead("meUrlPrefix", as: String.self, types: types) && constructor.canRead("autoupdateUrlPrefix", as: String?.self, types: types) && constructor.canRead("gifSearchUsername", as: String?.self, types: types) && constructor.canRead("venueSearchUsername", as: String?.self, types: types) && constructor.canRead("imgSearchUsername", as: String?.self, types: types) && constructor.canRead("staticMapsProvider", as: String?.self, types: types) && constructor.canRead("captionLengthMax", as: Int32.self, types: types) && constructor.canRead("messageLengthMax", as: Int32.self, types: types) && constructor.canRead("webfileDcId", as: Int32.self, types: types) && constructor.canRead("suggestedLangCode", as: String?.self, types: types) && constructor.canRead("langPackVersion", as: Int32?.self, types: types) && constructor.canRead("baseLangPackVersion", as: Int32?.self, types: types) && constructor.canRead("reactionsDefault", as: Api.Reaction?.self, types: types) && constructor.canRead("autologinToken", as: String?.self, types: types)
         case ("RestrictionReason", "restrictionReason"): return constructor.canRead("platform", as: String.self, types: types) && constructor.canRead("reason", as: String.self, types: types) && constructor.canRead("text", as: String.self, types: types)
@@ -6709,9 +6689,7 @@ extension Api {
         case "Dialog": return Api.Dialog(record) ?? .other(record)
         case "Document": return Api.Document(record) ?? .other(record)
         case "DocumentAttribute": return Api.DocumentAttribute(record) ?? .other(record)
-        case "EncryptedMessage": return Api.EncryptedMessage(record) ?? .other(record)
         case "EphemeralMessage": return Api.EphemeralMessage(record) ?? .other(record)
-        case "ForumTopic": return Api.ForumTopic(record) ?? .other(record)
         case "InputChannel": return Api.InputChannel(record) ?? .other(record)
         case "InputDocument": return Api.InputDocument(record) ?? .other(record)
         case "InputFile": return Api.InputFile(record) ?? .other(record)

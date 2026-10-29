@@ -13,6 +13,15 @@ enum TLFlag: String {
     case noForwardsPeerEnabled = "noforwards_peer_enabled"
 
     func location(in record: TLRecord) -> TLFlagLocation? {
+        guard let location = reviewedLocation(in: record), let descriptor = record.descriptor,
+              let index = descriptor.fieldIndices[location.field], descriptor.fields[index].kind == 0,
+              !descriptor.fields.contains(where: { $0.flagsIndex == index && $0.flagBit == location.bit }) else { return nil }
+        // TLS1 omits standalone true flags. If a new host uses a reviewed bit
+        // for a value-bearing field, leave it intact rather than dropping data.
+        return location
+    }
+
+    private func reviewedLocation(in record: TLRecord) -> TLFlagLocation? {
         let constructor = record.typeName + "." + record.constructorName
         switch self {
         case .noForwards:

@@ -128,26 +128,18 @@ extension TLParser {
     }
 
     static func validationRequest(_ payload: NSData?, function: Int32) -> (ids: [Int32], peer: Int64?)? {
-        guard function == TLMethodID.messagesGetMessages || function == TLMethodID.channelsGetMessages, let payload = payload else { return nil }
-        let reader = BufferReader(Buffer(nsData: payload))
-        guard reader.readInt32() == function else { return nil }
+        guard let method = TLMethodID(signature: function),
+              method == .messagesGetMessages || method == .channelsGetMessages,
+              let payload = payload, let record = request(payload), record.descriptor?.signature == function,
+              let inputs = record["id"] as? [TLRecord] else { return nil }
         var peer: Int64?
-        if function == TLMethodID.channelsGetMessages {
-            guard let constructor = reader.readInt32(), let channel = Api.parse(reader, signature: constructor) as? Api.InputChannel else { return nil }
-            switch channel {
-            case let .inputChannel(data): peer = -(1_000_000_000_000 + data.channelId)
-            case let .inputChannelFromMessage(data): peer = -(1_000_000_000_000 + data.channelId)
-            default: return nil
-            }
+        if method == .channelsGetMessages {
+            guard let channel = record["channel"] as? TLRecord,
+                  ["inputChannel", "inputChannelFromMessage"].contains(channel.constructorName),
+                  let id = channel["channelId"] as? Int64, id > 0, id <= Int64.max - 1_000_000_000_000 else { return nil }
+            peer = -(1_000_000_000_000 + id)
         }
-        guard reader.readInt32() == 481674261, let count = reader.readInt32(), count >= 0,
-              Int(count) <= (payload.length - Int(reader.offset)) / 4 else { return nil }
-        var ids = [Int32]()
-        for _ in 0..<count {
-            guard let constructor = reader.readInt32(), let input = Api.parse(reader, signature: constructor) as? Api.InputMessage else { return nil }
-            if case let .inputMessageID(data) = input { ids.append(data.id) }
-        }
-        guard reader.offset == UInt(payload.length) else { return nil }
+        let ids = inputs.compactMap { $0.constructorName == "inputMessageID" ? $0["id"] as? Int32 : nil }
         return (ids, peer)
     }
 }

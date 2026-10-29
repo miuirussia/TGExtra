@@ -49,10 +49,21 @@ final class TLConstructor {
 }
 
 final class HostSchema {
-    static let shared: HostSchema? = TGExtraHostTLSchema().flatMap { HostSchema(image: $0) }
+    private static let installed: HostSchema? = TGExtraHostTLSchema().flatMap { HostSchema(image: $0) }
+    #if TGEXTRA_TESTING
+    static var testSchema: HostSchema?
+    #endif
+    static var shared: HostSchema? {
+        #if TGEXTRA_TESTING
+        if let schema = testSchema { return schema }
+        #endif
+        return installed
+    }
     let types: [String]
     let constructors: [Int32: TLConstructor]
     let functions: [String: TLConstructor]
+    let functionsBySignature: [Int32: TLConstructor]
+    let functionResults: [String: TLField]
     private let constructorsByName: [String: TLConstructor]
     private let bareConstructors: [Int: [TLConstructor]]
 
@@ -136,18 +147,25 @@ final class HostSchema {
             guard let values = bare[field.typeIndex], field.constructorIndex < values.count else { return nil }
         }
         var functions = [String: TLConstructor]()
+        var signatures = [Int32: TLConstructor](), results = [String: TLField]()
         for i in 0..<functionCount {
             let p = functionsOffset + i * 28
             guard let name = string(u32(p)), functions[name] == nil,
                   let values = fieldSlice(u32(p + 8), u16(p + 12)), u32(p + 16) < fields.count else { return nil }
-            functions[name] = TLConstructor(name: name, signature: Int32(bitPattern: UInt32(u32(p + 4))),
-                                            typeIndex: 65535, caseIndex: 0, fields: values)
+            let signature = Int32(bitPattern: UInt32(u32(p + 4)))
+            guard signatures[signature] == nil else { return nil }
+            let function = TLConstructor(name: name, signature: signature, typeIndex: 65535, caseIndex: 0, fields: values)
+            functions[name] = function
+            signatures[signature] = function
+            results[name] = fields[u32(p + 16)]
         }
         self.types = types
         self.constructors = constructors
         self.constructorsByName = names
         self.bareConstructors = bare
         self.functions = functions
+        self.functionsBySignature = signatures
+        self.functionResults = results
     }
 
     func constructor(type: String, name: String) -> TLConstructor? { constructorsByName[type + "." + name] }

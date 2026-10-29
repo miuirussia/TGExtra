@@ -1,3 +1,4 @@
+#import "Compatibility.h"
 #import "Headers.h"
 #import "UI/Headers.h"
 #import "VoiceSelection.h"
@@ -58,5 +59,10 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
 %ctor {
     Class cls = objc_getClass("TGMediaAssetsController");
     Method send = class_getClassMethod(cls, NSSelectorFromString(@"resultSignalsForSelectionContext:editingContext:intent:currentItem:storeAssets:convertToJpeg:descriptionGenerator:saveEditedPhotos:"));
-    if (send && method_getNumberOfArguments(send) == 10) { %init(TGExtraVoiceSend); }
+    if (send && method_getNumberOfArguments(send) == 10) {
+        %init(TGExtraVoiceSend);
+        TGExtraRecordHookStatus(@"Voice send", @"installed");
+    } else {
+        TGExtraRecordHookStatus(@"Voice send", @"unavailable: picker send interface");
+    }
 }

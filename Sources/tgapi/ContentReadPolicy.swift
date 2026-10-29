@@ -45,35 +45,18 @@ extension TLParser {
     }
 
     @objc(readMessageContentsPolicy:account:) static func readMessageContentsPolicy(_ payload: NSData, account: String?) -> [String: NSData]? {
-        guard payload.length >= 4 else { return nil }
-        var function: Int32 = 0
-        payload.getBytes(&function, length: 4)
-        function = Int32(littleEndian: function)
-        guard function == TLMethodID.messagesReadContents || function == TLMethodID.channelsReadContents else { return nil }
+        guard let method = requestMethod(payload),
+              method == .messagesReadContents || method == .channelsReadContents else { return nil }
         let settings = MessagePatches.Settings(snapshot: true)
-        guard settings.filtersContentReceipts else { return nil }
-        let reader = BufferReader(Buffer(nsData: payload))
-        _ = reader.readInt32()
+        guard settings.filtersContentReceipts,
+              let record = request(payload), let ids = record["id"] as? [Int32], !ids.isEmpty else { return nil }
         var peer = cloudScope
-        if function == TLMethodID.channelsReadContents {
-            guard let constructor = reader.readInt32(),
-                  let channel = Api.parse(reader, signature: constructor) as? Api.InputChannel else { return nil }
-            let channelId: Int64
-            switch channel {
-            case let .inputChannel(data): channelId = data.channelId
-            case let .inputChannelFromMessage(data): channelId = data.channelId
-            default: return nil
-            }
-            guard channelId > 0, channelId <= Int64.max - 1_000_000_000_000 else { return nil }
+        if method == .channelsReadContents {
+            guard let channel = record["channel"] as? TLRecord,
+                  ["inputChannel", "inputChannelFromMessage"].contains(channel.constructorName),
+                  let channelId = channel["channelId"] as? Int64,
+                  channelId > 0, channelId <= Int64.max - 1_000_000_000_000 else { return nil }
             peer = -(1_000_000_000_000 + channelId)
-        }
-        let prefixLength = Int(reader.offset)
-        guard reader.readInt32() == 481674261, let count = reader.readInt32(), count > 0,
-              payload.length - Int(reader.offset) == Int(count) * 4 else { return nil }
-        var ids = [Int32]()
-        for _ in 0..<count {
-            guard let id = reader.readInt32() else { return nil }
-            ids.append(id)
         }
         processingLock.lock()
         let allowed = ids.filter {
@@ -87,20 +70,12 @@ extension TLParser {
         processingLock.unlock()
         guard allowed.count != ids.count else { return nil }
         if allowed.isEmpty {
-            let response = Buffer()
-            if function == TLMethodID.channelsReadContents {
-                response.appendInt32(Int32(bitPattern: 0x997275b5)) // boolTrue
-            } else {
-                response.appendInt32(Int32(bitPattern: 0x84d19185)) // messages.affectedMessages
-                response.appendInt32(0)
-                response.appendInt32(0)
-            }
-            return ["response": response.makeData() as NSData]
+            guard let response = emptyResponse(method: method,
+                constructor: method == .channelsReadContents ? "boolTrue" : "affectedMessages") else { return nil }
+            return ["response": response]
         }
-        let filtered = Buffer(data: payload.subdata(with: NSRange(location: 0, length: prefixLength)))
-        filtered.appendInt32(481674261)
-        filtered.appendInt32(Int32(allowed.count))
-        for id in allowed { filtered.appendInt32(id) }
-        return ["payload": filtered.makeData() as NSData]
+        record["id"] = allowed
+        guard let filtered = record.serializedData() else { return nil }
+        return ["payload": filtered as NSData]
     }
 }

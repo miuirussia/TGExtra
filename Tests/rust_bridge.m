@@ -1,3 +1,4 @@
+#import "Support/RequestFixtures.h"
 #import "../Sources/tgapi/RustBridge.h"
 #import "../Sources/tgapi/Headers.h"
 
