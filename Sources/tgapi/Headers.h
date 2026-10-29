@@ -10,13 +10,7 @@
 + (void)loadPersistedIds;
 + (void)clearMessageData;
 + (NSNumber *)getMessageId:(id)item;
-+ (NSNumber *)getCurrentUserId;
-+ (NSNumber *)getOwnUserIdFromNode:(id)node;
-+ (NSDictionary<NSString *, NSString *> *)getPeerDisplayInfoFromNode:(id)node;
-+ (NSDictionary<NSString *, NSString *> *)cachedPeerInfoForId:(NSNumber *)peerId;
-+ (NSString *)debugPeerCandidates:(id)node;
 + (NSNumber *)getMessageIdFromNode:(id)node;
-+ (NSString *)getDebugDumpFromNode:(id)node;
 + (BOOL)isDeleted:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSData *)stripAntiSelfDestruct:(NSData *)data account:(NSString *)account;
 + (void)registerVoiceUploadWithFileName:(NSString *)fileName
@@ -32,10 +26,9 @@
 + (NSNumber *)getMessagePeerKeyFromNode:(id)node;
 + (NSString *)getHistoryAccountFromNode:(id)node;
 + (NSNumber *)getMessageNamespaceFromNode:(id)node;
-// Internal message UI bridge; existing public selectors remain available.
+// Internal message UI bridge.
 + (NSDictionary<NSString *, id> *)messageStateFromNode:(id)node observe:(BOOL)observe;
 + (BOOL)hasAdMessageFromNode:(id)node;
-+ (NSDictionary<NSString *, id> *)editHistoryButtonColorsFromNode:(id)node;
 @end
 
 @interface MTRpcError : NSObject

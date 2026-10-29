@@ -6,8 +6,8 @@ final class TGExtraRecordingControls: NSObject {
         var controls: [String: Any] = [:]
         for name in ["micButton", "micButtonBackgroundView", "micButtonTintMaskView",
                      "sendContainerNode", "expandMediaInputButton", "expandMediaInputButtonBackgroundView"] {
-            if let value = RenderedMessageReader.storedField(name, in: node) {
-                controls[name] = RenderedMessageReader.unwrapOptional(value)
+            if let value = HostValueReader.storedField(name, in: node) {
+                controls[name] = HostValueReader.unwrapOptional(value)
             }
         }
         return controls

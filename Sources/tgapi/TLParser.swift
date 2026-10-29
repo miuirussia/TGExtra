@@ -4,8 +4,6 @@ import os
 
 @objc(TLParser)
 class TLParser: NSObject {
-    @objc static var sharedContext: Any?
-
     private static let cloudScope: Int64 = 0
     private static let markerUdKey = "TGExtraMessageMarkersByAccount"
     // Protected by processingLock. Keep timer classifications until explicitly
@@ -390,7 +388,7 @@ class TLParser: NSObject {
 
     private static func isOwnAuthor(_ author: Api.Peer?, account: String?) -> Bool {
         guard let account = account, case let .peerUser(data)? = author,
-              let ownId = UserDefaults.standard.dictionary(forKey: ownUserIdsKey)?[account] as? NSNumber else { return false }
+              let ownId = PeerInfoStore.ownUserId(for: account) else { return false }
         return data.userId == ownId.int64Value
     }
 
@@ -539,33 +537,6 @@ class TLParser: NSObject {
         return (final, newChats, restored || changedChats || changedTTL)
     }
 
-    /// Look up stored fields only, including Optional values and base classes.
-    /// Never asks Telegram for its computed message/firstMessage properties.
-    /// Reuse the current chat's side-button palette without linking Telegram UI types.
-    @objc static func editHistoryButtonColorsFromNode(_ node: Any) -> [String: Any]? {
-        var theme: Any = node
-        for field in ["item", "presentationData", "theme"] {
-            guard let next = RenderedMessageReader.storedField(field, in: theme) else { return nil }
-            theme = RenderedMessageReader.unwrapOptional(next)
-        }
-        guard let wallpaper = RenderedMessageReader.storedField("wallpaper", in: theme),
-              let baseTheme = RenderedMessageReader.storedField("theme", in: theme),
-              let chat = RenderedMessageReader.storedField("chat", in: baseTheme),
-              let message = RenderedMessageReader.storedField("message", in: chat) else { return nil }
-        let wallpaperCase = Mirror(reflecting: RenderedMessageReader.unwrapOptional(wallpaper)).children.first
-        // This is the same special case as Telegram's bubbleVariableColor.
-        let plainWhite = wallpaperCase.map { $0.label == "color" && RenderedMessageReader.rawNumber($0.value) == 0xffffff } ?? false
-        let variant = plainWhite ? "withoutWallpaper" : "withWallpaper"
-        var colors: [String: Any] = [:]
-        for (key, field) in [("fill", "shareButtonFillColor"), ("foreground", "shareButtonForegroundColor"),
-                             ("stroke", "shareButtonStrokeColor")] {
-            guard let variable = RenderedMessageReader.storedField(field, in: message),
-                  let color = RenderedMessageReader.storedField(variant, in: variable) else { continue }
-            colors[key] = color
-        }
-        return colors.isEmpty ? nil : colors
-    }
-
     @objc static func getMessageId(from item: Any) -> NSNumber? {
         return RenderedMessageReader.renderedMessages(from: item).first.map { NSNumber(value: $0.id) }
     }
@@ -585,9 +556,9 @@ class TLParser: NSObject {
     /// TGExtra-internal bridge. One read supplies every component of identity.
     /// Observations use explicit keys and never change the network parser's scope.
     @objc(messageStateFromNode:observe:) static func messageState(from node: Any, observe: Bool) -> [String: Any]? {
-        guard let item = RenderedMessageReader.storedField("item", in: node) else { return nil }
+        guard let item = HostValueReader.storedField("item", in: node) else { return nil }
         let messages = RenderedMessageReader.renderedMessages(from: item)
-        guard let first = messages.first, let account = findHistoryAccount(in: item, depth: 0) else { return nil }
+        guard let first = messages.first, let account = HostAccountReader.account(in: item, depth: 0) else { return nil }
         if observe {
             for message in messages {
                 recordRenderedMessage(message, account: account)
@@ -599,7 +570,7 @@ class TLParser: NSObject {
 
     @objc static func hasAdMessageFromNode(_ node: Any) -> Bool {
         return RenderedMessageReader.renderedMessagesFromNode(node).contains { message in
-            let attributes = RenderedMessageReader.storedField("attributes", in: message.value) as? [Any] ?? []
+            let attributes = HostValueReader.storedField("attributes", in: message.value) as? [Any] ?? []
             return attributes.contains { String(reflecting: type(of: $0)).split(separator: ".").last == "AdMessageAttribute" }
         }
     }
@@ -663,12 +634,12 @@ class TLParser: NSObject {
         // A wire message has one primary attachment. Extra local media (for
         // example an unsupported wrapper) must not masquerade as its absence.
         guard media.count == 1, let value = media.first else { return nil }
-        if let image = RenderedMessageReader.storedField("imageId", in: value),
-           let id = RenderedMessageReader.storedField("id", in: image).flatMap({ RenderedMessageReader.rawNumber($0) }) {
+        if let image = HostValueReader.storedField("imageId", in: value),
+           let id = HostValueReader.storedField("id", in: image).flatMap({ HostValueReader.rawNumber($0) }) {
             return Data("photo:\(id)".utf8)
         }
-        if let file = RenderedMessageReader.storedField("fileId", in: value),
-           let id = RenderedMessageReader.storedField("id", in: file).flatMap({ RenderedMessageReader.rawNumber($0) }) {
+        if let file = HostValueReader.storedField("fileId", in: value),
+           let id = HostValueReader.storedField("id", in: file).flatMap({ HostValueReader.rawNumber($0) }) {
             return Data("document:\(id)".utf8)
         }
         return nil
@@ -676,32 +647,32 @@ class TLParser: NSObject {
 
     private static func recordRenderedMessage(_ message: RenderedMessage, account: String) {
         // Postbox MessageFlags.Incoming is bit 2 (wire Message.out is bit 1).
-        guard let flags = RenderedMessageReader.storedField("flags", in: message.value).flatMap({ RenderedMessageReader.rawNumber($0) }) else { return }
+        guard let flags = HostValueReader.storedField("flags", in: message.value).flatMap({ HostValueReader.rawNumber($0) }) else { return }
         if flags & (1 << 2) == 0 {
             discardOwnEditHistory(id: message.id, peer: message.peer, account: account, namespace: message.namespace)
             return
         }
         guard isAntiEditEnabled else { return }
-        guard let text = RenderedMessageReader.storedField("text", in: message.value) as? String else { return }
+        guard let text = HostValueReader.storedField("text", in: message.value) as? String else { return }
         var editDate: Int32?
         var content = [String: Data]()
-        if let attributes = RenderedMessageReader.storedField("attributes", in: message.value) as? [Any] {
+        if let attributes = HostValueReader.storedField("attributes", in: message.value) as? [Any] {
             // Attributes are stored, unlike Message.editedTime / item.message.
             var entities: [Any]? = []
             for attribute in attributes {
                 let name = String(reflecting: type(of: attribute)).split(separator: ".").last
                 if name == "EditedMessageAttribute" {
-                    guard let date = RenderedMessageReader.storedField("date", in: attribute).flatMap({ RenderedMessageReader.rawNumber($0) }),
+                    guard let date = HostValueReader.storedField("date", in: attribute).flatMap({ HostValueReader.rawNumber($0) }),
                           let parsedDate = Int32(exactly: date) else { return }
                     editDate = parsedDate
                 }
                 if name == "TextEntitiesMessageAttribute" {
-                    entities = RenderedMessageReader.storedField("entities", in: attribute) as? [Any]
+                    entities = HostValueReader.storedField("entities", in: attribute) as? [Any]
                 }
             }
             if let entities = entities { content["entities"] = storedEntities(entities) }
         }
-        if let media = RenderedMessageReader.storedField("media", in: message.value) as? [Any] {
+        if let media = HostValueReader.storedField("media", in: message.value) as? [Any] {
             content["mediaIdentity"] = storedMediaIdentity(media)
         }
         let key = EditKey(account: account, peer: message.peer, id: message.id, namespace: message.namespace)
@@ -718,387 +689,16 @@ class TLParser: NSObject {
         }
     }
 
-    /// Unwrap Postbox's PeerId.Namespace / PeerId.Id stored rawValue fields.
     /// Walk only the node -> item -> context -> account chain, never the
     /// global shared context or the account currently selected in another UI.
     @objc static func getHistoryAccountFromNode(_ node: Any) -> String? {
-        return findHistoryAccount(in: node, depth: 0)
-    }
-
-    private static func findHistoryAccount(in wrapped: Any, depth: Int) -> String? {
-        guard depth <= 6 else { return nil }
-        var mirror: Mirror? = Mirror(reflecting: RenderedMessageReader.unwrapOptional(wrapped))
-        while let current = mirror {
-            for child in current.children {
-                if child.label == "basePath", let path = child.value as? String,
-                   let account = TGExtraHistoryAccountForPath(path) { return account }
-                if ["item", "context", "account"].contains(child.label ?? ""),
-                   let account = findHistoryAccount(in: child.value, depth: depth + 1) { return account }
-            }
-            mirror = current.superclassMirror
-        }
-        return nil
-    }
-
-    @objc static func getDebugDumpFromNode(_ node: Any) -> NSString {
-        var currentMirror: Mirror? = Mirror(reflecting: node)
-        while let mirror = currentMirror {
-            for child in mirror.children {
-                if child.label == "item" {
-                    let item = child.value
-                    var dumpStr = ""
-                    dump(item, to: &dumpStr, maxDepth: 5, maxItems: 200)
-                    return NSString(string: dumpStr)
-                }
-            }
-            currentMirror = mirror.superclassMirror
-        }
-        return NSString(string: "ITEM NOT FOUND IN MIRROR")
-    }
-
-    /// Diagnostic only — reports what a node actually exposes that might carry a
-    /// peer, so a failing profile lookup can be read off a device log instead of
-    /// guessed at. No feature depends on this.
-    @objc static func debugPeerCandidates(_ node: Any) -> NSString {
-        var out = [String]()
-
-        var currentMirror: Mirror? = Mirror(reflecting: node)
-        var depth = 0
-        while let mirror = currentMirror, depth < 3 {
-            let labels = mirror.children.compactMap { $0.label }
-            if !labels.isEmpty {
-                out.append("L\(depth):[\(labels.joined(separator: ","))]")
-            }
-            for child in mirror.children {
-                guard let label = child.label,
-                      label.lowercased().contains("peer") else { continue }
-                out.append("\(label)=\(String(describing: child.value).prefix(140))")
-            }
-            currentMirror = mirror.superclassMirror
-            depth += 1
-        }
-
-        if let obj = node as? NSObject {
-            for key in ["peer", "peerId"] where obj.responds(to: NSSelectorFromString(key)) {
-                let value = obj.value(forKey: key)
-                out.append("kvc.\(key)=\(String(describing: value).prefix(140))")
-            }
-        }
-
-        return NSString(string: out.isEmpty ? "(no peer-ish members)" : out.joined(separator: " | "))
-    }
-
-    @objc static func getPeerIdFromNode(_ node: Any) -> NSNumber? {
-        // Try to sniff sharedContext from any node that might have it
-        if sharedContext == nil, let obj = node as? NSObject {
-            if obj.responds(to: NSSelectorFromString("context")), let ctx = obj.value(forKey: "context") {
-                sharedContext = ctx
-            }
-        }
-
-        // Try KVC first
-        if let obj = node as? NSObject {
-            for key in ["peer", "peerId", "_peer", "_peerId", "id"] {
-                if obj.responds(to: NSSelectorFromString(key)), let val = obj.value(forKey: key) {
-                    if let pid = extractId(fromPeer: val) { return pid }
-                    if let pid = extractId(fromPeerId: val) { return pid }
-                }
-            }
-        }
-
-        // Try Mirror
-        var currentMirror: Mirror? = Mirror(reflecting: node)
-        while let mirror = currentMirror {
-            for child in mirror.children {
-                let label = child.label ?? ""
-                if ["peer", "_peer", "peerId", "_peerId", "id"].contains(label) {
-                    if let pid = extractId(fromPeer: child.value) { return pid }
-                    if let pid = extractId(fromPeerId: child.value) { return pid }
-                } else if label == "state" {
-                    let stateMirror = Mirror(reflecting: child.value)
-                    for stateChild in stateMirror.children {
-                        if stateChild.label == "peer" || stateChild.label == "peerId" {
-                            if let pid = extractId(fromPeer: stateChild.value) { return pid }
-                        }
-                    }
-                }
-            }
-            currentMirror = mirror.superclassMirror
-        }
-
-        // NUCLEAR FALLBACK: Regex on full object description
-        let fullDesc = String(describing: node)
-        if let pid = extractId(fromPeer: fullDesc) { return pid }
-
-        return nil
-    }
-
-    private static func extractId(fromPeer peer: Any) -> NSNumber? {
-        // Reflection first: it addresses the peer's actual `id`, whereas the
-        // description regex below can just as easily latch onto some unrelated
-        // number that happens to sit after an "id:" in the dumped text.
-        if let pid = findIdByReflection(peer, depth: 0) { return pid }
-
-        if let obj = peer as? NSObject {
-            if obj.responds(to: NSSelectorFromString("id")), let pid = obj.value(forKey: "id") {
-                return extractId(fromPeerId: pid)
-            }
-        }
-
-        let desc = String(describing: peer)
-        if let range = desc.range(of: "(id|userId|channelId):\\s*(-?\\d+)", options: .regularExpression) {
-            let match = desc[range]
-            if let idRange = match.range(of: "-?\\d+", options: .regularExpression) {
-                if let idVal = Int64(match[idRange]) { return NSNumber(value: idVal) }
-            }
-        }
-
-        return nil
-    }
-
-    /// Walks a peer value down to its `id`, unwrapping containers on the way.
-    ///
-    /// PeerInfoHeaderNode holds `peer: EnginePeer?` — an Optional around an enum
-    /// around the concrete TelegramUser. Reflecting that yields a child labelled
-    /// after the enum case ("user"), never "id", so a single-level search comes
-    /// back empty and the caller reads the peer as absent. Unwrap Optionals and
-    /// enum payloads until the value carrying `id: PeerId` surfaces.
-    private static func findIdByReflection(_ value: Any, depth: Int) -> NSNumber? {
-        guard depth < 6 else { return nil }
-
-        let mirror = Mirror(reflecting: value)
-
-        for child in mirror.children where child.label == "id" {
-            if let pid = extractId(fromPeerId: child.value) { return pid }
-        }
-
-        switch mirror.displayStyle {
-        case .optional, .enum:
-            for child in mirror.children {
-                if let pid = findIdByReflection(child.value, depth: depth + 1) { return pid }
-            }
-        default:
-            break
-        }
-
-        return nil
-    }
-
-    private static func extractId(fromPeerId pid: Any) -> NSNumber? {
-        if let idVal = pid as? Int64 { return NSNumber(value: idVal) }
-        if let idVal = pid as? Int32 { return NSNumber(value: Int64(idVal)) }
-
-        // Postbox's PeerId reflects as `namespace` + `id`, where `id` is an Id
-        // struct wrapping `rawValue: Int64`. Walk to that Int64 first; the
-        // description forms below are only fallbacks.
-        let pidMirror = Mirror(reflecting: pid)
-        for pidChild in pidMirror.children {
-            guard pidChild.label == "id" || pidChild.label == "_value" || pidChild.label == "value" else { continue }
-            if let idVal = pidChild.value as? Int64 { return NSNumber(value: idVal) }
-            if let idVal = pidChild.value as? Int32 { return NSNumber(value: Int64(idVal)) }
-            for inner in Mirror(reflecting: pidChild.value).children where inner.label == "rawValue" {
-                if let idVal = inner.value as? Int64 { return NSNumber(value: idVal) }
-                if let idVal = inner.value as? Int32 { return NSNumber(value: Int64(idVal)) }
-            }
-        }
-
-        let desc = String(describing: pid)
-
-        // PeerId.description is "<namespace>:<id>" (Postbox/Sources/Peer.swift).
-        // Grabbing the first number would return the namespace — and CloudUser's
-        // namespace is 0, so every user peer would read as "no peer at all".
-        if let idPart = firstCapture(in: desc, pattern: "^\\s*(?:PeerId\\()?\\d+:(-?\\d+)\\)?\\s*$"),
-           let idVal = Int64(idPart) {
-            return NSNumber(value: idVal)
-        }
-
-        if let range = desc.range(of: "-?\\d+", options: .regularExpression) {
-            if let idVal = Int64(desc[range]) {
-                return NSNumber(value: idVal)
-            }
-        }
-
-        return nil
-    }
-
-    /// Best-effort name and username for a profile header, used when adding a
-    /// Ghost Exception so the list has something readable to show.
-    ///
-    /// Reads the node's textual description rather than typed properties:
-    /// PeerInfoScreen's internals are Swift-only and shift between Telegram
-    /// builds. Building a description is expensive, so this is only ever called
-    /// on a tap — never from layout.
-    @objc static func getPeerDisplayInfoFromNode(_ node: Any) -> [String: String] {
-        var result = [String: String]()
-
-        // TelegramUser is a plain Swift class, so String(describing:) prints
-        // nothing but its type name — scraping text for "firstName:" finds
-        // nothing at all. Reflect over the real stored properties instead.
-        guard let fields = findPeerFieldsByReflection(node, depth: 0) else { return result }
-
-        if let username = fields["username"], !username.isEmpty {
-            result["username"] = username
-        }
-
-        let name = ["firstName", "lastName"]
-            .compactMap { fields[$0] }
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-
-        if !name.isEmpty {
-            result["name"] = name
-        } else if let title = fields["title"], !title.isEmpty {
-            result["name"] = title
-        }
-
-        return result
-    }
-
-    /// Finds the concrete peer under a node and returns its name-ish fields.
-    ///
-    /// Mirrors the unwrapping in findIdByReflection: the peer sits behind an
-    /// Optional and an enum case before its stored properties are reachable.
-    private static func findPeerFieldsByReflection(_ value: Any, depth: Int) -> [String: String]? {
-        guard depth < 6 else { return nil }
-
-        let wanted: Set<String> = ["firstName", "lastName", "username", "title"]
-        let mirror = Mirror(reflecting: value)
-
-        var found = [String: String]()
-        var hasId = false
-
-        for child in mirror.children {
-            guard let label = child.label else { continue }
-            if label == "id" { hasId = true }
-            guard wanted.contains(label) else { continue }
-            // Values are Optional<String>; unwrap before stringifying, or every
-            // one of them reads back as "Optional(\"…\")".
-            if let text = unwrapString(child.value) {
-                found[label] = text
-            }
-        }
-
-        // `id` alongside a name field means this really is the peer, not some
-        // outer container that happens to expose a "title".
-        if hasId && !found.isEmpty {
-            return found
-        }
-
-        // Descend only along the peer path. Following every member instead would
-        // walk the whole display-node tree — thousands of objects deep.
-        switch mirror.displayStyle {
-        case .optional, .enum:
-            for child in mirror.children {
-                if let nested = findPeerFieldsByReflection(child.value, depth: depth + 1) {
-                    return nested
-                }
-            }
-        default:
-            for child in mirror.children {
-                guard let label = child.label,
-                      label == "peer" || label == "_peer" else { continue }
-                if let nested = findPeerFieldsByReflection(child.value, depth: depth + 1) {
-                    return nested
-                }
-            }
-        }
-
-        return nil
-    }
-
-    private static func firstCapture(in text: String, pattern: String) -> String? {
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
-        let range = NSRange(text.startIndex..., in: text)
-        guard let match = regex.firstMatch(in: text, options: [], range: range),
-              match.numberOfRanges > 1,
-              let captured = Range(match.range(at: 1), in: text) else { return nil }
-        return String(text[captured])
-    }
-
-    private static func unwrapString(_ value: Any) -> String? {
-        if let text = value as? String { return text.isEmpty ? nil : text }
-        let mirror = Mirror(reflecting: value)
-        guard mirror.displayStyle == .optional, let child = mirror.children.first else { return nil }
-        return unwrapString(child.value)
-    }
-
-    private static let ownUserIdsKey = "TGExtraOwnUserIdsByAccount"
-
-    /// Resolve the account belonging to this screen, even when another account
-    /// last opened a chat or delivered a background response.
-    @objc static func getOwnUserIdFromNode(_ node: Any) -> NSNumber? {
-        processingLock.lock()
-        defer { processingLock.unlock() }
-        let account = getHistoryAccountFromNode(node)
-        if let id = findNodeAccountPeerId(node, depth: 0) {
-            if let account = account { rememberOwnUserId(id.int64Value, account: account) }
-            return id
-        }
-        guard let account = account else { return nil }
-        return UserDefaults.standard.dictionary(forKey: ownUserIdsKey)?[account] as? NSNumber
-    }
-
-    private static func findNodeAccountPeerId(_ wrapped: Any, depth: Int) -> NSNumber? {
-        guard depth <= 6 else { return nil }
-        var mirror: Mirror? = Mirror(reflecting: RenderedMessageReader.unwrapOptional(wrapped))
-        while let current = mirror {
-            for child in current.children {
-                if child.label == "account", let id = findOwnPeerId(child.value, depth: 0) { return id }
-                if ["item", "context"].contains(child.label ?? ""),
-                   let id = findNodeAccountPeerId(child.value, depth: depth + 1) { return id }
-            }
-            mirror = current.superclassMirror
-        }
-        return nil
-    }
-
-    // Called under processingLock by both the UI and response parser.
-    private static func rememberOwnUserId(_ id: Int64, account: String) {
-        var saved = UserDefaults.standard.dictionary(forKey: ownUserIdsKey) ?? [:]
-        guard (saved[account] as? NSNumber)?.int64Value != id else { return }
-        saved[account] = NSNumber(value: id)
-        UserDefaults.standard.set(saved, forKey: ownUserIdsKey)
-    }
-
-    @objc static func getCurrentUserId() -> NSNumber? {
-        if let context = sharedContext, let id = findOwnPeerId(context, depth: 0) {
-            // Cached the moment it resolves, so the answer survives a launch
-            // where the context has not been handed over yet.
-            UserDefaults.standard.set(id.int64Value, forKey: "TGExtraLastKnownUserId")
-            return id
-        }
-        let savedId = UserDefaults.standard.integer(forKey: "TGExtraLastKnownUserId")
-        if savedId != 0 { return NSNumber(value: Int64(savedId)) }
-        // Once, not on every profile node that asks — this is called from
-        // -layout, which runs often enough to bury the rest of the log.
-        if !warnedUnresolvedOwnId {
-            warnedUnresolvedOwnId = true
-            diag("own-id UNRESOLVED — waiting to learn it from a users vector")
-        }
-        return nil
-    }
-
-    private static var warnedUnresolvedOwnId = false
-
-    /// Learns your own user id from the wire.
-    ///
-    /// Every users vector marks the requesting account with `self` at flags
-    /// bit 10. Keep each account separately; background replies cannot identify
-    /// the account currently visible on screen.
-    private static func noteOwnUser(in users: [Api.User]) {
-        guard let account = processingHistoryAccount else { return }
-        for user in users {
-            guard case let .user(data) = user else { continue }
-            guard (Int(data.flags) & Int(1 << 10)) != 0 else { continue }
-            rememberOwnUserId(data.id, account: account)
-            return
-        }
+        return HostAccountReader.account(in: node, depth: 0)
     }
 
     /// Keep parsing until the requesting account's own id has been learned.
     private static var isOwnIdKnown: Bool {
         guard let account = processingHistoryAccount else { return true }
-        return UserDefaults.standard.dictionary(forKey: ownUserIdsKey)?[account] as? NSNumber != nil
+        return PeerInfoStore.ownUserId(for: account) != nil
     }
 
     /// Read the users vector through host metadata, including containers for
@@ -1107,93 +707,10 @@ class TLParser: NSObject {
         guard let record = Api.record(result) else { return }
         if let values = record["users"] as? [TLRecord] {
             let users = values.compactMap(Api.User.init)
-            noteOwnUser(in: users)
-            notePeerNames(in: users)
+            PeerInfoStore.observe(users, account: processingHistoryAccount)
         } else if let user = Api.User(record) {
-            noteOwnUser(in: [user])
-            notePeerNames(in: [user])
+            PeerInfoStore.observe([user], account: processingHistoryAccount)
         }
-    }
-
-    // MARK: - Peer names
-
-    /// id -> ["name": …, "username": …], learned from any users vector that
-    /// passes through.
-    ///
-    /// Ghost Exceptions used to read the name by reflecting over the profile
-    /// header node. That works only while the host app hands the tweak a peer
-    /// object it can walk, which on this fork it does not — so entries were
-    /// filed with no name and the list showed a bare numeric ID. The wire
-    /// carries the same two fields and needs no cooperation from the app.
-    private static let peerNameQueue = DispatchQueue(label: "com.tgextra.peerNames",
-                                                     attributes: .concurrent)
-    private static var _peerNames = [Int64: [String: String]]()
-
-    private static func notePeerNames(in users: [Api.User]) {
-        var batch = [Int64: [String: String]]()
-        for user in users {
-            guard case let .user(data) = user else { continue }
-            var info = [String: String]()
-            let name = [data.firstName, data.lastName]
-                .compactMap { $0 }
-                .filter { !$0.isEmpty }
-                .joined(separator: " ")
-            if !name.isEmpty { info["name"] = name }
-            if let username = data.username, !username.isEmpty {
-                info["username"] = username
-            } else if let extra = data.usernames {
-                // Accounts that moved to collectible usernames leave the plain
-                // field empty and list them here instead.
-                for case let .username(entry) in extra where !entry.username.isEmpty {
-                    info["username"] = entry.username
-                    break
-                }
-            }
-            guard !info.isEmpty else { continue }
-            batch[data.id] = info
-        }
-        guard !batch.isEmpty else { return }
-        peerNameQueue.async(flags: .barrier) {
-            for (id, info) in batch { _peerNames[id] = info }
-            // Nothing here is worth persisting — the name is copied into the
-            // exception entry the moment one is created, and the cache refills
-            // from the next response. Drop it wholesale rather than grow
-            // without bound.
-            if _peerNames.count > 2000 { _peerNames.removeAll(keepingCapacity: true) }
-        }
-    }
-
-    @objc static func cachedPeerInfo(forId id: NSNumber) -> [String: String]? {
-        var result: [String: String]?
-        peerNameQueue.sync { result = _peerNames[id.int64Value] }
-        return result
-    }
-
-    /// Finds account.peerId inside the shared context.
-    ///
-    /// The previous version stepped exactly two levels, context.account then
-    /// .peerId, and gave up the moment either was wrapped — in an Optional, or
-    /// behind one more holder object. Returning nil there meant the tweak could
-    /// not tell your own profile from anyone else's, which is how the Ghost
-    /// Exception eye ended up offered on yourself.
-    private static func findOwnPeerId(_ value: Any, depth: Int) -> NSNumber? {
-        guard depth < 5 else { return nil }
-        let mirror = Mirror(reflecting: value)
-
-        for child in mirror.children where child.label == "peerId" {
-            if let id = extractId(fromPeerId: child.value) { return id }
-        }
-
-        for child in mirror.children {
-            // Only follow the account chain, plus the wrappers that can sit in
-            // the middle of it. Descending everywhere would happily return some
-            // unrelated peerId from elsewhere in the context.
-            let followable = (child.label == "account") || (child.label == "context")
-                || (child.label == "some") || (child.label == nil)
-            guard followable || mirror.displayStyle == .optional else { continue }
-            if let id = findOwnPeerId(child.value, depth: depth + 1) { return id }
-        }
-        return nil
     }
 
     @objc(isDeleted:peer:account:messageNamespace:) static func isDeleted(_ msgId: NSNumber, peer: NSNumber?, account: String?, namespace: NSNumber? = nil) -> Bool {
@@ -1825,8 +1342,7 @@ class TLParser: NSObject {
             guard let users = Api.parseVector(reader, elementSignature: 0, elementType: Api.User.self),
                   reader.offset == UInt(data.length) else { return nil }
             MessagePatches.prepareDecodedObjects(in: reader)
-            noteOwnUser(in: users)
-            notePeerNames(in: users)
+            PeerInfoStore.observe(users, account: processingHistoryAccount)
             return reader.dataApplyingPatches()
         }
         if !settings.processesMessages, let descriptor = TLCodec.descriptor(signature),
@@ -1834,8 +1350,7 @@ class TLParser: NSObject {
             var users = [Api.User]()
             if TLCodec.scan(reader, descriptor: descriptor, users: &users), reader.offset == UInt(data.length) {
                 MessagePatches.prepareDecodedObjects(in: reader)
-                noteOwnUser(in: users)
-                notePeerNames(in: users)
+                PeerInfoStore.observe(users, account: processingHistoryAccount)
                 return reader.dataApplyingPatches()
             }
             // Preserve the opaque-peer fallback and discard any partial scan.
@@ -2126,14 +1641,14 @@ class TLParser: NSObject {
             if settings.bypassForwarding { mask.insert(.bypassForwarding) }
             if settings.bypassPrivateCopy { mask.insert(.bypassPrivateCopy) }
             let users = TGExtraNativeApplyRoot(root, mask).compactMap { context.record($0 as AnyObject).flatMap(Api.User.init) }
-            noteOwnUser(in: users); notePeerNames(in: users)
+            PeerInfoStore.observe(users, account: processingHistoryAccount)
             return root
         }
         context.reader.parsedRecords = TGExtraNativeObjects(root).compactMap { context.record($0 as AnyObject) }
         MessagePatches.prepareDecodedObjects(in: context.reader)
         if let values = root as? [Any] {
             let users = values.compactMap { context.record($0 as AnyObject).flatMap(Api.User.init) }
-            noteOwnUser(in: users); notePeerNames(in: users)
+            PeerInfoStore.observe(users, account: processingHistoryAccount)
             _ = context.commit(nil, allChanges: false)
             return root
         }
@@ -2174,8 +1689,7 @@ class TLParser: NSObject {
         if signature == 481674261 {
             guard let users = Api.parseVector(reader, elementSignature: 0,
                                               elementType: Api.User.self) else { return }
-            noteOwnUser(in: users)
-            notePeerNames(in: users)
+            PeerInfoStore.observe(users, account: processingHistoryAccount)
             return
         }
 

@@ -182,7 +182,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-recording-') as tmp:
                     str(harness), '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True)
     (work / 'main.swift').write_text(swift_tests)
-    subprocess.run(['swiftc', str(ROOT / 'Sources/tgapi/RenderedMessageReader.swift'),
+    subprocess.run(['swiftc', str(ROOT / 'Sources/tgapi/HostValueReader.swift'),
                     str(ROOT / 'Sources/tgapi/RecordingControls.swift'),
                     str(work / 'main.swift'), '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True)

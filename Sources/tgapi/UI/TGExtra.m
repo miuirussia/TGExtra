@@ -1,5 +1,6 @@
 #import "Headers.h"
 #import "../GhostExceptions.h"
+#import "../PeerInfoStore.h"
 #import "../Headers.h"
 #import "../Logger/Logger.h"
 #import "Icons.h"
@@ -11,6 +12,24 @@
 #define TGLoc(key) [TGExtraLocalization localizedStringForKey:(key)]
 
 static NSString *const kTGExtraTweakVersion = @"1.3.0";
+
+// customName → name → @username → the raw ID, whichever comes first.
+static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
+  NSString *custom = entry[kTGExtraGhostExceptionCustom];
+  if (custom.length)
+    return custom;
+
+  NSString *name = entry[kTGExtraGhostExceptionName];
+  if (name.length)
+    return name;
+
+  NSString *username = entry[kTGExtraGhostExceptionUsername];
+  if (username.length)
+    return [@"@" stringByAppendingString:username];
+
+  return [NSString
+      stringWithFormat:@"ID %@", entry[kTGExtraGhostExceptionId] ?: @"?"];
+}
 
 @interface TGExtra ()
 @property(nonatomic, strong) UITableView *tableView;
@@ -378,7 +397,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     if (!((NSString *)entry[kTGExtraGhostExceptionName]).length &&
         !((NSString *)entry[kTGExtraGhostExceptionUsername]).length) {
       NSNumber *peerId = entry[kTGExtraGhostExceptionId];
-      NSDictionary *cached = [TLParser cachedPeerInfoForId:peerId];
+      NSDictionary *cached = [TGExtraPeerInfoStore cachedPeerInfoForId:peerId];
       if (cached.count) {
         [TGExtraGhostExceptions addPeerId:peerId.longLongValue
                                   name:cached[@"name"]
@@ -390,7 +409,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
       }
     }
 
-    cell.textLabel.text = [TGExtraGhostExceptions displayNameForEntry:entry];
+    cell.textLabel.text = ghostExceptionDisplayName(entry);
 
     NSString *username = entry[kTGExtraGhostExceptionUsername];
     cell.detailTextLabel.text =
@@ -660,7 +679,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
 
   [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
     field.text = entry[kTGExtraGhostExceptionCustom];
-    field.placeholder = [TGExtraGhostExceptions displayNameForEntry:entry];
+    field.placeholder = ghostExceptionDisplayName(entry);
     field.clearButtonMode = UITextFieldViewModeWhileEditing;
   }];
 

@@ -44,7 +44,4 @@ extern NSString *const kTGExtraGhostExceptionsChangedNotification;
 
 + (NSArray<NSDictionary *> *)all;
 
-// customName → name → @username → the raw ID, whichever comes first.
-+ (NSString *)displayNameForEntry:(NSDictionary *)entry;
-
 @end

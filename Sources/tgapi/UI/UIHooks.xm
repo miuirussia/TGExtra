@@ -3,6 +3,9 @@
 #import "../PaidMedia.h"
 #import "../Logger/Logger.h"
 #import "EditHistoryViewController.h"
+#import "EditHistoryAppearance.h"
+#import "ProfileBridge.h"
+#import "../PeerInfoStore.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <math.h>
@@ -476,7 +479,7 @@ static BOOL injectBadgeToNode(ASDisplayNode *textNode, ASDisplayNode *headerNode
             prefix = @"👑 TGExtra Owner";
             badgeColor = [UIColor colorWithRed:1.0 green:0.75 blue:0.0 alpha:1.0]; // Gold
         } else {
-            NSNumber *currId = [TLParser getOwnUserIdFromNode:headerNode];
+            NSNumber *currId = [TGExtraProfileBridge getOwnUserIdFromNode:headerNode];
             if (currId && [currId longLongValue] == peerId) {
                 prefix = @"✨ TGExtra User";
             }
@@ -672,7 +675,7 @@ static void updateGhostExceptionButtonAppearance(UIButton *button, BOOL isExcept
         TGExtraWeakBox *box = objc_getAssociatedObject(sender, kTGExtraGhostNodeBoxKey);
         if (box.object) {
             @try {
-                NSDictionary *info = [TLParser getPeerDisplayInfoFromNode:box.object];
+                NSDictionary *info = [TGExtraProfileBridge getPeerDisplayInfoFromNode:box.object];
                 name = info[@"name"];
                 username = info[@"username"];
             } @catch (NSException *e) {}
@@ -684,7 +687,7 @@ static void updateGhostExceptionButtonAppearance(UIButton *button, BOOL isExcept
         // The same two fields came off the wire when the profile was opened.
         if (!name.length && !username.length) {
             @try {
-                NSDictionary *cached = [TLParser cachedPeerInfoForId:peerId];
+                NSDictionary *cached = [TGExtraPeerInfoStore cachedPeerInfoForId:peerId];
                 name = cached[@"name"];
                 username = cached[@"username"];
             } @catch (NSException *e) {}
@@ -730,7 +733,7 @@ static void tgextraDiagProfileNode(NSString *cls, long long peerId, ASDisplayNod
     if (!dumped && peerId == 0 && [cls containsString:@"Header"]) {
         dumped = YES;
         @try {
-            tgextraDiag("header-dump %{public}@", [TLParser debugPeerCandidates:node]);
+            tgextraDiag("header-dump %{public}@", [TGExtraProfileBridge debugPeerCandidates:node]);
         } @catch (NSException *e) {
             tgextraDiag("header-dump failed: %{public}@", e);
         }
@@ -757,7 +760,7 @@ static void injectGhostExceptionButton(ASDisplayNode *headerNode, long long peer
         BOOL isOwnProfile = NO;
         BOOL ownIdKnown = NO;
         if (peerId > 0) {
-            NSNumber *currentUserId = [TLParser getOwnUserIdFromNode:headerNode];
+            NSNumber *currentUserId = [TGExtraProfileBridge getOwnUserIdFromNode:headerNode];
             ownIdKnown = (currentUserId != nil);
             isOwnProfile = (ownIdKnown && currentUserId.longLongValue == peerId);
             tgextraDiag("ghost-button peer=%lld me=%lld own=%d",
@@ -1234,7 +1237,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
     CGFloat inset = MAX(0.0, (CGRectGetWidth(badge.frame) - 18.0) / 2.0);
     badge.contentEdgeInsets = UIEdgeInsetsMake(inset, inset, inset, inset);
 
-    NSDictionary *colors = [TLParser editHistoryButtonColorsFromNode:node];
+    NSDictionary *colors = [TGExtraEditHistoryAppearance buttonColorsFromNode:node];
     UIColor *fill = [colors[@"fill"] isKindOfClass:UIColor.class] ? colors[@"fill"] : [UIColor colorWithWhite:0.0 alpha:0.3];
     UIColor *foreground = [colors[@"foreground"] isKindOfClass:UIColor.class] ? colors[@"foreground"] : UIColor.whiteColor;
     UIColor *stroke = [colors[@"stroke"] isKindOfClass:UIColor.class] ? colors[@"stroke"] : UIColor.clearColor;
@@ -1276,7 +1279,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
 
     if (isProfileHeader) {
         long long peerId = 0;
-        peerId = [[NSClassFromString(@"TLParser") performSelector:@selector(getPeerIdFromNode:) withObject:self] longLongValue];
+        peerId = [[TGExtraProfileBridge getPeerIdFromNode:self] longLongValue];
 
         // A header that cannot say whose it is used to be assumed to be yours.
         // On the settings screen that guess is right; on any other header it
@@ -1290,7 +1293,7 @@ static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumbe
             headerHasNoPeer = (getPeer(self, peerSel) == nil);
         }
         if (peerId == 0 && headerHasNoPeer) {
-            peerId = [[TLParser getOwnUserIdFromNode:self] longLongValue];
+            peerId = [[TGExtraProfileBridge getOwnUserIdFromNode:self] longLongValue];
         }
         recursiveSearchAndInject(self, self, peerId);
 
@@ -1323,14 +1326,10 @@ static Class tgextraChatControllerClass(void) {
     %orig;
     @try {
         id context = [((id)self) valueForKey:@"context"];
-        Class tlParser = NSClassFromString(@"TLParser");
-        if ([tlParser respondsToSelector:@selector(setSharedContext:)]) {
-            [tlParser performSelector:@selector(setSharedContext:) withObject:context];
-
-            NSNumber *currId = [tlParser performSelector:@selector(getCurrentUserId)];
-            if (currId) {
-                [[NSUserDefaults standardUserDefaults] setInteger:[currId integerValue] forKey:@"TGExtraLastKnownUserId"];
-            }
+        TGExtraProfileBridge.sharedContext = context;
+        NSNumber *currId = [TGExtraProfileBridge getCurrentUserId];
+        if (currId) {
+            [[NSUserDefaults standardUserDefaults] setInteger:[currId integerValue] forKey:@"TGExtraLastKnownUserId"];
         }
     } @catch (NSException *e) {}
 }
@@ -1343,10 +1342,7 @@ static Class tgextraChatControllerClass(void) {
     %orig;
     @try {
         id context = [((id)self) valueForKey:@"context"];
-        Class tlParser = NSClassFromString(@"TLParser");
-        if (context && [tlParser respondsToSelector:@selector(setSharedContext:)]) {
-            [tlParser performSelector:@selector(setSharedContext:) withObject:context];
-        }
+        if (context) TGExtraProfileBridge.sharedContext = context;
     } @catch (NSException *e) {}
 }
 %end
