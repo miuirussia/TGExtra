@@ -77,7 +77,7 @@ void TGExtraLayoutRecordingInput(UIView *background) {
         [background setNeedsLayout];
         return;
     }
-    if ([layout[@"hasOtherRightAction"] boolValue]) return;
+    if ([layout[@"hasOtherRightAction"] boolValue] || [layout[@"rightSlowModeInset"] doubleValue] > 0.0) return;
     UIView *media = TGExtraRecordingView(layout[@"mediaActionButtons"]);
     UIView *panel = TGExtraRecordingView(node);
     NSNumber *rightInset = layout[@"rightInset"];
@@ -94,10 +94,23 @@ void TGExtraLayoutRecordingInput(UIView *background) {
 
     CGRect mediaFrame = [panel convertRect:media.bounds fromView:media];
     CGRect inputFrame = [panel convertRect:background.bounds fromView:background];
-    CGFloat delta = CGRectGetMaxX(mediaFrame) - CGRectGetMaxX(inputFrame);
+    CGFloat trailingEdge = CGRectGetMaxX(mediaFrame);
+    UIView *attachment = TGExtraRecordingView(layout[@"attachmentButtonBackground"]);
+    NSNumber *leftInset = layout[@"leftInset"];
+    if (attachment.superview && leftInset && TGExtraRecordingViewIsVisible(attachment)) {
+        CGRect attachmentFrame = [panel convertRect:attachment.bounds fromView:attachment];
+        CGFloat gutter = CGRectGetMinX(attachmentFrame) - leftInset.doubleValue - [layout[@"leftMenuInset"] doubleValue];
+        if (isfinite(gutter) && gutter >= 8.0) {
+            // Match the Send layout's side gutter, independent of the removed mic container's width.
+            // The attachment gutter already includes the host's compact bottom side inset.
+            trailingEdge = CGRectGetMaxX(panel.bounds) - rightInset.doubleValue - gutter
+                - MAX(0.0, [layout[@"additionalRightInset"] doubleValue]) / 3.0;
+        }
+    }
+    CGFloat delta = trailingEdge - CGRectGetMaxX(inputFrame);
     CGFloat spacing = CGRectGetMinX(mediaFrame) - CGRectGetMaxX(inputFrame);
     if (!isfinite(delta) || delta <= 0.5 || spacing < -0.5 || spacing > mediaFrame.size.width ||
-        CGRectGetMaxX(mediaFrame) > CGRectGetMaxX(panel.bounds) - rightInset.doubleValue + 0.5 ||
+        trailingEdge > CGRectGetMaxX(panel.bounds) - rightInset.doubleValue + 0.5 ||
         mediaFrame.size.width <= 0.0 || inputFrame.size.width <= 0.0) return;
 
     NSMutableDictionary *changes = [NSMutableDictionary new];

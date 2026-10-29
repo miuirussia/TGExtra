@@ -72,8 +72,11 @@ final class InputPanel: NSObject {
     let accessoryPanelContainer = UIView()
     let mediaActionButtons = LayoutActions()
     let sendActionButtons = LayoutActions()
+    let attachmentButtonBackground = UIView()
+    var leftMenuInset: CGFloat = 0
+    var rightSlowModeInset: CGFloat = 0
     var isUpdating = false
-    var validLayout: (CGFloat, CGFloat, CGFloat)?
+    var validLayout: (CGFloat, CGFloat, CGFloat, CGFloat, UIEdgeInsets)?
     var customRightAction: String?
     var customSecondaryRightAction: String?
     var starReactionButton: NSObject?
@@ -90,6 +93,7 @@ final class InputPanel: NSObject {
         view.addSubview(textInputContainerBackgroundView)
         view.addSubview(mediaActionButtons.view)
         view.addSubview(sendActionButtons.view)
+        view.addSubview(attachmentButtonBackground)
         let content = textInputContainerBackgroundView.nativeView.contentView
         content.addSubview(accessoryPanelContainer)
         content.addSubview(textInputNodeClippingContainer)
@@ -99,14 +103,21 @@ final class InputPanel: NSObject {
         editorContainer.addSubview(editor)
     }
 
-    func nativeLayout(width: CGFloat, trailingInset: CGFloat = 8, hasText: Bool = false,
-                      hasExpand: Bool = false, fullWidth: Bool = false) {
+    func nativeLayout(width: CGFloat, trailingInset: CGFloat = 8, compactSideInset: CGFloat = 0, hasText: Bool = false,
+                      hasExpand: Bool = false, fullWidth: Bool = false, leftInset: CGFloat = 0,
+                      additionalRightInset: CGFloat = 0) {
         isUpdating = true
         defer { isUpdating = false }
         view.frame = CGRect(x: 0, y: 0, width: width, height: 64)
-        validLayout = (width, 0, trailingInset - 8)
+        validLayout = (width, leftInset, trailingInset - 8, 0,
+                       UIEdgeInsets(top: 0, left: 0, bottom: 0, right: additionalRightInset))
         let slot: CGFloat = hasText || fullWidth ? 0 : 46
-        let frame = CGRect(x: 54, y: 10, width: width - trailingInset - 54 - slot, height: 40)
+        let inputX = leftInset + leftMenuInset + 54 + compactSideInset
+        let extraInset = hasText || fullWidth ? additionalRightInset / 3 : 0
+        let frame = CGRect(x: inputX, y: 10,
+                           width: width - trailingInset - compactSideInset - inputX - slot - extraInset, height: 40)
+        attachmentButtonBackground.frame = CGRect(x: leftInset + leftMenuInset + compactSideInset + 8,
+                                                  y: 10, width: 40, height: 40)
         let background = textInputContainerBackgroundView
         background.frame = frame
         for part in [background.nativeParamsView, background.nativeView,
@@ -136,14 +147,16 @@ final class InputPanel: NSObject {
 @main enum RecordingInputLayoutTests {
     static func main() {
         for width: CGFloat in [320, 375, 430, 844, 1024] {
-            for inset: CGFloat in [8, 52] {
+            // Swiftgram adds 18pt on rounded screens when the bottom inset is at most 32pt.
+            for (inset, compact): (CGFloat, CGFloat) in [(8, 0), (52, 0), (8, 18), (52, 18)] {
                 let panel = InputPanel()
-                panel.nativeLayout(width: width, trailingInset: inset)
+                panel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact)
                 bindRecordingInput(panel)
                 let background = panel.textInputContainerBackgroundView
                 let oldWidth = background.bounds.width
                 let oldAccessoryX = panel.accessory.frame.minX
                 let oldEditorWidth = panel.editor.bounds.width
+                let reclaimedWidth: CGFloat = 46
                 // Force real UIKit autoresizing when a parent grows.
                 background.nativeParamsView.autoresizingMask = [.flexibleWidth]
                 background.nativeView.autoresizingMask = [.flexibleWidth]
@@ -152,44 +165,51 @@ final class InputPanel: NSObject {
                 widthAnimation.duration = 1
                 background.layer.add(widthAnimation, forKey: "bounds.size")
                 layoutRecordingInput(background)
-                precondition(abs(background.frame.maxX - (width - inset)) < 0.01, "Fill the removed slot, retaining safe insets")
+                let nativeHiddenPanel = InputPanel()
+                nativeHiddenPanel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact, fullWidth: true)
+                precondition(background.frame == nativeHiddenPanel.textInputContainerBackgroundView.frame,
+                             "Match Swiftgram's native hidden-recording layout, including the compact side inset")
                 for part in [background.nativeParamsView, background.nativeView,
                              background.nativeView.contentView, panel.textInputNodeClippingContainer,
                              background.legacyView, panel.editorContainer] {
-                    precondition(abs(part.bounds.width - (oldWidth + 46)) < 0.01, "Keep glass, editor and clip in sync")
+                    precondition(abs(part.bounds.width - (oldWidth + reclaimedWidth)) < 0.01, "Keep glass, editor and clip in sync")
                 }
-                precondition(background.legacyView.backdropLayer.bounds.width == oldWidth + 46)
-                precondition(background.foregroundView.bounds.width == oldWidth + 110)
+                precondition(background.legacyView.backdropLayer.bounds.width == oldWidth + reclaimedWidth)
+                precondition(background.foregroundView.bounds.width == oldWidth + 64 + reclaimedWidth)
                 precondition(background.layer.animation(forKey: "bounds.size") == nil, "Discard stale gap animations")
-                precondition(abs(panel.editor.bounds.width - (oldEditorWidth + 46)) < 0.01)
-                precondition(abs(panel.accessory.frame.minX - (oldAccessoryX + 46)) < 0.01)
+                precondition(abs(panel.editor.bounds.width - (oldEditorWidth + reclaimedWidth)) < 0.01)
+                precondition(abs(panel.accessory.frame.minX - (oldAccessoryX + reclaimedWidth)) < 0.01)
                 precondition(panel.accessory.frame == panel.accessory.tintMask.frame, "Icon and tint mask move together")
                 precondition(background.layer.cornerRadius == 20, "Do not scale corner radii or icons")
                 let after = background.frame
                 background.layoutIfNeeded()
                 layoutRecordingInput(background)
                 precondition(background.frame == after, "Repeated layout cannot accumulate extra width")
-                panel.nativeLayout(width: width, trailingInset: inset, hasText: true)
+                panel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact, hasText: true)
                 let textFrame = background.frame
+                precondition(textFrame == after,
+                             "Keep the same field edges with Send visible and with recording removed")
                 layoutRecordingInput(background)
                 precondition(background.frame == textFrame, "Keep native send/text layout")
-                panel.nativeLayout(width: width, trailingInset: inset)
+                panel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact)
                 layoutRecordingInput(background)
-                precondition(abs(background.frame.maxX - (width - inset)) < 0.01, "Reclaim the slot after clearing text")
-                panel.nativeLayout(width: width, trailingInset: inset, hasExpand: true)
+                precondition(background.frame == nativeHiddenPanel.textInputContainerBackgroundView.frame,
+                             "Restore Swiftgram's native trailing gutter after clearing text")
+                panel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact, hasExpand: true)
                 let expandFrame = background.frame
                 layoutRecordingInput(background)
                 precondition(background.frame == expandFrame, "Reserve the media keyboard's expand button")
-                panel.nativeLayout(width: width, trailingInset: inset, fullWidth: true)
+                panel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact, fullWidth: true)
                 let fullFrame = background.frame
                 layoutRecordingInput(background)
                 precondition(background.frame == fullFrame, "Do not extend a field already expanded by Swiftgram")
-                panel.nativeLayout(width: width, trailingInset: inset)
-                for action in ["custom", "stars", "live", "updating", "send"] {
+                panel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact)
+                for action in ["custom", "stars", "live", "updating", "send", "slowMode"] {
                     panel.customRightAction = action == "custom" ? "empty" : nil
                     panel.starReactionButton = action == "stars" ? NSObject() : nil
                     panel.liveMicrophoneButton = action == "live" ? NSObject() : nil
                     panel.isUpdating = action == "updating"
+                    panel.rightSlowModeInset = action == "slowMode" ? 40 : 0
                     panel.sendActionButtons.view.transform = action == "send" ? .identity : CGAffineTransform(scaleX: 0.001, y: 0.001)
                     let before = background.frame
                     layoutRecordingInput(background)
@@ -197,6 +217,32 @@ final class InputPanel: NSObject {
                 }
             }
         }
+        let oversizedMedia = InputPanel()
+        oversizedMedia.nativeLayout(width: 375, compactSideInset: 18)
+        let media = oversizedMedia.mediaActionButtons.view
+        media.frame.size.width += 18
+        bindRecordingInput(oversizedMedia)
+        layoutRecordingInput(oversizedMedia.textInputContainerBackgroundView)
+        precondition(oversizedMedia.textInputContainerBackgroundView.frame.maxX == 349,
+                     "Keep the native 26pt gutter even when the removed action container extends farther right")
+        let sidebar = InputPanel()
+        sidebar.leftMenuInset = 46
+        sidebar.nativeLayout(width: 844, trailingInset: 52, compactSideInset: 18,
+                             leftInset: 20, additionalRightInset: 96)
+        bindRecordingInput(sidebar)
+        layoutRecordingInput(sidebar.textInputContainerBackgroundView)
+        let sidebarReference = InputPanel()
+        sidebarReference.leftMenuInset = 46
+        sidebarReference.nativeLayout(width: 844, trailingInset: 52, compactSideInset: 18, hasText: true,
+                                      leftInset: 20, additionalRightInset: 96)
+        precondition(sidebar.textInputContainerBackgroundView.frame == sidebarReference.textInputContainerBackgroundView.frame,
+                     "Match the Send layout with asymmetric safe insets, a bot menu and a sidebar")
+        sidebar.nativeLayout(width: 844, trailingInset: 52, compactSideInset: 18, fullWidth: true,
+                             leftInset: 20, additionalRightInset: 96)
+        let nativeSidebarFrame = sidebar.textInputContainerBackgroundView.frame
+        layoutRecordingInput(sidebar.textInputContainerBackgroundView)
+        precondition(sidebar.textInputContainerBackgroundView.frame == nativeSidebarFrame,
+                     "Keep an already expanded native field's sidebar inset")
         let unbound = InputGlass(frame: CGRect(x: 10, y: 0, width: 200, height: 40))
         layoutRecordingInput(unbound)
         precondition(unbound.bounds.width == 200, "Leave unrelated glass views alone")

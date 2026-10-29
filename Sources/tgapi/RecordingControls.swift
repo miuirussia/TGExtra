@@ -24,7 +24,8 @@ final class TGExtraRecordingControls: NSObject {
         var layout: [String: Any] = [:]
         for name in ["textInputContainerBackgroundView", "textInputBackgroundNode",
                      "textInputNodeClippingContainer", "accessoryPanelContainer",
-                     "mediaActionButtons", "sendActionButtons", "isUpdating"] {
+                     "mediaActionButtons", "sendActionButtons", "attachmentButtonBackground",
+                     "leftMenuInset", "rightSlowModeInset", "isUpdating"] {
             layout[name] = field(name, in: node)
         }
         layout["hasOtherRightAction"] = ["customRightAction", "customSecondaryRightAction",
@@ -33,6 +34,10 @@ final class TGExtraRecordingControls: NSObject {
         if let validLayout = field("validLayout", in: node),
            let rightInset = field(".2", in: validLayout) as? CGFloat {
             layout["rightInset"] = rightInset
+            layout["leftInset"] = field(".1", in: validLayout) as? CGFloat
+            if let additionalInsets = field(".4", in: validLayout) {
+                layout["additionalRightInset"] = field("right", in: additionalInsets) as? CGFloat
+            }
         }
         var accessories: [Any] = []
         if let buttons = field("accessoryItemButtons", in: node) as? [Any] {
