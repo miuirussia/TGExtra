@@ -256,7 +256,7 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   case LANGUAGE:
     return 1;
   case MESSAGE_DATA:
-    return 1;
+    return 2;
   case CREDITS:
     return 2;
   default:
@@ -691,6 +691,29 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     cell.detailTextLabel.numberOfLines = 0;
     return cell;
   } else if (indexPath.section == MESSAGE_DATA) {
+    if (indexPath.row == 1) {
+      cell = [self normalCellFromTableView:tableView];
+      cell.textLabel.text = TGLoc(@"DEBUG_LOG_TITLE");
+      cell.detailTextLabel.text = TGLoc(@"DEBUG_LOG_SUBTITLE");
+      cell.textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
+      cell.detailTextLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+      cell.textLabel.adjustsFontForContentSizeCategory = YES;
+      cell.detailTextLabel.adjustsFontForContentSizeCategory = YES;
+      cell.textLabel.textColor = UIColor.labelColor;
+      cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
+      cell.textLabel.numberOfLines = 0;
+      cell.detailTextLabel.numberOfLines = 0;
+      cell.imageView.image = [UIImage systemImageNamed:@"doc.text.magnifyingglass"];
+      cell.imageView.tintColor = [self dynamicColorBW];
+      cell.imageView.isAccessibilityElement = NO;
+      cell.accessoryView = nil;
+      cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+      cell.isAccessibilityElement = YES;
+      cell.accessibilityLabel = cell.textLabel.text;
+      cell.accessibilityHint = cell.detailTextLabel.text;
+      cell.accessibilityTraits = UIAccessibilityTraitButton;
+      return cell;
+    }
     cell = [tableView dequeueReusableCellWithIdentifier:@"messageDataCell"];
     if (!cell) {
       cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
@@ -798,7 +821,8 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   }
 
   if (indexPath.section == MESSAGE_DATA) {
-    [self confirmClearMessageData];
+    if (indexPath.row == 0) [self confirmClearMessageData];
+    else if (indexPath.row == 1) [self showDebugLog];
     return;
   }
 
@@ -1075,28 +1099,33 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   NSString *logContent = [NSString stringWithContentsOfFile:logPath encoding:NSUTF8StringEncoding error:nil];
 
   if (!logContent || logContent.length == 0) {
-    logContent = [NSString stringWithFormat:@"Log empty or not found.\nPath: %@", logPath];
+    logContent = @"";
   } else if (logContent.length > 3000) {
     logContent = [NSString stringWithFormat:@"...(last 3000 chars)\n%@",
                   [logContent substringFromIndex:logContent.length - 3000]];
   }
-  NSString *paidMediaError = [NSUserDefaults.standardUserDefaults stringForKey:@"TGExtraPaidMediaLastError"];
-  if (paidMediaError.length) {
-    logContent = [logContent stringByAppendingFormat:@"\n\nPaid media: %@", paidMediaError];
+  for (NSString *key in @[@"TGExtraCaptureHookStatus", @"TGExtraCaptureCanvasStatus", @"TGExtraPaidCaptureStatus",
+                         @"TGExtraPaidMediaLastImport", @"TGExtraPaidMediaLastError"]) {
+    NSString *entry = [NSUserDefaults.standardUserDefaults stringForKey:key];
+    if (entry.length) logContent = [logContent stringByAppendingFormat:@"%@%@: %@", logContent.length ? @"\n\n" : @"", key, entry];
   }
+  if (!logContent.length) logContent = TGLoc(@"DEBUG_LOG_EMPTY");
 
   UIAlertController *alert = [UIAlertController
-      alertControllerWithTitle:@"Debug Log"
+      alertControllerWithTitle:TGLoc(@"DEBUG_LOG_TITLE")
                        message:logContent
                 preferredStyle:UIAlertControllerStyleAlert];
 
-  [alert addAction:[UIAlertAction actionWithTitle:@"Copy" style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
+  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"DEBUG_LOG_COPY") style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
     [UIPasteboard generalPasteboard].string = logContent;
   }]];
-  [alert addAction:[UIAlertAction actionWithTitle:@"Clear" style:UIAlertActionStyleDestructive handler:^(UIAlertAction *a) {
+  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"DEBUG_LOG_CLEAR") style:UIAlertActionStyleDestructive handler:^(UIAlertAction *a) {
     [@"" writeToFile:logPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    for (NSString *key in @[@"TGExtraPaidMediaLastError", @"TGExtraPaidMediaLastImport", @"TGExtraPaidCaptureStatus"]) {
+      [NSUserDefaults.standardUserDefaults removeObjectForKey:key];
+    }
   }]];
-  [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleCancel handler:nil]];
+  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"OK") style:UIAlertActionStyleCancel handler:nil]];
 
   [self presentViewController:alert animated:YES completion:nil];
 }

@@ -14,7 +14,9 @@ python3 Tests/force_tlottie.py
 python3 Tests/swiftgram_pro_ipatch.py
 python3 Tests/edit_badge_refresh.py
 python3 Tests/paid_media_download.py
+python3 Tests/paid_media_import.py
 python3 Tests/paid_media_capture.py
+python3 Tests/paid_media_uikit.py
 python3 Tests/rust_thunks.py
 python3 Tests/rust_patching.py
 python3 Tests/rust_portable.py

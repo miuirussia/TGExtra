@@ -138,6 +138,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"تم الحفظ في الصور",
             @"PAID_MEDIA_SAVE_FAILED": @"تعذر حفظ الوسائط. افتحها مجددًا وحاول مرة أخرى.",
             @"PAID_MEDIA_PHOTOS_DENIED": @"اسمح بإضافة الصور في إعدادات iOS وحاول مرة أخرى.",
+            @"DEBUG_LOG_TITLE": @"سجل التشخيص",
+            @"DEBUG_LOG_SUBTITLE": @"عرض ونسخ تشخيص حفظ الوسائط ولقطات الشاشة.",
+            @"DEBUG_LOG_COPY": @"نسخ",
+            @"DEBUG_LOG_CLEAR": @"مسح",
+            @"DEBUG_LOG_EMPTY": @"لا توجد سجلات تشخيص بعد.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -277,6 +282,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"已保存到照片",
             @"PAID_MEDIA_SAVE_FAILED": @"无法保存媒体。请重新打开后重试。",
             @"PAID_MEDIA_PHOTOS_DENIED": @"请在 iOS 设置中允许添加照片后重试。",
+            @"DEBUG_LOG_TITLE": @"诊断日志",
+            @"DEBUG_LOG_SUBTITLE": @"查看并复制媒体保存和截图诊断信息。",
+            @"DEBUG_LOG_COPY": @"复制",
+            @"DEBUG_LOG_CLEAR": @"清除",
+            @"DEBUG_LOG_EMPTY": @"暂无诊断记录。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -416,6 +426,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"Saved to Photos",
             @"PAID_MEDIA_SAVE_FAILED": @"Could not save media. Reopen it and try again.",
             @"PAID_MEDIA_PHOTOS_DENIED": @"Allow adding photos in iOS Settings and try again.",
+            @"DEBUG_LOG_TITLE": @"Debug Log",
+            @"DEBUG_LOG_SUBTITLE": @"View and copy media saving and screenshot diagnostics.",
+            @"DEBUG_LOG_COPY": @"Copy",
+            @"DEBUG_LOG_CLEAR": @"Clear",
+            @"DEBUG_LOG_EMPTY": @"No diagnostic entries yet.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -555,6 +570,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"Guardado en Fotos",
             @"PAID_MEDIA_SAVE_FAILED": @"No se pudo guardar. Vuelve a abrir el contenido e inténtalo de nuevo.",
             @"PAID_MEDIA_PHOTOS_DENIED": @"Permite añadir fotos en Ajustes de iOS e inténtalo de nuevo.",
+            @"DEBUG_LOG_TITLE": @"Registro de diagnóstico",
+            @"DEBUG_LOG_SUBTITLE": @"Ver y copiar el diagnóstico de guardado de contenido y capturas.",
+            @"DEBUG_LOG_COPY": @"Copiar",
+            @"DEBUG_LOG_CLEAR": @"Borrar",
+            @"DEBUG_LOG_EMPTY": @"Todavía no hay registros de diagnóstico.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -694,6 +714,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"Enregistré dans Photos",
             @"PAID_MEDIA_SAVE_FAILED": @"Impossible d’enregistrer le média. Rouvrez-le et réessayez.",
             @"PAID_MEDIA_PHOTOS_DENIED": @"Autorisez l’ajout de photos dans les réglages iOS et réessayez.",
+            @"DEBUG_LOG_TITLE": @"Journal de diagnostic",
+            @"DEBUG_LOG_SUBTITLE": @"Afficher et copier le diagnostic de sauvegarde des médias et des captures.",
+            @"DEBUG_LOG_COPY": @"Copier",
+            @"DEBUG_LOG_CLEAR": @"Effacer",
+            @"DEBUG_LOG_EMPTY": @"Aucune entrée de diagnostic pour le moment.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -833,6 +858,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"Salvato in Foto",
             @"PAID_MEDIA_SAVE_FAILED": @"Impossibile salvare il contenuto. Riaprilo e riprova.",
             @"PAID_MEDIA_PHOTOS_DENIED": @"Consenti l’aggiunta di foto nelle impostazioni iOS e riprova.",
+            @"DEBUG_LOG_TITLE": @"Registro diagnostico",
+            @"DEBUG_LOG_SUBTITLE": @"Visualizza e copia la diagnostica di salvataggio dei contenuti e screenshot.",
+            @"DEBUG_LOG_COPY": @"Copia",
+            @"DEBUG_LOG_CLEAR": @"Cancella",
+            @"DEBUG_LOG_EMPTY": @"Nessuna voce diagnostica al momento.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -972,6 +1002,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"写真に保存しました",
             @"PAID_MEDIA_SAVE_FAILED": @"メディアを保存できませんでした。開き直して再試行してください。",
             @"PAID_MEDIA_PHOTOS_DENIED": @"iOSの設定で写真の追加を許可して再試行してください。",
+            @"DEBUG_LOG_TITLE": @"診断ログ",
+            @"DEBUG_LOG_SUBTITLE": @"メディア保存とスクリーンショットの診断情報を表示・コピーします。",
+            @"DEBUG_LOG_COPY": @"コピー",
+            @"DEBUG_LOG_CLEAR": @"消去",
+            @"DEBUG_LOG_EMPTY": @"診断記録はまだありません。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1111,6 +1146,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"Сохранено в Фото",
             @"PAID_MEDIA_SAVE_FAILED": @"Не удалось сохранить медиа. Откройте его заново и повторите попытку.",
             @"PAID_MEDIA_PHOTOS_DENIED": @"Разрешите добавление фото в настройках iOS и повторите попытку.",
+            @"DEBUG_LOG_TITLE": @"Журнал диагностики",
+            @"DEBUG_LOG_SUBTITLE": @"Просмотр и копирование диагностики сохранения медиа и скриншотов.",
+            @"DEBUG_LOG_COPY": @"Копировать",
+            @"DEBUG_LOG_CLEAR": @"Очистить",
+            @"DEBUG_LOG_EMPTY": @"Диагностических записей пока нет.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1250,6 +1290,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"已儲存至照片",
             @"PAID_MEDIA_SAVE_FAILED": @"無法儲存媒體。請重新開啟後再試一次。",
             @"PAID_MEDIA_PHOTOS_DENIED": @"請在 iOS 設定中允許加入照片後再試一次。",
+            @"DEBUG_LOG_TITLE": @"診斷日誌",
+            @"DEBUG_LOG_SUBTITLE": @"檢視並複製媒體儲存及螢幕截圖診斷資訊。",
+            @"DEBUG_LOG_COPY": @"複製",
+            @"DEBUG_LOG_CLEAR": @"清除",
+            @"DEBUG_LOG_EMPTY": @"尚無診斷記錄。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1389,6 +1434,11 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PAID_MEDIA_SAVED": @"Đã lưu vào Ảnh",
             @"PAID_MEDIA_SAVE_FAILED": @"Không thể lưu nội dung. Hãy mở lại và thử lại.",
             @"PAID_MEDIA_PHOTOS_DENIED": @"Cho phép thêm ảnh trong Cài đặt iOS rồi thử lại.",
+            @"DEBUG_LOG_TITLE": @"Nhật ký chẩn đoán",
+            @"DEBUG_LOG_SUBTITLE": @"Xem và sao chép chẩn đoán lưu nội dung và ảnh chụp màn hình.",
+            @"DEBUG_LOG_COPY": @"Sao chép",
+            @"DEBUG_LOG_CLEAR": @"Xóa",
+            @"DEBUG_LOG_EMPTY": @"Chưa có bản ghi chẩn đoán.",
         };
     }
     return nil;

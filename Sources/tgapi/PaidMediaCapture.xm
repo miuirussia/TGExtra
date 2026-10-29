@@ -13,8 +13,15 @@
 @end
 
 static char paidCaptureRootKey, originalImageCaptureKey, originalVideoCaptureKey;
+static char canvasOwnLayerKey, requestedImageCaptureKey;
 // All UIKit manipulation and host capture changes below run on the main thread.
 static BOOL applyingCaptureChange;
+static NSUInteger clearedImageLayers, clearedVideoLayers;
+
+static void recordCaptureStatus(NSString *key, NSString *value) {
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    if (![[defaults stringForKey:key] isEqualToString:value]) [defaults setObject:value forKey:key];
+}
 
 static BOOL paidLayerHasCaptureRoot(CALayer *layer) {
     if (!NSThread.isMainThread) return NO;
@@ -38,15 +45,19 @@ static UIView *captureCanvas(UITextField *field) {
 
 // Same UIKit path as Telegram's UIKitRuntimeUtils.setLayerDisableScreenshots.
 // Rebinding the secure canvas also updates the render-server protection state.
-static void setImageCaptureProtected(CALayer *layer, BOOL captureProtected) {
+static BOOL setImageCaptureProtected(CALayer *layer, BOOL captureProtected) {
     static UITextField *field;
     static UIView *canvas;
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         field = [UITextField new];
         canvas = captureCanvas(field);
+        if (canvas) recordCaptureStatus(@"TGExtraCaptureCanvasStatus", @"Secure canvas ready");
     });
-    if (!canvas) return;
+    if (!canvas) {
+        recordCaptureStatus(@"TGExtraCaptureCanvasStatus", @"Secure text canvas unavailable");
+        return NO;
+    }
     CALayer *previous = canvas.layer;
     BOOL wasApplying = applyingCaptureChange;
     applyingCaptureChange = YES;
@@ -58,18 +69,28 @@ static void setImageCaptureProtected(CALayer *layer, BOOL captureProtected) {
         [canvas setValue:previous forKey:@"layer"];
         applyingCaptureChange = wasApplying;
     }
+    return YES;
 }
 
 static void updateCaptureLayers(CALayer *layer, BOOL allow) {
     if (allow) {
-        // These are CoreAnimation's two capture bits. Reading the mask avoids
-        // repeatedly toggling every unprotected layer during gallery layout.
+        // Record Telegram's requested protection when it rebinds its secure
+        // canvas, including while the image layer is still detached. UIKit can
+        // report disableUpdateMask == 0 even after secureTextEntry was enabled.
+        NSNumber *requested = objc_getAssociatedObject(layer, &requestedImageCaptureKey);
+        NSNumber *original = objc_getAssociatedObject(layer, &originalImageCaptureKey);
         NSNumber *mask = nil;
-        @try { mask = [layer valueForKey:@"disableUpdateMask"]; }
-        @catch (NSException *exception) {}
-        if ([mask respondsToSelector:@selector(unsignedIntValue)] && (mask.unsignedIntValue & 0x12)) {
-            objc_setAssociatedObject(layer, &originalImageCaptureKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            setImageCaptureProtected(layer, NO);
+        if (!requested) {
+            @try { mask = [layer valueForKey:@"disableUpdateMask"]; }
+            @catch (NSException *exception) {}
+        }
+        BOOL isProtected = requested ? requested.boolValue :
+            ([mask respondsToSelector:@selector(unsignedIntValue)] && (mask.unsignedIntValue & 0x12));
+        if (isProtected && !original) {
+            if (setImageCaptureProtected(layer, NO)) {
+                objc_setAssociatedObject(layer, &originalImageCaptureKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                clearedImageLayers++;
+            }
         }
     } else {
         NSNumber *original = objc_getAssociatedObject(layer, &originalImageCaptureKey);
@@ -85,6 +106,7 @@ static void updateCaptureLayers(CALayer *layer, BOOL allow) {
             applyingCaptureChange = YES;
             video.preventsCapture = NO;
             applyingCaptureChange = wasApplying;
+            clearedVideoLayers++;
         } else if (!allow && original) {
             video.preventsCapture = original.boolValue;
             objc_setAssociatedObject(layer, &originalVideoCaptureKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
@@ -108,10 +130,13 @@ void TGExtraUpdatePaidMediaCapture(id node) {
     [TGExtraPaidMediaFile bindGalleryItem:node];
     CALayer *root = [node view].layer;
     BOOL wasAllowed = [objc_getAssociatedObject(root, &paidCaptureRootKey) boolValue];
-    BOOL allow = [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] &&
-        [TGExtraPaidMediaFile isUnlockedPaidItem:node];
+    BOOL unlocked = [TGExtraPaidMediaFile isUnlockedPaidItem:node];
+    BOOL allow = [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] && unlocked;
     objc_setAssociatedObject(root, &paidCaptureRootKey, allow ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     if (allow || wasAllowed) updateCaptureLayers(root, allow);
+    recordCaptureStatus(@"TGExtraPaidCaptureStatus", [NSString stringWithFormat:
+        @"%@ unlocked=%d allow=%d; cleared images=%lu videos=%lu", name, unlocked, allow,
+        (unsigned long)clearedImageLayers, (unsigned long)clearedVideoLayers]);
 }
 
 // GalleryItemNode installs Display.UITracingLayerView through setViewBlock.
@@ -133,16 +158,33 @@ void TGExtraUpdatePaidMediaCapture(id node) {
 %end
 %end
 
+%hook UIView
+- (void)setValue:(id)value forKey:(NSString *)key {
+    // Capture the canvas's own layer BEFORE UIKitRuntimeUtils temporarily
+    // replaces it. Ordinary secure text fields keep that layer and are ignored.
+    if (!applyingCaptureChange && NSThread.isMainThread && [key isEqualToString:@"layer"] &&
+        [NSStringFromClass(self.class) containsString:@"TextLayoutCanvasView"] &&
+        !objc_getAssociatedObject(self, &canvasOwnLayerKey)) {
+        objc_setAssociatedObject(self, &canvasOwnLayerKey, ((UIView *)self).layer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    %orig(value, key);
+}
+%end
+
 %hook UITextField
 - (void)setSecureTextEntry:(BOOL)value {
     // Telegram temporarily assigns an image layer to its secure text canvas.
     // Keep later redraws from re-enabling protection inside a paid gallery item.
-    if (!applyingCaptureChange && NSThread.isMainThread &&
-        [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction]) {
-        CALayer *layer = captureCanvas((UITextField *)self).layer;
-        if (paidLayerAllowsCapture(layer)) {
-            objc_setAssociatedObject(layer, &originalImageCaptureKey, @(value), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            value = NO;
+    if (!applyingCaptureChange && NSThread.isMainThread) {
+        UIView *canvas = captureCanvas((UITextField *)self);
+        CALayer *ownLayer = objc_getAssociatedObject(canvas, &canvasOwnLayerKey);
+        CALayer *layer = canvas.layer;
+        if (ownLayer && layer != ownLayer) {
+            objc_setAssociatedObject(layer, &requestedImageCaptureKey, @(value), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            if (paidLayerAllowsCapture(layer)) {
+                objc_setAssociatedObject(layer, &originalImageCaptureKey, @(value), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                value = NO;
+            }
         }
     }
     %orig(value);
@@ -223,6 +265,9 @@ __attribute__((constructor)) static void TGExtraInstallPaidGalleryViews(void) {
             class_getInstanceMethod(view, @selector(layoutSubviews)) &&
             class_getInstanceMethod(view, @selector(didMoveToWindow))) {
             %init(TGExtraPaidGalleryViews, TGExtraPaidGalleryView = view);
+            recordCaptureStatus(@"TGExtraCaptureHookStatus", @"Gallery capture hook installed (secure-canvas ledger)");
+        } else {
+            recordCaptureStatus(@"TGExtraCaptureHookStatus", @"Gallery capture view or node accessor unavailable");
         }
     });
 }

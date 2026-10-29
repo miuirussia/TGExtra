@@ -188,3 +188,10 @@
 "PAID_MEDIA_SAVED" = "Saved to Photos";
 "PAID_MEDIA_SAVE_FAILED" = "Could not save media. Reopen it and try again.";
 "PAID_MEDIA_PHOTOS_DENIED" = "Allow adding photos in iOS Settings and try again.";
+
+// Media diagnostics
+"DEBUG_LOG_TITLE" = "Debug Log";
+"DEBUG_LOG_SUBTITLE" = "View and copy media saving and screenshot diagnostics.";
+"DEBUG_LOG_COPY" = "Copy";
+"DEBUG_LOG_CLEAR" = "Clear";
+"DEBUG_LOG_EMPTY" = "No diagnostic entries yet.";

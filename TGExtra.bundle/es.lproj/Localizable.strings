@@ -190,3 +190,10 @@
 "PAID_MEDIA_SAVED" = "Guardado en Fotos";
 "PAID_MEDIA_SAVE_FAILED" = "No se pudo guardar. Vuelve a abrir el contenido e inténtalo de nuevo.";
 "PAID_MEDIA_PHOTOS_DENIED" = "Permite añadir fotos en Ajustes de iOS e inténtalo de nuevo.";
+
+// Media diagnostics
+"DEBUG_LOG_TITLE" = "Registro de diagnóstico";
+"DEBUG_LOG_SUBTITLE" = "Ver y copiar el diagnóstico de guardado de contenido y capturas.";
+"DEBUG_LOG_COPY" = "Copiar";
+"DEBUG_LOG_CLEAR" = "Borrar";
+"DEBUG_LOG_EMPTY" = "Todavía no hay registros de diagnóstico.";

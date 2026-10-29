@@ -35,7 +35,7 @@ for arch in arm64 arm64e; do
         Sources/tgapi/Preferences.m -o "$test_build_dir/Preferences-$arch.o"
     clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -c Sources/tgapi/ForceTLottie.m -o "$test_build_dir/ForceTLottie-$arch.o"
-    for source in PaidMediaDownload PaidMediaSave; do
+    for source in PaidMediaDownload PaidMediaImport PaidMediaSave; do
         clang -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
             -fobjc-arc -Werror -Wno-deprecated-declarations -I Sources/tgapiC/include -I "$test_build_dir" \
             -c "Sources/tgapi/$source.m" -o "$test_build_dir/$source-$arch.o"

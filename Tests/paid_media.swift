@@ -53,7 +53,7 @@ private enum PaidMediaMocks {
         var fetchStatus: FetchStatus?
         init(footer: Footer) { self.footerContentNode = footer }
     }
-    enum ContentInfo { case message(Message, Subject?); case webPage }
+    enum ContentInfo { case message(Message, Subject?); case nonMessage }
     struct VideoItem { let contentInfo: ContentInfo? }
     struct FetchControls { let fetch: () -> Void; let cancel: () -> Void }
     enum FetchStatus { case Remote; case Fetching(isActive: Bool, progress: Float) }
@@ -114,7 +114,7 @@ func testPaidMedia() {
     let videoItem = M.Item(footer: footer)
     videoItem.item = .init(contentInfo: .message(footer.currentMessage!, footer.mediaSubject))
     check(PaidMediaFile.isUnlockedPaidItem(videoItem), "Video capture policy reads its contentInfo message")
-    videoItem.item = .init(contentInfo: .webPage)
+    videoItem.item = .init(contentInfo: .nonMessage)
     check(!PaidMediaFile.isUnlockedPaidItem(videoItem), "A reused non-message video ignores stale paid footer state")
     videoItem.item = .init(contentInfo: .message(footer.currentMessage!, footer.mediaSubject))
     var nativeFetches = 0

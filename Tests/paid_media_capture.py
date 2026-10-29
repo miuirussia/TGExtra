@@ -12,12 +12,13 @@ view_hook = source[source.index('%hook TGExtraPaidGalleryView'):source.index('%e
 view_hook = (view_hook.replace('%hook TGExtraPaidGalleryView', '@implementation TestGalleryView')
              .replace('%orig;', '[super layoutSubviews];', 1)
              .replace('%orig;', '[super didMoveToWindow];', 1) + '@end\n')
-hooks = source[source.index('%hook UITextField'):source.index('__attribute__((constructor))')]
-for host, replacement in [('UITextField', 'TestTextField'),
+hooks = source[source.index('%hook UIView'):source.index('__attribute__((constructor))')]
+for host, replacement in [('UIView', 'TestTextLayoutCanvasView'), ('UITextField', 'TestTextField'),
                           ('AVSampleBufferDisplayLayer', 'TestVideoLayer'), ('CALayer', 'TestLayer')]:
     hooks = hooks.replace(f'%hook {host}', f'@implementation {replacement}')
 hooks = hooks.replace('%orig(value);', '[super setSecureTextEntry:value];', 1)
 hooks = hooks.replace('%orig(value);', '[super setPreventsCapture:value];', 1)
+hooks = hooks.replace('%orig(value, key);', '[super setValue:value forKey:key];')
 super_calls = {
     'addSublayer:': 'addSublayer:layer',
     'insertSublayer:atIndex:': 'insertSublayer:layer atIndex:index',
@@ -45,19 +46,27 @@ support = r'''
 #import "Constants.h"
 @interface MemoryCaptureDefaults : NSUserDefaults
 @property BOOL enabled;
+@property NSMutableDictionary *values;
 @end
 @implementation MemoryCaptureDefaults
+- (instancetype)init { if ((self = [super init])) self.values = [NSMutableDictionary new]; return self; }
 - (BOOL)boolForKey:(NSString *)key { return self.enabled; }
 - (void)setBool:(BOOL)value forKey:(NSString *)key { self.enabled = value; }
+- (NSString *)stringForKey:(NSString *)key { return self.values[key]; }
+- (void)setObject:(id)value forKey:(NSString *)key { self.values[key] = value; }
 @end
 @interface CALayer : NSObject {
 @public
     NSArray<CALayer *> *_sublayers;
+    unsigned int _storedMask;
 }
 @property(nonatomic, weak) CALayer *superlayer;
 @property(nonatomic, strong) NSArray<CALayer *> *sublayers;
 @property(nonatomic, strong) CALayer *mask;
 @property(nonatomic) unsigned int disableUpdateMask;
+@property(nonatomic) NSUInteger maskReadMode;
+- (void)setTextCaptureProtected:(BOOL)value;
+- (BOOL)isCaptureProtected;
 - (void)addSublayer:(CALayer *)layer;
 - (void)insertSublayer:(CALayer *)layer atIndex:(unsigned int)index;
 - (void)insertSublayer:(CALayer *)layer below:(CALayer *)sibling;
@@ -74,6 +83,13 @@ static void detach(CALayer *layer) {
 }
 @implementation CALayer
 @synthesize sublayers = _sublayers;
+- (unsigned int)disableUpdateMask {
+    if (self.maskReadMode == 2) @throw [NSException exceptionWithName:@"HiddenMask" reason:nil userInfo:nil];
+    return self.maskReadMode == 1 ? 0 : _storedMask;
+}
+- (void)setDisableUpdateMask:(unsigned int)value { _storedMask = value; }
+- (void)setTextCaptureProtected:(BOOL)value { _storedMask = (_storedMask & ~0x12u) | (value ? 0x12u : 0); }
+- (BOOL)isCaptureProtected { return (_storedMask & 0x12u) != 0; }
 - (void)addSublayer:(CALayer *)layer {
     detach(layer);
     layer.superlayer = self;
@@ -125,7 +141,6 @@ static void detach(CALayer *layer) {
 @end
 @interface TestGalleryView : UIView @end
 @interface TestTextLayoutCanvasView : UIView @end
-@implementation TestTextLayoutCanvasView @end
 @interface UITextField : UIView
 @property(nonatomic) BOOL secureTextEntry;
 @end
@@ -140,7 +155,7 @@ static void detach(CALayer *layer) {
 - (void)setSecureTextEntry:(BOOL)value {
     _secureTextEntry = value;
     CALayer *layer = self.subviews.firstObject.layer;
-    layer.disableUpdateMask = (layer.disableUpdateMask & ~0x12u) | (value ? 0x12u : 0);
+    [layer setTextCaptureProtected:value];
 }
 @end
 @interface AVSampleBufferDisplayLayer : CALayer
@@ -224,6 +239,25 @@ static void testReparenting(NSUserDefaults *defaults) {
         NSCAssert(image.disableUpdateMask == 0x32 && video.preventsCapture, @"Replacing the parent's sublayers restores removed content");
     }
 }
+static void testOpaqueCaptureState(NSUserDefaults *defaults) {
+    for (NSUInteger mode = 1; mode <= 2; mode++) {
+        TestNode *gallery = item(@"GalleryUI.ChatImageGalleryItemNode", YES);
+        CALayer *image = [CALayer new]; image.maskReadMode = mode;
+        TestTextField *host = [TestTextField new];
+        CALayer *ownLayer = host.subviews.firstObject.layer;
+        [host.subviews.firstObject setValue:image forKey:@"layer"];
+        host.secureTextEntry = NO; host.secureTextEntry = YES;
+        [host.subviews.firstObject setValue:ownLayer forKey:@"layer"];
+        NSCAssert(image.isCaptureProtected, @"Native protection was applied before the layer entered a paid gallery");
+        [defaults setBool:YES forKey:kDisableForwardRestriction];
+        [gallery.view.layer addSublayer:image];
+        [gallery.view didMoveToWindow];
+        NSCAssert(!image.isCaptureProtected, @"Zero or unreadable disableUpdateMask cannot skip clearing real secure protection");
+        [defaults setBool:NO forKey:kDisableForwardRestriction];
+        [gallery.view layoutSubviews];
+        NSCAssert(image.isCaptureProtected, @"Original secure protection restores without reading the private mask");
+    }
+}
 int main(void) {
     @autoreleasepool {
         MemoryCaptureDefaults *memory = [MemoryCaptureDefaults new];
@@ -232,6 +266,7 @@ int main(void) {
         NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
         BOOL previous = [defaults boolForKey:kDisableForwardRestriction];
         testReparenting(defaults);
+        testOpaqueCaptureState(defaults);
         for (NSString *name in @[@"GalleryUI.ChatImageGalleryItemNode", @"GalleryUI.UniversalVideoGalleryItemNode"]) {
             TestNode *node = item(name, YES);
             CALayer *image = [CALayer new]; image.disableUpdateMask = 0x32;

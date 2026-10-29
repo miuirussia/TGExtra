@@ -187,3 +187,10 @@
 "PAID_MEDIA_SAVED" = "写真に保存しました";
 "PAID_MEDIA_SAVE_FAILED" = "メディアを保存できませんでした。開き直して再試行してください。";
 "PAID_MEDIA_PHOTOS_DENIED" = "iOSの設定で写真の追加を許可して再試行してください。";
+
+// Media diagnostics
+"DEBUG_LOG_TITLE" = "診断ログ";
+"DEBUG_LOG_SUBTITLE" = "メディア保存とスクリーンショットの診断情報を表示・コピーします。";
+"DEBUG_LOG_COPY" = "コピー";
+"DEBUG_LOG_CLEAR" = "消去";
+"DEBUG_LOG_EMPTY" = "診断記録はまだありません。";

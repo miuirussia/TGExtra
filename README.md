@@ -91,7 +91,11 @@ retry. Screenshot protection is removed for unlocked paid gallery items while
 the saving-protected-content switch is enabled.
 Video saving starts the gallery's native full-file download and waits for its
 complete cache file before importing it into Photos. Failed saves report whether
-the download or Photos import failed; the latest error is also included in Debug Log.
+the download or Photos import failed. A success notification requires a Photos
+asset identifier; imported purchases use the current date so embedded old dates
+do not hide them among older media. Videos rejected as invalid resources get one
+retry through the existing MP4 exporter. **Message Data → Debug Log** provides copyable
+capture-hook status, the last created asset and the latest error.
 The gallery integration uses host Swift reflection and requires device validation.
 
 Edit history records other people's messages observed while the feature is

@@ -189,3 +189,10 @@
 "PAID_MEDIA_SAVED" = "Salvato in Foto";
 "PAID_MEDIA_SAVE_FAILED" = "Impossibile salvare il contenuto. Riaprilo e riprova.";
 "PAID_MEDIA_PHOTOS_DENIED" = "Consenti l’aggiunta di foto nelle impostazioni iOS e riprova.";
+
+// Media diagnostics
+"DEBUG_LOG_TITLE" = "Registro diagnostico";
+"DEBUG_LOG_SUBTITLE" = "Visualizza e copia la diagnostica di salvataggio dei contenuti e screenshot.";
+"DEBUG_LOG_COPY" = "Copia";
+"DEBUG_LOG_CLEAR" = "Cancella";
+"DEBUG_LOG_EMPTY" = "Nessuna voce diagnostica al momento.";

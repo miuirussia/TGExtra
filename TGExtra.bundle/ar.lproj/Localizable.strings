@@ -186,3 +186,10 @@
 "PAID_MEDIA_SAVED" = "تم الحفظ في الصور";
 "PAID_MEDIA_SAVE_FAILED" = "تعذر حفظ الوسائط. افتحها مجددًا وحاول مرة أخرى.";
 "PAID_MEDIA_PHOTOS_DENIED" = "اسمح بإضافة الصور في إعدادات iOS وحاول مرة أخرى.";
+
+// Media diagnostics
+"DEBUG_LOG_TITLE" = "سجل التشخيص";
+"DEBUG_LOG_SUBTITLE" = "عرض ونسخ تشخيص حفظ الوسائط ولقطات الشاشة.";
+"DEBUG_LOG_COPY" = "نسخ";
+"DEBUG_LOG_CLEAR" = "مسح";
+"DEBUG_LOG_EMPTY" = "لا توجد سجلات تشخيص بعد.";

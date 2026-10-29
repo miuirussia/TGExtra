@@ -39,16 +39,15 @@
             TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"PAID_MEDIA_SAVING"]);
             TGExtraDownloadPaidMedia(file, ^(NSURL *url, NSError *error) {
                 if (!url || error) { [self failed:error stage:@"download"]; return; }
-                [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
-                    if (file.video) [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:url];
-                    else [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:url];
-                } completionHandler:^(BOOL success, NSError *photoError) {
+                TGExtraImportPaidMedia(url, file.video, ^(NSString *identifier, NSError *photoError) {
                     [NSFileManager.defaultManager removeItemAtURL:url error:NULL];
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        if (success) [self finishedWithKey:@"PAID_MEDIA_SAVED"];
-                        else [self failed:photoError stage:@"Photos"];
-                    });
-                }];
+                    if (identifier.length && !photoError) {
+                        [NSUserDefaults.standardUserDefaults setObject:
+                            [NSString stringWithFormat:@"%@ Photos created asset %@", NSDate.date, identifier]
+                            forKey:@"TGExtraPaidMediaLastImport"];
+                        [self finishedWithKey:@"PAID_MEDIA_SAVED"];
+                    } else [self failed:photoError stage:@"Photos"];
+                });
             });
         });
     }];

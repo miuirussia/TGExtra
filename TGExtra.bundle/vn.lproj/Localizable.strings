@@ -187,3 +187,10 @@
 "PAID_MEDIA_SAVED" = "Đã lưu vào Ảnh";
 "PAID_MEDIA_SAVE_FAILED" = "Không thể lưu nội dung. Hãy mở lại và thử lại.";
 "PAID_MEDIA_PHOTOS_DENIED" = "Cho phép thêm ảnh trong Cài đặt iOS rồi thử lại.";
+
+// Media diagnostics
+"DEBUG_LOG_TITLE" = "Nhật ký chẩn đoán";
+"DEBUG_LOG_SUBTITLE" = "Xem và sao chép chẩn đoán lưu nội dung và ảnh chụp màn hình.";
+"DEBUG_LOG_COPY" = "Sao chép";
+"DEBUG_LOG_CLEAR" = "Xóa";
+"DEBUG_LOG_EMPTY" = "Chưa có bản ghi chẩn đoán.";

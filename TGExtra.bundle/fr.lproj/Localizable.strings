@@ -187,3 +187,10 @@
 "PAID_MEDIA_SAVED" = "Enregistré dans Photos";
 "PAID_MEDIA_SAVE_FAILED" = "Impossible d’enregistrer le média. Rouvrez-le et réessayez.";
 "PAID_MEDIA_PHOTOS_DENIED" = "Autorisez l’ajout de photos dans les réglages iOS et réessayez.";
+
+// Media diagnostics
+"DEBUG_LOG_TITLE" = "Journal de diagnostic";
+"DEBUG_LOG_SUBTITLE" = "Afficher et copier le diagnostic de sauvegarde des médias et des captures.";
+"DEBUG_LOG_COPY" = "Copier";
+"DEBUG_LOG_CLEAR" = "Effacer";
+"DEBUG_LOG_EMPTY" = "Aucune entrée de diagnostic pour le moment.";
