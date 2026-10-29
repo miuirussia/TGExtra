@@ -200,3 +200,5 @@
 /* Recording button */
 "HIDE_RECORDING_BUTTON_TITLE" = "Rimuovi pulsante di registrazione";
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Rimuovi il pulsante per registrare messaggi vocali e video circolari in Telegram e Swiftgram. Applica le modifiche per riavviare l’app.";
+
+"MESSAGE_DATA_CLEAR_FAILED" = "Impossibile cancellare i dati dei messaggi. Riprova.";

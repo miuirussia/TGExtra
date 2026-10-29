@@ -21,7 +21,6 @@ final class TLConstructor {
     let caseIndex: Int
     let fields: [TLField]
     let fieldIndices: [String: Int]
-    // Only these fields can require edits to the original packet.
     let tracksWireFields: Bool
     let restrictionIndex: Int?
     let canScan: Bool

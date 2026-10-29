@@ -6,8 +6,6 @@ struct TLFlagLocation: Equatable {
     var mask: Int32 { Int32(1) << bit }
 }
 
-// TLS1 omits flag-only (?true) fields. Keep their semantic names and reviewed
-// bits here; optional value fields get their presence bit from the host table.
 enum TLFlag: String {
     case noForwards = "noforwards"
     case mediaUnread = "media_unread"
@@ -51,9 +49,6 @@ struct TLFieldChange: Equatable, CustomStringConvertible {
     }
 }
 
-// These operations change a decoded object. Their trace is available on
-// record.changes; creating an object or merely decoding it records no changes.
-// Direct edits to the original packet are explicit BufferReader operations.
 struct TLDataPatch {
     let record: TLRecord
     let rule: String?
@@ -139,7 +134,6 @@ struct TLDataPatch {
 
     private static func describe(_ value: Any?) -> String {
         guard let value = value else { return "absent" }
-        // Avoid reflection and Objective-C boxing for the common scalar trace.
         if let integer = value as? Int32 { return String(integer) }
         if let integer = value as? Int64 { return String(integer) }
         if let number = value as? Double { return String(number) }

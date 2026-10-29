@@ -198,3 +198,5 @@
 /* Recording button */
 "HIDE_RECORDING_BUTTON_TITLE" = "Xóa nút ghi âm và quay video";
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Xóa hoàn toàn nút ghi tin nhắn thoại và video tròn trong Telegram và Swiftgram. Áp dụng thay đổi để khởi động lại ứng dụng.";
+
+"MESSAGE_DATA_CLEAR_FAILED" = "Không thể xóa dữ liệu tin nhắn. Vui lòng thử lại.";

@@ -9,7 +9,6 @@
 @end
 
 static Class TGExtraTLottieClass;
-// Objective-C initializers consume their receiver and return a retained object.
 typedef id (*TGExtraLottieInitializer)(id __attribute__((ns_consumed)), SEL,
     NSData *, int32_t, NSDictionary *, NSString *) __attribute__((ns_returns_retained));
 static TGExtraLottieInitializer TGExtraOriginalLottieInit;
@@ -38,17 +37,10 @@ static BOOL TGExtraLottieRendererMatches(Class cls, SEL initializer, NSArray<NSS
                             @(@encode(int32_t)), @(@encode(int32_t)), @(@encode(int32_t))]);
 }
 
-// Telegram-iOS fb0e62ba8a, LottieBinding/MakeLottieInstance.swift and
-// LottieInstance.swift; Objective-C signatures also checked in Telegram 13.1.1
-// (35634) and Swiftgram 13.1.1 (343). Both protocol witnesses dispatch these same
-// Objective-C selectors. Replacing the initializer result needs no Swift hook;
-// the factory still applies its dimension, frame-rate and duration limits.
 static id TGExtraLottieInit(id self __attribute__((ns_consumed)), SEL selector,
     NSData *data, int32_t fitzModifier, NSDictionary *colorReplacements,
     NSString *cacheKey) __attribute__((ns_returns_retained)) {
     if ([NSUserDefaults.standardUserDefaults boolForKey:kForceTLottie]) {
-        // tlottie has no parsed-model cache key. Keep parse failures as nil,
-        // matching the client's native tlottie path.
         return [[TGExtraTLottieClass alloc] initWithData:data fitzModifier:fitzModifier
                                      colorReplacements:colorReplacements];
     }

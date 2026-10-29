@@ -2,8 +2,6 @@
 #import <CommonCrypto/CommonDigest.h>
 #import <objc/runtime.h>
 
-// Only Objective-C MtProtoKit entry points are used here. The account's
-// existing MTContext supplies authorization, proxy settings and DC discovery.
 @interface TGExtraCopyConnection : NSObject
 - (instancetype)initWithContext:(id)context;
 - (instancetype)initWithContext:(id)context datacenterId:(NSInteger)dc usageCalculationInfo:(id)usage
@@ -239,8 +237,6 @@ static NSURL *copyJournalDirectory(void) {
         self.journal = saved.mutableCopy;
         self.journal[@"results"] = [saved[@"results"] mutableCopy];
     } else {
-        // Completed journals are retained for a week so replays keep their real
-        // results. Unfinished journals are never evicted to make room.
         NSArray *files = [NSFileManager.defaultManager contentsOfDirectoryAtURL:directory includingPropertiesForKeys:nil options:0 error:nil];
         NSUInteger retained = 0;
         for (NSURL *url in files) {
@@ -295,8 +291,6 @@ static NSURL *copyJournalDirectory(void) {
         NSURL *root = [[NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES] URLByAppendingPathComponent:@"TGExtraForwardCopies" isDirectory:YES];
         static dispatch_once_t once;
         dispatch_once(&once, ^{
-            // This runs on copyQueue before any operation creates a file.
-            // Remove only TGExtra's own files left by a terminated process.
             [NSFileManager.defaultManager removeItemAtURL:root error:nil];
         });
         self.temporaryDirectory = [root URLByAppendingPathComponent:NSUUID.UUID.UUIDString isDirectory:YES];
@@ -418,8 +412,6 @@ static NSURL *copyJournalDirectory(void) {
     [self rpc:self.plan.requests[batch][@"payload"] service:self.service completion:^(NSData *response, MTRpcError *error) {
         if (error) { [self complete:nil info:self.info error:error]; return; }
         if (!response) { [self fail:@"TGEXTRA_COPY_RESPONSE_INVALID"]; return; }
-        // Persist the ACK before fetching a compact reply's full message. A
-        // failed confirmation fetch must never cause a second send on retry.
         self.journal[@"results"][@(batch).stringValue] = @{@"raw": response};
         if (![self saveJournal]) { [self fail:@"TGEXTRA_COPY_JOURNAL_UNAVAILABLE"]; return; }
         [self normalizeBatch:batch response:response];
@@ -461,7 +453,6 @@ MTRequest *TGExtraRecoverForwardRequest(NSData *payload, MTRequestMessageService
     TGExtraForwardCopyPlan *plan = [[TGExtraForwardCopyPlan alloc] initWithPayload:payload];
     if (!plan.sourceRequest) return nil;
     MTRequest *request = [NSClassFromString(@"MTRequest") new];
-    // Keep reconstructed replies raw until the original transport's codec runs.
     objc_setAssociatedObject(request, internalCopyKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [request setPayload:payload metadata:nil shortMetadata:@"TGExtra.copy.recovery"
          responseParser:^id(NSData *bytes) { return bytes; }];

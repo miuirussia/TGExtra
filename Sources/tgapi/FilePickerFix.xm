@@ -24,8 +24,6 @@ bool shouldFixFilePicker() {
 
 %end
 
-// Give each selection its own directory so equal file names cannot collide.
-// A failed relocation leaves the host's original URL available to its handler.
 static NSURL *TGExtraRelocatePickedFile(NSURL *url) {
     if (!url.isFileURL) return url;
     NSFileManager *manager = NSFileManager.defaultManager;
@@ -87,9 +85,6 @@ static NSURL *TGExtraRelocatePickedFile(NSURL *url) {
 
 __attribute__((constructor))
 static void initFileHooks() {
-	// Nothing to install when the fix is off, and the scan below walks every
-	// class in the process — tens of thousands of them, holding the runtime
-	// lock the main thread is also using while it loads classes during launch.
 	if (![[NSUserDefaults standardUserDefaults] boolForKey:FILE_PICKER_FIX_KEY]) {
 		return;
 	}

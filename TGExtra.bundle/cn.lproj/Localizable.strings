@@ -200,3 +200,5 @@
 /* Recording button */
 "HIDE_RECORDING_BUTTON_TITLE" = "移除录制按钮";
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "完全移除 Telegram 和 Swiftgram 中的语音及圆形视频录制按钮。应用更改以重启应用。";
+
+"MESSAGE_DATA_CLEAR_FAILED" = "无法清除消息数据，请重试。";

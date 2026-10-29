@@ -211,7 +211,7 @@ private func testEditHistoryButtonColors() {
 }
 
 private func defaultsForRenderedTests() -> [String: [String: Any]] {
-    UserDefaults.standard.dictionary(forKey: "TGExtraEditHistoryByAccount") as! [String: [String: Any]]
+    MessageHistoryArchive.shared.load()
 }
 
 func renderedHistoryRestoreFixture() -> [String: Any] {

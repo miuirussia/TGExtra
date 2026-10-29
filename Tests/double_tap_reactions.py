@@ -6,7 +6,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 source = (ROOT / 'Sources/tgapi/DoubleTapReactions.xm').read_text()
-helper = source[source.index('static char kTGExtraMessageTouchesBegan;'):source.index('// Telegram-iOS')]
+helper = source[source.index('static char kTGExtraMessageTouchesBegan;'):source.index('%group TGExtraDoubleTapReactions')]
 hooks = source[source.index('%hook TGExtraReactionTapRecognizer'):source.index('%end')]
 hooks = hooks.replace('%hook TGExtraReactionTapRecognizer', '@implementation TGExtraReactionTapRecognizer')
 hooks = hooks.replace('%orig;', '[super touchesBegan:touches withEvent:event];')

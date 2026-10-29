@@ -5,8 +5,8 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-source = (ROOT / 'Sources/tgapi/UI/TGExtra.m').read_text()
-apply_changes = source[source.index('- (void)applyChanges {'):source.index('- (UIColor *)dynamicColorBW {')]
+source = (ROOT / 'Sources/tgapi/UI/SettingsChanges.m').read_text()
+apply_changes = source[source.index('- (void)applyChanges {'):source.index('- (void)switchChanged:')]
 
 support = r'''
 #import <Foundation/Foundation.h>
@@ -147,7 +147,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-apply-') as tmp:
 # Exercise the language action with the real localization resolver and an in-memory defaults store.
 language_source = (ROOT / 'Sources/tgapi/UI/LanguageSelector.m').read_text()
 language_actions = language_source[language_source.index('- (void)closeTapped {'):language_source.rindex('@end')]
-initial_selection = language_source[language_source.index('    self.initialLanguageCode ='):language_source.index('    // Hardcoded full list')]
+initial_selection = language_source[language_source.index('    self.initialLanguageCode ='):language_source.index('    self.languages =')]
 localization_source = (ROOT / 'Sources/tgapi/UI/TGExtraLocalization.m').read_text()
 localization_body = localization_source[localization_source.index('@interface TGExtraLocalization ()'):]
 

@@ -25,10 +25,6 @@ BOOL TGExtraIsTelegramSupportLabel(NSString *label);
 - (ASDisplayNode *)scrollNode;
 @end
 
-// Telegram release-13.0.0, f1dd7a2: PeerInfoScreenNode writes contentSize
-// after laying out its settings sections. ASScrollView.scrollNode and all the
-// node properties below are Objective-C APIs inherited from AsyncDisplayKit.
-// No Swift method, stored property or closure needs to be patched.
 static ASDisplayNode *TGExtraFindSupportRow(ASDisplayNode *node) {
     if (node.hidden || node.alpha <= 0.0) return nil;
     if ([NSStringFromClass(node.class) containsString:@"AccessibilityAreaNode"] &&
@@ -49,8 +45,6 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
     if (![color getRed:&red green:&green blue:&blue alpha:&alpha] || alpha < 1.0) {
         return traits.userInterfaceStyle;
     }
-    // Choose the foreground with greater contrast against Telegram's surface,
-    // which may use a night/custom theme while iOS itself is in light mode.
     CGFloat channels[] = {red, green, blue};
     for (NSUInteger i = 0; i < 3; i++) {
         CGFloat value = MAX(0.0, MIN(1.0, channels[i]));
@@ -110,21 +104,17 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
     self.referenceTitleFrame = CGRectMake(61.0, 0.0, 0.0, 0.0);
     self.referenceIconFrame = CGRectMake(16.0, (height - 30.0) / 2.0, 30.0, 30.0);
     self.referenceArrowFrame = CGRectMake(width - 22.0, (height - 13.0) / 2.0, 7.0, 13.0);
-    // Read public ASDisplayNode geometry, including layer-backed icons. Swift
-    // text properties are not exposed to Objective-C and are left untouched.
     for (ASDisplayNode *node in row.subnodes) {
         CGRect frame = node.frame;
         if ([NSStringFromClass(node.class) containsString:@"ImmediateTextNode"] &&
             frame.size.width > 0.0 && frame.size.height > 0.0 && frame.origin.x < width / 2.0) {
             self.referenceTitleFrame = frame;
             UIFont *baseFont = [UIFont systemFontOfSize:17.0];
-            // Telegram floors its single-line Core Text height.
             self.titleLabel.font = [UIFont systemFontOfSize:ceil(17.0 * frame.size.height / baseFont.lineHeight)];
         }
         if ([node respondsToSelector:@selector(image)]) {
             UIImage *image = [(ASImageNode *)node image];
             if (!image || frame.size.width <= 0.0 || frame.size.height <= 0.0) continue;
-            // Telegram's disclosure asset has a 24x24 canvas, including transparent padding.
             if (frame.origin.x > width / 2.0 && frame.size.width <= 40.0 && frame.size.height <= 40.0) {
                 self.referenceArrowFrame = frame;
                 self.disclosureView.image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
@@ -133,7 +123,6 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
             }
         }
     }
-    // The section background is layer-backed too. Use its host theme color.
     self.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
     for (ASDisplayNode *node in row.supernode.supernode.subnodes) {
         if (node.backgroundColor && node.frame.size.height > 1.0 && node.alpha > 0.0) {
@@ -191,14 +180,11 @@ static CGSize TGExtraSettingsContentSize(ASScrollView *scrollView, CGSize hostSi
         objc_setAssociatedObject(scrollView, &TGExtraSettingsButtonKey, button, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         [scrollView addSubview:button];
     }
-    // Match the real section's insets, including the narrower layout on iPad.
     CGRect rowFrame = [supportRow.view convertRect:supportRow.view.bounds toView:scrollView];
     [button matchSupportRow:supportRow];
     CGFloat height = MAX(44.0, rowFrame.size.height);
     button.frame = CGRectMake(rowFrame.origin.x, hostSize.height + 8.0, rowFrame.size.width, height);
     button.hidden = NO;
-    // Always extend the size supplied by Telegram, never our previous result.
-    // Repeated layouts therefore cannot keep growing the scrollable area.
     return CGSizeMake(hostSize.width, hostSize.height + height + 24.0);
 }
 

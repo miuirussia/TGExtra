@@ -18,11 +18,7 @@
 @property(nonatomic, readonly) NSNumber *nativeDownloadProgress;
 @end
 
-// Completion runs on the main queue. Its temporary file is valid until the
-// caller removes it, including while Photos reads it asynchronously.
 void TGExtraDownloadPaidMedia(TGExtraPaidMediaFile *file, void (^completion)(NSURL *, NSError *));
-// A successful Photos transaction can contain no changes. Report success only
-// when a creation request produced an asset identifier. Completion uses main.
 void TGExtraImportPaidMedia(NSURL *url, BOOL video, void (^completion)(NSString *, NSError *));
 
 #ifdef __cplusplus

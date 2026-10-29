@@ -1,48 +1,7 @@
-#import "Headers.h"
-#import "../GhostExceptions.h"
-#import "../PeerInfoStore.h"
-#import "../Headers.h"
-#import "../Logger/Logger.h"
+#import "SettingsController.h"
 #import "Icons.h"
-#import "SettingsRows.h"
-#import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
-#import <objc/runtime.h>
-
-#define TGLoc(key) [TGExtraLocalization localizedStringForKey:(key)]
 
 static NSString *const kTGExtraTweakVersion = @"1.3.0";
-
-// customName → name → @username → the raw ID, whichever comes first.
-static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
-  NSString *custom = entry[kTGExtraGhostExceptionCustom];
-  if (custom.length)
-    return custom;
-
-  NSString *name = entry[kTGExtraGhostExceptionName];
-  if (name.length)
-    return name;
-
-  NSString *username = entry[kTGExtraGhostExceptionUsername];
-  if (username.length)
-    return [@"@" stringByAppendingString:username];
-
-  return [NSString
-      stringWithFormat:@"ID %@", entry[kTGExtraGhostExceptionId] ?: @"?"];
-}
-
-@interface TGExtra ()
-@property(nonatomic, strong) UITableView *tableView;
-@property(nonatomic, strong) NSString *cacheSize;
-@property(nonatomic, assign) BOOL isGhostModeExpanded;
-@property(nonatomic, assign) BOOL isClearingMessageData;
-- (NSString *)switchKeyForIndexPath:(NSIndexPath *)indexPath;
-- (NSString *)sizeOfUglyFileFixDirectory;
-- (void)reloadGhostExceptions;
-- (void)openProfileForException:(NSDictionary *)entry;
-- (void)showRenamePromptForException:(NSDictionary *)entry;
-- (void)confirmClearMessageData;
-@end
 
 @implementation TGExtra
 
@@ -58,7 +17,6 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   self.view.backgroundColor = UIColor.systemGroupedBackgroundColor;
   self.tableView.rowHeight = UITableViewAutomaticDimension;
   self.tableView.estimatedRowHeight = 72;
-
 
   [[NSNotificationCenter defaultCenter]
       addObserver:self
@@ -113,6 +71,7 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   [self.tableView reloadSections:section
                 withRowAnimation:UITableViewRowAnimationAutomatic];
 }
+
 - (void)setupTableView {
   self.tableView =
       [[UITableView alloc] initWithFrame:CGRectZero
@@ -137,7 +96,6 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   UIView *headerContainer = [[UIView alloc]
       initWithFrame:CGRectMake(0, 0, self.tableView.frame.size.width, 120)];
 
-  // Logo Image
   NSData *imageData = [[NSData alloc]
       initWithBase64EncodedString:CHOCOPNG
                           options:NSDataBase64DecodingIgnoreUnknownCharacters];
@@ -182,41 +140,6 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   self.navigationItem.rightBarButtonItems = @[ applyButtonItem ];
 }
 
-- (void)applyChanges {
-  UIAlertController *alert =
-      [UIAlertController alertControllerWithTitle:TGLoc(@"APPLY")
-                                          message:TGLoc(@"APPLY_CHANGES")
-                                   preferredStyle:UIAlertControllerStyleAlert];
-
-  UIAlertAction *okAction = [UIAlertAction
-      actionWithTitle:TGLoc(@"OK")
-                style:UIAlertActionStyleDefault
-              handler:^(UIAlertAction *_Nonnull action) {
-                if (!TGExtraSavePreferences()) {
-                  TGExtraShowToast(TGLoc(@"SETTINGS_SAVE_FAILED"));
-                  return;
-                }
-                // Apply forces an exit, so finish pending preference writes first.
-                [[NSUserDefaults standardUserDefaults] synchronize];
-                [[UIApplication sharedApplication]
-                    performSelector:@selector(suspend)];
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
-                                             (int64_t)(0.5 * NSEC_PER_SEC)),
-                               dispatch_get_main_queue(), ^{
-                                 exit(0);
-                               });
-              }];
-
-  [alert addAction:okAction];
-
-  UIAlertAction *cancelAction =
-      [UIAlertAction actionWithTitle:TGLoc(@"CANCEL")
-                               style:UIAlertActionStyleCancel
-                             handler:nil];
-  [alert addAction:cancelAction];
-  [self presentViewController:alert animated:YES completion:nil];
-}
-
 - (UIColor *)dynamicColorBW {
   static dispatch_once_t token;
   static UIColor *cached;
@@ -233,7 +156,9 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   return cached;
 }
 
-#pragma mark - UITableViewDataSource
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+  return [self settingsCellForTableView:tableView indexPath:indexPath];
+}
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
   return SECTION_COUNT;
@@ -248,8 +173,6 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   case GHOST_MODE:
     return 2 + (self.isGhostModeExpanded ? [TGExtraSettingRow ghostRows].count : 0);
   case GHOST_EXCEPTIONS:
-    // Falls back to a single explanatory row when the list is empty, so the
-    // section never renders as a bare header.
     return MAX((NSInteger)[TGExtraGhostExceptions all].count, 1);
   case FILE_FIXER:
     return 2;
@@ -301,264 +224,11 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
 
 - (NSString *)tableView:(UITableView *)tableView
     titleForFooterInSection:(NSInteger)section {
-  // Spells out that online status is exempt: account.updateStatus carries no
-  // peer, so it cannot be made visible to one person only.
   if (section == GHOST_EXCEPTIONS) {
     return TGLoc(@"GHOST_EXCEPTIONS_SECTION_FOOTER");
   }
   return nil;
 }
-
-- (UITableViewCell *)switchCellFromTableView:(UITableView *)tableView {
-  UITableViewCell *switchCell =
-      [tableView dequeueReusableCellWithIdentifier:@"switchCell"];
-  if (!switchCell) {
-    switchCell =
-        [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
-                               reuseIdentifier:@"switchCell"];
-  }
-
-  return switchCell;
-}
-
-- (UITableViewCell *)normalCellFromTableView:(UITableView *)tableView {
-  UITableViewCell *normalCell =
-      [tableView dequeueReusableCellWithIdentifier:@"normalCell"];
-  if (!normalCell) {
-    normalCell =
-        [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
-                               reuseIdentifier:@"normalCell"];
-  }
-
-  return normalCell;
-}
-
-- (UITableViewCell *)tableView:(UITableView *)tableView
-         cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-  UITableViewCell *cell;
-
-  TGExtraSettingRow *setting = [TGExtraSettingRow rowForSection:indexPath.section row:indexPath.row];
-  if (setting) {
-    cell = [self switchCellFromTableView:tableView];
-    cell.textLabel.text = TGLoc(setting.titleKey);
-    cell.detailTextLabel.text = TGLoc(setting.subtitleKey);
-    cell.imageView.image = setting.icon.length ? [UIImage systemImageNamed:setting.icon] : nil;
-    cell.imageView.tintColor = [self dynamicColorBW];
-    cell.accessoryType = UITableViewCellAccessoryNone;
-    UISwitch *toggle = [cell.accessoryView isKindOfClass:UISwitch.class] ? (UISwitch *)cell.accessoryView : [UISwitch new];
-    toggle.on = [NSUserDefaults.standardUserDefaults boolForKey:setting.key];
-    toggle.enabled = YES;
-    toggle.accessibilityLabel = cell.textLabel.text;
-    [toggle addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
-    toggle.tag = 1000 + indexPath.section * 1000 + indexPath.row;
-    cell.accessoryView = toggle;
-    cell.textLabel.numberOfLines = 0;
-    cell.detailTextLabel.numberOfLines = 0;
-    return cell;
-  }
-
-  if (indexPath.section == GHOST_MODE) {
-    cell = [self normalCellFromTableView:tableView];
-    cell.textLabel.text = TGLoc(@"ADVANCED_SETTINGS_TITLE");
-    cell.detailTextLabel.text = self.isGhostModeExpanded ? TGLoc(@"ADVANCED_SETTINGS_HIDE") : TGLoc(@"ADVANCED_SETTINGS_SHOW");
-    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-    cell.accessoryView = nil;
-    cell.imageView.image = [UIImage systemImageNamed:@"slider.horizontal.3"];
-    cell.imageView.tintColor = [self dynamicColorBW];
-    return cell;
-  } else if (indexPath.section == GHOST_EXCEPTIONS) {
-    cell = [self normalCellFromTableView:tableView];
-    cell.accessoryView = nil;
-    cell.textLabel.numberOfLines = 0;
-    cell.detailTextLabel.numberOfLines = 0;
-    cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
-
-    NSArray<NSDictionary *> *exceptions = [TGExtraGhostExceptions all];
-
-    if (exceptions.count == 0) {
-      cell.textLabel.text = TGLoc(@"GHOST_EXCEPTIONS_EMPTY_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"GHOST_EXCEPTIONS_EMPTY_SUBTITLE");
-      cell.imageView.image = [UIImage systemImageNamed:@"person.badge.plus"];
-      cell.imageView.tintColor = [UIColor secondaryLabelColor];
-      cell.accessoryType = UITableViewCellAccessoryNone;
-      cell.selectionStyle = UITableViewCellSelectionStyleNone;
-      return cell;
-    }
-
-    // The store is also mutated from the profile button, so never index it
-    // blindly off a row count captured earlier.
-    if (indexPath.row >= (NSInteger)exceptions.count) return cell;
-
-    NSDictionary *entry = exceptions[indexPath.row];
-
-    // Entries added before the name could be read off the wire have nothing but
-    // an ID. Fill them in from the parser cache the first time they are drawn
-    // after that peer has been seen again.
-    if (!((NSString *)entry[kTGExtraGhostExceptionName]).length &&
-        !((NSString *)entry[kTGExtraGhostExceptionUsername]).length) {
-      NSNumber *peerId = entry[kTGExtraGhostExceptionId];
-      NSDictionary *cached = [TGExtraPeerInfoStore cachedPeerInfoForId:peerId];
-      if (cached.count) {
-        [TGExtraGhostExceptions addPeerId:peerId.longLongValue
-                                  name:cached[@"name"]
-                              username:cached[@"username"]];
-        NSArray<NSDictionary *> *refreshed = [TGExtraGhostExceptions all];
-        if (indexPath.row < (NSInteger)refreshed.count) {
-          entry = refreshed[indexPath.row];
-        }
-      }
-    }
-
-    cell.textLabel.text = ghostExceptionDisplayName(entry);
-
-    NSString *username = entry[kTGExtraGhostExceptionUsername];
-    cell.detailTextLabel.text =
-        username.length ? [@"@" stringByAppendingString:username]
-                        : [NSString stringWithFormat:@"ID %@",
-                                                     entry[kTGExtraGhostExceptionId]];
-
-    cell.imageView.image = [UIImage systemImageNamed:@"person.crop.circle.badge.checkmark"];
-    cell.imageView.tintColor = [UIColor systemGreenColor];
-    // Detail button opens the rename prompt; tapping the row opens the profile.
-    cell.accessoryType = UITableViewCellAccessoryDetailDisclosureButton;
-    cell.selectionStyle = UITableViewCellSelectionStyleDefault;
-    return cell;
-
-  } else if (indexPath.section == FILE_FIXER) {
-    cell = [self normalCellFromTableView:tableView];
-    cell.textLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_TITLE");
-    cell.detailTextLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_SUBTITLE");
-    cell.imageView.image = [UIImage systemImageNamed:@"trash"];
-    cell.imageView.tintColor = [UIColor redColor];
-    UIActivityIndicatorView *loadingIcon = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-    [loadingIcon startAnimating];
-    cell.accessoryView = loadingIcon;
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-      if (!self.cacheSize) self.cacheSize = [self sizeOfUglyFileFixDirectory];
-      dispatch_async(dispatch_get_main_queue(), ^{
-        UITableViewCell *currentCell = [tableView cellForRowAtIndexPath:indexPath];
-        if (currentCell == cell) {
-          UILabel *sizeLabel = [[UILabel alloc] init];
-          sizeLabel.text = self.cacheSize;
-          cell.accessoryView = sizeLabel;
-          [sizeLabel sizeToFit];
-        }
-      });
-    });
-    cell.textLabel.numberOfLines = 0;
-    cell.detailTextLabel.numberOfLines = 0;
-    return cell;
-  } else if (indexPath.section == FAKE_LOCATION) {
-    if (indexPath.row == 1) {
-      cell = [self normalCellFromTableView:tableView];
-      cell.imageView.image = [UIImage systemImageNamed:@"location.fill"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.textLabel.text = TGLoc(@"SELECT_FAKE_LOCATION_TITLE");
-      NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-      CGFloat savedLongitude = [defaults floatForKey:FAKE_LONGITUDE_KEY];
-      CGFloat savedLatitude = [defaults floatForKey:FAKE_LATITUDE_KEY];
-      cell.detailTextLabel.text = [NSString stringWithFormat:@"lon :%f\nlat :%f", savedLongitude ?: 0, savedLatitude ?: 0];
-    }
-    cell.detailTextLabel.numberOfLines = 0;
-    return cell;
-  } else if (indexPath.section == LANGUAGE) {
-    cell = [self normalCellFromTableView:tableView];
-    cell.textLabel.text = TGLoc(@"CHANGE_LANGUAGE_TITLE");
-    cell.detailTextLabel.text = @"";
-    cell.imageView.image = [UIImage systemImageNamed:@"globe"];
-    cell.imageView.tintColor = [self dynamicColorBW];
-    cell.accessoryView = nil;
-    cell.textLabel.numberOfLines = 0;
-    cell.detailTextLabel.numberOfLines = 0;
-    return cell;
-  } else if (indexPath.section == MESSAGE_DATA) {
-    if (indexPath.row == 1) {
-      cell = [self normalCellFromTableView:tableView];
-      cell.textLabel.text = TGLoc(@"DEBUG_LOG_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"DEBUG_LOG_SUBTITLE");
-      cell.textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
-      cell.detailTextLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
-      cell.textLabel.adjustsFontForContentSizeCategory = YES;
-      cell.detailTextLabel.adjustsFontForContentSizeCategory = YES;
-      cell.textLabel.textColor = UIColor.labelColor;
-      cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
-      cell.textLabel.numberOfLines = 0;
-      cell.detailTextLabel.numberOfLines = 0;
-      cell.imageView.image = [UIImage systemImageNamed:@"doc.text.magnifyingglass"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.imageView.isAccessibilityElement = NO;
-      cell.accessoryView = nil;
-      cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-      cell.isAccessibilityElement = YES;
-      cell.accessibilityLabel = cell.textLabel.text;
-      cell.accessibilityHint = cell.detailTextLabel.text;
-      cell.accessibilityTraits = UIAccessibilityTraitButton;
-      return cell;
-    }
-    cell = [tableView dequeueReusableCellWithIdentifier:@"messageDataCell"];
-    if (!cell) {
-      cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
-                                   reuseIdentifier:@"messageDataCell"];
-      cell.textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
-      cell.detailTextLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
-      cell.textLabel.adjustsFontForContentSizeCategory = YES;
-      cell.detailTextLabel.adjustsFontForContentSizeCategory = YES;
-    }
-    cell.textLabel.text = self.isClearingMessageData
-        ? TGLoc(@"MESSAGE_DATA_CLEARING") : TGLoc(@"MESSAGE_DATA_CLEAR_TITLE");
-    cell.detailTextLabel.text = TGLoc(@"MESSAGE_DATA_CLEAR_SUBTITLE");
-    cell.textLabel.textColor = self.isClearingMessageData ? UIColor.secondaryLabelColor : UIColor.systemRedColor;
-    cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
-    cell.imageView.image = [UIImage systemImageNamed:@"trash"];
-    cell.imageView.tintColor = UIColor.systemRedColor;
-    cell.imageView.isAccessibilityElement = NO;
-    cell.accessoryType = UITableViewCellAccessoryNone;
-    cell.accessoryView = nil;
-    cell.userInteractionEnabled = !self.isClearingMessageData;
-    cell.isAccessibilityElement = YES;
-    cell.accessibilityLabel = cell.textLabel.text;
-    cell.accessibilityHint = cell.detailTextLabel.text;
-    cell.accessibilityTraits = UIAccessibilityTraitButton |
-        (self.isClearingMessageData ? UIAccessibilityTraitNotEnabled : 0);
-    cell.textLabel.numberOfLines = 0;
-    cell.detailTextLabel.numberOfLines = 0;
-    if (self.isClearingMessageData) {
-      UIActivityIndicatorView *spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-      [spinner startAnimating];
-      cell.accessoryView = spinner;
-    }
-    return cell;
-  } else if (indexPath.section == CREDITS) {
-    cell = [self normalCellFromTableView:tableView];
-    if (indexPath.row == 0) {
-      cell.textLabel.text = @"TGExtra";
-      cell.detailTextLabel.text = @"Developer";
-      cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
-      NSData *imageData = [[NSData alloc] initWithBase64EncodedString:CHOCOPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
-      UIImage *rawImage = [UIImage imageWithData:imageData];
-      UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(40, 40)];
-      UIImage *thumb = [renderer imageWithActions:^(UIGraphicsImageRendererContext *ctx) { [rawImage drawInRect:CGRectMake(0, 0, 40, 40)]; }];
-      cell.imageView.image = thumb;
-      cell.imageView.layer.cornerRadius = 8;
-      cell.imageView.layer.masksToBounds = YES;
-      cell.accessoryView = nil;
-    } else if (indexPath.row == 1) {
-      cell.textLabel.text = TGLoc(@"DISCLAIMER");
-      cell.detailTextLabel.text = @"A note from developer";
-      cell.imageView.image = [UIImage systemImageNamed:@"note.text"];
-      cell.imageView.tintColor = [self dynamicColorBW];
-      cell.accessoryView = nil;
-      cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
-    }
-    cell.textLabel.numberOfLines = 0;
-    cell.detailTextLabel.numberOfLines = 0;
-    return cell;
-  }
-
-  return cell;
-}
-
-#pragma mark - UITableViewDelegate
 
 - (void)tableView:(UITableView *)tableView
     didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -582,8 +252,6 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
     return;
   }
 
-  // Row 1 of File Picker Fix is the "clear cache" action. Without this branch
-  // -clearFilePickerFixCache was never reachable and tapping the row did nothing.
   if (indexPath.section == FILE_FIXER && indexPath.row == 1) {
     [self clearFilePickerFixCache];
     return;
@@ -621,230 +289,6 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   }
 }
 
-#pragma mark - Ghost Exceptions
-
-// Swipe-to-delete is only offered on real entries, never on the empty-state row.
-- (BOOL)tableView:(UITableView *)tableView
-    canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-  return indexPath.section == GHOST_EXCEPTIONS &&
-         [TGExtraGhostExceptions all].count > 0;
-}
-
-- (UITableViewCellEditingStyle)tableView:(UITableView *)tableView
-           editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath {
-  return indexPath.section == GHOST_EXCEPTIONS
-             ? UITableViewCellEditingStyleDelete
-             : UITableViewCellEditingStyleNone;
-}
-
-- (void)tableView:(UITableView *)tableView
-    commitEditingStyle:(UITableViewCellEditingStyle)editingStyle
-     forRowAtIndexPath:(NSIndexPath *)indexPath {
-  if (editingStyle != UITableViewCellEditingStyleDelete) return;
-  if (indexPath.section != GHOST_EXCEPTIONS) return;
-
-  NSArray<NSDictionary *> *exceptions = [TGExtraGhostExceptions all];
-  if (indexPath.row >= (NSInteger)exceptions.count) return;
-
-  NSNumber *peerId = exceptions[indexPath.row][kTGExtraGhostExceptionId];
-  [TGExtraGhostExceptions removePeerId:peerId.longLongValue];
-  // Removing the last entry swaps the row for the empty-state row rather than
-  // deleting it, so the section is reloaded instead of the row animated out.
-  [self reloadGhostExceptions];
-}
-
-- (void)tableView:(UITableView *)tableView
-    accessoryButtonTappedForRowWithIndexPath:(NSIndexPath *)indexPath {
-  if (indexPath.section != GHOST_EXCEPTIONS) return;
-
-  NSArray<NSDictionary *> *exceptions = [TGExtraGhostExceptions all];
-  if (indexPath.row >= (NSInteger)exceptions.count) return;
-
-  [self showRenamePromptForException:exceptions[indexPath.row]];
-}
-
-- (void)reloadGhostExceptions {
-  [self.tableView
-        reloadSections:[NSIndexSet indexSetWithIndex:GHOST_EXCEPTIONS]
-      withRowAnimation:UITableViewRowAnimationAutomatic];
-}
-
-- (void)showRenamePromptForException:(NSDictionary *)entry {
-  NSNumber *peerId = entry[kTGExtraGhostExceptionId];
-
-  UIAlertController *alert = [UIAlertController
-      alertControllerWithTitle:TGLoc(@"GHOST_EXCEPTIONS_RENAME_TITLE")
-                       message:TGLoc(@"GHOST_EXCEPTIONS_RENAME_MESSAGE")
-                preferredStyle:UIAlertControllerStyleAlert];
-
-  [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
-    field.text = entry[kTGExtraGhostExceptionCustom];
-    field.placeholder = ghostExceptionDisplayName(entry);
-    field.clearButtonMode = UITextFieldViewModeWhileEditing;
-  }];
-
-  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"CANCEL")
-                                            style:UIAlertActionStyleCancel
-                                          handler:nil]];
-
-  __weak typeof(self) weakSelf = self;
-  [alert addAction:[UIAlertAction
-                       actionWithTitle:TGLoc(@"SAVE")
-                                 style:UIAlertActionStyleDefault
-                               handler:^(UIAlertAction *action) {
-                                 NSString *newName = alert.textFields.firstObject.text;
-                                 // An empty field clears the rename and falls
-                                 // back to the profile name.
-                                 [TGExtraGhostExceptions setCustomName:newName
-                                                          forPeerId:peerId.longLongValue];
-                                 [weakSelf reloadGhostExceptions];
-                               }]];
-
-  [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)openProfileForException:(NSDictionary *)entry {
-  NSString *username = entry[kTGExtraGhostExceptionUsername];
-  NSNumber *peerId = entry[kTGExtraGhostExceptionId];
-
-  // A username resolves reliably; the numeric form only works for peers
-  // Telegram already knows about, which is why it is the fallback.
-  NSString *urlString =
-      username.length
-          ? [NSString stringWithFormat:@"tg://resolve?domain=%@", username]
-          : [NSString stringWithFormat:@"tg://openmessage?user_id=%@", peerId];
-
-  NSURL *url = [NSURL URLWithString:urlString];
-  if (!url) return;
-
-  // The TGExtra menu is modal — it has to go away before the profile can show
-  // underneath it.
-  [self dismissViewControllerAnimated:YES
-                           completion:^{
-                             TGExtraOpenTelegramURL(url);
-                           }];
-}
-
-#pragma mark - Settings
-
-- (void)switchChanged:(UISwitch *)sender {
-  NSInteger adjustedTag = sender.tag - 1000;
-  NSInteger section = adjustedTag / 1000;
-  NSInteger row = adjustedTag % 1000;
-
-  NSIndexPath *indexPath = [NSIndexPath indexPathForRow:row inSection:section];
-  NSString *switchKey = [self switchKeyForIndexPath:indexPath];
-
-  if (switchKey) {
-    if ([switchKey isEqualToString:kGhostModeEnabled] && sender.isOn) {
-      if (![self anyGhostSubFeatureEnabled]) {
-        [sender setOn:NO animated:YES];
-        [[NSUserDefaults standardUserDefaults] setBool:NO forKey:kGhostModeEnabled];
-
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:TGLoc(@"GHOST_MODE_SECTION_HEADER")
-                                                                       message:TGLoc(@"GHOST_MODE_NEEDS_SUBFEATURE")
-                                                                preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"OK") style:UIAlertActionStyleDefault handler:nil]];
-        [self presentViewController:alert animated:YES completion:nil];
-        return;
-      }
-    }
-
-    [[NSUserDefaults standardUserDefaults] setBool:sender.isOn
-                                            forKey:switchKey];
-    if (!TGExtraSavePreferences()) {
-      TGExtraShowToast(TGLoc(@"SETTINGS_SAVE_FAILED"));
-    }
-    // Names the key each row actually writes — the quickest way to catch a
-    // section/row mapping that has drifted out of step with the labels.
-    tgextraDiag("switch section=%ld row=%ld key=%{public}@ value=%d",
-             (long)section, (long)row, switchKey, sender.isOn);
-  } else {
-    tgextraDiag("switch section=%ld row=%ld has NO KEY", (long)section, (long)row);
-  }
-}
-
-- (NSString *)switchKeyForIndexPath:(NSIndexPath *)indexPath {
-  return [TGExtraSettingRow rowForSection:indexPath.section row:indexPath.row].key;
-}
-
-- (NSString *)sizeOfUglyFileFixDirectory {
-  NSString *uglyFixDirectory =
-      [NSTemporaryDirectory() stringByAppendingPathComponent:FILE_PICKER_PATH];
-
-  // Calculate size of it recursively
-  unsigned long long totalSize = 0;
-  NSFileManager *fileManager = [NSFileManager defaultManager];
-  NSArray *contents = [fileManager subpathsAtPath:uglyFixDirectory];
-
-  for (NSString *path in contents) {
-    NSString *fullPath = [uglyFixDirectory stringByAppendingPathComponent:path];
-    BOOL isDirectory;
-    if ([fileManager fileExistsAtPath:fullPath isDirectory:&isDirectory]) {
-      if (!isDirectory) {
-        NSDictionary *attributes = [fileManager attributesOfItemAtPath:fullPath
-                                                                 error:nil];
-        totalSize += [attributes fileSize];
-      }
-    }
-  }
-
-  // Format the size into MB or GB
-  NSString *formattedSize;
-  if (totalSize >= 1024 * 1024 * 1024) { // if the size is >= 1GB
-    formattedSize = [NSString
-        stringWithFormat:@"%.2f GB", totalSize / (1024.0 * 1024.0 * 1024.0)];
-  } else {
-    formattedSize =
-        [NSString stringWithFormat:@"%.2f MB", totalSize / (1024.0 * 1024.0)];
-  }
-  return formattedSize;
-}
-
-- (BOOL)anyGhostSubFeatureEnabled {
-  for (TGExtraSettingRow *row in [TGExtraSettingRow ghostRows]) {
-    if ([[NSUserDefaults standardUserDefaults] boolForKey:row.key])
-      return YES;
-  }
-  return NO;
-}
-
-- (void)showDebugLog {
-  NSString *logPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents/tgextra_debug.txt"];
-  NSString *logContent = [NSString stringWithContentsOfFile:logPath encoding:NSUTF8StringEncoding error:nil];
-
-  if (!logContent || logContent.length == 0) {
-    logContent = @"";
-  } else if (logContent.length > 3000) {
-    logContent = [NSString stringWithFormat:@"...(last 3000 chars)\n%@",
-                  [logContent substringFromIndex:logContent.length - 3000]];
-  }
-  for (NSString *key in @[@"TGExtraCaptureHookStatus", @"TGExtraCaptureCanvasStatus", @"TGExtraPaidCaptureStatus",
-                         @"TGExtraPaidMediaLastImport", @"TGExtraPaidMediaLastError"]) {
-    NSString *entry = [NSUserDefaults.standardUserDefaults stringForKey:key];
-    if (entry.length) logContent = [logContent stringByAppendingFormat:@"%@%@: %@", logContent.length ? @"\n\n" : @"", key, entry];
-  }
-  if (!logContent.length) logContent = TGLoc(@"DEBUG_LOG_EMPTY");
-
-  UIAlertController *alert = [UIAlertController
-      alertControllerWithTitle:TGLoc(@"DEBUG_LOG_TITLE")
-                       message:logContent
-                preferredStyle:UIAlertControllerStyleAlert];
-
-  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"DEBUG_LOG_COPY") style:UIAlertActionStyleDefault handler:^(UIAlertAction *a) {
-    [UIPasteboard generalPasteboard].string = logContent;
-  }]];
-  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"DEBUG_LOG_CLEAR") style:UIAlertActionStyleDestructive handler:^(UIAlertAction *a) {
-    [@"" writeToFile:logPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
-    for (NSString *key in @[@"TGExtraPaidMediaLastError", @"TGExtraPaidMediaLastImport", @"TGExtraPaidCaptureStatus"]) {
-      [NSUserDefaults.standardUserDefaults removeObjectForKey:key];
-    }
-  }]];
-  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"OK") style:UIAlertActionStyleCancel handler:nil]];
-
-  [self presentViewController:alert animated:YES completion:nil];
-}
-
 - (void)showDisclaimer {
   UIAlertController *alert =
       [UIAlertController alertControllerWithTitle:TGLoc(@"DISCLAIMER")
@@ -861,7 +305,6 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   [self presentViewController:alert animated:YES completion:nil];
 }
 
-
 - (void)showLanguageSelector {
   LanguageSelector *ui = [LanguageSelector new];
   UINavigationController *navVC =
@@ -876,89 +319,6 @@ static NSString *ghostExceptionDisplayName(NSDictionary *entry) {
   [self presentViewController:navVC animated:YES completion:nil];
 }
 
-- (void)confirmClearMessageData {
-  if (self.isClearingMessageData) return;
-  UIAlertController *alert = [UIAlertController
-      alertControllerWithTitle:TGLoc(@"MESSAGE_DATA_CLEAR_TITLE")
-                       message:TGLoc(@"MESSAGE_DATA_CLEAR_CONFIRM")
-                preferredStyle:UIAlertControllerStyleAlert];
-  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"CANCEL")
-      style:UIAlertActionStyleCancel handler:nil]];
-  [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"MESSAGE_DATA_CLEAR_TITLE")
-      style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
-        self.isClearingMessageData = YES;
-        NSIndexSet *section = [NSIndexSet indexSetWithIndex:MESSAGE_DATA];
-        [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
-        dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
-          [TLParser clearMessageData];
-          dispatch_async(dispatch_get_main_queue(), ^{
-            self.isClearingMessageData = NO;
-            [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
-            TGExtraShowToast(TGLoc(@"MESSAGE_DATA_CLEARED"));
-          });
-        });
-      }]];
-  [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)clearFilePickerFixCache {
-  UIAlertController *alert = [UIAlertController
-      alertControllerWithTitle:TGLoc(@"CACHE_CLEAR_WARNING_TITLE")
-                       message:TGLoc(@"CACHE_CLEAR_WARNING_MESSAGE")
-                preferredStyle:UIAlertControllerStyleAlert];
-
-  UIAlertAction *okAction = [UIAlertAction
-      actionWithTitle:TGLoc(@"OK")
-                style:UIAlertActionStyleDestructive
-              handler:^(UIAlertAction *action) {
-                NSString *uglyFixDirectory = [NSTemporaryDirectory()
-                    stringByAppendingPathComponent:
-                        @"TGExtraFileFixUsingSomeUglyHacks"];
-
-                NSError *error = nil;
-                [[NSFileManager defaultManager]
-                    removeItemAtPath:uglyFixDirectory
-                               error:&error];
-
-                if (error) {
-                  NSLog(@"Failed to remove cache directory: %@",
-                        error.localizedDescription);
-                } else {
-                  NSLog(@"Successfully cleared cache: %@", uglyFixDirectory);
-                }
-
-                self.cacheSize = @"Cleared";
-
-                // Reload section or row as needed
-                dispatch_async(dispatch_get_main_queue(), ^{
-                  NSIndexSet *section =
-                      [NSIndexSet indexSetWithIndex:FILE_FIXER];
-                  [self.tableView
-                        reloadSections:section
-                      withRowAnimation:UITableViewRowAnimationAutomatic];
-                });
-              }];
-
-  UIAlertAction *cancelAction =
-      [UIAlertAction actionWithTitle:TGLoc(@"CANCEL")
-                               style:UIAlertActionStyleCancel
-                             handler:nil];
-
-  [alert addAction:cancelAction];
-  [alert addAction:okAction];
-
-  [self presentViewController:alert animated:YES completion:nil];
-}
-
-- (void)dealloc {
-  [[NSNotificationCenter defaultCenter]
-      removeObserver:self
-                name:@"LanguageChangedNotification"
-              object:nil];
-
-  [[NSNotificationCenter defaultCenter] removeObserver:self
-                                                  name:@"TGExtralocationChanged"
-                                                object:nil];
-}
+- (void)dealloc { [NSNotificationCenter.defaultCenter removeObserver:self]; }
 
 @end

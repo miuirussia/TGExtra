@@ -12,8 +12,6 @@ static void importMediaOnce(NSURL *url, BOOL video, void (^completion)(NSString 
         PHAssetChangeRequest *request = video
             ? [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:url]
             : [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:url];
-        // Files can carry an old creation timestamp. A newly saved purchase
-        // should appear among today's media, rather than years back in Library.
         request.creationDate = NSDate.date;
         identifier = request.placeholderForCreatedAsset.localIdentifier;
     } completionHandler:^(BOOL success, NSError *error) {
@@ -38,8 +36,6 @@ void TGExtraImportPaidMedia(NSURL *url, BOOL video, void (^completion)(NSString 
             completion(identifier, error);
             return;
         }
-        // Telegram can play files whose container/encoding Photos rejects.
-        // Retry once with the existing MP4 exporter; never alter the source.
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
             NSURL *converted = TGExtraExportStoryVideo(url);
             if (!converted) {

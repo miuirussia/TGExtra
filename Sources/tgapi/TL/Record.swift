@@ -1,7 +1,6 @@
 import Foundation
 import tgapiC
 
-// View compatibility depends on schema metadata, not individual packet values.
 public struct TLShape {
     let kind: Int
     var elementKind = 0
@@ -132,8 +131,6 @@ public class TLPayload: TLSerializable {
     }
 }
 
-// Shared by records decoded from one immutable packet. Any object edit
-// invalidates raw serialization for the whole packet, including ancestor views.
 final class TLWireSource {
     let bytes: Data
     var isDirty = false
@@ -149,10 +146,7 @@ public final class TLRecord: TLSerializable, TLValue {
     var wireRange = 0..<0
     var isDecoded = false
     var hasCompatibleView: Swift.Bool { isDecoded && descriptor?.supportsView == true }
-    // The schema owns name lookup; the codec reads and writes by field index.
     var nativeObject: TGExtraNativeObject?
-    // Native records are scoped to the post-decode transaction and never
-    // escape it; the host receives only its own backing objects.
     unowned var nativeContext: NativeTLContext?
     private(set) var nativeEdits = Set<String>()
     private var nativeLoaded: UInt64 = 0
@@ -226,11 +220,9 @@ public final class TLRecord: TLSerializable, TLValue {
         self.storageValues = values ?? Array(repeating: nil, count: descriptor.fields.count)
     }
     public func value<T: TLValue>(_ name: String) -> T {
-        // A view is only constructed after its required fields have been checked.
         T.fromTL(self[name] ?? NSNull())!
     }
     public func set<T: TLValue>(_ name: String, _ value: T) {
-        // Decoded native records already track edits in nativeEdits.
         if nativeObject == nil { writtenFields.insert(name) }
         let raw = value.tlValue
         self[name] = Swift.type(of: raw) == NSNull.self ? nil : raw
@@ -241,8 +233,6 @@ public final class TLRecord: TLSerializable, TLValue {
 
     func recordChange(_ change: TLFieldChange) { changes.append(change) }
 
-    // Rebuilt policy containers retain fields introduced by a newer host. A
-    // field explicitly set to nil is an edit, not a missing field to restore.
     func retainUnwrittenFields(from original: TLRecord) {
         guard self !== original, typeName == original.typeName, constructorName == original.constructorName else { return }
         guard let descriptor = original.descriptor else { return }

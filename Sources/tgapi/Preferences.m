@@ -22,7 +22,6 @@ static NSArray<NSString *> *TGExtraPreferenceKeys(void) {
 
 static NSURL *TGExtraPreferencesURL(void) {
 #ifdef TGEXTRA_TESTING
-    // Tests that do not exercise persistence must never write to the user's container.
     NSString *path = NSProcessInfo.processInfo.environment[@"TGEXTRA_TEST_PREFERENCES_PATH"];
     return path.length ? [NSURL fileURLWithPath:path] : nil;
 #else
@@ -56,8 +55,6 @@ BOOL TGExtraSavePreferences(void) {
 void TGExtraRestorePreferences(void) {
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        // Standard defaults remain the runtime bridge for both Objective-C and Swift.
-        // The file survives clients whose CFPreferences writes do not survive exit.
         NSURL *url = TGExtraPreferencesURL();
         if (!url) return;
         NSDictionary *settings = [NSDictionary dictionaryWithContentsOfURL:url];

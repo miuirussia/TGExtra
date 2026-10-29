@@ -7,9 +7,9 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-source = (ROOT / 'Sources/tgapi/UI/UIHooks.xm').read_text()
+source = (ROOT / 'Sources/tgapi/UI/SettingsEntryHooks.xm').read_text()
 helpers = source[source.index('BOOL TGExtraIsTelegramSupportLabel('):]
-helpers = helpers[:helpers.index('// Is this accessibility label')]
+helpers = helpers[:helpers.index('static BOOL tgextraLabelIsSupportRow(')]
 
 support = r'''
 #import <Foundation/Foundation.h>

@@ -1,6 +1,5 @@
 #import <Foundation/Foundation.h>
 
-// Keep section identifiers shared by the data source and targeted reloads.
 typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
   GHOST_MODE = 0,
   GHOST_EXCEPTIONS,
@@ -16,7 +15,6 @@ typedef NS_ENUM(NSInteger, TABLE_VIEW_SECTIONS) {
   SECTION_COUNT,
 };
 
-// A switch's preference, localized text and icon travel together.
 @interface TGExtraSettingRow : NSObject
 @property(nonatomic, copy, readonly) NSString *key;
 @property(nonatomic, copy, readonly) NSString *titleKey;

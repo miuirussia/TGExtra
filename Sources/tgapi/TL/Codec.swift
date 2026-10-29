@@ -1,7 +1,5 @@
 import Foundation
 
-// One table-driven codec for the host's original schema, including constructors
-// that TGExtra has never named. There are no per-type wire parsers in the tweak.
 enum TLCodec {
     private static let vector: Int32 = 481674261
     static func descriptor(_ signature: Int32) -> TLConstructor? {
@@ -42,8 +40,6 @@ enum TLCodec {
         }
     }
 
-    // With message policies off, validate the complete object and materialize
-    // only users and present restriction vectors. No message payloads are needed.
     static func scan(_ reader: BufferReader, descriptor: TLConstructor, users: inout [Api.User],
                      depth: Int = 0, harvestUser: Bool = false) -> Bool {
         guard depth < 128, let schema = HostSchema.shared, descriptor.typeIndex < schema.types.count else { return false }
@@ -133,7 +129,6 @@ enum TLCodec {
         case 3: return reader.readDouble()
         case 4: return parseString(reader)
         case 5:
-            // Buffer exposes mutable bytes; edits through it do not call record.set.
             reader.wireSource.canCopy = false
             return parseBytes(reader)
         case 6:

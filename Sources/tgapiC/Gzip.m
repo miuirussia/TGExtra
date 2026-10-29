@@ -17,7 +17,6 @@ NSData *decompressGzip(const void *input, size_t inputLen) {
         status = inflate(&stream, Z_NO_FLUSH);
         if (status != Z_OK && status != Z_STREAM_END) break;
         NSUInteger produced = sizeof(chunk) - stream.avail_out;
-        // Bound expansion and require a complete stream before using its bytes.
         if (result.length + produced > 64 * 1024 * 1024) {
             status = Z_MEM_ERROR;
             break;

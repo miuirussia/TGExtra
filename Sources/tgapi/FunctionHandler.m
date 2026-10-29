@@ -5,8 +5,6 @@
 NSData *boolTrue(void);
 static void handleContentReadReceipt(MTRequest *request, NSData *payload, NSString *key);
 
-// Both transports use the same request policy. The carrier only needs fakeData;
-// it must not allocate a host MTRequest or invoke its payload hooks recursively.
 @interface TGExtraRequestDecision : NSObject
 @property(nonatomic, strong) NSData *fakeData;
 @end
@@ -26,7 +24,7 @@ NSData *TGExtraFakeResponseForPayload(NSData *payload) {
         case kMessagesReadReactions: handleContentReadReceipt(decision, payload, kDisableReactionReadReceipt); break;
         case kStoriesReadStories: handleStoriesReadReceipt(decision, payload); break;
         case kGetSponsoredMessages: handleGetSponsoredMessages(decision, payload); break;
-        case -871347913: handleChannelsReadReceipt(decision, payload); break;
+        case kChannelsReadHistory: handleChannelsReadReceipt(decision, payload); break;
         case kSendScreenshotNotification: handleSendScreenshotNotification(decision, payload); break;
     }
     return decision.fakeData;
@@ -52,7 +50,6 @@ NSData *boolFalse() {
     return [NSData dataWithBytes:bytes length:sizeof(bytes)];
 }
 
-// Handlers
 void handleOnlineStatus(MTRequest *request, NSData *payload) {
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	if (![defaults boolForKey:kGhostModeEnabled]) {
@@ -67,8 +64,6 @@ void handleOnlineStatus(MTRequest *request, NSData *payload) {
 	[isOfflineData getBytes:&isOffline length:4];
 
 	BOOL wantsHidden = [defaults boolForKey:kDisableOnlineStatus];
-	// 3162085175 == 0xBC799737 == boolFalse, i.e. offline:false — the client is
-	// announcing that it just came online.
 	BOOL goingOnline = (isOffline == 3162085175);
 
 	tgextraDiag("updateStatus raw=0x%08X goingOnline=%d hideEnabled=%d len=%lu",
@@ -80,12 +75,6 @@ void handleOnlineStatus(MTRequest *request, NSData *payload) {
 	}
 }
 
-// Walks an InputPeer, advancing *offset past it.
-//
-// outUserId, when non-NULL, receives the user_id for inputPeerUser and 0 for
-// every other peer type. Ghost Exceptions only cover user peers (see
-// GhostExceptions.h), so group/channel constructors deliberately report 0
-// rather than their chat_id/channel_id.
 static BOOL read_Input_Peer(NSData *data, int *offset, int64_t *outUserId, int depth) {
     if (outUserId) *outUserId = 0;
     if (depth >= 8 || *offset < 0 || (NSUInteger)*offset + 4 > data.length) return NO;
@@ -114,8 +103,6 @@ static BOOL read_Input_Peer(NSData *data, int *offset, int64_t *outUserId, int d
     return (NSUInteger)*offset <= data.length;
 }
 
-// YES when this peer is on the Ghost Exceptions list and must therefore see
-// your real activity.
 static BOOL isGhostException(int64_t userId) {
 	BOOL hit = userId != 0 && [TGExtraGhostExceptions containsPeerId:userId];
 	if (hit) {
@@ -139,7 +126,6 @@ void handleSetTyping(MTRequest *request, NSData *payload) {
 
 	tgextraDiag("setTyping peer=%lld", peerUserId);
 
-	// Ghost Exception: this peer keeps seeing your real typing indicators.
 	if (isGhostException(peerUserId)) return;
 
 	if ((flags & (1 << 0)) != 0) {
@@ -153,7 +139,6 @@ void handleSetTyping(MTRequest *request, NSData *payload) {
 	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
 	bool shouldBlockAction = false;
 
-	//customLog(@"Handle Set Typing action : %d actionData:%@", actionID, [payload description]);
 	switch (actionID) {
 		case kActionIDTyping:
 		shouldBlockAction = [defaults boolForKey:kDisableTypingStatus];
@@ -216,8 +201,6 @@ void handleSetTyping(MTRequest *request, NSData *payload) {
 void handleMessageReadReceipt(MTRequest *request, NSData *payload) {
 	if (![[NSUserDefaults standardUserDefaults] boolForKey:kGhostModeEnabled]) return;
 
-	// messages.readHistory#0e306d3a peer:InputPeer max_id:int
-	// Ghost Exception: this peer keeps getting your real read receipts.
 	int offset = 4; // skip constructor id
 	int64_t peerUserId = 0;
 	if (!read_Input_Peer(payload, &offset, &peerUserId, 0)) return;
@@ -303,7 +286,6 @@ BOOL TGExtraIsPreparingReadContentsRequest(MTRequest *request) {
     return [objc_getAssociatedObject(request, &preparingReadContentsKey) boolValue];
 }
 
-// Run after the service is attached: setPayload alone has no account identity.
 void TGExtraPrepareReadContentsRequest(MTRequest *request, NSString *account) {
     if (request.payload.length < 4) return;
     NSDictionary *policy = [TLParser readMessageContentsPolicy:request.payload account:account];

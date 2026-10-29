@@ -5,8 +5,6 @@
 #include <zlib.h>
 #include <limits.h>
 
-// The host's TLS1 table contains wire field order, optional flags and type
-// references. Read its original compressed image without calling hidden APIs.
 static NSData *schemaInBytes(const uint8_t *bytes, size_t length) {
     if (length < 72 || length > UINT_MAX) return nil;
     NSData *found;
@@ -64,7 +62,6 @@ NSData *TGExtraHostTLSchema(void) {
             command += load->cmdsize;
         }
         if (!text || text->filesize < 72 || text->filesize > 256 * 1024 * 1024) return;
-        // __TEXT is read-only and fully file-backed in the supported arm64 apps.
         schema = schemaInBytes(image.dli_fbase, (size_t)text->filesize);
     });
     return schema;

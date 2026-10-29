@@ -1,11 +1,6 @@
 #import "SettingsNavigation.h"
 #import "Headers.h"
 
-// Telegram's navigation stack requires Display.ViewController instances.
-// Keep our UIKit screen separate while providing a horizontal transition back
-// to the exact settings screen that opened it.
-// UIKit navigation controllers also manage their own transitions. Use a
-// separate delegate so their internal transition callbacks stay untouched.
 @interface TGExtraSettingsTransition : NSObject
     <UIViewControllerTransitioningDelegate, UIViewControllerAnimatedTransitioning>
 @property(nonatomic) BOOL opening;
@@ -19,8 +14,6 @@
 @implementation TGExtraSettingsNavigationController
 - (void)viewDidLoad {
     [super viewDidLoad];
-    // This controller has a single root screen. Its built-in pop gesture cannot
-    // pop that root and must not compete with our dismiss gesture.
     self.interactivePopGestureRecognizer.enabled = NO;
     UIScreenEdgePanGestureRecognizer *gesture = [[UIScreenEdgePanGestureRecognizer alloc]
         initWithTarget:self action:@selector(swipeBack:)];
@@ -31,8 +24,6 @@
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
-    // initWithRootViewController: can load the navigation view before installing
-    // its root. Configure the item once the child hierarchy is in place.
     UIBarButtonItem *back = [[UIBarButtonItem alloc]
         initWithImage:[UIImage systemImageNamed:@"chevron.left"]
         style:UIBarButtonItemStylePlain target:self action:@selector(closeSettings)];

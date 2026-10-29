@@ -101,8 +101,6 @@ void TGExtraUpdatePaidMediaSaveButton(id node) {
         objc_setAssociatedObject(node, &buttonKey, button, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     if (button.superview != view) [view addSubview:button];
-    // Use the vacant native share-button position. Being a child of contentNode
-    // also follows the gallery's caption and controls visibility animations.
     button.frame = CGRectMake(8 + view.safeAreaInsets.left, view.bounds.size.height - bottomInset - 49, 44, 44);
     button.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"PAID_MEDIA_SAVE"];
     button.hidden = NO;

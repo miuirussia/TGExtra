@@ -1,6 +1,5 @@
 import Foundation
 
-// Reads stored host Swift fields without invoking computed properties.
 enum HostValueReader {
     static func storedField(_ name: String, in value: Any) -> Any? {
         var mirror: Mirror? = Mirror(reflecting: unwrapOptional(value))

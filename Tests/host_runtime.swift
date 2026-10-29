@@ -120,6 +120,15 @@ func testMessagePatchSettings() {
     check(unmarked.record.changes.isEmpty, "A label requires a previously observed disappearing marker")
     MessagePatches.markDisappearingMessage(unmarked, observedDisappearing: true)
     check(messageData(unmarked).message.hasPrefix("dissapearing message "), "The label rule applies only in its explicit context")
+    for text in ["⏱️ ", "⏱️ Hello", "⏱️ 👨‍👩‍👧‍👦 Привет"] {
+        let original = message(98106, text: text)
+        messageData(original).entities = [.messageEntityBold(.init(offset: 0, length: Int32(text.utf16.count)))]
+        MessagePatches.markDisappearingMessage(original, observedDisappearing: true)
+        let marked = messageData(original)
+        check(marked.message == "dissapearing message " + text, "Labels preserve the complete Unicode caption")
+        guard case let .messageEntityBold(entity) = marked.entities!.last! else { fatalError("Missing caption entity") }
+        check(entity.offset == Int32("dissapearing message ".utf16.count) && entity.length == Int32(text.utf16.count), "Labels retain UTF-16 entity ranges")
+    }
     check(!MessagePatches.shouldReserialize(changed: false) && MessagePatches.shouldReserialize(changed: true),
           "With forwarding bypass off, other changes control reserialization")
     select([.bypassForwarding])

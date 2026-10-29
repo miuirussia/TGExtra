@@ -7,7 +7,7 @@ import tempfile
 
 root = Path(__file__).resolve().parent.parent
 source = (root / 'Sources/tgapi/PaidMediaCapture.xm').read_text()
-helpers = source[source.index('static char paidCaptureRootKey'):source.index('// GalleryItemNode installs')]
+helpers = source[source.index('static char paidCaptureRootKey'):source.index('%group TGExtraPaidGalleryViews')]
 view_hook = source[source.index('%hook TGExtraPaidGalleryView'):source.index('%end', source.index('%hook TGExtraPaidGalleryView'))]
 view_hook = (view_hook.replace('%hook TGExtraPaidGalleryView', '@implementation TestGalleryView')
              .replace('%orig;', '[super layoutSubviews];', 1)

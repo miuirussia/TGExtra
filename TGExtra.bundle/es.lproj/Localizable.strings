@@ -201,3 +201,5 @@
 /* Recording button */
 "HIDE_RECORDING_BUTTON_TITLE" = "Quitar botón de grabación";
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Quitar el botón para grabar mensajes de voz y vídeos circulares en Telegram y Swiftgram. Aplica los cambios para reiniciar la app.";
+
+"MESSAGE_DATA_CLEAR_FAILED" = "No se pudieron borrar los datos de los mensajes. Inténtalo de nuevo.";

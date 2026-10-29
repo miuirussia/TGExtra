@@ -11,8 +11,6 @@
 #define TGE_IMPORT(pointer, type) ((type)(pointer))
 #define TGE_EXPORT(pointer) ((void *)(pointer))
 #endif
-// Offline thunks and the reviewed generic-arm64 Rust image pass raw pointers.
-// Keep the ObjC boundary raw and adapt to the tweak slice's function-pointer ABI.
 typedef uint64_t (*TGESessionCreate)(void *, const void *);
 typedef void (*TGESessionDestroy)(void *, uint64_t);
 typedef void (*TGESend)(void *, uint64_t, const TGERustRequest *);
@@ -64,9 +62,6 @@ typedef uint64_t (*TGENextRequestID)(void *);
 - (instancetype)init { if ((self = [super init])) _sessions = [NSMutableDictionary new]; return self; }
 @end
 
-// The shared copy operation uses this small Objective-C request-service adapter.
-// Fetches/uploads/sends use the active Rust session. Its connection description
-// supplies the existing account context for foreign-DC media download workers.
 @interface TGERustConnection : NSObject
 @property id context;
 @property id usageCalculationInfo;
@@ -108,8 +103,6 @@ static void initializeBridge(void) {
 }
 static NSValue *pointerKey(const void *pointer) { return [NSValue valueWithPointer:pointer]; }
 
-// Caller holds bridgeLock, which serializes helper/deferred sends with cancel.
-// Native send/cancel only enqueue work and copy their input before returning.
 static void flushDependents(TGERustEngine *engine, TGERustSession *session, uint64_t completed) {
     @synchronized(bridgeLock) {
         if (engine.sessions[@(session.handle)] != session) return;
@@ -144,9 +137,6 @@ static void flushDependents(TGERustEngine *engine, TGERustSession *session, uint
         TGERustRequest native = {0};
         native.id = identifier;
         native.body = (TGERustBytes){request.payload.bytes, request.payload.length};
-        // Fail errors normally, rather than asking the host Swift scheduler to
-        // make retry decisions for IDs it did not allocate. The journal owns
-        // send retries and only records real acknowledgements.
         native.flags = (1 << 6) | (request.needsTimeoutTimer ? (1 << 5) : 0);
         engine.send(engine.pointer, session.handle, &native);
     }
@@ -193,8 +183,6 @@ static BOOL receiveHelper(TGERustEngine *engine, TGERustSession *session, const 
         size_t length = engine.length(event->payload);
         const uint8_t *bytes = engine.data(event->payload);
         if (bytes || length == 0) data = [NSData dataWithBytes:bytes length:length];
-        // The host never sees a helper completion, so this bridge owns its
-        // original Rust buffer. Copy it before freeing, including secret data.
         engine.freeBuffer(event->payload);
     }
     MTRpcError *error;
@@ -205,9 +193,6 @@ static BOOL receiveHelper(TGERustEngine *engine, TGERustSession *session, const 
     }
     MTRequestResponseInfo *info = [[NSClassFromString(@"MTRequestResponseInfo") alloc]
         initWithNetworkType:0 timestamp:event->value1 duration:event->value2];
-    // The Swift session must still observe genuine server activity, otherwise
-    // a long upload can look stalled to its liveness monitor. Its unknown-ID
-    // guard skips RPC parsing; the bridge has already consumed the payload.
     TGERustEvent activity = *event;
     activity.payload = NULL;
     engine.callback(engine.context, session.handle, &activity);
@@ -231,9 +216,6 @@ static void completeRecovery(TGERustEngine *engine, TGERustSession *session, TGE
             [pending.payload getBytes:&function length:4];
             result = [TLParser handleResponse:result functionID:@(function) account:session.account requestPayload:pending.payload] ?: result;
             event.kind = 1;
-            // Rust exports no buffer constructor. A separate token, recognized
-            // by all three buffer thunks, gives Swift's no-copy Data the same
-            // ownership contract without depending on Rust's private Vec layout.
             event.payload = malloc(1);
             if (event.payload) {
                 NSValue *key = pointerKey(event.payload);
@@ -267,8 +249,6 @@ static BOOL beginRecovery(TGERustEngine *engine, TGERustSession *session,
             initWithNetworkType:0 timestamp:event->value1 duration:event->value2];
         double timestamp = event->value1, duration = event->value2;
         __weak TGERustPending *weakPending = pending;
-        // Registration and cancellation share this lock. Copy work is queued,
-        // so it cannot submit a helper before its cancellation handle is stored.
         pending.recovery = TGExtraRecoverForwardRequest(pending.payload, (id)session.service, info, error,
             ^(id result, MTRequestResponseInfo *replyInfo, MTRpcError *replyError) {
                 TGERustPending *current = weakPending;
@@ -298,8 +278,6 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
             if (event->kind == 1 || event->kind == 2 || event->kind == 36)
                 [session.requests removeObjectForKey:@(event->requestId)];
         }
-        // Only TL completions and updates are API objects. Keys, salts, route
-        // memory and every other event retain their original bytes and ownership.
         if (event->payload && (event->kind == 14 || (event->kind == 1 && pending))) {
             size_t length = engine.length(event->payload);
             const uint8_t *bytes = engine.data(event->payload);
@@ -320,8 +298,6 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
                 }
             }
         }
-        // Keep the real Rust buffer alive until Swift's Data deallocator frees
-        // it. The replacement has the same lifetime, including no-copy Data.
         engine.callback(context, handle, event);
         if (pending && (event->kind == 1 || event->kind == 2 || event->kind == 36))
             flushDependents(engine, session, event->requestId);
@@ -388,7 +364,6 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         if (contexts[pointerKey(context)]) return original(threads, context, event, log);
         contexts[pointerKey(context)] = state;
     }
-    // Preserve context: stream-host and log callbacks receive it too.
     void *engine = original(threads, context, TGE_EXPORT(receiveEvent), log);
     @synchronized(bridgeLock) {
         if (engine) { state.pointer = engine; engines[pointerKey(engine)] = state; }
@@ -399,8 +374,6 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
 
 + (void *)usageManager:(void *)receiver selector:(void *)selector info:(void *)info original:(void *)rawOriginal {
     TGEUsageManager original = TGE_IMPORT(rawOriginal, TGEUsageManager);
-    // Only the reviewed RustNetworkSession initializer's call site comes here.
-    // Auth-info binding follows on this thread before its FFI session create.
     NSMutableDictionary *scope = [NSMutableDictionary new];
     if (info) scope[@"usage"] = (__bridge id)info;
     NSThread.currentThread.threadDictionary[pendingSessionKey] = scope;
@@ -484,9 +457,6 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         rewritten.body = (TGERustBytes){pending.wire.bytes, pending.wire.length};
         pending.request = rewritten;
         state.requests[@(request->id)] = pending;
-        // A rejected forward remains a pending Swift request during recovery.
-        // Hold its dependents even before the initial refusal arrives: the
-        // native scheduler will forget that failed ID while copy RPCs run.
         TGERustPending *dependency = state.requests[@(request->invokeAfter)];
         if (dependency.guardsDependency || dependency.deferred) {
             pending.deferred = YES;

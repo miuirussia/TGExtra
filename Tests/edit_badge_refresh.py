@@ -5,16 +5,17 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-source = (ROOT / 'Sources/tgapi/UI/UIHooks.xm').read_text()
+source = (ROOT / 'Sources/tgapi/UI/MessageBadges.xm').read_text()
 updater = source[source.index('static NSHashTable *activeMessageNodes = nil;'):]
-updater = updater[:updater.index('// ============================================================')]
+updater = updater[:updater.index('void TGExtraStartMessageBadges(')]
 for group, method in [('TGExtraMessageViewLayout', 'layoutSubviews'), ('TGExtraMessageViewWindow', 'didMoveToWindow')]:
     updater = updater.replace(f'%group {group}\n%hook _ASDisplayView', f'@implementation _ASDisplayView ({group})', 1)
     updater = updater.replace('%orig;', f'[super {method}];', 1)
     updater = updater.replace('%end\n%end', '@end', 1)
 assert '%' not in updater, 'Only Objective-C runtime hooks may drive message updates'
+source = (ROOT / 'Sources/tgapi/UI/EditHistoryBadge.m').read_text()
 bindings = source[source.index('static char kTGExtraEditMsgIdKey;'):source.index('@interface TGExtraEditHistoryButtonTarget')]
-geometry = source[source.index('static void tgextraCollectEditBadgeObstacles('):source.index('/// Places, or hides, the pencil badge')]
+geometry = source[source.index('static void tgextraCollectEditBadgeObstacles('):source.index('void TGExtraUpdateEditBadge(')]
 
 support = r'''
 #import <Foundation/Foundation.h>
@@ -127,11 +128,11 @@ void TGExtraUpdatePaidMediaSaveButton(id node) {}
     return @{@"id": node.messageID, @"peer": node.peer, @"account": node.account, @"namespace": node.messageNamespace};
 }
 @end
-static void updateTGExtraStatusBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peer, NSString *account, NSNumber *ns) {
+static void TGExtraUpdateMessageStatusBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peer, NSString *account, NSNumber *ns) {
     NSCAssert(NSThread.isMainThread, @"Status updates must run on main");
     node.statusRefreshCount++;
 }
-static void updateTGExtraEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peer, NSString *account, NSNumber *ns) {
+static void TGExtraUpdateEditBadge(ASDisplayNode *node, NSNumber *msgId, NSNumber *peer, NSString *account, NSNumber *ns) {
     NSCAssert(NSThread.isMainThread, @"Badge updates must run on main");
     NSCAssert(!msgId || ([peer isEqual:node.peer] && [account isEqual:node.account] && [ns isEqual:node.messageNamespace]), @"Use one current item's complete identity");
     node.refreshCount++;

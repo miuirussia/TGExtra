@@ -1,8 +1,6 @@
 import Foundation
 import CoreGraphics
 
-// Read stored Swift fields, rather than calling non-Objective-C host methods or
-// depending on their memory layout. Unknown layouts produce no export button.
 @objc(TGExtraPaidMediaFile)
 final class PaidMediaFile: NSObject {
     private static let galleryItems = NSMapTable<AnyObject, AnyObject>.weakToWeakObjects()
@@ -71,8 +69,6 @@ final class PaidMediaFile: NSObject {
 
     @objc(isUnlockedPaidItem:)
     static func isUnlockedPaidItem(_ itemNode: AnyObject) -> Bool {
-        // Item state is assigned before footer presentation. Capture policy must
-        // not depend on whether a network download descriptor can be constructed.
         if let message = field(itemNode, "message") {
             return selectedMedia(message: message, subject: field(itemNode, "mediaSubject")) != nil
         }
@@ -99,8 +95,6 @@ final class PaidMediaFile: NSObject {
               let current = Self.file(footer: footer as AnyObject), current.cachePath == cachePath,
               let controls = Self.field(item, "fetchControls"),
               let fetch = Self.field(controls, "fetch") as? () -> Void else { return false }
-        // The footer button is a toggle: invoking it while Fetching would cancel
-        // the download. Use the item's dedicated fetch closure instead.
         if let status = Self.field(item, "fetchStatus"),
            Self.associated(status, case: "Fetching") != nil { return true }
         fetch()
@@ -114,8 +108,6 @@ final class PaidMediaFile: NSObject {
         return NSNumber(value: progress)
     }
 
-    // A footer always tracks the current page, including albums and the local
-    // synthetic message created by StarsTransactionScreen after purchase.
     @objc(fileFromFooterNode:)
     static func file(footer: AnyObject) -> PaidMediaFile? {
         guard let message = field(footer, "currentMessage"),
@@ -127,8 +119,6 @@ final class PaidMediaFile: NSObject {
         let resource: Any
         let video: Bool
         if named(full, "TelegramMediaImage"), let representations = field(full, "representations") as? [Any] {
-            // Keep the largest original representation; never export a preview
-            // or the capture-protected rendered image from the screen.
             let photos = representations.filter {
                 guard let r = field($0, "resource") else { return false }
                 return named(r, "CloudPhotoSizeMediaResource")

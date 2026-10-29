@@ -1,8 +1,6 @@
 import Foundation
 import CryptoKit
 
-// This is TGExtra's own protocol bridge. It never calls or patches Swift code
-// in the host app; MTRequest carries boxed TL data across the ObjC boundary.
 @objc(TGExtraForwardCopyPlan)
 final class ForwardCopyPlan: NSObject {
     private let flags: Int32
@@ -51,9 +49,7 @@ final class ForwardCopyPlan: NSObject {
     @objc(initWithPayload:)
     init?(payload: Data) {
         let reader = BufferReader(Buffer(data: payload))
-        guard reader.readInt32() == 326126204, let flags = reader.readInt32() else { return nil }
-        // Unsupported forward semantics must not silently turn into a different
-        // send (quick replies, ephemeral sources, effects, suggested posts, etc.).
+        guard reader.readInt32() == TLMethodID.messagesForward, let flags = reader.readInt32() else { return nil }
         let supported: Int32 = [5, 6, 8, 9, 10, 11, 12, 13, 14, 19, 21, 22].reduce(0) { $0 | (1 << $1) }
         guard flags & ~supported == 0 else { return nil }
         func peer() -> Api.InputPeer? {
@@ -84,8 +80,6 @@ final class ForwardCopyPlan: NSObject {
                   let value = Api.parse(reader, signature: signature) as? Api.InputReplyTo else { return nil }
             reply = value
         }
-        // A topic is represented by reply_to on the send methods, rather than
-        // forwardMessages.top_msg_id. Do not discard an explicit reply.
         if let topId = topId {
             if case let .inputReplyToMessage(value)? = reply {
                 value.flags |= 1
@@ -206,8 +200,6 @@ final class ForwardCopyPlan: NSObject {
                     attributes: document.attributes, spoiler: media.flags & (1 << 4) != 0, media: nil)
             default: return fail("TGEXTRA_COPY_UNSUPPORTED")
             }
-            // 4000 parts at 512 KiB is the non-Premium upload ceiling. Larger
-            // uploads need account-specific limits and are left to the host.
             if item.location != nil {
                 guard item.dc > 0, item.size <= 4000 * 524288 else { return fail("TGEXTRA_COPY_FILE_TOO_LARGE") }
                 downloads.append(["index": items.count, "dc": item.dc, "size": item.size])
@@ -340,8 +332,6 @@ final class ForwardCopyPlan: NSObject {
                 let hide = item.media != nil && flags & (1 << 12) != 0
                 let entities = hide ? nil : outgoingEntities(item.message)
                 if entities != nil { sendFlags |= 1 << 3 }
-                // Preserve caption placement; flag 16 has the same meaning on
-                // sendMessage and sendMedia, but isn't a forward option.
                 if item.message.flags & (1 << 27) != 0 { sendFlags |= 1 << 16 }
                 if let media = item.media {
                     payload = Api.functions.messages.sendMedia(flags: sendFlags, peer: destination, replyTo: reply,
@@ -359,8 +349,6 @@ final class ForwardCopyPlan: NSObject {
             requests.append(["payload": payload, "randomIds": batchIds]); batches.append(batchIds)
             index = end
         }
-        // A paid allowance applies to the original RPC as a whole. Splitting
-        // it must not multiply the amount authorized by the user.
         if paidStars != nil && requests.count > 1 { requests.removeAll(); batches.removeAll(); return fail("TGEXTRA_COPY_UNSUPPORTED_PAID_BATCH") }
         return true
     }
@@ -432,8 +420,6 @@ final class ForwardCopyPlan: NSObject {
             }
         }
         guard batches[batch].allSatisfy({ mappings[$0].map(sent.contains) == true }) else { return nil }
-        // seq=0 is an unordered Updates envelope. Retain every real update's
-        // pts/pts_count; never invent synchronization counters or message IDs.
         return Self.bytes(Api.Updates.updates(.init(updates: updates, users: users, chats: chats, date: date, seq: 0)))
     }
 

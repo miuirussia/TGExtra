@@ -17,18 +17,18 @@ private final class ProfileSubclass: ProfileNode {}
 
 private struct ProfilePeerId {
     struct Id { let rawValue: Int64 }
-    let namespace: Int32 = 0
+    var namespace: Int32 = 0
     let id: Id
 }
 private struct ProfilePeer {
-    let id = ProfilePeerId(id: .init(rawValue: 7331))
+    var id = ProfilePeerId(id: .init(rawValue: 7331))
     let firstName: String? = "Анна"
     let lastName: String? = "Иванова"
     let username: String? = "anna"
 }
-private enum ProfileEnginePeer { case user(ProfilePeer) }
+private enum ProfileEnginePeer { case user(ProfilePeer), group(ProfilePeer), channel(ProfilePeer) }
 private class PeerHeader {
-    let peer: ProfileEnginePeer? = .user(ProfilePeer())
+    var peer: ProfileEnginePeer? = .user(ProfilePeer())
 }
 private final class PeerHeaderSubclass: PeerHeader {}
 private final class KVCProfileNode: NSObject {
@@ -43,6 +43,18 @@ private func testProfileBridge() {
         ProfileBridge.sharedContext = savedContext
         defaults.set(savedId, forKey: "TGExtraLastKnownUserId")
     }
+    for (namespace, expected) in [(Int32(0), Int64(7331)), (1, -7331), (2, -1_000_000_007_331)] {
+        var peer = ProfilePeer()
+        peer.id.namespace = namespace
+        let node = PeerHeader()
+        node.peer = namespace == 0 ? .user(peer) : namespace == 1 ? .group(peer) : .channel(peer)
+        check(ProfileBridge.getPeerIdFromNode(node)?.int64Value == expected, "Profile ids retain their peer namespace")
+    }
+    var unknownPeer = ProfilePeer()
+    unknownPeer.id.namespace = 99
+    let unknownHeader = PeerHeader()
+    unknownHeader.peer = .user(unknownPeer)
+    check(ProfileBridge.getPeerIdFromNode(unknownHeader) == nil, "Unknown peer namespaces cannot become user exceptions")
     let header = PeerHeaderSubclass()
     check(ProfileBridge.getPeerIdFromNode(header) == 7331, "Read peer ids through inherited fields, optionals and enum payloads")
     check(ProfileBridge.getPeerDisplayInfoFromNode(PeerHeader()) ==

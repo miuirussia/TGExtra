@@ -6,8 +6,6 @@ BOOL TGExtraStoryVideoNeedsNormalization(NSURL *inputURL) {
     if (!inputURL.isFileURL) return NO;
     AVURLAsset *asset = [AVURLAsset URLAssetWithURL:inputURL options:nil];
     AVAssetTrack *track = [asset tracksWithMediaType:AVMediaTypeVideo].firstObject;
-    // Normalize both 60 fps video messages and 120 fps stories before Photos
-    // imports them. Keep ordinary 24/30 fps video unchanged.
     return track.nominalFrameRate > 30.5;
 }
 
@@ -24,10 +22,6 @@ NSURL *TGExtraExportStoryVideo(NSURL *inputURL) {
     NSURL *outputURL = [NSURL fileURLWithPath:[NSTemporaryDirectory()
         stringByAppendingPathComponent:[NSString stringWithFormat:@"TGExtraStory-%@.mp4",
                                        NSUUID.UUID.UUIDString]]];
-    // Normalize frame timing before Photos imports the source. Render at
-    // 30 fps while keeping presentation times, audio and the preferred
-    // transform. This cannot undo slow motion already rendered into an
-    // exported file; it only changes the encoding of the source timeline.
     AVMutableVideoComposition *composition =
         [AVMutableVideoComposition videoCompositionWithPropertiesOfAsset:asset];
     composition.sourceTrackIDForFrameTiming = kCMPersistentTrackID_Invalid;
@@ -41,8 +35,6 @@ NSURL *TGExtraExportStoryVideo(NSURL *inputURL) {
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
     __block BOOL abandoned = NO;
     [export exportAsynchronouslyWithCompletionHandler:^{
-        // Also remove partial output after cancellation; the timeout caller
-        // must not race a still-running encoder when deleting its file.
         @synchronized (export) {
             if (abandoned || export.status != AVAssetExportSessionStatusCompleted) {
                 [[NSFileManager defaultManager] removeItemAtURL:outputURL error:NULL];

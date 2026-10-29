@@ -4,17 +4,16 @@
 #define kAccountUpdateOnlineStatus 1713919532
 #define kMessagesSetTypingAction 1486110434
 #define kMessagesReadHistory 238054714
+#define kChannelsReadHistory -871347913
 #define kMessagesReadMentions 921026381
 #define kMessagesReadReactions -1631301741
 #define kStoriesReadStories -1521034552
 #define kGetSponsoredMessages 1030547536
 #define kGetAppConfig 1642330196
 #define kSendScreenshotNotification -1589618665
-// Content reads acknowledge mentions/reactions/playback and open TTL media.
 #define kMessagesReadMessageContents 916930423
 #define kChannelsReadMessageContents -357180360
 
-// Outgoing media sends, rewritten by Video to Voice
 #define kMessagesSendMedia 53536639
 #define kMessagesSendMultiMedia 469278068
 #define kMessagesUploadMedia 345405816
@@ -67,7 +66,6 @@
 #define kDisableStoriesReadReceipt @"disableStoriesReadReceipt"
 #define kDisableScreenshotNotification @"TGExtraDisableScreenshotNotification"
 
-// FIX: was incorrectly mapped to "disableOnlineStatus" — now has its own key
 #define kDisableAllAds @"disableAllAds"
 #define kDisableForwardRestriction @"disableForwardRestriction"
 #define kIgnorePrivateChatCopyProtection @"TGExtraIgnorePrivateChatCopyProtection"
@@ -75,10 +73,8 @@
 #define kHideRecordingButton @"TGExtraHideRecordingButton"
 #define kForceTLottie @"TGExtraForceTLottie"
 
-// Anti-features
 #define kAntiRevoke @"TGExtraAntiRevoke"
 #define kAntiEdit @"TGExtraAntiEdit"
-// Key for preventing disappearing/self-destruct media from being marked as read
 #define kAntiSelfDestruct @"TGExtraAntiSelfDestruct"
 #define kAntiAutoDelete @"TGExtraAntiAutoDelete"
 
@@ -89,15 +85,8 @@
 #define FILE_PICKER_FIX_KEY @"TGExtraFixFilePicker"
 #define FILE_PICKER_PATH @"TGExtraFileFixUsingSomeUglyHacks"
 
-
-
-// Video to Voice: show the per-video conversion button in the preview.
-// Conversion starts off for each video and honours the preview trim handles.
 #define kVideoToVoice @"TGExtraVideoToVoice"
 
-// Ghost Exceptions: peers that keep seeing your real typing/read activity
-// while Ghost Mode stays enabled for everyone else.
 #define kGhostExceptions @"TGExtraGhostExceptions"
 
-// Hide the "dissapearing message" marker prepended to intercepted TTL media
 #define kHideDisappearingLabel @"TGExtraHideDisappearingLabel"

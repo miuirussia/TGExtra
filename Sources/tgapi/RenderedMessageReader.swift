@@ -1,6 +1,5 @@
 import Foundation
 
-// Reads stored host UI values without invoking computed Swift properties.
 enum RenderedMessageReader {
     struct RenderedMessage {
         let value: Any
@@ -29,8 +28,6 @@ enum RenderedMessageReader {
         return value
     }
 
-    /// ChatMessageItemContent.message(message:read:selection:attributes:location:)
-    /// and .group(messages: [(Message, Bool, Selection, Attributes, Location?)]).
     static func renderedMessages(from item: Any) -> [RenderedMessage] {
         guard let content = HostValueReader.storedField("content", in: item) else { return [] }
         let mirror = Mirror(reflecting: HostValueReader.unwrapOptional(content))
@@ -43,8 +40,6 @@ enum RenderedMessageReader {
             let group = HostValueReader.storedField("messages", in: payload.value) ?? payload.value
             let collection = Mirror(reflecting: HostValueReader.unwrapOptional(group))
             guard collection.displayStyle == .collection else { return [] }
-            // Do not choose a later member when the leading message is unknown.
-            // That would bind the pencil to a different message from firstMessage.
             var result = [RenderedMessage]()
             for row in collection.children {
                 guard let value = tupleMessage(row.value), let message = renderedMessage(value) else { return [] }

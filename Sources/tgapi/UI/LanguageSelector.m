@@ -17,7 +17,6 @@
     self.initialLanguageCode = TGExtraLocalization.shared.languageCode;
     self.selectedLanguageCode = self.initialLanguageCode;
 
-    // Hardcoded full list if langs.json is completely unavailable
     self.languages = @[
         @{@"name": @"Arabic", @"code": @"ar", @"flag": @"🇸🇦"},
         @{@"name": @"Chinese", @"code": @"cn", @"flag": @"🇨🇳"},
@@ -33,7 +32,6 @@
 
     self.title = [TGExtraLocalization localizedStringForKey:@"LANGUAGE_SECTION_HEADER"] ?: @"Language";
 
-    // Close Button (Cross icon)
     UIButton *closeButton = [UIButton buttonWithType:UIButtonTypeSystem];
     UIImage *closeImage = [UIImage systemImageNamed:@"xmark"];
     closeImage = [closeImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
@@ -41,7 +39,6 @@
     [closeButton addTarget:self action:@selector(closeTapped) forControlEvents:UIControlEventTouchUpInside];
     self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithCustomView:closeButton];
 
-    // Apply Button (Checkmark icon matching main menu)
     UIButton *applyButton = [UIButton buttonWithType:UIButtonTypeSystem];
     UIImage *applyImage = [UIImage systemImageNamed:@"checkmark.square"];
     applyImage = [applyImage imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];

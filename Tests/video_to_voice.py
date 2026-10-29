@@ -6,9 +6,11 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 source = (ROOT / 'Sources/tgapi/VideoToVoice.xm').read_text()
-helpers = source[source.index('static BOOL tgextraVideoToVoiceEnabled('):source.index('static NSString *tgextraVoiceCacheRoot(')]
-toggle = source[source.index('@interface TGExtraVoiceToggleTarget'):source.index('static UIView *tgextraFindSubviewByClassSubstring')]
-send = source[source.index('+ (NSArray *)resultSignalsForSelectionContext:'):source.index('%end\n%end\n\n%ctor')]
+selection = (ROOT / 'Sources/tgapi/VoiceSelection.m').read_text()
+helpers = selection[selection.index('BOOL tgextraVideoToVoiceEnabled('):]
+preview = (ROOT / 'Sources/tgapi/VoicePreview.xm').read_text()
+toggle = preview[preview.index('@interface TGExtraVoiceToggleTarget'):preview.index('static UIView *tgextraFindSubviewByClassSubstring')]
+send = source[source.index('+ (NSArray *)resultSignalsForSelectionContext:'):source.index('%end')]
 send = send.replace('return %orig;', 'return testOriginal(descriptionGenerator);')
 send = send.replace('return %orig(selectionContext, editingContext, intent, currentItem, storeAssets,\n                 convertToJpeg, wrapped, saveEditedPhotos);', 'return testOriginal(wrapped);')
 
@@ -18,11 +20,16 @@ support = r'''
 #import <objc/message.h>
 #import "Constants.h"
 typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, NSString *);
+static const void *kTGExtraVoicePreviewItemKey = &kTGExtraVoicePreviewItemKey;
 static TGExtraDescriptionGenerator generator;
 static NSUInteger conversions;
+static BOOL conversionFails;
+static BOOL conversionThrows;
 static NSArray *testOriginal(TGExtraDescriptionGenerator block) { generator = [block copy]; return @[]; }
 static NSDictionary *tgextraRewriteToVoice(id dict, id context) {
     if (![dict isKindOfClass:NSDictionary.class] || ![@[@"video", @"cameraVideo"] containsObject:dict[@"type"]]) return nil;
+    if (conversionThrows) [NSException raise:@"Extraction" format:@"Failed"];
+    if (conversionFails) return nil;
     conversions++;
     return @{@"type": @"voice"};
 }
@@ -129,6 +136,12 @@ int main(void) {
             [[NSAttributedString alloc] initWithString:@"caption"], @"hash", nil);
         NSCAssert([result[@"type"] isEqual:@"voice"], @"Also accept camera paths passed as strings");
         NSCAssert(conversions == 5, @"Only explicitly selected videos reach extraction");
+        conversionFails = YES;
+        NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil,
+                  @"Failed conversion must never send the source video");
+        conversionThrows = YES;
+        NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil,
+                  @"An extraction exception must never send the source video");
         [defaults removePersistentDomainForName:suite];
         puts("PASS video-to-voice: checkbox isolation, default off, per-clip selection, picker isolation, send snapshots and camera videos");
     }

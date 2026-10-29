@@ -105,17 +105,13 @@
 }
 
 - (void)handleMapTap:(UITapGestureRecognizer *)gesture {
-  // Get the tap location
   CGPoint touchPoint = [gesture locationInView:self.mapView];
 
-  // Convert to map coordinates
   CLLocationCoordinate2D coordinate = [self.mapView convertPoint:touchPoint
                                             toCoordinateFromView:self.mapView];
 
-  // Add a pin at the selected location
   [self addPinAtCoordinate:coordinate withTitle:@"Selected Location"];
 
-  // Save the selected location to UserDefaults
   [[NSUserDefaults standardUserDefaults] setDouble:coordinate.longitude
                                            forKey:FAKE_LONGITUDE_KEY];
   [[NSUserDefaults standardUserDefaults] setDouble:coordinate.latitude

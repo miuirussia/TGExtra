@@ -77,7 +77,6 @@ static dispatch_queue_t mediaQueue(void) {
     request.shouldContinueExecutionWithErrorContext = ^bool(id context) { return false; };
     self.pending = request;
     __weak MTRequest *weakRequest = request;
-    // The request keeps the operation alive until completion or timeout.
     request.completed = ^(id result, MTRequestResponseInfo *info, MTRpcError *error) {
         dispatch_async(mediaQueue(), ^{
             MTRequest *request = weakRequest;
@@ -108,7 +107,6 @@ static dispatch_queue_t mediaQueue(void) {
     };
     [self.service addRequest:request];
     __weak TGExtraPaidMediaDownload *weakSelf = self;
-    // Do not retain every completed chunk until its timeout expires.
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 120 * NSEC_PER_SEC), mediaQueue(), ^{
         TGExtraPaidMediaDownload *op = weakSelf;
         MTRequest *pending = weakRequest;
@@ -117,7 +115,6 @@ static dispatch_queue_t mediaQueue(void) {
 }
 
 - (BOOL)copyCompleteCache {
-    // Only the complete MediaBox file is eligible; _partial can contain holes.
     if (self.media.cachePath) {
         NSDictionary *attributes = [NSFileManager.defaultManager attributesOfItemAtPath:self.media.cachePath error:NULL];
         int64_t size = [attributes[NSFileSize] longLongValue];

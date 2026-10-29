@@ -1,8 +1,6 @@
 import Foundation
 import tgapiC
 
-// The setting → condition → field-change mapping for TL message policies.
-// Account lookup, message classification and persistence remain in TLParser.
 enum MessagePatches {
     enum Setting: String, CaseIterable {
         case preventAutoDelete = "TGExtraAntiAutoDelete"
@@ -18,9 +16,6 @@ enum MessagePatches {
         case hideReactionReads = "disableReactionReadReceipt"
     }
 
-    // disableForwardRestriction forces reserialization of prepared copies.
-    // Other message edits also reserialize those copies, including the legacy
-    // unconditional noforwards preparation, even when this switch is off.
     static func shouldReserialize(changed: Bool, settings: Settings = .init()) -> Bool {
         changed || settings.bypassForwarding
     }
@@ -42,7 +37,6 @@ enum MessagePatches {
         var bypassForwarding: Bool { enabled(.bypassForwarding) }
         var bypassPrivateCopy: Bool { enabled(.bypassPrivateCopy) }
         var keepDeletedMessages: Bool { enabled(.keepDeletedMessages) }
-        // Anti-Edit records revisions; it never replaces the received message text.
         var keepEditHistory: Bool { enabled(.keepEditHistory) }
         var hideDisappearingLabel: Bool { enabled(.hideDisappearingLabel) }
         var videoToVoice: Bool { enabled(.videoToVoice) }
@@ -56,13 +50,10 @@ enum MessagePatches {
             protectsAnyDeletions || bypassForwarding || bypassPrivateCopy || keepEditHistory || tracksContentReads
         }
 
-        // Timer switches protect deletion only for previously classified messages.
         func protectsDeletion(disappearing: Bool, autoDelete: Bool) -> Bool {
             keepDeletedMessages || (preventMediaSelfDestruct && disappearing) || (preventAutoDelete && autoDelete)
         }
 
-        // readMessageContents request IDs: media protection precedes Ghost
-        // exceptions; unknown classifications stay blocked while required.
         func allowsContentReceipt(disappearing: Bool?, mention: Bool?, reaction: Bool?,
                                   classified: Bool, ghostException: Bool) -> Bool {
             if preventMediaSelfDestruct && disappearing != false { return false }
@@ -75,8 +66,6 @@ enum MessagePatches {
         }
     }
 
-    // UNCONDITIONAL: original-byte content access and decoded-copy preparation.
-    // Call after validating a complete response or a known prefix with opaque peers.
     static func prepareDecodedObjects(in reader: BufferReader) {
         for record in reader.parsedRecords {
             switch record.typeName + "." + record.constructorName {
@@ -91,15 +80,12 @@ enum MessagePatches {
             }
             switch record.typeName + "." + record.constructorName {
             case "Chat.channel", "Chat.chat", "Message.message", "StoryItem.storyItem":
-                // Legacy behavior: prepare ONLY the decoded copy. This records
-                // no original-byte edit; TLParser still controls reserialization.
                 TLDataPatch(record, rule: "always: decoded forwarding preparation").clearFlag(.noForwards)
             default: break
             }
         }
     }
 
-    // UNCONDITIONAL: preserve server settings and add the iOS ignore reasons.
     static func allowIOSContent(in config: Api.help.AppConfig) -> Bool {
         guard case let .appConfig(data) = config,
               case let .jsonObject(object) = data.config else { return false }
@@ -126,7 +112,6 @@ enum MessagePatches {
             .replaceField("config", Api.JSONValue.jsonObject(.init(value: entries)))
     }
 
-    // UNCONDITIONAL: a nonzero config hash could retain old iOS restrictions.
     static func refreshContentConfigurationRequest(_ payload: NSData) -> NSData? {
         guard payload.length == 8 else { return nil }
         let reader = BufferReader(Buffer(nsData: payload))
@@ -134,8 +119,6 @@ enum MessagePatches {
         return Api.functions.help.getAppConfig(hash: 0).1.makeValidData() as NSData?
     }
 
-    // TGExtraAntiAutoDelete + an existing timer → remove ttlPeriod.
-    // Compact updates also clear media_unread, matching the existing policy.
     @discardableResult
     static func removeAutoDeleteTimer(from record: TLRecord, settings: Settings = .init()) -> Bool {
         guard settings.preventAutoDelete, record["ttlPeriod"] != nil else { return false }
@@ -151,7 +134,6 @@ enum MessagePatches {
         }
     }
 
-    // TGExtraAntiSelfDestruct + photo/document TTL → remove ttlSeconds.
     @discardableResult
     static func removeMediaTimer(from record: TLRecord, settings: Settings = .init()) -> Bool {
         guard settings.preventMediaSelfDestruct else { return false }
@@ -162,8 +144,6 @@ enum MessagePatches {
         }
     }
 
-    // disableForwardRestriction → clear noforwards.
-    // Existing exception: compact incoming updates also do this for AntiSelfDestruct.
     @discardableResult
     static func removeForwardingProtection(from record: TLRecord, settings: Settings = .init()) -> Bool {
         let constructor = record.typeName + "." + record.constructorName
@@ -173,7 +153,6 @@ enum MessagePatches {
         return TLDataPatch(record, rule: reason.rawValue).clearFlag(.noForwards)
     }
 
-    // TGExtraIgnorePrivateChatCopyProtection → clear BOTH private-copy flags.
     @discardableResult
     static func removePrivateCopyProtection(from record: TLRecord, settings: Settings = .init()) -> Bool {
         guard settings.bypassPrivateCopy else { return false }
@@ -183,8 +162,6 @@ enum MessagePatches {
         return mine || peer
     }
 
-    // Return true for a handled full-user response, even if its flags were clear.
-    // Other chats in that response retain their original forwarding bytes.
     static func patchPrivateCopyResponse(_ result: Any, reader: BufferReader, settings: Settings = .init()) -> Bool {
         guard settings.bypassPrivateCopy else { return false }
         let user: TLRecord
@@ -198,8 +175,6 @@ enum MessagePatches {
         return true
     }
 
-    // Known disappearing marker → clear media_unread. The label switch only
-    // controls message text/entities; it never disables media protection.
     static func markDisappearingMessage(_ message: Api.Message, observedDisappearing: Bool, settings: Settings = .init()) {
         guard observedDisappearing, case let .message(data) = message else { return }
         let patch = TLDataPatch(message.record, rule: "observed disappearing media")
@@ -209,7 +184,6 @@ enum MessagePatches {
         var text = data.message
         var entities = data.entities ?? []
         if !text.contains("dissapearing message") {
-            if text.hasPrefix("⏱️ ") { text.removeFirst(3) }
             let offset = Int32(marker.count)
             for entity in entities {
                 if let current = entity.record["offset"] as? Int32 {
@@ -226,8 +200,6 @@ enum MessagePatches {
         label.setOptionalField("entities", entities)
     }
 
-    // IDs have already been classified by Settings.protectsDeletion. Preserve
-    // count, pts and pts_count; only the protected IDs become zero.
     @discardableResult
     static func replaceDeletionIds(in record: TLRecord, keeping ids: [Int32], settings: Settings = .init()) -> Bool {
         guard settings.protectsAnyDeletions, record.typeName == "Update" else { return false }
@@ -246,14 +218,11 @@ enum MessagePatches {
         return TLDataPatch(record, rule: reason).replaceField(field, ids)
     }
 
-    // TGExtraAntiRevoke + channel-history pruning → a zero-pts deletion no-op.
     static func suppressChannelHistoryPruning(_ update: Api.Update, settings: Settings = .init()) -> Api.Update? {
         guard settings.keepDeletedMessages, case .updateChannelAvailableMessages = update else { return nil }
         return .updateDeleteMessages(.init(messages: [], pts: 0, ptsCount: 0))
     }
 
-    // TGExtraVideoToVoice + a file registered by our extraction pipeline →
-    // replace document attributes with the voice attribute built from that file.
     @discardableResult
     static func replaceVoiceAttributes(in record: TLRecord, attributes: [Api.DocumentAttribute], registeredUpload: Bool,
                                        settings: Settings = .init()) -> Bool {
@@ -263,8 +232,6 @@ enum MessagePatches {
     }
 }
 
-// The native fast path compiles these named rules once. Execution uses only
-// constructor IDs, field indices and masks; no field-name lookup per message.
 extension MessagePatches {
     static func nativeRules(_ schema: HostSchema) -> Data {
         var words = [UInt32]()
@@ -283,8 +250,6 @@ extension MessagePatches {
         for descriptor in schema.constructors.values.sorted(by: { UInt32(bitPattern: $0.signature) < UInt32(bitPattern: $1.signature) }) {
             let type = schema.types[descriptor.typeIndex]
             let record = TLRecord(descriptor: descriptor, type: type)
-            // disableForwardRestriction → noforwards. The flag's reviewed
-            // semantic location is shared with the regular TLDataPatch rules.
             clear(record, .noForwards, when: .bypassForwarding)
             clear(record, .noForwardsMyEnabled, when: .bypassPrivateCopy)
             clear(record, .noForwardsPeerEnabled, when: .bypassPrivateCopy)

@@ -34,7 +34,6 @@ NSArray<NSDictionary<NSString *, NSString *> *> *TGExtraTextDiff(NSString *befor
     for (NSUInteger i = 0; i < prefix; i++) tgextraAppendDiffRun(runs, @"equal", old[i]);
 
     NSUInteger oldCount = old.count - prefix - suffix, newCount = new.count - prefix - suffix;
-    // Bound work on the UI thread even for very large, completely replaced messages.
     NSUInteger columns = newCount + 1;
     uint32_t *lengths = NULL;
     if (oldCount && newCount && oldCount + 1 <= 250000 / columns) {

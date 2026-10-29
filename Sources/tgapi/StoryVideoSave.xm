@@ -8,11 +8,6 @@
 
 static NSString *const kStoryExportFiles = @"TGExtraStoryExportFiles";
 
-// Do not depend on Swift controller names or the queue used to start a save.
-// Check the actual input frame rate inside Photos transactions, independently
-// of the protection bypass: ordinary video messages also need this correction.
-// The changes block runs on a Photos worker.
-
 static dispatch_block_t tgextraVideoChanges(dispatch_block_t changes,
                                           NSMutableArray<NSURL *> *outputs) {
     return ^{
@@ -29,7 +24,6 @@ static dispatch_block_t tgextraVideoChanges(dispatch_block_t changes,
 }
 
 static void tgextraRemoveVideoExports(NSArray<NSURL *> *outputs) {
-    // Photos can read resources after the changes block returns.
     for (NSURL *url in outputs) {
         [[NSFileManager defaultManager] removeItemAtURL:url error:NULL];
     }

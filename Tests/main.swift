@@ -99,6 +99,7 @@ func parsed<T>(_ bytes: NSData, as type: T.Type) -> T {
     return value
 }
 testOwnUserAccounts()
+testHistoryArchive()
 
 func message(_ id: Int32, peer: Api.Peer = .peerUser(.init(userId: 42)), text: String = "Original 😀", ttl: Int32? = nil, media: Api.MessageMedia? = nil, edit: Int32? = nil) -> Api.Message {
     var bits: Int32 = 1 << 7
@@ -370,7 +371,7 @@ let edited = message(40, text: "New text", edit: 1235)
 check(patch(Api.Update.updateEditMessage(.init(message: edited, pts: 51, ptsCount: 1))) == nil, "Keep latest edited text in the chat")
 check(history(forId: 40, peer: 42) == ["Original 😀", "New text"], "Keep original and revised text")
 check(history(forId: 40, peer: 43) == nil, "Never mix edit histories across peers")
-check(defaults.dictionary(forKey: "TGExtraEditHistoryByAccount") != nil, "Persist edit history immediately")
+check(!MessageHistoryArchive.shared.load().isEmpty, "Persist edit history immediately")
 let opaqueOriginal = updatesWithOpaquePeer([.updateNewMessage(.init(message: message(105), pts: 50, ptsCount: 1))])
 check(strip(opaqueOriginal) == nil, "Recording an original preserves opaque packet bytes")
 let opaqueEdit = updatesWithOpaquePeer([.updateEditMessage(.init(message: message(105, text: "Edited in opaque batch", edit: 1235), pts: 51, ptsCount: 1))], combined: true)
@@ -400,7 +401,7 @@ messageData(outgoingEdit).flags |= 1 << 1
 let outgoingBytes = updatesWithOpaquePeer([.updateEditMessage(.init(message: outgoingEdit, pts: 51, ptsCount: 1))])
 check(strip(outgoingBytes) == nil, "Excluding an outgoing edit preserves host editing behavior")
 check(history(forId: 115, peer: 42) == nil, "Never track outgoing originals or edits")
-check((defaults.dictionary(forKey: "TGExtraEditHistoryByAccount")?["account-1:42:115"]) == nil, "Do not persist outgoing originals")
+check((MessageHistoryArchive.shared.load()["account-1:42:115"]) == nil, "Do not persist outgoing originals")
 for outgoing in [false, true] {
     let id: Int32 = outgoing ? 117 : 116
     let compact = Api.Updates.updateShortMessage(.init(flags: outgoing ? 1 << 1 : 0, id: id,
@@ -426,7 +427,7 @@ _ = strip(serialized(ownAuthored), account: "account-202")
 check(history(forId: 118, peer: 42, account: "account-101") == nil, "Own author identity also excludes revisions")
 check(history(forId: 118, peer: 42, account: "account-202") == ["Own author without outgoing flag", "Own authored revision"],
       "The same author remains another person's message for a different account")
-check(defaults.dictionary(forKey: "TGExtraEditHistoryByAccount")?["account-101:42:118"] == nil,
+check(MessageHistoryArchive.shared.load()["account-101:42:118"] == nil,
       "An own authored message leaves no persisted original")
 
 flags("TGExtraAntiEdit")
@@ -555,7 +556,7 @@ check(history(forId: 40, peer: 42) == ["Original 😀", "New text"], "Unrelated 
 _ = patch(message(12_100, text: "Edited after cache churn", edit: 1235))
 testRenderedMessages()
 
-let savedHistories = defaults.dictionary(forKey: "TGExtraEditHistoryByAccount") as! [String: [String: Any]]
+let savedHistories = MessageHistoryArchive.shared.load()
 check(savedHistories["account-1:42:40"]?["versions"] as? [String] == ["Original 😀", "New text"], "Protected histories remain persisted after cache churn")
 check(savedHistories["account-1:42:10000"] == nil, "Unedited original cache stays bounded")
 check(savedHistories.values.filter { ($0["versions"] as? [String])?.count == 1 }.count <= 2000, "Only unedited originals count toward the cache limit")
@@ -649,7 +650,7 @@ let clearObserver = NotificationCenter.default.addObserver(forName: NSNotificati
     check(Thread.isMainThread, "Message clearing notifies UI on the main thread")
     receivedClearNotification = true
 }
-DispatchQueue.global().sync { TLParser.clearMessageData() }
+check(DispatchQueue.global().sync { TLParser.clearMessageData() }, "Report successful disk clearing")
 RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
 check(receivedClearNotification, "Clearing notifies visible message nodes")
 NotificationCenter.default.removeObserver(clearObserver)
@@ -670,16 +671,16 @@ _ = patch(message(134, text: "Fresh original"))
 // Dispatch timers can be coalesced; await the write instead of assuming that
 // five seconds plus a small margin is a strict upper bound on execution.
 let persistenceDeadline = Date(timeIntervalSinceNow: 10)
-while defaults.dictionary(forKey: "TGExtraEditHistoryByAccount") == nil && Date() < persistenceDeadline {
+while MessageHistoryArchive.shared.load().isEmpty && Date() < persistenceDeadline {
     Thread.sleep(forTimeInterval: 0.05)
 }
-let freshSaved = defaults.dictionary(forKey: "TGExtraEditHistoryByAccount") as? [String: [String: Any]]
-check(freshSaved?["account-1:42:134"]?["versions"] as? [String] == ["Fresh original"], "Original persistence resumes after clearing")
+let freshSaved = MessageHistoryArchive.shared.load()
+check(freshSaved["account-1:42:134"]?["versions"] as? [String] == ["Fresh original"], "Original persistence resumes after clearing")
 _ = patch(message(134, text: "Fresh edit", edit: 100))
 check(history(forId: 134, peer: 42) == ["Fresh original", "Fresh edit"], "Clearing removes stale date metadata and tracking resumes")
 TLParser.clearMessageData()
 TLParser.clearMessageData()
-check(defaults.object(forKey: "TGExtraEditHistoryByAccount") == nil, "Repeated clearing is safe")
+check(MessageHistoryArchive.shared.load().isEmpty, "Repeated clearing is safe")
 print("PASS message database clearing, legacy removal, delayed writes, notifications and preserved settings")
 
 

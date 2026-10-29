@@ -93,7 +93,6 @@
         NSString *text = run[@"text"];
         if (![run[@"kind"] isEqualToString:@"equal"] &&
             ![text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet].length) {
-            // Make whitespace-only edits visible; Copy still uses the stored version.
             text = [[[[[text stringByReplacingOccurrencesOfString:@"\r\n" withString:@"\n"]
                 stringByReplacingOccurrencesOfString:@"\r" withString:@"\n"]
                 stringByReplacingOccurrencesOfString:@"\n" withString:@"↵\n"]

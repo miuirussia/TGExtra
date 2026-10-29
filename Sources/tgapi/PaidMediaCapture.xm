@@ -14,7 +14,6 @@
 
 static char paidCaptureRootKey, originalImageCaptureKey, originalVideoCaptureKey;
 static char canvasOwnLayerKey, requestedImageCaptureKey;
-// All UIKit manipulation and host capture changes below run on the main thread.
 static BOOL applyingCaptureChange;
 static NSUInteger clearedImageLayers, clearedVideoLayers;
 
@@ -43,8 +42,6 @@ static UIView *captureCanvas(UITextField *field) {
     return nil;
 }
 
-// Same UIKit path as Telegram's UIKitRuntimeUtils.setLayerDisableScreenshots.
-// Rebinding the secure canvas also updates the render-server protection state.
 static BOOL setImageCaptureProtected(CALayer *layer, BOOL captureProtected) {
     static UITextField *field;
     static UIView *canvas;
@@ -74,9 +71,6 @@ static BOOL setImageCaptureProtected(CALayer *layer, BOOL captureProtected) {
 
 static void updateCaptureLayers(CALayer *layer, BOOL allow) {
     if (allow) {
-        // Record Telegram's requested protection when it rebinds its secure
-        // canvas, including while the image layer is still detached. UIKit can
-        // report disableUpdateMask == 0 even after secureTextEntry was enabled.
         NSNumber *requested = objc_getAssociatedObject(layer, &requestedImageCaptureKey);
         NSNumber *original = objc_getAssociatedObject(layer, &originalImageCaptureKey);
         NSNumber *mask = nil;
@@ -139,8 +133,6 @@ void TGExtraUpdatePaidMediaCapture(id node) {
         (unsigned long)clearedImageLayers, (unsigned long)clearedVideoLayers]);
 }
 
-// GalleryItemNode installs Display.UITracingLayerView through setViewBlock.
-// It inherits UIView directly, so the _ASDisplayView hooks never see these items.
 %group TGExtraPaidGalleryViews
 %hook TGExtraPaidGalleryView
 - (void)layoutSubviews {
@@ -160,8 +152,6 @@ void TGExtraUpdatePaidMediaCapture(id node) {
 
 %hook UIView
 - (void)setValue:(id)value forKey:(NSString *)key {
-    // Capture the canvas's own layer BEFORE UIKitRuntimeUtils temporarily
-    // replaces it. Ordinary secure text fields keep that layer and are ignored.
     if (!applyingCaptureChange && NSThread.isMainThread && [key isEqualToString:@"layer"] &&
         [NSStringFromClass(self.class) containsString:@"TextLayoutCanvasView"] &&
         !objc_getAssociatedObject(self, &canvasOwnLayerKey)) {
@@ -173,8 +163,6 @@ void TGExtraUpdatePaidMediaCapture(id node) {
 
 %hook UITextField
 - (void)setSecureTextEntry:(BOOL)value {
-    // Telegram temporarily assigns an image layer to its secure text canvas.
-    // Keep later redraws from re-enabling protection inside a paid gallery item.
     if (!applyingCaptureChange && NSThread.isMainThread) {
         UIView *canvas = captureCanvas((UITextField *)self);
         CALayer *ownLayer = objc_getAssociatedObject(canvas, &canvasOwnLayerKey);
@@ -205,8 +193,6 @@ void TGExtraUpdatePaidMediaCapture(id node) {
 - (void)addSublayer:(CALayer *)layer {
     BOOL hadCaptureRoot = paidLayerHasCaptureRoot(layer);
     %orig;
-    // Telegram shares video content between the gallery and chat. Apply the
-    // destination policy immediately, including on implicit reparenting.
     updateMovedCaptureLayers(layer, hadCaptureRoot);
 }
 - (void)insertSublayer:(CALayer *)layer atIndex:(unsigned int)index {

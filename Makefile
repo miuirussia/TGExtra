@@ -20,7 +20,7 @@ endif
 Sources/tgapi/VideoToVoice.xm_CFLAGS = -std=c++11
 Sources/tgapi/StoryVideoSave.xm_CFLAGS = -std=c++11
 $(TWEAK_NAME)_FRAMEWORKS = CoreServices UIKit CoreLocation MapKit AVFoundation Photos Intents CryptoKit
-$(TWEAK_NAME)_LIBRARIES = z
+$(TWEAK_NAME)_LIBRARIES = z sqlite3
 $(TWEAK_NAME)_LOGOS_DEFAULT_GENERATOR = internal
 
 # Copy TGExtra.bundle manually during the packaging step

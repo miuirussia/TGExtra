@@ -1,8 +1,6 @@
 #import <Foundation/Foundation.h>
 #include <stdint.h>
 
-// C ABI 5, TelegramMessenger/mtproto-engine da4b2170210aab0430c4ff18c032991f3030cf45.
-// Names are scoped because the host also has an Objective-C MTRequest class.
 typedef struct { const uint8_t *data; size_t length; } TGERustBytes;
 typedef struct { const char *data; size_t length; } TGERustString;
 typedef struct {
@@ -29,8 +27,6 @@ typedef void *(*TGERustCreate)(uint32_t, void *, void *, void *);
 typedef const uint8_t *(*TGERustBufferData)(const void *);
 typedef size_t (*TGERustBufferLength)(const void *);
 
-// Offline arm64 call-site thunks pass the unmodified C function as their final
-// argument. All pointer arguments/returns stay raw to preserve the host's ARC ABI.
 @interface TGExtraRustBridge : NSObject
 + (void *)engineCreate:(uint32_t)threads context:(void *)context event:(void *)event log:(void *)log original:(void *)original;
 + (uint64_t)sessionCreate:(void *)engine setup:(const void *)setup original:(void *)original;

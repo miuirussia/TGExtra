@@ -2,8 +2,6 @@
 
 NSString *TGExtraHistoryAccountForPath(NSString *path) {
     if (![path isKindOfClass:NSString.class]) return nil;
-    // Keep only the account directory: the application container can change
-    // after an update or restore. Never use a global "current account" here.
     for (NSString *component in path.pathComponents.reverseObjectEnumerator) {
         if (![component hasPrefix:@"account-"]) continue;
         NSString *identifier = [component substringFromIndex:8];
@@ -52,7 +50,5 @@ NSString *TGExtraHistoryAccountForRequest(id request) {
     NSMapTable *services = historyRequestServices();
     id service;
     @synchronized(services) { service = [services objectForKey:request]; }
-    // Resolve at response time: the service may attach to MTProto only after
-    // addRequest has enqueued its work. Neither object is kept alive by us.
     return TGExtraHistoryAccountForRequestService(service);
 }

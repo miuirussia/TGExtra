@@ -1,8 +1,6 @@
 import Foundation
 import tgapiC
 
-// Rules keep using TLDataPatch's named operations. This adapter reads existing
-// host objects lazily and commits their edits after the complete decode succeeds.
 final class NativeTLContext {
     private var records = [ObjectIdentifier: TLRecord]()
     private var wire = [ObjectIdentifier: (TLRecord, [String: Any])]()
@@ -100,7 +98,6 @@ final class NativeTLContext {
         return value
     }
 
-    // Validate the complete write set before changing a native object.
     func commit(_ root: TLRecord?, allChanges: Bool) -> AnyObject? {
         let nativeRoot = root.flatMap(materialize)
         if root != nil && nativeRoot == nil { return nil }
@@ -139,8 +136,6 @@ extension TLParser {
         let ids = schema.constructors.keys.map { UInt32(bitPattern: $0) }.sorted()
         var types = [UInt8](repeating: 0, count: schema.types.count)
         for (index, type) in schema.types.enumerated() where ["Message", "Chat", "User", "UserFull", "StoryItem"].contains(type) { types[index] = 1 }
-        // Mark the transitive object types which can contain a patched object.
-        // The native visitor never scans payload bytes or irrelevant leaf types.
         var changed = true
         while changed {
             changed = false

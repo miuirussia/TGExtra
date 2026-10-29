@@ -9,6 +9,7 @@ python3 Tests/native_tl_profile.py
 python3 Tests/settings_support_labels.py
 python3 Tests/settings_apply.py
 python3 Tests/review_regressions.py
+python3 Tests/review_fixes.py
 python3 Tests/settings_persistence.py
 python3 Tests/video_to_voice.py
 python3 Tests/double_tap_reactions.py
@@ -58,9 +59,9 @@ clang -fobjc-arc -Werror -Wno-deprecated-declarations -DTGEXTRA_TESTING -ISource
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -ISources/tgapiC/include -c Tests/forward_copy.m -o "$test_build_dir/forward-copy-tests.o"
 optimization=-Onone
 if [[ "${1:-}" == "--benchmark" || "${1:-}" == "--native-benchmark" ]]; then optimization=-O; fi
-swiftc "$optimization" -whole-module-optimization -I Sources/tgapiC/include -I Tests/Support -module-cache-path "$test_build_dir/cache" \
-    Sources/tgapi/TL/*.swift Sources/tgapi/*.swift Sources/tgapi/UI/*.swift Tests/paid_media.swift Tests/content_settings.swift Tests/api_compatibility.swift Tests/forward_copy.swift Tests/message_protection.swift Tests/read_contents.swift Tests/own_user_accounts.swift Tests/rendered_messages.swift Tests/host_runtime.swift Tests/codec_benchmark.swift Tests/native_engine.swift Tests/main.swift \
-    "$test_build_dir"/*.o -lz -Xlinker -export_dynamic -o "$test_build_dir/TGExtraTests"
+swiftc -D TGEXTRA_TESTING "$optimization" -whole-module-optimization -I Sources/tgapiC/include -I Tests/Support -module-cache-path "$test_build_dir/cache" \
+    Sources/tgapi/TL/*.swift Sources/tgapi/*.swift Sources/tgapi/UI/*.swift Tests/history_archive.swift Tests/paid_media.swift Tests/content_settings.swift Tests/api_compatibility.swift Tests/forward_copy.swift Tests/message_protection.swift Tests/read_contents.swift Tests/own_user_accounts.swift Tests/rendered_messages.swift Tests/host_runtime.swift Tests/codec_benchmark.swift Tests/native_engine.swift Tests/main.swift \
+    "$test_build_dir"/*.o -lz -lsqlite3 -Xlinker -export_dynamic -o "$test_build_dir/TGExtraTests"
 export TGEXTRA_TL_SCHEMA="$test_build_dir/Tests/Fixtures/TelegramApiSchema.zlib"
 if [[ "${1:-}" == "--benchmark" || "${1:-}" == "--native-benchmark" ]]; then
     "$test_build_dir/TGExtraTests" "$1"

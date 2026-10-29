@@ -41,8 +41,6 @@ static BOOL TGExtraRecordingViewIsVisible(UIView *view) {
         fabs(view.transform.a) > 0.01 && fabs(view.transform.d) > 0.01;
 }
 
-// Capture all geometry before changing a parent: UIKit may autoresize children
-// synchronously, and applying the delta to those new sizes would grow them twice.
 static void TGExtraRecordingCapture(id value, CGFloat delta, BOOL widen,
                                     NSMutableDictionary<id, NSDictionary *> *changes) {
     UIView *view = TGExtraRecordingView(value);
@@ -96,8 +94,6 @@ void TGExtraLayoutRecordingInput(UIView *background) {
 
     CGRect mediaFrame = [panel convertRect:media.bounds fromView:media];
     CGRect inputFrame = [panel convertRect:background.bounds fromView:background];
-    // Text, forwards, drafts and editing move the media slot outside the panel.
-    // Using the slot's actual trailing edge preserves landscape/tablet safe insets.
     CGFloat delta = CGRectGetMaxX(mediaFrame) - CGRectGetMaxX(inputFrame);
     CGFloat spacing = CGRectGetMinX(mediaFrame) - CGRectGetMaxX(inputFrame);
     if (!isfinite(delta) || delta <= 0.5 || spacing < -0.5 || spacing > mediaFrame.size.width ||
@@ -115,8 +111,6 @@ void TGExtraLayoutRecordingInput(UIView *background) {
     for (NSString *key in @[@"textInputBackgroundNode", @"accessoryPanelContainer", @"textInputNodeClippingContainer"]) {
         TGExtraRecordingCapture(layout[key], delta, YES, changes);
     }
-    // The field is empty here; keep its editor and touch region as wide as its
-    // clipping container. Native layout takes over as soon as content is entered.
     UIView *clip = TGExtraRecordingView(layout[@"textInputNodeClippingContainer"]);
     for (UIView *editor in clip.subviews) {
         TGExtraRecordingCaptureEditor(editor, delta, changes);
@@ -126,7 +120,6 @@ void TGExtraLayoutRecordingInput(UIView *background) {
 
     [CATransaction begin];
     [CATransaction setDisableActions:YES];
-    // Parents first, then their captured children, overriding autoresizing.
     NSArray *ordered = [changes.allValues sortedArrayUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
         id at = a[@"target"], bt = b[@"target"];
         CALayer *al = [at isKindOfClass:UIView.class] ? [at layer] : at;

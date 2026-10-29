@@ -1,7 +1,6 @@
 import Foundation
 import tgapiC
 
-// Follows only the screen's account chain; never uses a global account fallback.
 enum HostAccountReader {
     static func account(in wrapped: Any, depth: Int = 0) -> String? {
         guard depth <= 6 else { return nil }

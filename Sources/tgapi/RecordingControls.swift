@@ -47,8 +47,6 @@ final class TGExtraRecordingControls: NSObject {
     }
 
     @objc static func backgroundPartsFromView(_ view: Any) -> [Any] {
-        // Both native glass and Telegram's image/backdrop fallback have their
-        // own bounds. Resizing only the outer view leaves the visible capsule short.
         var parts: [Any] = []
         for name in ["nativeParamsView", "nativeView", "legacyView", "legacyHighlightContainerView",
                      "foregroundView", "shadowView", "maskContainerView", "maskContentView",

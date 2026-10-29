@@ -15,9 +15,6 @@ BOOL TGExtraIsGhostException(int64_t userId) {
 
 @implementation TGExtraGhostExceptions
 
-// One lock guards both caches. Contention is negligible: reads only happen for
-// requests that already passed the Ghost Mode gate, and writes only happen when
-// the user taps something.
 static NSObject *sLock = nil;
 static NSMutableArray<NSDictionary *> *sEntries = nil;
 static NSSet<NSNumber *> *sIdCache = nil;
@@ -28,7 +25,6 @@ static NSSet<NSNumber *> *sIdCache = nil;
   }
 }
 
-// Must be called with sLock held.
 static void loadIfNeeded(void) {
   if (sEntries)
     return;
@@ -38,7 +34,6 @@ static void loadIfNeeded(void) {
   sEntries = [NSMutableArray array];
 
   for (id entry in stored) {
-    // Defensive: a malformed defaults value must not take the tweak down.
     if (![entry isKindOfClass:[NSDictionary class]])
       continue;
     NSNumber *peerId = entry[kTGExtraGhostExceptionId];
@@ -54,7 +49,6 @@ static void loadIfNeeded(void) {
   sIdCache = ids;
 }
 
-// Must be called with sLock held.
 static void persist(void) {
   NSMutableSet *ids = [NSMutableSet set];
   for (NSDictionary *entry in sEntries) {
@@ -73,7 +67,6 @@ static void persist(void) {
   });
 }
 
-// Must be called with sLock held. Returns NSNotFound when absent.
 static NSUInteger indexOfPeerId(int64_t peerId) {
   for (NSUInteger i = 0; i < sEntries.count; i++) {
     if ([sEntries[i][kTGExtraGhostExceptionId] longLongValue] == peerId) {
@@ -110,7 +103,6 @@ static NSUInteger indexOfPeerId(int64_t peerId) {
 
     NSUInteger existing = indexOfPeerId(peerId);
     if (existing != NSNotFound) {
-      // Re-adding refreshes name/username but keeps any manual rename.
       NSString *custom = sEntries[existing][kTGExtraGhostExceptionCustom];
       if (custom.length)
         entry[kTGExtraGhostExceptionCustom] = custom;

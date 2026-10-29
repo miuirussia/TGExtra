@@ -22,14 +22,6 @@ static BOOL TGExtraShouldDisableDoubleTap(UIGestureRecognizer *recognizer) {
         [name hasSuffix:@".ChatMessageAnimatedStickerItemNode"];
 }
 
-// Telegram-iOS fb0e62ba8a147f0821da6aa63c09da7d79a10111:
-// submodules/Display/Source/TapLongTapOrDoubleTapGestureRecognizer.swift
-// Only .doubleTap sets .ended inside touchesBegan. Single taps finish in
-// touchesEnded/tapEvent; long taps use longTapEvent. Intercept the UIKit state
-// setter during that call so no Swift enum layout or stored offsets are needed.
-// Verified in decrypted Telegram 13.1.1 (35634) / Swiftgram 13.1.1 (343):
-// touchesBegan has an Objective-C entry and the double-tap branch dispatches
-// setState: through objc_msgSend. Logos's internal generator needs no Substrate.
 %group TGExtraDoubleTapReactions
 %hook TGExtraReactionTapRecognizer
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {

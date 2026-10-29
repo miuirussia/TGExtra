@@ -2,7 +2,6 @@
 #import <CoreLocation/CoreLocation.h>
 #import "Constants.h"
 
-// Zero is a valid coordinate; missing preferences are a separate state.
 static inline BOOL TGExtraSavedCoordinate(NSUserDefaults *defaults, CLLocationCoordinate2D *coordinate) {
     NSNumber *latitude = [defaults objectForKey:FAKE_LATITUDE_KEY];
     NSNumber *longitude = [defaults objectForKey:FAKE_LONGITUDE_KEY];

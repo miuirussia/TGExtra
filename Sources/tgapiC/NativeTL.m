@@ -9,8 +9,6 @@
 #define TGE_FUNCTION(raw, type) ((type)(raw))
 #endif
 
-// Reviewed TLS1 v3 object/reader ABI. Names are deliberately prefixed: the
-// tweak neither defines TLObject nor links another copy of TelegramApiObjC.
 typedef struct {
     const char *name;
     uint8_t kind, elementKind, optional, boxed, bare;
@@ -50,8 +48,6 @@ static NSString *const packetKey = @"TGExtra.NativeTL.packet";
 @implementation TGENativePacket
 @end
 
-// This transaction is thread-local and lasts exactly one root parser call.
-// Nested failures cannot publish state or mutations from a rejected packet.
 static __thread NSUInteger parseDepth;
 static __thread BOOL suppressCallbacks;
 
@@ -164,8 +160,6 @@ static const TGEConstructor *constructorOf(id object) {
         else if (field->kind == 2) { if (value) memcpy(base + field->offset, [value bytes], 32); else memset(base + field->offset, 0, 32); }
         else { double scalar = [value doubleValue]; memcpy(base + field->offset, &scalar, 8); }
     } else {
-        // Native fields hold +1 references. The transfers below balance the
-        // previous value and the replacement, including TLObject root classes.
         void *previous;
         memcpy(&previous, base + field->offset, sizeof(previous));
         void *retained = (__bridge_retained void *)value;
@@ -256,7 +250,6 @@ id TGExtraNativeCreate(NSData *wire) {
     return reader.offset == reader.length ? owning : nil;
 }
 
-// The generated matcher contains reviewed words/masks, never fixed VM addresses.
 #import "NativeTLProfile.inc"
 
 static BOOL configMatches(NSDictionary *config, NSData *uuid, uintptr_t constructor, uintptr_t result) {
@@ -356,8 +349,6 @@ BOOL TGExtraNativeInstall(NSData *ids, NSData *types, TGExtraNativeProcessor pro
         hook((void *)constructor, (void *)constructorHook, (void **)&originalConstructor);
         if (!originalConstructor) return NO;
         hook((void *)result, (void *)resultHook, (void **)&originalResult);
-        // A partial installation still has a valid original constructor and
-        // falls through unchanged while enabled remains false.
         if (!originalResult) return NO;
     }
     nativeRootClass = root;
@@ -398,7 +389,6 @@ static BOOL applyRules(id object, const uint32_t *rules, NSUInteger ruleCount, i
     }
     return YES;
 }
-
 
 typedef struct { uint32_t signature; uint64_t children; uint32_t firstRule, ruleCount; BOOL overflow; } TGEVisitPlan;
 static NSData *visitTypeData;

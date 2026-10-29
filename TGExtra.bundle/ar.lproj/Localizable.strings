@@ -197,3 +197,5 @@
 /* Recording button */
 "HIDE_RECORDING_BUTTON_TITLE" = "إزالة زر التسجيل";
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "إزالة زر تسجيل الرسائل الصوتية والفيديو الدائري في Telegram وSwiftgram. طبّق التغييرات لإعادة تشغيل التطبيق.";
+
+"MESSAGE_DATA_CLEAR_FAILED" = "تعذر مسح بيانات الرسائل. يرجى المحاولة مرة أخرى.";

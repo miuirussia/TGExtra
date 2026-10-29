@@ -1,7 +1,5 @@
 import Foundation
 
-// Shared by wire observation and the profile UI. Own ids remain account-scoped;
-// names are transient and copied into a Ghost Exception when it is added.
 @objc(TGExtraPeerInfoStore)
 final class PeerInfoStore: NSObject {
     private static let ownUserIdsKey = "TGExtraOwnUserIdsByAccount"
@@ -49,8 +47,6 @@ final class PeerInfoStore: NSObject {
             if let username = data.username, !username.isEmpty {
                 info["username"] = username
             } else if let extra = data.usernames {
-                // Accounts that moved to collectible usernames leave the plain
-                // field empty and list them here instead.
                 for case let .username(entry) in extra where !entry.username.isEmpty {
                     info["username"] = entry.username
                     break
@@ -62,10 +58,6 @@ final class PeerInfoStore: NSObject {
         guard !batch.isEmpty else { return }
         peerNameQueue.async(flags: .barrier) {
             for (id, info) in batch { _peerNames[id] = info }
-            // Nothing here is worth persisting — the name is copied into the
-            // exception entry the moment one is created, and the cache refills
-            // from the next response. Drop it wholesale rather than grow
-            // without bound.
             if _peerNames.count > 2000 { _peerNames.removeAll(keepingCapacity: true) }
         }
     }

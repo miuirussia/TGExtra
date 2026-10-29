@@ -38,22 +38,16 @@ static void TGExtraRemoveRecordingControls(id node) {
 
 static BOOL TGExtraHasVisibleNonRecordingAction(id node) {
     NSDictionary *controls = [TGExtraRecordingControls fromNode:node];
-    // The glass background owns the expand button's visibility in current clients.
     id expand = controls[@"expandMediaInputButtonBackgroundView"] ?: controls[@"expandMediaInputButton"];
     for (id control in @[controls[@"sendContainerNode"] ?: NSNull.null, expand ?: NSNull.null]) {
         if (![control respondsToSelector:@selector(alpha)] ||
             ![control respondsToSelector:@selector(isHidden)]) continue;
-        // ASDisplayNode and UIView expose the same visibility selectors.
         UIView *action = control;
         if (!action.isHidden && action.alpha > 0.01) return YES;
     }
     return NO;
 }
 
-// Telegram / Swiftgram 13.1.1 share these classes and stored field names.
-// Swiftgram's hideRecordingButton changes layout/alpha but keeps the views.
-// Detach just the recording views: later frame and opacity animations cannot
-// bring them back, while the send and media-expansion controls remain attached.
 %group TGExtraRecordingButton
 %hook TGExtraRecordingActionButtonsNode
 - (void)didEnterHierarchy {
@@ -80,7 +74,6 @@ static BOOL TGExtraHasVisibleNonRecordingAction(id node) {
 }
 
 - (void)micButtonInteractionBegan {
-    // Also reject a direct delegate/accessibility invocation on the retained button.
 }
 %end
 %end
@@ -109,8 +102,6 @@ static BOOL TGExtraHasVisibleNonRecordingAction(id node) {
 __attribute__((constructor)) static void TGExtraInstallRecordingButton(void) {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 2), dispatch_get_main_queue(), ^{
         TGExtraRestorePreferences();
-        // Removing views lasts for this process. Apply restarts the client when
-        // enabling or disabling the option, restoring the host's own layout.
         if (![NSUserDefaults.standardUserDefaults boolForKey:kHideRecordingButton]) return;
         Class actions = NSClassFromString(@"ChatTextInputActionButtonsNode.ChatTextInputActionButtonsNode")
             ?: NSClassFromString(@"TelegramUI.ChatTextInputActionButtonsNode");

@@ -198,3 +198,5 @@
 /* Recording button */
 "HIDE_RECORDING_BUTTON_TITLE" = "録音・録画ボタンを削除";
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Telegram と Swiftgram のボイスメッセージと丸型動画の録音・録画ボタンを完全に削除します。変更を適用するとアプリが再起動します。";
+
+"MESSAGE_DATA_CLEAR_FAILED" = "メッセージデータを削除できませんでした。もう一度お試しください。";

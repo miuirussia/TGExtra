@@ -8,7 +8,7 @@
 + (NSData *)handleResponse:(NSData *)data functionID:(NSNumber *)ios account:(NSString *)account requestPayload:(NSData *)payload;
 + (void)addDeletedId:(int32_t)msgId peer:(int64_t)peer account:(NSString *)account messageNamespace:(int32_t)messageNamespace;
 + (void)loadPersistedIds;
-+ (void)clearMessageData;
++ (BOOL)clearMessageData;
 + (NSNumber *)getMessageId:(id)item;
 + (NSNumber *)getMessageIdFromNode:(id)node;
 + (BOOL)isDeleted:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
@@ -26,7 +26,6 @@
 + (NSNumber *)getMessagePeerKeyFromNode:(id)node;
 + (NSString *)getHistoryAccountFromNode:(id)node;
 + (NSNumber *)getMessageNamespaceFromNode:(id)node;
-// Internal message UI bridge.
 + (NSDictionary<NSString *, id> *)messageStateFromNode:(id)node observe:(BOOL)observe;
 + (BOOL)hasAdMessageFromNode:(id)node;
 @end
@@ -65,7 +64,6 @@
 - (void)removeRequestByInternalId:(id)internalId askForReconnectionOnDrop:(bool)askForReconnectionOnDrop;
 @end
 
-// Function Handlers
 #ifdef __cplusplus
 extern "C" {
 #endif
