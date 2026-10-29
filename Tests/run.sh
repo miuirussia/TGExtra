@@ -13,6 +13,7 @@ python3 Tests/settings_persistence.py
 python3 Tests/video_to_voice.py
 python3 Tests/double_tap_reactions.py
 python3 Tests/recording_button.py
+python3 Tests/recording_input_layout.py
 python3 Tests/force_tlottie.py
 python3 Tests/swiftgram_pro_ipatch.py
 python3 Tests/edit_badge_refresh.py

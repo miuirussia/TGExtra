@@ -42,7 +42,9 @@ the Chats tab five times.
 - Remove the voice/round-video recording button in Telegram and Swiftgram from
   **Interface and gestures**. Apply changes and relaunch after toggling the option.
   The recording button, its glass background and icon mask are detached from the
-  view hierarchy; sending text and expanding the media keyboard remain available.
+  view hierarchy. The empty input field uses the freed space, with its editor,
+  glass and emoji controls kept in sync. Sending text and expanding the media
+  keyboard remain available.
 - Force tlottie instead of rlottie for newly rendered animations on clients
   with the built-in TLottieAnimation renderer. Restart after changing the option;
   existing cached frames are preserved. Clients without the compatible renderer

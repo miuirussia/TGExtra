@@ -1,6 +1,7 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 #import "Constants.h"
+#import "RecordingInputLayout.h"
 
 @interface TGExtraRecordingControls : NSObject
 + (NSDictionary<NSString *, id> *)fromNode:(id)node;
@@ -13,6 +14,14 @@
 
 @interface TGExtraMediaRecordingButton : UIControl
 - (void)micButtonInteractionBegan;
+@end
+
+@interface TGExtraRecordingInputPanelNode : NSObject
+- (void)didLoad;
+- (void)didEnterHierarchy;
+@end
+
+@interface TGExtraRecordingInputGlassView : UIView
 @end
 
 static void TGExtraRemoveRecordingControls(id node) {
@@ -76,6 +85,27 @@ static BOOL TGExtraHasVisibleNonRecordingAction(id node) {
 %end
 %end
 
+%group TGExtraRecordingInputLayout
+%hook TGExtraRecordingInputPanelNode
+- (void)didLoad {
+    %orig;
+    TGExtraBindRecordingInput(self);
+}
+
+- (void)didEnterHierarchy {
+    %orig;
+    TGExtraBindRecordingInput(self);
+}
+%end
+
+%hook TGExtraRecordingInputGlassView
+- (void)layoutSubviews {
+    %orig;
+    TGExtraLayoutRecordingInput((UIView *)self);
+}
+%end
+%end
+
 __attribute__((constructor)) static void TGExtraInstallRecordingButton(void) {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 2), dispatch_get_main_queue(), ^{
         TGExtraRestorePreferences();
@@ -95,6 +125,14 @@ __attribute__((constructor)) static void TGExtraInstallRecordingButton(void) {
             moved && method_getNumberOfArguments(moved) == 2 &&
             began && method_getNumberOfArguments(began) == 2) {
             %init(TGExtraRecordingButton, TGExtraRecordingActionButtonsNode = actions, TGExtraMediaRecordingButton = button);
+            Class panel = NSClassFromString(@"ChatTextInputPanelNode.ChatTextInputPanelNode")
+                ?: NSClassFromString(@"TelegramUI.ChatTextInputPanelNode");
+            Class glass = NSClassFromString(@"GlassBackgroundComponent.GlassBackgroundView");
+            if (class_getInstanceMethod(panel, @selector(didLoad)) &&
+                class_getInstanceMethod(panel, @selector(didEnterHierarchy)) &&
+                class_getInstanceMethod(glass, @selector(layoutSubviews))) {
+                %init(TGExtraRecordingInputLayout, TGExtraRecordingInputPanelNode = panel, TGExtraRecordingInputGlassView = glass);
+            }
         }
     });
 }
