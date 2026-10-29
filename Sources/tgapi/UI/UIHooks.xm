@@ -2,6 +2,7 @@
 #import "Headers.h"
 #import "../PaidMedia.h"
 #import "../Logger/Logger.h"
+#import "EditHistoryViewController.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <math.h>
@@ -1023,7 +1024,7 @@ static ASDisplayNode *tgextraMessageNodeForView(UIView *view) {
 
 // ============================================================
 // Edit history: a pencil badge on any message Anti-Edit has more than one
-// recorded version of. Tapping it lists every version, oldest first, while
+// recorded version of. Tapping it shows successive diffs, oldest first, while
 // the bubble continues to display Telegram's current message.
 // ============================================================
 static const NSInteger kTGExtraEditBadgeTag = 8899;
@@ -1074,39 +1075,8 @@ static void clearTGExtraEditBadgeBinding(UIButton *badge) {
     if (versions.count < 2) return;
     NSArray<NSDictionary *> *details = [TLParser editRevisionDetailsForId:msgId peer:peerKey account:account messageNamespace:messageNamespace];
 
-    NSMutableString *body = [NSMutableString string];
-    for (NSUInteger i = 0; i < versions.count; i++) {
-        NSString *label = (i == 0) ? [TGExtraLocalization localizedStringForKey:@"EDIT_HISTORY_ORIGINAL"]
-                                   : [NSString stringWithFormat:@"%@ %lu",
-                                        [TGExtraLocalization localizedStringForKey:@"EDIT_HISTORY_EDIT"],
-                                        (unsigned long)i];
-        [body appendFormat:@"%@\n%@", label, versions[i]];
-        NSDictionary *revision = i < details.count ? details[i] : nil;
-        if ([revision[@"mediaChanged"] boolValue]) {
-            [body appendFormat:@"\n[%@]", TGExtraLoc(@"EDIT_HISTORY_MEDIA_CHANGED")];
-        }
-        if ([revision[@"formatChanged"] boolValue]) {
-            [body appendFormat:@"\n[%@]", TGExtraLoc(@"EDIT_HISTORY_FORMAT_CHANGED")];
-        }
-        if (i < versions.count - 1) [body appendString:@"\n\n"];
-    }
-
-    UIAlertController *sheet = [UIAlertController
-        alertControllerWithTitle:[TGExtraLocalization localizedStringForKey:@"EDIT_HISTORY_TITLE"]
-                         message:body
-                  preferredStyle:UIAlertControllerStyleAlert];
-
-    // The newest version is what the user came for, so that is what Copy takes.
-    [sheet addAction:[UIAlertAction
-        actionWithTitle:[TGExtraLocalization localizedStringForKey:@"EDIT_HISTORY_COPY_LATEST"]
-                  style:UIAlertActionStyleDefault
-                handler:^(UIAlertAction *action) {
-                    UIPasteboard.generalPasteboard.string = versions.lastObject;
-                }]];
-    [sheet addAction:[UIAlertAction
-        actionWithTitle:[TGExtraLocalization localizedStringForKey:@"CLOSE"]
-                  style:UIAlertActionStyleCancel
-                handler:nil]];
+    TGExtraEditHistoryViewController *history = [[TGExtraEditHistoryViewController alloc] initWithVersions:versions details:details];
+    UINavigationController *sheet = [[UINavigationController alloc] initWithRootViewController:history];
 
     UIViewController *top = sender.window.rootViewController;
     while (top.presentedViewController) top = top.presentedViewController;

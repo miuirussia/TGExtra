@@ -102,7 +102,9 @@ The gallery integration uses host Swift reflection and requires device validatio
 
 Edit history records other people's messages observed while the feature is
 enabled, including formatting and attachment changes. Each edited message keeps
-its first version and up to 19 recent revisions. Attachment files are not archived,
+its first version and up to 19 recent revisions. The history compares each revision
+with the preceding saved version: removed words are red and struck through, and
+added words are green and underlined. Attachment files are not archived,
 and versions TGExtra never received cannot be recovered. History is stored
 separately for each Telegram account.
 

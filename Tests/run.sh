@@ -15,6 +15,7 @@ python3 Tests/double_tap_reactions.py
 python3 Tests/force_tlottie.py
 python3 Tests/swiftgram_pro_ipatch.py
 python3 Tests/edit_badge_refresh.py
+python3 Tests/edit_history_diff.py
 python3 Tests/paid_media_download.py
 python3 Tests/paid_media_import.py
 python3 Tests/paid_media_capture.py
