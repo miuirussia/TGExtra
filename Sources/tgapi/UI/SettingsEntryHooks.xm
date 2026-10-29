@@ -118,14 +118,31 @@ static BOOL _tgextraGestureAttached = NO;
 static TGExtraGestureTarget *_tgextraGestureTarget = nil;
 
 static void tryAttachTGExtraGesture(void);
+static BOOL tgextraGestureSearchScheduled;
+static BOOL tgextraGestureSearchRunning;
+
+static void scheduleTGExtraGestureSearch(void) {
+    @synchronized(TGExtraGestureTarget.class) {
+        if (_tgextraGestureAttached || tgextraGestureSearchScheduled || tgextraGestureSearchRunning) return;
+        tgextraGestureSearchScheduled = YES;
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        @synchronized(TGExtraGestureTarget.class) {
+            tgextraGestureSearchScheduled = NO;
+            tgextraGestureSearchRunning = YES;
+        }
+        @try { tryAttachTGExtraGesture(); }
+        @finally {
+            @synchronized(TGExtraGestureTarget.class) { tgextraGestureSearchRunning = NO; }
+        }
+    });
+}
 
 %hook TGLocalization
 - (id)get:(id)key {
-    if ([key isKindOfClass:NSString.class] && [key hasPrefix:@"Settings."]) TGLocalizationShared = self;
-    if (!_tgextraGestureAttached) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            tryAttachTGExtraGesture();
-        });
+    if ([key isKindOfClass:NSString.class] && [key hasPrefix:@"Settings."]) {
+        TGLocalizationShared = self;
+        scheduleTGExtraGestureSearch();
     }
     return %orig;
 }
@@ -134,11 +151,7 @@ static void tryAttachTGExtraGesture(void);
     TGLocalization *instance = %orig;
     if (instance && a != 96929692) {
         TGLocalizationShared = instance;
-        if (!_tgextraGestureAttached) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                tryAttachTGExtraGesture();
-            });
-        }
+        scheduleTGExtraGestureSearch();
     }
     return instance;
 }
@@ -235,6 +248,7 @@ void showUI() { TGExtraShowSettings(); }
         }
 
         [pv addGestureRecognizer:parent.tgextraLongPressGesture];
+        @synchronized(TGExtraGestureTarget.class) { _tgextraGestureAttached = YES; }
         customLog2(@"[TGExtra] gesture attached: %@", label);
         tgextraDiag("gesture attached to row %{public}s (parent %{public}s, %lu recognizer(s), "
                "%lu interaction(s))",

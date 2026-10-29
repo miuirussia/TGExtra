@@ -98,7 +98,8 @@ extension TLParser {
                 let peer = -(1_000_000_000_000 + data.channelId)
                 let key = MessageKey(account: account, peer: peer, id: 0)
                 messageMarkers[key] = max(messageMarkers[key, default: 0], Int(data.availableMinId))
-                persistMarkers()
+                pinChannelSnapshots(account: account, peer: peer, through: data.availableMinId)
+                persistMarkers(key)
                 loadSnapshots()
                 if !snapshots.isEmpty { writeSnapshots() }
                 let maxId = data.availableMinId

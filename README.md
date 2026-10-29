@@ -131,6 +131,9 @@ recover uncached messages or media missing from both the server and local cache.
 Secret chats, local history clearing and local media expiry are not intercepted.
 Auto-delete timers stored before enabling protection are not removed.
 
+Histories, recovery snapshots and deletion/timer markers are stored incrementally
+in SQLite. Existing data is migrated automatically when updating.
+
 **Message Data → Clear Message Database** clears TGExtra's histories, snapshots
 and deletion/timer markers for all accounts. Telegram chats and tweak settings
 are preserved. Protected-copy recovery journals are stored separately and are

@@ -702,3 +702,5 @@ testBufferAppends()
 testMarkerBatchPersistence()
 
 testOptimizedWirePaths()
+
+testSnapshotCacheIndex()

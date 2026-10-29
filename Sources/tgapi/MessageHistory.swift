@@ -71,7 +71,15 @@ final class MessageHistoryStore {
         queue.asyncAfter(deadline: .now() + 5.0, flags: .barrier) { [self] in
             guard generation == persistGeneration else { return }
             persistScheduled = false
-            for key in Array(dirty) { persistLocked(key) }
+            var batch = [MessageKey: [String: Any]]()
+            for key in dirty {
+                guard let entry = entries[key] else { continue }
+                var value: [String: Any] = ["versions": entry.versions, "contents": entry.contents]
+                if let date = entry.editDate { value["editDate"] = NSNumber(value: date) }
+                batch[key] = value
+            }
+            dirty.removeAll()
+            archive.save(batch)
         }
     }
 

@@ -19,17 +19,59 @@ extension TLParser {
         return RenderedMessageReader.renderedMessagesFromNode(node).first.map { NSNumber(value: $0.namespace) }
     }
 
-    @objc(messageStateFromNode:observe:) static func messageState(from node: Any, observe: Bool) -> [String: Any]? {
-        guard let item = HostValueReader.storedField("item", in: node) else { return nil }
-        let messages = RenderedMessageReader.renderedMessages(from: item)
-        guard let first = messages.first, let account = HostAccountReader.account(in: item, depth: 0) else { return nil }
-        if observe {
-            for message in messages {
-                recordRenderedMessage(message, account: account)
-            }
+    private final class RenderedItemState {
+        let messages: [RenderedMessage]
+        let account: String
+        let state: [String: Any]
+        var observedHistoryEnabled: Bool?
+        init(messages: [RenderedMessage], account: String) {
+            self.messages = messages
+            self.account = account
+            let first = messages[0]
+            state = ["id": NSNumber(value: first.id), "peer": NSNumber(value: first.peer),
+                     "namespace": NSNumber(value: first.namespace), "account": account]
         }
-        return ["id": NSNumber(value: first.id), "peer": NSNumber(value: first.peer),
-                "namespace": NSNumber(value: first.namespace), "account": account]
+    }
+
+#if TGEXTRA_TESTING
+    static var renderedMessageCacheHits = 0
+#endif
+    private static let renderedItemLock = NSRecursiveLock()
+    private static let renderedItems = NSMapTable<AnyObject, RenderedItemState>(keyOptions: [.weakMemory, .objectPointerPersonality], valueOptions: .strongMemory)
+
+    static func clearRenderedMessageCache() {
+        renderedItemLock.lock()
+        renderedItems.removeAllObjects()
+        renderedItemLock.unlock()
+    }
+
+    @objc(messageStateFromNode:observe:) static func messageState(from node: Any, observe: Bool) -> [String: Any]? {
+        guard let wrapped = HostValueReader.storedField("item", in: node) else { return nil }
+        let item = HostValueReader.unwrapOptional(wrapped)
+        // Telegram replaces its immutable ChatMessageItem when content changes.
+        // Value-type items keep the uncached reflection path.
+        let object = Mirror(reflecting: item).displayStyle == .class ? item as AnyObject : nil
+        renderedItemLock.lock()
+        defer { renderedItemLock.unlock() }
+        let cached = object.flatMap { renderedItems.object(forKey: $0) }
+        let current: RenderedItemState
+        if let cached = cached {
+#if TGEXTRA_TESTING
+            renderedMessageCacheHits += 1
+#endif
+            current = cached
+        } else {
+            let messages = RenderedMessageReader.renderedMessages(from: item)
+            guard !messages.isEmpty, let account = HostAccountReader.account(in: item, depth: 0) else { return nil }
+            current = RenderedItemState(messages: messages, account: account)
+            if let object = object { renderedItems.setObject(current, forKey: object) }
+        }
+        let historyEnabled = isAntiEditEnabled
+        if observe && current.observedHistoryEnabled != historyEnabled {
+            for message in current.messages { recordRenderedMessage(message, account: current.account) }
+            current.observedHistoryEnabled = historyEnabled
+        }
+        return current.state
     }
 
     @objc static func hasAdMessageFromNode(_ node: Any) -> Bool {

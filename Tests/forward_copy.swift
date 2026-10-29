@@ -52,8 +52,8 @@ func testForwardCopies(rust: Bool = false) {
     let directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("tgextra-copy-tests-\(UUID().uuidString)")
     defer { try? FileManager.default.removeItem(at: directory) }
     func run(_ payload: Data, _ replies: [String: [Any]], initial: String? = nil, cancel: Bool = false,
-             account: String = "account-1", subdirectory: String = UUID().uuidString) -> [String: Any] {
-        var fixture: [String: Any] = ["payload": payload, "replies": replies, "cancel": cancel, "account": account, "rust": rust]
+             parallel: Bool = false, account: String = "account-1", subdirectory: String = UUID().uuidString) -> [String: Any] {
+        var fixture: [String: Any] = ["payload": payload, "replies": replies, "cancel": cancel, "account": account, "rust": rust, "parallel": parallel]
         if let initial = initial { fixture["initialError"] = initial }
         return TGExtraRunForwardCopyScenario(fixture, directory.appendingPathComponent(subdirectory)) as! [String: Any]
     }
@@ -218,6 +218,27 @@ func testForwardCopies(rust: Bool = false) {
     check(doc.mimeType == "audio/ogg" && doc.attributes.count == 2, "Document MIME and attributes are retained")
     guard case let .documentAttributeAudio(audio) = doc.attributes[1] else { fatalError("Expected audio") }
     check(audio.flags & (1 << 10) != 0 && audio.waveform?.makeData() == Data([1, 2, 3]), "Voice flag and waveform survive re-upload")
+    let chunks = (0..<8).map { Data(repeating: UInt8($0 + 1), count: $0 == 7 ? 19 : 524288) }
+    let parallelSize = Int64(chunks.reduce(0) { $0 + $1.count })
+    let cancelledWindow = run(payload, ["1673946374": [copyHistory([message(1, media: copyDocument(size: parallelSize))])],
+        "-1101843010": Array(repeating: ["hold": true] as [String: Any], count: 4)], cancel: true)
+    check(cancelledWindow["completions"] as! Int == 0 && cancelledWindow["cancellations"] as! Int == 4,
+          "Cancellation retires every active file request without completing the original forward")
+    let parallel = run(payload, ["1673946374": [copyHistory([message(1, media: copyDocument(size: parallelSize))])],
+        "-1101843010": chunks.map(copyFile), "-1291540959": Array(repeating: trueReply, count: chunks.count),
+        "345405816": [serialized(copyDocument(size: parallelSize, id: 151)) as Data], "53536639": [sent]], parallel: true)
+    check(parallel["error"] as! String == "" && parallel["maxFiles"] as! Int == 4,
+          "Use four concurrent download requests")
+    check((parallel["fileOrder"] as! [Int]).first != 0 && parallel["overlap"] as! Bool,
+          "Handle out-of-order chunks and upload while downloading")
+    let parallelUploads = (parallel["payloads"] as! [Data]).filter { copyConstructor($0) == -1291540959 }
+    check(parallelUploads.count == chunks.count, "Upload each part exactly once")
+    for payload in parallelUploads {
+        let reader = BufferReader(Buffer(data: payload))
+        _ = reader.readInt32(); _ = reader.readInt64()
+        let part = Int(reader.readInt32()!)
+        check(parseBytes(reader)?.makeData() == chunks[part], "Ordered disk assembly preserves uploaded part bytes")
+    }
     let bigPlan = ForwardCopyPlan(payload: payload)!
     check(bigPlan.prepare(response: copyHistory([message(1, media: copyDocument(size: 11 * 1024 * 1024))])), "Large files are supported below the upload ceiling")
     let bigRequest = bigPlan.mediaUploadRequest(index: 0, fileId: 7, parts: 22, md5: "")!

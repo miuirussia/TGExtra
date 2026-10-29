@@ -54,5 +54,35 @@ func testHistoryArchive() {
     check(recovering.migrate([key.storageKey: original]), "Storage recovers after a temporary directory failure")
     check(recoveringStore.record("C", key: key, editDate: 2, content: [:]) &&
           recoveringStore.versions(for: key) == ["A", "B", "C"], "Retry initialization and retain older revisions after storage recovers")
+    _ = recovering.load()
+    let dataKey = MessageKey(account: "account-2", peer: -1_000_000_000_077, id: 7)
+    let legacySnapshot = ["messages": [dataKey.storageKey: Data([1, 2, 3])], "order": [dataKey.storageKey]] as [String: Any]
+    check(reopened.migrateMessageData(snapshots: legacySnapshot, markers: [dataKey.storageKey: 1]), "Clearing keeps migration complete")
+    check(reopened.loadSnapshots().isEmpty && reopened.loadMarkers().isEmpty, "Stale defaults cannot repopulate cleared data")
+    let dataPath = directory.appendingPathComponent("MessageData.sqlite").path
+    do {
+        let data = MessageHistoryArchive(path: dataPath)
+        check(data.migrateMessageData(snapshots: legacySnapshot, markers: [dataKey.storageKey: 1]), "Migrate legacy snapshots and markers together")
+        check(data.loadSnapshots().first?.bytes == Data([1, 2, 3]) && data.loadMarkers()[dataKey] == 1, "Preserve legacy bytes and markers")
+        let before = data.commitCount
+        let batch = Dictionary(uniqueKeysWithValues: (1...1000).map {
+            (MessageKey(account: "account-1", peer: 42, id: Int32($0)), ["versions": ["A", "B"]] as [String: Any])
+        })
+        data.save(batch)
+        check(data.load().count == 1000 && data.commitCount == before + 1, "Batch revisions in one durable transaction")
+        data.saveMessageData(snapshots: [MessageSnapshotRow(key: dataKey, bytes: Data([4, 5]), position: 2)], removing: [], markers: [dataKey: 3])
+        check(data.loadMarkers()[dataKey] == 3, "Incremental marker updates are committed with snapshots")
+        check(data.migrateMessageData(snapshots: legacySnapshot, markers: [dataKey.storageKey: 1]) && data.loadSnapshots().first?.bytes == Data([4, 5]), "Repeated migration preserves newer snapshots")
+        data.setReadOnly(true)
+        data.saveMessageData(snapshots: [], removing: [], markers: [dataKey: 7])
+        data.setReadOnly(false)
+        check(data.loadMarkers()[dataKey] == 7, "Retry a failed transaction without losing its pending delta")
+    }
+    let data = MessageHistoryArchive(path: dataPath)
+    check(data.loadSnapshots().first?.bytes == Data([4, 5]) && data.loadMarkers()[dataKey] == 7, "Reopen migrated message data")
+    data.saveMessageData(snapshots: [], removing: [dataKey], markers: [:])
+    check(data.loadSnapshots().isEmpty, "Persist snapshot eviction incrementally")
+    data.saveMessageData(snapshots: [MessageSnapshotRow(key: dataKey, bytes: Data([6]), position: 3)], removing: [], markers: [:])
+    check(data.clear() && data.load().isEmpty && data.loadSnapshots().isEmpty && data.loadMarkers().isEmpty, "Clear all message tables and pending writes together")
     print("PASS incremental history archive, migration, reopen, binary content, removal and queued clearing")
 }

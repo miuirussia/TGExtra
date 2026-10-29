@@ -12,6 +12,8 @@ extension TLParser {
 
     static var markersDirty = false
 
+    static var dirtyMarkers = Set<MessageKey>()
+
     static var markerBatchDepth = 0
 
     static let deletedMarker = 1
@@ -21,13 +23,9 @@ extension TLParser {
     static let autoDeleteMarker = 4
 
     static func loadMarkers() {
-        guard !markersLoaded else { return }
+        guard !markersLoaded, prepareMessageArchive() else { return }
+        messageMarkers = MessageHistoryArchive.shared.loadMarkers()
         markersLoaded = true
-        for (storedKey, value) in UserDefaults.standard.dictionary(forKey: markerUdKey) ?? [:] {
-            if let key = MessageKey(storageKey: storedKey), let bits = value as? NSNumber {
-                messageMarkers[key] = bits.intValue
-            }
-        }
     }
 
     static func markerKey(id: Int32, peer: Int64, account: String?, namespace: Int32) -> MessageKey? {
@@ -47,25 +45,24 @@ extension TLParser {
         return bits
     }
 
-    static func persistMarkers() {
+    static func persistMarkers(_ key: MessageKey) {
         markersDirty = true
+        dirtyMarkers.insert(key)
         if markerBatchDepth == 0 { flushMarkers() }
     }
 
     static func flushMarkers() {
-        guard markersDirty else { return }
-        markersDirty = false
-        UserDefaults.standard.set(Dictionary(uniqueKeysWithValues: messageMarkers.map {
-            ($0.key.storageKey, $0.value)
-        }), forKey: markerUdKey)
+        guard markersDirty || snapshotFlushRequested else { return }
+        flushMessageData()
     }
 
     static func recordMarker(_ bit: Int, id: Int32, peer: Int64, account: String?, namespace: Int32) {
         loadMarkers()
-        guard let key = markerKey(id: id, peer: peer, account: account, namespace: namespace),
+        guard markersLoaded, let key = markerKey(id: id, peer: peer, account: account, namespace: namespace),
               (messageMarkers[key, default: 0] & bit) == 0 else { return }
         messageMarkers[key, default: 0] |= bit
-        persistMarkers()
+        if bit & deletedMarker != 0 { pinSnapshots(for: key) }
+        persistMarkers(key)
     }
 
     @objc(addDeletedId:peer:account:messageNamespace:) static func addDeletedId(_ id: Int32, peer: Int64, account: String?, namespace: Int32 = 0) {

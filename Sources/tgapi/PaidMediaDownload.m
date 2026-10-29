@@ -28,7 +28,8 @@ static dispatch_queue_t mediaQueue(void) {
 @property(nonatomic, copy) void (^completion)(NSURL *, NSError *);
 @property(nonatomic, strong) TGExtraMediaConnection *network;
 @property(nonatomic, strong) MTRequestMessageService *service;
-@property(nonatomic, strong) MTRequest *pending;
+@property(nonatomic, strong) NSMutableDictionary<NSUUID *, MTRequest *> *pending;
+@property(nonatomic) int64_t receivedBytes;
 @property(nonatomic, strong) NSFileHandle *output;
 @property(nonatomic, strong) NSURL *url;
 @property(nonatomic) int64_t offset;
@@ -42,9 +43,11 @@ static dispatch_queue_t mediaQueue(void) {
 - (void)finish:(NSError *)error {
     if (self.done) return;
     self.done = YES;
-    if (self.pending) [self.service removeRequestByInternalId:self.pending.internalId];
-    self.pending.completed = nil;
-    self.pending = nil;
+    for (MTRequest *request in self.pending.allValues) {
+        request.completed = nil;
+        [self.service removeRequestByInternalId:request.internalId];
+    }
+    [self.pending removeAllObjects];
     @try { [self.output closeFile]; }
     @catch (NSException *exception) {
         if (!error) error = [NSError errorWithDomain:@"TGExtra.PaidMedia" code:1 userInfo:nil];
@@ -67,51 +70,57 @@ static dispatch_queue_t mediaQueue(void) {
 }
 
 - (void)readChunk {
-    NSData *payload = [self.media downloadRequestAtOffset:self.offset];
-    if (!payload) { [self failWithReason:@"Invalid file request"]; return; }
-    MTRequest *request = [NSClassFromString(@"MTRequest") new];
-    if (!request) { [self failWithReason:@"MTRequest unavailable"]; return; }
-    [request setPayload:payload metadata:nil shortMetadata:@"TGExtra.paidMedia"
-        responseParser:^id(NSData *bytes) { return bytes; }];
-    request.needsTimeoutTimer = YES;
-    request.shouldContinueExecutionWithErrorContext = ^bool(id context) { return false; };
-    self.pending = request;
-    __weak MTRequest *weakRequest = request;
-    request.completed = ^(id result, MTRequestResponseInfo *info, MTRpcError *error) {
-        dispatch_async(mediaQueue(), ^{
-            MTRequest *request = weakRequest;
-            if (self.done || self.pending != request) return;
-            self.pending = nil;
-            request.completed = nil;
-            if (error) {
-                [self finish:[NSError errorWithDomain:@"TGExtra.PaidMedia.RPC" code:error.errorCode
-                    userInfo:@{NSLocalizedDescriptionKey: error.errorDescription ?: @"File request failed"}]];
-                return;
-            }
-            NSData *bytes = !error && [result isKindOfClass:NSData.class]
-                ? [TGExtraForwardCopyPlan fileBytesFromResponse:result] : nil;
-            int64_t remaining = self.media.size > 0 ? self.media.size - self.offset : INT64_MAX;
-            if (!bytes || bytes.length > 524288 || (int64_t)bytes.length > remaining ||
-                (self.media.size > 0 && bytes.length != MIN((int64_t)524288, remaining))) {
-                [self failWithReason:@"Incomplete or invalid file response"]; return;
-            }
-            @try { [self.output writeData:bytes]; }
-            @catch (NSException *exception) { [self failWithReason:exception.reason ?: @"File write failed"]; return; }
-            self.offset += bytes.length;
-            BOOL complete = self.media.size > 0 ? self.offset == self.media.size : bytes.length < 524288;
-            if (complete) {
-                if (self.offset == 0) [self failWithReason:@"Empty file response"];
-                else [self finish:nil];
-            } else { [self readChunk]; }
+    if (self.done) return;
+    if (!self.pending) self.pending = [NSMutableDictionary new];
+    // Unknown sizes need a single EOF probe; known sizes use a bounded window.
+    NSUInteger window = self.media.size > 0 ? 4 : 1;
+    while (!self.done && self.pending.count < window && (self.media.size == 0 || self.offset < self.media.size)) {
+        int64_t offset = self.offset;
+        NSData *payload = [self.media downloadRequestAtOffset:offset];
+        if (!payload) { [self failWithReason:@"Invalid file request"]; return; }
+        MTRequest *request = [NSClassFromString(@"MTRequest") new];
+        if (!request) { [self failWithReason:@"MTRequest unavailable"]; return; }
+        [request setPayload:payload metadata:nil shortMetadata:@"TGExtra.paidMedia"
+            responseParser:^id(NSData *bytes) { return bytes; }];
+        request.needsTimeoutTimer = YES;
+        request.shouldContinueExecutionWithErrorContext = ^bool(id context) { return false; };
+        NSUUID *token = NSUUID.UUID;
+        self.pending[token] = request;
+        self.offset += self.media.size > 0 ? MIN((int64_t)524288, self.media.size - offset) : 524288;
+        request.completed = ^(id result, MTRequestResponseInfo *info, MTRpcError *error) {
+            dispatch_async(mediaQueue(), ^{
+                MTRequest *request = self.pending[token];
+                if (self.done || !request) return;
+                [self.pending removeObjectForKey:token];
+                request.completed = nil;
+                if (error) {
+                    [self finish:[NSError errorWithDomain:@"TGExtra.PaidMedia.RPC" code:error.errorCode
+                        userInfo:@{NSLocalizedDescriptionKey: error.errorDescription ?: @"File request failed"}]];
+                    return;
+                }
+                NSData *bytes = [result isKindOfClass:NSData.class] ? [TGExtraForwardCopyPlan fileBytesFromResponse:result] : nil;
+                int64_t remaining = self.media.size > 0 ? self.media.size - offset : INT64_MAX;
+                if (!bytes || bytes.length > 524288 || (int64_t)bytes.length > remaining ||
+                    (self.media.size > 0 && bytes.length != MIN((int64_t)524288, remaining))) {
+                    [self failWithReason:@"Incomplete or invalid file response"]; return;
+                }
+                @try { [self.output seekToFileOffset:offset]; [self.output writeData:bytes]; }
+                @catch (NSException *exception) { [self failWithReason:exception.reason ?: @"File write failed"]; return; }
+                self.receivedBytes += bytes.length;
+                BOOL complete = self.media.size > 0 ? self.receivedBytes == self.media.size : bytes.length < 524288;
+                if (complete) {
+                    if (self.receivedBytes == 0) [self failWithReason:@"Empty file response"];
+                    else [self finish:nil];
+                } else { [self readChunk]; }
+            });
+        };
+        [self.service addRequest:request];
+        __weak TGExtraPaidMediaDownload *weakSelf = self;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 120 * NSEC_PER_SEC), mediaQueue(), ^{
+            TGExtraPaidMediaDownload *op = weakSelf;
+            if (op && !op.done && op.pending[token]) [op failWithReason:@"File request timed out"];
         });
-    };
-    [self.service addRequest:request];
-    __weak TGExtraPaidMediaDownload *weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 120 * NSEC_PER_SEC), mediaQueue(), ^{
-        TGExtraPaidMediaDownload *op = weakSelf;
-        MTRequest *pending = weakRequest;
-        if (op && pending && !op.done && op.pending == pending) [op failWithReason:@"File request timed out"];
-    });
+    }
 }
 
 - (BOOL)copyCompleteCache {

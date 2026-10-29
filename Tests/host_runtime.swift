@@ -403,19 +403,67 @@ func testBufferAppends() {
 
 func testMarkerBatchPersistence() {
     flags("TGExtraAntiAutoDelete", "TGExtraAntiRevoke")
-    let key = "TGExtraMessageMarkersByAccount"
-    let before = TGExtraTestPreferenceWriteCount(key)
+    let archive = MessageHistoryArchive.shared
+    let before = archive.commitCount
     let messages = (990_000..<990_020).map { message(Int32($0), ttl: 60) }
     let packet = Api.messages.Messages.messages(.init(messages: messages, topics: [], chats: [], users: []))
     _ = strip(serialized(packet), account: "account-marker-batch")
-    check(TGExtraTestPreferenceWriteCount(key) == before + 1, "One timer packet persists all markers once")
-    let saved = defaults.dictionary(forKey: key)!
-    check(messages.allSatisfy { saved["account-marker-batch:0:\(messageData($0).id)"] as? Int == 4 },
-          "The packet's markers are durable before parsing returns")
-    let repeatCount = TGExtraTestPreferenceWriteCount(key)
+    let saved = archive.loadMarkers()
+    check(archive.commitCount == before + 1, "One timer packet persists markers and snapshots in one transaction")
+    check(messages.allSatisfy { saved[MessageKey(account: "account-marker-batch", peer: 0, id: messageData($0).id)] == 4 },
+          "The packet's markers survive an archive read")
+    let repeatCount = archive.commitCount
     _ = strip(serialized(packet), account: "account-marker-batch")
-    check(TGExtraTestPreferenceWriteCount(key) == repeatCount, "An unchanged packet does not rewrite markers")
+    check(archive.commitCount == repeatCount, "An unchanged packet does not rewrite markers or snapshots")
     TLParser.addDeletedId(990_021, peer: 42, account: "account-marker-batch")
-    check(TGExtraTestPreferenceWriteCount(key) == repeatCount + 1, "A standalone marker remains immediately durable")
+    check(archive.commitCount == repeatCount + 1, "A standalone marker is queued immediately")
     flags()
+}
+
+func testSnapshotCacheIndex() {
+    TLParser.processingLock.lock()
+    defer { TLParser.processingLock.unlock() }
+    check(TLParser.clearMessageData(), "Start snapshot eviction from an empty archive")
+    flags("TGExtraAntiRevoke")
+    let previousAccount = TLParser.processingHistoryAccount
+    let previousSettings = TLParser.processingSettings
+    TLParser.processingHistoryAccount = testAccount
+    TLParser.processingSettings = MessagePatches.Settings(snapshot: true)
+    defer {
+        TLParser.processingHistoryAccount = previousAccount
+        TLParser.processingSettings = previousSettings
+        flags()
+    }
+    TLParser.cacheMessage(message(1, text: "Pinned"))
+    TLParser.addDeletedId(1, peer: 42, account: testAccount)
+    for id in Int32(2)...Int32(2502) { TLParser.cacheMessage(message(id)) }
+    let pinned = MessageKey(account: testAccount, peer: 42, id: 1)
+    check(TLParser.snapshots[pinned] != nil && TLParser.snapshotOrder.count == 2000 && TLParser.snapshots.count == 2001,
+          "Deleted snapshots remain pinned while unpinned history has a fixed capacity")
+    check(TLParser.snapshots[MessageKey(account: testAccount, peer: 42, id: 2)] == nil,
+          "Evict the oldest unpinned snapshot")
+    let touched = MessageKey(account: testAccount, peer: 42, id: 503)
+    TLParser.cacheMessage(message(503, text: "Recent", edit: 20))
+    TLParser.cacheMessage(message(2503))
+    check(TLParser.snapshots[touched] != nil && TLParser.snapshots[MessageKey(account: testAccount, peer: 42, id: 504)] == nil,
+          "Touching a snapshot moves it to the eviction tail")
+    let recent = TLParser.snapshots[touched]
+    TLParser.cacheMessage(message(503, text: "Stale", edit: 19))
+    TLParser.cacheMessage(message(503, text: "Undated"))
+    check(TLParser.snapshots[touched] == recent, "Cached edit dates reject older and undated snapshots")
+    let channel: Int64 = -1_000_000_000_077
+    TLParser.cacheMessage(message(10, peer: .peerChannel(.init(channelId: 77))))
+    TLParser.cacheMessage(message(11, peer: .peerChannel(.init(channelId: 77))))
+    TLParser.pinChannelSnapshots(account: testAccount, peer: channel, through: 10)
+    let channelKey = MessageKey(account: testAccount, peer: channel, id: 10)
+    check(TLParser.snapshotOrder.count == 1999 && TLParser.snapshotKeysByMarker[channelKey] == [channelKey],
+          "Channel range pinning updates eviction without mixing channel and cloud ids")
+    TLParser.writeSnapshots()
+    let saved = MessageHistoryArchive.shared.loadSnapshots()
+    check(saved.count == TLParser.snapshots.count && saved.contains(where: { $0.key == pinned }),
+          "Persist only live snapshots after eviction")
+    check(TLParser.clearMessageData(), "Clear snapshot indexes and pending writes")
+    check(TLParser.snapshotOrder.count == 0 && TLParser.snapshotKeysByMarker.isEmpty && MessageHistoryArchive.shared.loadSnapshots().isEmpty,
+          "Clearing removes all cache indexes and archived snapshots")
+    print("PASS snapshot LRU, pinned retention, edit-date cache, channel indexes and incremental eviction")
 }

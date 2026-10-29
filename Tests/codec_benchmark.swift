@@ -55,5 +55,45 @@ func runCodecBenchmarks() {
             return reply.length
         }
     }
+    runSnapshotBenchmarks()
+    runRenderedMessageBenchmarks()
     print("CHECKSUM \(checksum)")
+}
+
+func runSnapshotBenchmarks() {
+    TLParser.processingLock.lock()
+    defer { TLParser.processingLock.unlock() }
+    let previousAccount = TLParser.processingHistoryAccount
+    let previousSettings = TLParser.processingSettings
+    defer {
+        TLParser.processingHistoryAccount = previousAccount
+        TLParser.processingSettings = previousSettings
+        _ = TLParser.clearMessageData()
+        flags()
+    }
+    for capacity in [2000, 10000] {
+        _ = TLParser.clearMessageData()
+        flags("TGExtraAntiRevoke")
+        TLParser.processingHistoryAccount = testAccount
+        TLParser.processingSettings = MessagePatches.Settings(snapshot: true)
+        TLParser.markerBatchDepth += 1
+        for id in 1...capacity {
+            TLParser.cacheMessage(message(Int32(id)))
+            if capacity > 2000 { TLParser.addDeletedId(Int32(id), peer: 42, account: testAccount) }
+        }
+        TLParser.markerBatchDepth -= 1
+        TLParser.writeSnapshots()
+        _ = MessageHistoryArchive.shared.loadSnapshots()
+        var samples = [Double]()
+        for batch in 0..<6 {
+            let start = DispatchTime.now().uptimeNanoseconds
+            autoreleasepool {
+                let messages = (1...100).map { message(Int32(200000 + batch * 100 + $0)) }
+                let packet = serialized(Api.messages.Messages.messages(.init(messages: messages, topics: [], chats: [], users: [])))
+                _ = strip(packet)
+            }
+            if batch != 0 { samples.append(Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000) }
+        }
+        print("BENCH snapshot/new100/cache\(capacity) median_ms=\(samples.sorted()[2]) samples=\(samples)")
+    }
 }

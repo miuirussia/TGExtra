@@ -20,6 +20,7 @@
 static const void *internalCopyKey = &internalCopyKey;
 static const void *wrappedCopyKey = &wrappedCopyKey;
 static const NSUInteger copyChunkSize = 512 * 1024;
+static const NSUInteger copyTransferWindow = 4;
 
 BOOL TGExtraIsInternalCopyRequest(MTRequest *request) {
     return [objc_getAssociatedObject(request, internalCopyKey) boolValue];
@@ -72,6 +73,13 @@ static NSURL *copyJournalDirectory(void) {
 #endif
 }
 
+@interface TGExtraCopyRPC : NSObject
+@property(nonatomic, strong) MTRequest *request;
+@property(nonatomic, strong) MTRequestMessageService *service;
+@end
+@implementation TGExtraCopyRPC
+@end
+
 @interface TGExtraForwardOperation : NSObject
 @property(nonatomic, strong) MTRequest *original;
 @property(nonatomic, weak) MTRequestMessageService *service;
@@ -81,9 +89,13 @@ static NSURL *copyJournalDirectory(void) {
 @property(nonatomic, strong) id master;
 @property(nonatomic, strong) NSMutableDictionary<NSNumber *, id> *workers;
 @property(nonatomic, strong) NSMutableDictionary<NSNumber *, MTRequestMessageService *> *workerServices;
-@property(nonatomic, strong) MTRequest *pending;
-@property(nonatomic, strong) MTRequestMessageService *pendingService;
-@property(nonatomic, strong) NSObject *pendingToken;
+@property(nonatomic, strong) NSMutableDictionary<NSUUID *, TGExtraCopyRPC *> *pendingRPCs;
+@property(nonatomic, strong) NSMutableDictionary<NSNumber *, NSData *> *receivedParts;
+@property(nonatomic) int64_t nextOffset;
+@property(nonatomic) NSUInteger downloadInFlight;
+@property(nonatomic) NSUInteger uploadInFlight;
+@property(nonatomic) int32_t uploadedParts;
+@property(nonatomic) BOOL finishingMedia;
 @property(nonatomic, strong) NSURL *journalURL;
 @property(nonatomic, strong) NSMutableDictionary *journal;
 @property(nonatomic, strong) NSString *operationKey;
@@ -111,9 +123,17 @@ static NSURL *copyJournalDirectory(void) {
     self.file = nil;
 }
 
+- (void)cancelRPCs {
+    NSArray<TGExtraCopyRPC *> *pending = self.pendingRPCs.allValues;
+    [self.pendingRPCs removeAllObjects];
+    for (TGExtraCopyRPC *rpc in pending) {
+        rpc.request.completed = nil;
+        [rpc.service removeRequestByInternalId:rpc.request.internalId];
+    }
+}
+
 - (void)cleanup {
-    if (self.pending) [self.pendingService removeRequestByInternalId:self.pending.internalId];
-    self.pending = nil; self.pendingService = nil; self.pendingToken = nil;
+    [self cancelRPCs];
     [self closeFile];
     for (NSNumber *dc in self.workers) {
         TGExtraCopyConnection *network = self.workers[dc];
@@ -151,20 +171,25 @@ static NSURL *copyJournalDirectory(void) {
 - (void)rpc:(NSData *)payload service:(MTRequestMessageService *)service
  completion:(void (^)(NSData *, MTRpcError *))completion {
     if (self.done) return;
-    if (!payload || !service || self.pending) { [self fail:@"TGEXTRA_COPY_NETWORK_UNAVAILABLE"]; return; }
+    if (!payload || !service) { [self fail:@"TGEXTRA_COPY_NETWORK_UNAVAILABLE"]; return; }
     MTRequest *request = [NSClassFromString(@"MTRequest") new];
     objc_setAssociatedObject(request, internalCopyKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [request setPayload:payload metadata:nil shortMetadata:@"TGExtra.copy" responseParser:^id(NSData *bytes) { return bytes; }];
     request.needsTimeoutTimer = YES;
     request.shouldContinueExecutionWithErrorContext = ^bool(id context) { return false; };
-    NSObject *token = [NSObject new];
-    self.pendingToken = token; self.pending = request; self.pendingService = service;
+    NSUUID *token = NSUUID.UUID;
+    if (!self.pendingRPCs) self.pendingRPCs = [NSMutableDictionary new];
+    TGExtraCopyRPC *rpc = [TGExtraCopyRPC new];
+    rpc.request = request; rpc.service = service;
+    self.pendingRPCs[token] = rpc;
     __weak TGExtraForwardOperation *weakSelf = self;
     request.completed = ^(id result, MTRequestResponseInfo *info, MTRpcError *error) {
         dispatch_async(copyQueue(), ^{
             TGExtraForwardOperation *op = weakSelf;
-            if (!op || op.done || op.pendingToken != token) return;
-            op.pending = nil; op.pendingService = nil; op.pendingToken = nil;
+            TGExtraCopyRPC *rpc = op.pendingRPCs[token];
+            if (!op || op.done || !rpc) return;
+            rpc.request.completed = nil;
+            [op.pendingRPCs removeObjectForKey:token];
             if (info) op.info = info;
             completion([result isKindOfClass:NSData.class] ? result : nil, error);
         });
@@ -172,7 +197,7 @@ static NSURL *copyJournalDirectory(void) {
     [service addRequest:request];
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 120 * NSEC_PER_SEC), copyQueue(), ^{
         TGExtraForwardOperation *op = weakSelf;
-        if (op && !op.done && op.pendingToken == token) [op fail:@"TGEXTRA_COPY_TIMEOUT"];
+        if (op && !op.done && op.pendingRPCs[token] != nil) [op fail:@"TGEXTRA_COPY_TIMEOUT"];
     });
 }
 
@@ -300,9 +325,15 @@ static NSURL *copyJournalDirectory(void) {
     }
     self.fileURL = [self.temporaryDirectory URLByAppendingPathComponent:@"media"];
     if (![NSFileManager.defaultManager createFileAtPath:self.fileURL.path contents:nil attributes:nil]) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
-    self.file = [NSFileHandle fileHandleForWritingAtPath:self.fileURL.path];
+    self.file = [NSFileHandle fileHandleForUpdatingAtPath:self.fileURL.path];
     if (!self.file) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
-    self.offset = 0; self.refreshed = NO;
+    self.offset = 0; self.nextOffset = 0; self.refreshed = NO;
+    self.downloadInFlight = 0; self.uploadInFlight = 0;
+    self.uploadedParts = 0; self.part = 0; self.finishingMedia = NO;
+    self.receivedParts = [NSMutableDictionary new];
+    int64_t size = [self.plan.downloads[self.download][@"size"] longLongValue];
+    self.parts = (int32_t)((size + copyChunkSize - 1) / copyChunkSize);
+    arc4random_buf(&self->_fileId, sizeof(self->_fileId));
     CC_MD5_Init(&_md5);
     [self downloadPart];
 }
@@ -311,45 +342,65 @@ static NSURL *copyJournalDirectory(void) {
     NSDictionary *item = self.plan.downloads[self.download];
     NSInteger index = [item[@"index"] integerValue];
     int64_t size = [item[@"size"] longLongValue];
-    [self rpc:[self.plan downloadRequestForIndex:index offset:self.offset] service:[self downloadService:item[@"dc"]]
-        completion:^(NSData *response, MTRpcError *error) {
-        if (error) {
-            if (!self.refreshed && [error.errorDescription hasPrefix:@"FILE_REFERENCE_"]) {
-                self.refreshed = YES;
-                [self rpc:self.plan.sourceRequest service:self.service completion:^(NSData *fresh, MTRpcError *refreshError) {
-                    if (refreshError) { [self complete:nil info:self.info error:refreshError]; return; }
-                    if (!fresh || ![self.plan refreshDownloadWithResponse:fresh index:index]) { [self fail:@"TGEXTRA_COPY_SOURCE_CHANGED"]; return; }
-                    [self downloadPart];
-                }];
-            } else { [self complete:nil info:self.info error:error]; }
-            return;
-        }
-        NSData *bytes = response ? [TGExtraForwardCopyPlan fileBytesFromResponse:response] : nil;
-        if (!bytes || bytes.length != MIN((int64_t)copyChunkSize, size - self.offset)) { [self fail:@"TGEXTRA_COPY_FILE_INVALID"]; return; }
-        @try { [self.file writeData:bytes]; }
-        @catch (NSException *exception) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
-        CC_MD5_Update(&self->_md5, bytes.bytes, (CC_LONG)bytes.length);
-        self.offset += bytes.length;
-        if (self.offset < size) { [self downloadPart]; return; }
-        unsigned char digest[CC_MD5_DIGEST_LENGTH];
-        CC_MD5_Final(digest, &self->_md5);
-        NSMutableString *checksum = [NSMutableString new];
-        for (NSUInteger i = 0; i < CC_MD5_DIGEST_LENGTH; i++) [checksum appendFormat:@"%02x", digest[i]];
-        self.checksum = checksum;
-        [self closeFile];
-        self.file = [NSFileHandle fileHandleForReadingAtPath:self.fileURL.path];
-        if (!self.file) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
-        arc4random_buf(&self->_fileId, sizeof(self->_fileId));
-        self.parts = (int32_t)((size + copyChunkSize - 1) / copyChunkSize); self.part = 0;
-        [self uploadPart];
-    }];
+    while (!self.done && self.downloadInFlight < copyTransferWindow && self.nextOffset < size &&
+           self.nextOffset - self.offset < (int64_t)(copyTransferWindow * copyChunkSize)) {
+        int64_t offset = self.nextOffset;
+        self.nextOffset += MIN((int64_t)copyChunkSize, size - offset);
+        self.downloadInFlight++;
+        [self rpc:[self.plan downloadRequestForIndex:index offset:offset] service:[self downloadService:item[@"dc"]]
+            completion:^(NSData *response, MTRpcError *error) {
+            self.downloadInFlight--;
+            if (error) {
+                if (!self.refreshed && [error.errorDescription hasPrefix:@"FILE_REFERENCE_"]) {
+                    self.refreshed = YES;
+                    [self cancelRPCs];
+                    self.downloadInFlight = 0; self.uploadInFlight = 0;
+                    self.nextOffset = self.offset;
+                    self.part = 0; self.uploadedParts = 0;
+                    [self.receivedParts removeAllObjects];
+                    [self rpc:self.plan.sourceRequest service:self.service completion:^(NSData *fresh, MTRpcError *refreshError) {
+                        if (refreshError) { [self complete:nil info:self.info error:refreshError]; return; }
+                        if (!fresh || ![self.plan refreshDownloadWithResponse:fresh index:index]) { [self fail:@"TGEXTRA_COPY_SOURCE_CHANGED"]; return; }
+                        [self downloadPart];
+                        [self uploadPart];
+                    }];
+                } else { [self complete:nil info:self.info error:error]; }
+                return;
+            }
+            NSData *bytes = response ? [TGExtraForwardCopyPlan fileBytesFromResponse:response] : nil;
+            if (!bytes || bytes.length != MIN((int64_t)copyChunkSize, size - offset)) { [self fail:@"TGEXTRA_COPY_FILE_INVALID"]; return; }
+            self.receivedParts[@(offset)] = bytes;
+            NSData *ready;
+            while ((ready = self.receivedParts[@(self.offset)])) {
+                @try {
+                    [self.file seekToFileOffset:self.offset];
+                    [self.file writeData:ready];
+                } @catch (NSException *exception) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
+                CC_MD5_Update(&self->_md5, ready.bytes, (CC_LONG)ready.length);
+                [self.receivedParts removeObjectForKey:@(self.offset)];
+                self.offset += ready.length;
+            }
+            if (self.offset == size) {
+                unsigned char digest[CC_MD5_DIGEST_LENGTH];
+                CC_MD5_Final(digest, &self->_md5);
+                NSMutableString *checksum = [NSMutableString new];
+                for (NSUInteger i = 0; i < CC_MD5_DIGEST_LENGTH; i++) [checksum appendFormat:@"%02x", digest[i]];
+                self.checksum = checksum;
+            }
+            [self downloadPart];
+            [self uploadPart];
+        }];
+    }
 }
 
 - (void)uploadPart {
+    if (self.done || self.finishingMedia) return;
     NSDictionary *item = self.plan.downloads[self.download];
     NSInteger index = [item[@"index"] integerValue];
-    BOOL big = [item[@"size"] longLongValue] > 10 * 1024 * 1024;
-    if (self.part >= self.parts) {
+    int64_t size = [item[@"size"] longLongValue];
+    BOOL big = size > 10 * 1024 * 1024;
+    if (self.uploadedParts == self.parts && self.offset == size) {
+        self.finishingMedia = YES;
         [self rpc:[self.plan mediaUploadRequestForIndex:index fileId:self.fileId parts:self.parts md5:self.checksum]
             service:self.service completion:^(NSData *response, MTRpcError *error) {
             if (error) { [self complete:nil info:self.info error:error]; return; }
@@ -359,16 +410,28 @@ static NSURL *copyJournalDirectory(void) {
         }];
         return;
     }
-    NSData *part;
-    @try { part = [self.file readDataOfLength:copyChunkSize]; }
-    @catch (NSException *exception) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
-    [self rpc:[TGExtraForwardCopyPlan uploadRequestForFileId:self.fileId part:self.part total:self.parts bytes:part big:big]
-        service:self.service completion:^(NSData *response, MTRpcError *error) {
-        if (error) { [self complete:nil info:self.info error:error]; return; }
-        if (!response || ![TGExtraForwardCopyPlan isUploadAcknowledged:response]) { [self fail:@"TGEXTRA_COPY_UPLOAD_INVALID"]; return; }
+    while (!self.done && self.uploadInFlight < copyTransferWindow && self.part < self.parts) {
+        int32_t partIndex = self.part;
+        int64_t offset = (int64_t)partIndex * copyChunkSize;
+        NSUInteger length = (NSUInteger)MIN((int64_t)copyChunkSize, size - offset);
+        if (offset + (int64_t)length > self.offset) break;
+        NSData *bytes;
+        @try {
+            [self.file seekToFileOffset:offset];
+            bytes = [self.file readDataOfLength:length];
+        } @catch (NSException *exception) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
+        if (bytes.length != length) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
         self.part++;
-        [self uploadPart];
-    }];
+        self.uploadInFlight++;
+        [self rpc:[TGExtraForwardCopyPlan uploadRequestForFileId:self.fileId part:partIndex total:self.parts bytes:bytes big:big]
+            service:self.service completion:^(NSData *response, MTRpcError *error) {
+            self.uploadInFlight--;
+            if (error) { [self complete:nil info:self.info error:error]; return; }
+            if (!response || ![TGExtraForwardCopyPlan isUploadAcknowledged:response]) { [self fail:@"TGEXTRA_COPY_UPLOAD_INVALID"]; return; }
+            self.uploadedParts++;
+            [self uploadPart];
+        }];
+    }
 }
 
 - (void)normalizeBatch:(NSUInteger)batch response:(NSData *)response {

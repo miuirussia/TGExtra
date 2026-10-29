@@ -162,6 +162,14 @@ func testRenderedMessages() {
           history(forId: 82000, peer: 42)?.count == 3, "Matching cached message IDs in different chats remain independent")
     _ = strip(serialized(message(82000, text: "Unscoped response", edit: 9999)), account: nil)
     check(history(forId: 82000, peer: 42)?.count == 3, "Cache observations never set the network parser's account scope")
+    let cachedItem = node.item!
+    _ = TLParser.messageState(from: node, observe: true)
+    check(TLParser.renderedMessageCacheHits > 0, "Unchanged items reuse identity and observed content")
+    flags()
+    _ = TLParser.messageState(from: node, observe: true)
+    flags("TGExtraAntiEdit")
+    _ = TLParser.messageState(from: node, observe: true)
+    check(node.item === cachedItem, "Live setting changes retain the current host item")
     let saved = defaultsForRenderedTests()
     check(saved["account-1:42:82000"]?["versions"] as? [String] == ["Cached original", "Network edit", "New cached edit"], "Persist merged cache/network history in the existing format")
     flags()
@@ -241,4 +249,16 @@ func testRestoredRenderedMessages() {
     check(history(forId: 82000, peer: 42)?.count == 2, "Restored content deduplicates the same wire version")
     _ = strip(serialized(message(82000, text: "After restart", edit: 2001)))
     check(history(forId: 82000, peer: 42) == ["Cached original", "Network edit", "After restart"], "Recording continues after a restart")
+}
+
+func runRenderedMessageBenchmarks() {
+    let node = cachedNode(cachedMessage(900000, edit: 2000))
+    for enabled in [false, true] {
+        if enabled { flags("TGExtraAntiEdit") } else { flags() }
+        _ = TLParser.messageState(from: node, observe: true)
+        var checksum = 0
+        let start = DispatchTime.now().uptimeNanoseconds
+        for _ in 0..<1000 { autoreleasepool { checksum += TLParser.messageState(from: node, observe: true)?.count ?? 0 } }
+        print("BENCH rendered/1000/edit=\(enabled) total_ms=\(Double(DispatchTime.now().uptimeNanoseconds - start) / 1_000_000) checksum=\(checksum)")
+    }
 }

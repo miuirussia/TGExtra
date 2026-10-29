@@ -18,18 +18,29 @@ class TLParser: NSObject {
         guard editHistoryStore.clear() else { return false }
         snapshotsLoaded = true
         snapshots.removeAll()
-        snapshotOrder.removeAll()
+        snapshotOrder = MessageSnapshotOrder()
+        snapshotPositions.removeAll()
+        snapshotPosition = 0
+        snapshotKeysByMarker.removeAll()
+        snapshotEditDates.removeAll()
+        snapshotDatesLoaded.removeAll()
+        dirtySnapshots.removeAll()
+        removedSnapshots.removeAll()
+        snapshotFlushRequested = false
+        messageArchivePrepared = true
         snapshotGeneration &+= 1
         snapshotWriteScheduled = false
         UserDefaults.standard.removeObject(forKey: snapshotUdKey)
         markersLoaded = true
         messageMarkers.removeAll()
         markersDirty = false
+        dirtyMarkers.removeAll()
         contentReadStates.removeAll()
         contentReadOrder.removeAll()
         for key in [markerUdKey, "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"] {
             UserDefaults.standard.removeObject(forKey: key)
         }
+        clearRenderedMessageCache()
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: NSNotification.Name("TGExtraMessageDataCleared"), object: nil)
         }

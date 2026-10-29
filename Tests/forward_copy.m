@@ -21,9 +21,36 @@ extern void TGExtraDrainCopyTestQueue(void);
 @property NSMutableArray *cancellations;
 @property dispatch_semaphore_t pending;
 @property bool useTempAuthKeys;
+@property BOOL parallel;
+@property NSUInteger activeFiles, maxFiles, issuedFiles, completedFiles, totalFiles;
+@property BOOL overlap;
+@property NSMutableArray<NSNumber *> *fileOrder;
 @end
 @implementation CopyTestContext
 @end
+
+static void scheduleCopyTestReply(CopyTestContext *context, int32_t constructor, dispatch_block_t reply) {
+    if (!context.parallel) { reply(); return; }
+    NSUInteger number = 0;
+    @synchronized(context) {
+        if (constructor == -1291540959 || constructor == -562337987) {
+            if (context.completedFiles < context.totalFiles) context.overlap = YES;
+        }
+        if (constructor == -1101843010) {
+            number = context.issuedFiles++;
+            context.activeFiles++;
+            context.maxFiles = MAX(context.maxFiles, context.activeFiles);
+        }
+    }
+    if (constructor != -1101843010) { reply(); return; }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (number % 4 == 0 ? 40 : 5) * NSEC_PER_MSEC), dispatch_get_global_queue(0, 0), ^{
+        @synchronized(context) {
+            context.activeFiles--; context.completedFiles++;
+            [context.fileOrder addObject:@(number)];
+        }
+        reply();
+    });
+}
 
 @interface MTRequestMessageService ()
 @property id mtProto;
@@ -78,7 +105,10 @@ extern void TGExtraDrainCopyTestQueue(void);
         error = [[MTRpcError alloc] initWithErrorCode:400 errorDescription:reply[@"error"] ?: @"TEST_UNEXPECTED_REQUEST"];
     }
     MTRequestResponseInfo *info = [[MTRequestResponseInfo alloc] initWithNetworkType:1 timestamp:1234 duration:0.1];
-    request.completed(error ? nil : request.responseParser(reply), info, error);
+    void (^completed)(id, MTRequestResponseInfo *, MTRpcError *) = request.completed;
+    scheduleCopyTestReply(self.testContext, constructor, ^{
+        completed(error ? nil : request.responseParser(reply), info, error);
+    });
 }
 - (void)removeRequestByInternalId:(id)internalId {
     @synchronized(self.testContext) { [self.testContext.cancellations addObject:internalId]; }
@@ -93,6 +123,9 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
     CopyTestContext *context = [CopyTestContext new];
     context.payloads = [NSMutableArray new]; context.cancellations = [NSMutableArray new];
     context.pending = dispatch_semaphore_create(0); context.replies = [NSMutableDictionary new];
+    context.parallel = [fixture[@"parallel"] boolValue];
+    context.totalFiles = [fixture[@"replies"][@"-1101843010"] count];
+    context.fileOrder = [NSMutableArray new];
     [fixture[@"replies"] enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSArray *replies, BOOL *stop) {
         context.replies[key] = replies.mutableCopy;
     }];
@@ -128,7 +161,8 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
     TGExtraDrainCopyTestQueue();
     @synchronized(context) {
         return @{@"result": result ?: NSData.data, @"error": errorDescription ?: @"", @"completions": @(count),
-            @"payloads": context.payloads.copy, @"cancellations": @(context.cancellations.count)};
+            @"payloads": context.payloads.copy, @"cancellations": @(context.cancellations.count),
+            @"maxFiles": @(context.maxFiles), @"overlap": @(context.overlap), @"fileOrder": context.fileOrder.copy};
     }
 }
 
@@ -235,8 +269,10 @@ static void copyRustSend(void *pointer, uint64_t session, const TGERustRequest *
         dispatch_semaphore_signal(engine.context.pending);
         return;
     }
-    dispatch_async(engine.queue, ^{
-        copyRustDeliver(engine, identifier, [reply isKindOfClass:NSData.class] ? reply : (reply[@"error"] ?: @"TEST_UNEXPECTED_REQUEST"), 400);
+    scheduleCopyTestReply(engine.context, constructor, ^{
+        dispatch_async(engine.queue, ^{
+            copyRustDeliver(engine, identifier, [reply isKindOfClass:NSData.class] ? reply : (reply[@"error"] ?: @"TEST_UNEXPECTED_REQUEST"), 400);
+        });
     });
 }
 static void copyRustCancel(void *pointer, uint64_t session, uint64_t request) {
@@ -306,6 +342,7 @@ static NSDictionary *runRustCopyScenario(NSDictionary *fixture, CopyTestContext 
     TGExtraDrainCopyTestQueue();
     @synchronized(context) {
         return @{@"result": engine.result ?: NSData.data, @"error": engine.error ?: @"", @"completions": @(engine.completions),
-            @"payloads": context.payloads.copy, @"cancellations": @(context.cancellations.count), @"sequence": engine.sequence.copy, @"activity": @(engine.activity)};
+            @"payloads": context.payloads.copy, @"cancellations": @(context.cancellations.count), @"sequence": engine.sequence.copy, @"activity": @(engine.activity),
+            @"maxFiles": @(context.maxFiles), @"overlap": @(context.overlap), @"fileOrder": context.fileOrder.copy};
     }
 }

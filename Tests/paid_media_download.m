@@ -8,6 +8,9 @@ static NSUInteger stops, authRequests;
 static id expectedContext;
 static BOOL nativeSupported, nativeReady;
 static NSUInteger nativeStarts;
+static NSUInteger activeRequests, maximumRequests, cancelledRequests;
+static NSMutableArray<NSNumber *> *completedOffsets;
+static BOOL reorderResponses;
 
 @interface TGExtraPaidMediaFile ()
 @property(nonatomic, readwrite) NSObject *context;
@@ -119,29 +122,50 @@ static NSUInteger nativeStarts;
     NSUInteger length = MIN(524288, serverBytes.length - offset);
     if (truncateResponse && length) length--;
     NSData *response = [serverBytes subdataWithRange:NSMakeRange(offset, length)];
-    request.completed(response, nil, serverError ? [[MTRpcError alloc] initWithErrorCode:400 errorDescription:@"FILE_REFERENCE_EXPIRED"] : nil);
+    MTRpcError *error = serverError ? [[MTRpcError alloc] initWithErrorCode:400 errorDescription:@"FILE_REFERENCE_EXPIRED"] : nil;
+    if (reorderResponses) {
+        @synchronized(offsets) {
+            activeRequests++;
+            maximumRequests = MAX(maximumRequests, activeRequests);
+        }
+        void (^completed)(id, MTRequestResponseInfo *, MTRpcError *) = request.completed;
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (offset == 0 ? 40 : 5) * NSEC_PER_MSEC), dispatch_get_global_queue(0, 0), ^{
+            // Reproduce a transport that can still deliver a queued callback
+            // after cancellation. Production must reject its retired token.
+            @synchronized(offsets) { activeRequests--; [completedOffsets addObject:@(offset)]; }
+            completed(response, nil, error);
+        });
+    } else { request.completed(response, nil, error); }
 }
-- (void)removeRequestByInternalId:(id)internalId {}
+- (void)removeRequestByInternalId:(id)internalId { cancelledRequests++; }
 - (void)removeRequestByInternalId:(id)internalId askForReconnectionOnDrop:(bool)ask {}
 @end
 
 static void runCase(NSUInteger index) {
-    if (index == 10) { puts("PASS purchased-media download: native video fetch, partial cache, transport fallback, RPC errors, chunks and cleanup"); exit(0); }
+    if (index == 12) { puts("PASS purchased-media download: native video fetch, partial cache, transport fallback, RPC errors, chunks and cleanup"); exit(0); }
     serverBytes = [NSMutableData dataWithLength:index == 1 ? 524288 : 524291];
     offsets = [NSMutableArray new];
+    activeRequests = maximumRequests = cancelledRequests = 0;
+    completedOffsets = [NSMutableArray new];
+    reorderResponses = index >= 10;
+    if (reorderResponses) {
+        NSMutableData *bytes = [NSMutableData dataWithLength:7 * 524288 + 19];
+        for (NSUInteger i = 0; i < bytes.length; i++) ((uint8_t *)bytes.mutableBytes)[i] = (uint8_t)(i / 524288 + i % 251);
+        serverBytes = bytes;
+    }
     stops = authRequests = 0;
     nativeStarts = 0;
     nativeReady = NO;
     nativeSupported = index == 7 || index == 8;
     truncateResponse = index == 3;
-    serverError = index == 4;
+    serverError = index == 4 || index == 11;
     TGExtraPaidMediaFile *file = [TGExtraPaidMediaFile new];
     file.context = [TestMediaContext new];
     expectedContext = file.context;
     file.masterDatacenterId = 2; file.datacenterId = 4;
     file.size = index == 1 || index == 2 ? 0 : serverBytes.length;
     NSString *cache = [NSTemporaryDirectory() stringByAppendingPathComponent:NSUUID.UUID.UUIDString];
-    if (index >= 7) {
+    if (index >= 7 && index < 10) {
         file.video = YES;
         file.cachePath = cache;
     }
@@ -151,7 +175,7 @@ static void runCase(NSUInteger index) {
         [data writeToFile:cache atomically:YES];
     }
     if (index == 8) [serverBytes writeToFile:[cache stringByAppendingString:@"_partial"] atomically:YES];
-    BOOL shouldFail = index == 3 || index == 4;
+    BOOL shouldFail = index == 3 || index == 4 || index == 11;
     TGExtraDownloadPaidMedia(file, ^(NSURL *url, NSError *error) {
         dispatch_assert_queue(dispatch_get_main_queue());
         NSCAssert(shouldFail ? (!url && error) : (url && !error), @"Completion reflects download failure");
@@ -161,13 +185,19 @@ static void runCase(NSUInteger index) {
             NSCAssert([[NSData dataWithContentsOfURL:url] isEqual:serverBytes], @"Export is byte-identical and alive after completion");
             [NSFileManager.defaultManager removeItemAtURL:url error:NULL];
         }
-        if (index == 7 || index == 8) {
+        if (reorderResponses) {
+            NSCAssert(maximumRequests == 4, @"Issue a bounded window before waiting for the first reply");
+            if (!shouldFail) NSCAssert(completedOffsets.firstObject.longLongValue != 0, @"Exercise out-of-order file writes");
+            NSCAssert(offsets.count == (shouldFail ? 4 : 8), @"Parallel reads cover the file exactly once");
+            if (shouldFail) NSCAssert(cancelledRequests == 3, @"An error cancels every other active chunk");
+        }
+        else if (index == 7 || index == 8) {
             NSCAssert(nativeStarts == 1 && nativeReady && offsets.count == 0 && stops == 0,
                       @"Native full-file download finishes before export without a second MTProto session");
         }
         else if (index == 5) NSCAssert(offsets.count == 0 && stops == 0, @"Complete cache avoids a network session");
         else {
-            NSCAssert(offsets.count == (shouldFail ? 1 : 2), @"Correct number of aligned chunks, including EOF for unknown size");
+            NSCAssert(offsets.count == 2, @"Correct number of aligned chunks, including EOF for unknown size");
             NSCAssert(stops == 1 && authRequests == 1, @"Worker closes and requests the account's DC authorization");
         }
         for (NSString *name in [NSFileManager.defaultManager contentsOfDirectoryAtPath:NSTemporaryDirectory() error:NULL]) {
@@ -175,7 +205,9 @@ static void runCase(NSUInteger index) {
         }
         [NSFileManager.defaultManager removeItemAtPath:cache error:NULL];
         [NSFileManager.defaultManager removeItemAtPath:[cache stringByAppendingString:@"_partial"] error:NULL];
-        runCase(index + 1);
+        if (reorderResponses) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{ runCase(index + 1); });
+        } else { runCase(index + 1); }
     });
 }
 
