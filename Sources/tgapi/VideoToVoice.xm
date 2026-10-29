@@ -59,6 +59,50 @@ static BOOL tgextraVideoToVoiceEnabled(void) {
     return [[NSUserDefaults standardUserDefaults] boolForKey:kVideoToVoice];
 }
 
+static const void *kTGExtraVoiceItemsKey = &kTGExtraVoiceItemsKey;
+static const void *kTGExtraVoicePreviewItemKey = &kTGExtraVoicePreviewItemKey;
+
+static id tgextraVoiceProperty(id object, NSString *name) {
+    SEL selector = NSSelectorFromString(name);
+    return [object respondsToSelector:selector]
+        ? ((id (*)(id, SEL))objc_msgSend)(object, selector) : nil;
+}
+
+static NSString *tgextraVoiceItemIdentifier(id item) {
+    item = tgextraVoiceProperty(item, @"editableMediaItem") ?: item;
+    id identifier = tgextraVoiceProperty(item, @"uniqueIdentifier");
+    if ([identifier isKindOfClass:NSString.class] && [identifier length]) return identifier;
+    if ([item isKindOfClass:NSURL.class]) return [item absoluteString];
+    if ([item isKindOfClass:NSString.class] && [item length]) {
+        return [item hasPrefix:@"file://"] ? item : [NSURL fileURLWithPath:item].absoluteString;
+    }
+    return nil;
+}
+
+// Conversion choices belong to the picker's editing context, never to saved
+// preferences. A new picker starts with no videos selected for conversion.
+static NSSet<NSString *> *tgextraVoiceItems(id editingContext) {
+    if (!editingContext) return [NSSet set];
+    @synchronized(editingContext) {
+        return [objc_getAssociatedObject(editingContext, kTGExtraVoiceItemsKey) copy] ?: [NSSet set];
+    }
+}
+
+static BOOL tgextraToggleVoiceItem(id galleryItem) {
+    id context = tgextraVoiceProperty(galleryItem, @"editingContext");
+    NSString *identifier = tgextraVoiceItemIdentifier(galleryItem);
+    if (!context || !identifier) return NO;
+    @synchronized(context) {
+        NSMutableSet *items = [tgextraVoiceItems(context) mutableCopy];
+        BOOL enabled = ![items containsObject:identifier];
+        if (enabled) [items addObject:identifier];
+        else [items removeObject:identifier];
+        objc_setAssociatedObject(context, kTGExtraVoiceItemsKey, items,
+                                 OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        return enabled;
+    }
+}
+
 static NSString *tgextraVoiceCacheRoot(void) {
     return [NSTemporaryDirectory() stringByAppendingPathComponent:@"TGExtraVideoToVoice"];
 }
@@ -393,14 +437,11 @@ static NSDictionary *tgextraRewriteToVoice(id anyDict, id editingContext) {
 // ============================================================
 // The toggle, in the video preview itself.
 //
-// It used to live only in the TGExtra menu, which meant turning the feature on
-// converted every video sent afterwards until you remembered to turn it back
-// off. Here you decide per video, with the clip in front of you.
+// The TGExtra setting controls availability. This button opts an individual
+// video into conversion without changing that persistent setting.
 //
-// Placed in the top-left corner, mirroring Telegram's own selection checkmark
-// on the right. Everything the picker puts on screen besides that checkmark —
-// mute, cover, group, camera — sits along the bottom toolbar, and so does the
-// round-video button Swiftgram adds. Nothing can overlap up here.
+// Placed beneath Telegram's selection checkmark, away from the bottom toolbar
+// and Swiftgram's round-video button.
 // ============================================================
 
 #define kTGExtraVoiceButtonTag 8877
@@ -448,11 +489,12 @@ static void tgextraStyleVoiceButton(UIButton *button, BOOL enabled) {
 }
 
 - (void)handleTap:(UIButton *)sender {
-    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-    BOOL enabled = ![defaults boolForKey:kVideoToVoice];
-    [defaults setBool:enabled forKey:kVideoToVoice];
-    TGExtraSavePreferences();
+    if (!tgextraVideoToVoiceEnabled()) return;
+    id item = objc_getAssociatedObject(sender, kTGExtraVoicePreviewItemKey);
+    BOOL enabled = tgextraToggleVoiceItem(item);
     tgextraStyleVoiceButton(sender, enabled);
+    sender.accessibilityValue = [TGExtraLocalization localizedStringForKey:
+        enabled ? @"VIDEO_TO_VOICE_ON_TOAST" : @"VIDEO_TO_VOICE_OFF_TOAST"];
     tgextraDiag("v2v: preview toggle -> %d", enabled);
 
     TGExtraShowToast([TGExtraLocalization localizedStringForKey:
@@ -538,7 +580,10 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
     BOOL isVideo = [objc_getAssociatedObject(interfaceView, kTGExtraItemIsVideoKey) boolValue];
     UIButton *button = (UIButton *)[interfaceView viewWithTag:kTGExtraVoiceButtonTag];
 
-    if (!isVideo) {
+    id item = objc_getAssociatedObject(interfaceView, kTGExtraVoicePreviewItemKey);
+    id context = tgextraVoiceProperty(item, @"editingContext");
+    NSString *identifier = tgextraVoiceItemIdentifier(item);
+    if (!tgextraVideoToVoiceEnabled() || !isVideo || !context || !identifier) {
         button.hidden = YES;
         return;
     }
@@ -554,11 +599,14 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
         [interfaceView addSubview:button];
     }
 
+    objc_setAssociatedObject(button, kTGExtraVoicePreviewItemKey, item,
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    BOOL enabled = [tgextraVoiceItems(context) containsObject:identifier];
     button.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"VIDEO_TO_VOICE_TITLE"];
     button.accessibilityValue = [TGExtraLocalization localizedStringForKey:
-        tgextraVideoToVoiceEnabled() ? @"VIDEO_TO_VOICE_ON_TOAST" : @"VIDEO_TO_VOICE_OFF_TOAST"];
+        enabled ? @"VIDEO_TO_VOICE_ON_TOAST" : @"VIDEO_TO_VOICE_OFF_TOAST"];
     button.hidden = NO;
-    tgextraStyleVoiceButton(button, tgextraVideoToVoiceEnabled());
+    tgextraStyleVoiceButton(button, enabled);
     button.frame = tgextraVoiceButtonFrame(interfaceView);
     [interfaceView bringSubviewToFront:button];
 
@@ -583,6 +631,8 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
 - (void)itemFocused:(id)item itemView:(id)itemView {
     %orig;
     objc_setAssociatedObject(self, kTGExtraItemIsVideoKey, @(tgextraItemIsVideo(item)),
+                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(self, kTGExtraVoicePreviewItemKey, item,
                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     tgextraUpdateVoiceButton(self);
 }
@@ -626,8 +676,17 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
                              saveEditedPhotos:(bool)saveEditedPhotos {
     if (!tgextraVideoToVoiceEnabled() || !descriptionGenerator) return %orig;
 
+    NSSet<NSString *> *voiceItems = tgextraVoiceItems(editingContext);
+    if (voiceItems.count == 0) return %orig;
     TGExtraDescriptionGenerator wrapped =
         ^id(id dict, NSAttributedString *caption, NSString *hash, NSString *uniqueId) {
+            NSString *identifier = uniqueId;
+            if (!identifier && [dict isKindOfClass:NSDictionary.class]) {
+                identifier = tgextraVoiceItemIdentifier(dict[@"asset"] ?: dict[@"url"]);
+            }
+            if (!identifier || ![voiceItems containsObject:identifier]) {
+                return descriptionGenerator(dict, caption, hash, uniqueId);
+            }
             NSDictionary *rewritten = nil;
             @try {
                 rewritten = tgextraRewriteToVoice(dict, editingContext);

@@ -144,7 +144,7 @@
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "N'ajoute plus la mention \"dissapearing message\" devant les médias à usage unique interceptés.";
 "SAVE" = "Enregistrer";
 "VIDEO_TO_VOICE_TITLE" = "Vidéo en message vocal";
-"VIDEO_TO_VOICE_SUBTITLE" = "N'envoie que le son de la vidéo choisie, sous forme de véritable message vocal. Le découpage fait dans l'aperçu est respecté : seul l'extrait sélectionné part. Vous pouvez aussi basculer vidéo par vidéo avec le bouton d'onde en haut à gauche de l'aperçu.";
+"VIDEO_TO_VOICE_SUBTITLE" = "Affiche un bouton dans l’aperçu vidéo pour envoyer le son comme message vocal. Le bouton est désactivé par défaut pour chaque vidéo ; activez-le pour les clips à convertir. Le découpage de l’aperçu est respecté.";
 "VIDEO_TO_VOICE_ON_TOAST" = "Cette vidéo sera envoyée comme message vocal";
 "VIDEO_TO_VOICE_OFF_TOAST" = "Envoi de nouveau en vidéo normale";
 "VIDEO_TO_VOICE_EXTRACTING" = "Extraction de l'audio…";

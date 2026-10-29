@@ -147,7 +147,7 @@
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Deja de anteponer la marca \"dissapearing message\" al contenido de una sola vez que se intercepta.";
 "SAVE" = "Guardar";
 "VIDEO_TO_VOICE_TITLE" = "Vídeo a nota de voz";
-"VIDEO_TO_VOICE_SUBTITLE" = "Envía solo el sonido del vídeo elegido, como una nota de voz de verdad. Se respeta el recorte de la vista previa, así que solo se envía el fragmento seleccionado. También puedes cambiarlo vídeo a vídeo con el botón de onda en la esquina superior izquierda de la vista previa.";
+"VIDEO_TO_VOICE_SUBTITLE" = "Muestra un botón en la vista previa del vídeo para enviar su audio como nota de voz. El botón está desactivado por defecto para cada vídeo; actívalo para los clips que quieras convertir. Se respeta el recorte de la vista previa.";
 "VIDEO_TO_VOICE_ON_TOAST" = "Este vídeo se enviará como nota de voz";
 "VIDEO_TO_VOICE_OFF_TOAST" = "Se enviará de nuevo como vídeo normal";
 "VIDEO_TO_VOICE_EXTRACTING" = "Extrayendo el audio…";

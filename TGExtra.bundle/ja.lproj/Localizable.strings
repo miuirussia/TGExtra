@@ -144,7 +144,7 @@
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "取得した一度きりのメディアの先頭に \"dissapearing message\" の目印を付けないようにします。";
 "SAVE" = "保存";
 "VIDEO_TO_VOICE_TITLE" = "動画をボイスに";
-"VIDEO_TO_VOICE_SUBTITLE" = "選んだ動画の音声だけを、本物のボイスメッセージとして送ります。プレビューでのトリミング範囲もそのまま反映されるので、選んだ部分だけが送られます。プレビュー左上の波形ボタンで、動画ごとに切り替えることもできます。";
+"VIDEO_TO_VOICE_SUBTITLE" = "動画プレビューに、音声をボイスメッセージとして送るボタンを表示します。各動画では初期状態でオフです。変換したい動画でオンにしてください。プレビューのトリミング範囲が反映されます。";
 "VIDEO_TO_VOICE_ON_TOAST" = "この動画はボイスメッセージとして送信されます";
 "VIDEO_TO_VOICE_OFF_TOAST" = "通常の動画として送信します";
 "VIDEO_TO_VOICE_EXTRACTING" = "音声を抽出中…";

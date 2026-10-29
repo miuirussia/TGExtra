@@ -146,7 +146,7 @@
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "不再在拦截到的一次性媒体前加上 \"dissapearing message\" 标记。";
 "SAVE" = "保存";
 "VIDEO_TO_VOICE_TITLE" = "视频转语音";
-"VIDEO_TO_VOICE_SUBTITLE" = "只把所选视频的声音作为真正的语音消息发出。预览里的裁剪范围同样有效，因此只发送选定的片段。也可以用预览左上角的波形按钮，对单个视频单独切换。";
+"VIDEO_TO_VOICE_SUBTITLE" = "在视频预览中显示按钮，可将声音作为语音消息发送。每个视频的按钮默认关闭，请为需要转换的视频单独开启。预览中的裁剪范围会保留。";
 "VIDEO_TO_VOICE_ON_TOAST" = "这个视频将作为语音消息发送";
 "VIDEO_TO_VOICE_OFF_TOAST" = "恢复按普通视频发送";
 "VIDEO_TO_VOICE_EXTRACTING" = "正在提取音频…";

@@ -145,7 +145,7 @@
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Stop prepending the \"dissapearing message\" marker to intercepted one-time media.";
 "SAVE" = "Save";
 "VIDEO_TO_VOICE_TITLE" = "Video to Voice";
-"VIDEO_TO_VOICE_SUBTITLE" = "Send only the sound of a picked video, as a real voice message. Trim handles in the preview are respected, so just the selected segment is sent. You can also flip this per video with the waveform button in the top-left corner of the preview.";
+"VIDEO_TO_VOICE_SUBTITLE" = "Show a button in the video preview to send its audio as a voice message. The button is off by default for each video; turn it on for the clips you want to convert. The preview trim is respected.";
 "VIDEO_TO_VOICE_ON_TOAST" = "This video will be sent as a voice message";
 "VIDEO_TO_VOICE_OFF_TOAST" = "Sending as a normal video again";
 "VIDEO_TO_VOICE_EXTRACTING" = "Extracting audio…";

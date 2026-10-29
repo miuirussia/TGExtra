@@ -90,8 +90,8 @@
 
 
 
-// Video to Voice: strip the video track off a picked video and send only its
-// audio. Honours the trim handles set in the preview.
+// Video to Voice: show the per-video conversion button in the preview.
+// Conversion starts off for each video and honours the preview trim handles.
 #define kVideoToVoice @"TGExtraVideoToVoice"
 
 // Ghost Exceptions: peers that keep seeing your real typing/read activity

@@ -144,7 +144,7 @@
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Thôi chèn nhãn \"dissapearing message\" vào trước media xem một lần đã chặn được.";
 "SAVE" = "Lưu";
 "VIDEO_TO_VOICE_TITLE" = "Video thành tin thoại";
-"VIDEO_TO_VOICE_SUBTITLE" = "Chỉ gửi phần tiếng của video đã chọn, dưới dạng tin nhắn thoại thật. Vẫn tôn trọng đoạn bạn cắt trong khung xem trước, nên chỉ phần đã chọn được gửi đi. Bạn cũng có thể bật/tắt riêng cho từng video bằng nút sóng âm ở góc trên bên trái khung xem trước.";
+"VIDEO_TO_VOICE_SUBTITLE" = "Hiện nút trong khung xem trước video để gửi âm thanh dưới dạng tin nhắn thoại. Nút mặc định tắt cho từng video; hãy bật cho những video bạn muốn chuyển đổi. Phần cắt trong khung xem trước được giữ nguyên.";
 "VIDEO_TO_VOICE_ON_TOAST" = "Video này sẽ được gửi dưới dạng tin nhắn thoại";
 "VIDEO_TO_VOICE_OFF_TOAST" = "Gửi lại như video bình thường";
 "VIDEO_TO_VOICE_EXTRACTING" = "Đang tách âm thanh…";

@@ -30,7 +30,9 @@ the Chats tab five times.
 - Keep edit history; tap the pencil beside a message to view revisions.
 - View disappearing media without starting its timer, with an optional label.
 - Disable screenshot notifications for supported Telegram requests.
-- Convert the audio track of a video to a voice message, using the preview trim.
+- Enable the video-preview button to send audio as a voice message, using the
+  preview trim. Conversion starts off for each video; selecting it does not change
+  the saved feature setting.
 - Save high-frame-rate videos and stories to Photos at 30 fps in H.264/AAC.
   Duration and audio are preserved; 24/30 fps videos are unchanged.
 - Fix the Files picker and clear its temporary cache.

@@ -144,7 +144,7 @@
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "不再在攔截到的一次性媒體前加上 \"dissapearing message\" 標記。";
 "SAVE" = "儲存";
 "VIDEO_TO_VOICE_TITLE" = "影片轉語音";
-"VIDEO_TO_VOICE_SUBTITLE" = "只把所選影片的聲音當成真正的語音訊息送出。預覽裡的裁剪範圍同樣有效，因此只送出選定的片段。也可以用預覽左上角的波形按鈕，對單支影片單獨切換。";
+"VIDEO_TO_VOICE_SUBTITLE" = "在影片預覽中顯示按鈕，可將聲音作為語音訊息傳送。每支影片的按鈕預設為關閉，請為需要轉換的影片個別開啟。預覽中的裁剪範圍會保留。";
 "VIDEO_TO_VOICE_ON_TOAST" = "這支影片將以語音訊息送出";
 "VIDEO_TO_VOICE_OFF_TOAST" = "恢復以一般影片送出";
 "VIDEO_TO_VOICE_EXTRACTING" = "正在擷取音訊…";

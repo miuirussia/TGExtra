@@ -41,6 +41,10 @@ for arch in arm64 arm64e; do
             -c "Sources/tgapi/$source.m" -o "$test_build_dir/$source-$arch.o"
     done
     clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
+        -fobjc-arc -Werror -Wno-deprecated-declarations -std=c++11 \
+        -I "$test_build_dir" -I Sources/tgapi -I Sources/tgapiC/include -c \
+        "$test_build_dir/VideoToVoice.xm.mm" -o "$test_build_dir/VideoToVoice-$arch.o"
+    clang++ -target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" \
         -fobjc-arc -Werror -Wno-deprecated-declarations \
         -I Sources/tgapi -I Sources/tgapiC/include -c \
         "$test_build_dir/PaidMediaCapture.xm.mm" -o "$test_build_dir/PaidMediaCapture-$arch.o"
