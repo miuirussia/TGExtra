@@ -8,6 +8,10 @@
 - (UIView *)view;
 @end
 
+@interface UIView (TGExtraCaptureNodeView)
+- (id)asyncdisplaykit_node;
+@end
+
 static char paidCaptureRootKey, originalImageCaptureKey, originalVideoCaptureKey;
 // All UIKit manipulation and host capture changes below run on the main thread.
 static BOOL applyingCaptureChange;
@@ -101,14 +105,33 @@ void TGExtraUpdatePaidMediaCapture(id node) {
     if (![name hasSuffix:@".ChatImageGalleryItemNode"] &&
         ![name hasSuffix:@".UniversalVideoGalleryItemNode"]) return;
     if (!NSThread.isMainThread || ![node respondsToSelector:@selector(view)]) return;
+    [TGExtraPaidMediaFile bindGalleryItem:node];
     CALayer *root = [node view].layer;
     BOOL wasAllowed = [objc_getAssociatedObject(root, &paidCaptureRootKey) boolValue];
-    id footer = [TGExtraPaidMediaFile footerNodeFromItem:node];
     BOOL allow = [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] &&
-        footer && [TGExtraPaidMediaFile fileFromFooterNode:footer] != nil;
+        [TGExtraPaidMediaFile isUnlockedPaidItem:node];
     objc_setAssociatedObject(root, &paidCaptureRootKey, allow ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     if (allow || wasAllowed) updateCaptureLayers(root, allow);
 }
+
+// GalleryItemNode installs Display.UITracingLayerView through setViewBlock.
+// It inherits UIView directly, so the _ASDisplayView hooks never see these items.
+%group TGExtraPaidGalleryViews
+%hook TGExtraPaidGalleryView
+- (void)layoutSubviews {
+    %orig;
+    if ([(UIView *)self respondsToSelector:@selector(asyncdisplaykit_node)]) {
+        TGExtraUpdatePaidMediaCapture([(UIView *)self asyncdisplaykit_node]);
+    }
+}
+- (void)didMoveToWindow {
+    %orig;
+    if ([(UIView *)self respondsToSelector:@selector(asyncdisplaykit_node)]) {
+        TGExtraUpdatePaidMediaCapture([(UIView *)self asyncdisplaykit_node]);
+    }
+}
+%end
+%end
 
 %hook UITextField
 - (void)setSecureTextEntry:(BOOL)value {
@@ -191,3 +214,15 @@ void TGExtraUpdatePaidMediaCapture(id node) {
     }];
 }
 %end
+
+__attribute__((constructor)) static void TGExtraInstallPaidGalleryViews(void) {
+    %init;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 2), dispatch_get_main_queue(), ^{
+        Class view = NSClassFromString(@"Display.UITracingLayerView");
+        if (class_getInstanceMethod(view, @selector(asyncdisplaykit_node)) &&
+            class_getInstanceMethod(view, @selector(layoutSubviews)) &&
+            class_getInstanceMethod(view, @selector(didMoveToWindow))) {
+            %init(TGExtraPaidGalleryViews, TGExtraPaidGalleryView = view);
+        }
+    });
+}

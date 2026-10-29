@@ -1080,6 +1080,10 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
     logContent = [NSString stringWithFormat:@"...(last 3000 chars)\n%@",
                   [logContent substringFromIndex:logContent.length - 3000]];
   }
+  NSString *paidMediaError = [NSUserDefaults.standardUserDefaults stringForKey:@"TGExtraPaidMediaLastError"];
+  if (paidMediaError.length) {
+    logContent = [logContent stringByAppendingFormat:@"\n\nPaid media: %@", paidMediaError];
+  }
 
   UIAlertController *alert = [UIAlertController
       alertControllerWithTitle:@"Debug Log"

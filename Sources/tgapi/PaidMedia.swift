@@ -5,12 +5,14 @@ import CoreGraphics
 // depending on their memory layout. Unknown layouts produce no export button.
 @objc(TGExtraPaidMediaFile)
 final class PaidMediaFile: NSObject {
+    private static let galleryItems = NSMapTable<AnyObject, AnyObject>.weakToWeakObjects()
     @objc let context: NSObject
     @objc let masterDatacenterId: Int
     @objc let datacenterId: Int
     @objc let size: Int64
     @objc let video: Bool
     @objc let cachePath: String?
+    private var nativeItem: AnyObject?
     private let location: Api.InputFileLocation
 
     private init(context: NSObject, master: Int, dc: Int, size: Int64, video: Bool,
@@ -54,20 +56,70 @@ final class PaidMediaFile: NSObject {
             ? payload.children.first?.value : child.value
     }
 
+    private static func selectedMedia(message: Any, subject: Any?) -> Any? {
+        guard let media = field(message, "media") as? [Any],
+              let paid = media.first(where: { named($0, "TelegramMediaPaidContent") }),
+              let extended = field(paid, "extendedMedia") as? [Any] else { return nil }
+        let index: Int
+        if let subject = subject {
+            guard let selected = associated(subject, case: "paidMediaIndex") as? Int else { return nil }
+            index = selected
+        } else { index = 0 }
+        guard extended.indices.contains(index) else { return nil }
+        return associated(extended[index], case: "full")
+    }
+
+    @objc(isUnlockedPaidItem:)
+    static func isUnlockedPaidItem(_ itemNode: AnyObject) -> Bool {
+        // Item state is assigned before footer presentation. Capture policy must
+        // not depend on whether a network download descriptor can be constructed.
+        if let message = field(itemNode, "message") {
+            return selectedMedia(message: message, subject: field(itemNode, "mediaSubject")) != nil
+        }
+        if let item = field(itemNode, "item") {
+            guard let info = field(item, "contentInfo"), let payload = associated(info, case: "message"),
+                  let message = field(payload, ".0") else { return false }
+            return selectedMedia(message: message, subject: field(payload, ".1")) != nil
+        }
+        if let footer = field(itemNode, "footerContentNode"), let message = field(footer, "currentMessage") {
+            return selectedMedia(message: message, subject: field(footer, "mediaSubject")) != nil
+        }
+        return false
+    }
+
+    @objc(bindGalleryItem:)
+    static func bindGalleryItem(_ item: AnyObject) {
+        guard Thread.isMainThread, let footer = field(item, "footerContentNode") else { return }
+        galleryItems.setObject(item, forKey: footer as AnyObject)
+    }
+
+    @objc func beginNativeDownload() -> Bool {
+        guard Thread.isMainThread, video, let item = nativeItem,
+              let footer = Self.field(item, "footerContentNode"),
+              let current = Self.file(footer: footer as AnyObject), current.cachePath == cachePath,
+              let controls = Self.field(item, "fetchControls"),
+              let fetch = Self.field(controls, "fetch") as? () -> Void else { return false }
+        // The footer button is a toggle: invoking it while Fetching would cancel
+        // the download. Use the item's dedicated fetch closure instead.
+        if let status = Self.field(item, "fetchStatus"),
+           Self.associated(status, case: "Fetching") != nil { return true }
+        fetch()
+        return true
+    }
+
+    @objc var nativeDownloadProgress: NSNumber? {
+        guard Thread.isMainThread, let item = nativeItem, let status = Self.field(item, "fetchStatus"),
+              let payload = Self.associated(status, case: "Fetching"),
+              let progress = Self.field(payload, "progress") as? Float else { return nil }
+        return NSNumber(value: progress)
+    }
+
     // A footer always tracks the current page, including albums and the local
     // synthetic message created by StarsTransactionScreen after purchase.
     @objc(fileFromFooterNode:)
     static func file(footer: AnyObject) -> PaidMediaFile? {
         guard let message = field(footer, "currentMessage"),
-              let media = field(message, "media") as? [Any],
-              let paid = media.first(where: { named($0, "TelegramMediaPaidContent") }),
-              let extended = field(paid, "extendedMedia") as? [Any] else { return nil }
-        let index: Int
-        if let subject = field(footer, "mediaSubject") {
-            guard let selected = associated(subject, case: "paidMediaIndex") as? Int else { return nil }
-            index = selected
-        } else { index = 0 }
-        guard extended.indices.contains(index), let full = associated(extended[index], case: "full"),
+              let full = selectedMedia(message: message, subject: field(footer, "mediaSubject")),
               let accountContext = field(footer, "context"), let account = field(accountContext, "account"),
               let network = field(account, "network"), let context = field(network, "context") as? NSObject,
               let master = field(network, "datacenterId") as? Int, master > 0 else { return nil }
@@ -123,8 +175,10 @@ final class PaidMediaFile: NSObject {
            let basePath = field(mediaBox, "basePath") as? String, !basePath.isEmpty {
             cachePath = (basePath as NSString).appendingPathComponent(cacheId)
         }
-        return PaidMediaFile(context: context, master: master, dc: dc, size: size,
+        let result = PaidMediaFile(context: context, master: master, dc: dc, size: size,
             video: video, cachePath: cachePath, location: location)
+        if Thread.isMainThread { result.nativeItem = galleryItems.object(forKey: footer) }
+        return result
     }
 
     @objc(downloadRequestAtOffset:)

@@ -89,6 +89,9 @@ Purchased-media saving exports the selected unlocked photo or video. Locked
 previews are excluded. If a file reference has expired, reopen the purchase and
 retry. Screenshot protection is removed for unlocked paid gallery items while
 the saving-protected-content switch is enabled.
+Video saving starts the gallery's native full-file download and waits for its
+complete cache file before importing it into Photos. Failed saves report whether
+the download or Photos import failed; the latest error is also included in Debug Log.
 The gallery integration uses host Swift reflection and requires device validation.
 
 Edit history records other people's messages observed while the feature is

@@ -25,7 +25,6 @@ support = r'''
 
 // Gallery saving has its own tests; this harness exercises message badges.
 void TGExtraUpdatePaidMediaSaveButton(id node) {}
-void TGExtraUpdatePaidMediaCapture(id node) {}
 
 // UIKit's CGRect conveniences on NSValue are absent from macOS Foundation.
 @interface NSValue (CGRectSupport)

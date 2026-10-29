@@ -46,8 +46,17 @@ private enum PaidMediaMocks {
     final class DerivedFooter: Footer {}
     final class Item: NSObject {
         let footerContentNode: Footer
+        var message: Message?
+        var mediaSubject: Subject?
+        var item: VideoItem?
+        var fetchControls: FetchControls?
+        var fetchStatus: FetchStatus?
         init(footer: Footer) { self.footerContentNode = footer }
     }
+    enum ContentInfo { case message(Message, Subject?); case webPage }
+    struct VideoItem { let contentInfo: ContentInfo? }
+    struct FetchControls { let fetch: () -> Void; let cancel: () -> Void }
+    enum FetchStatus { case Remote; case Fetching(isActive: Bool, progress: Float) }
 }
 
 func testPaidMedia() {
@@ -75,6 +84,10 @@ func testPaidMedia() {
     check(PaidMediaFile.bottomInset(footer: footer) == 34, "Save control respects the footer bottom inset")
     check(PaidMediaFile.footerNode(item: M.Item(footer: footer)) === footer,
           "Capture policy resolves the gallery item's own footer")
+    let earlyImage = M.Item(footer: M.Footer(path: ""))
+    earlyImage.message = footer.currentMessage
+    check(PaidMediaFile.isUnlockedPaidItem(earlyImage),
+          "Capture policy works from item state before its footer is populated")
 
     guard let request = first.downloadRequest(offset: 0) else { fatalError("Paid file request missing") }
     let reader = BufferReader(Buffer(data: request))
@@ -98,6 +111,23 @@ func testPaidMedia() {
     guard let video = PaidMediaFile.file(footer: footer) else { fatalError("Paid video not found") }
     check(video.video && video.size == 0 && video.cachePath?.hasSuffix("telegram-cloud-document-5-567") == true,
           "Paid video uses the original document, supporting unknown lengths")
+    let videoItem = M.Item(footer: footer)
+    videoItem.item = .init(contentInfo: .message(footer.currentMessage!, footer.mediaSubject))
+    check(PaidMediaFile.isUnlockedPaidItem(videoItem), "Video capture policy reads its contentInfo message")
+    videoItem.item = .init(contentInfo: .webPage)
+    check(!PaidMediaFile.isUnlockedPaidItem(videoItem), "A reused non-message video ignores stale paid footer state")
+    videoItem.item = .init(contentInfo: .message(footer.currentMessage!, footer.mediaSubject))
+    var nativeFetches = 0
+    videoItem.fetchControls = .init(fetch: { nativeFetches += 1 }, cancel: { fatalError("Saving must never cancel a native fetch") })
+    PaidMediaFile.bindGalleryItem(videoItem)
+    let nativeVideo = PaidMediaFile.file(footer: footer)!
+    check(nativeVideo.beginNativeDownload() && nativeFetches == 1, "Video saving starts the host's native full-file fetch")
+    videoItem.fetchStatus = .Fetching(isActive: true, progress: 0.5)
+    check(nativeVideo.beginNativeDownload() && nativeFetches == 1 && nativeVideo.nativeDownloadProgress == 0.5,
+          "Saving an already downloading video preserves the fetch and reports native progress")
+    footer.mediaSubject = .paidMediaIndex(0)
+    check(!nativeVideo.beginNativeDownload(), "A delayed save cannot start downloading another album page")
+    footer.mediaSubject = .paidMediaIndex(3)
     guard let bytes = video.downloadRequest(offset: 524288) else { fatalError("Unknown length request missing") }
     let videoReader = BufferReader(Buffer(data: bytes))
     _ = videoReader.readInt32(); _ = videoReader.readInt32()

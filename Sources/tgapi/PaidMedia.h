@@ -8,10 +8,14 @@
 @property(nonatomic, readonly) BOOL video;
 @property(nonatomic, readonly) NSString *cachePath;
 + (instancetype)fileFromFooterNode:(id)footer;
++ (BOOL)isUnlockedPaidItem:(id)item;
++ (void)bindGalleryItem:(id)item;
 + (id)contentNodeFromFooter:(id)footer;
 + (id)footerNodeFromItem:(id)item;
 + (double)bottomInsetFromFooter:(id)footer;
 - (NSData *)downloadRequestAtOffset:(int64_t)offset;
+- (BOOL)beginNativeDownload;
+@property(nonatomic, readonly) NSNumber *nativeDownloadProgress;
 @end
 
 // Completion runs on the main queue. Its temporary file is valid until the

@@ -38,14 +38,15 @@
             }
             TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"PAID_MEDIA_SAVING"]);
             TGExtraDownloadPaidMedia(file, ^(NSURL *url, NSError *error) {
-                if (!url || error) { [self finishedWithKey:@"PAID_MEDIA_SAVE_FAILED"]; return; }
+                if (!url || error) { [self failed:error stage:@"download"]; return; }
                 [PHPhotoLibrary.sharedPhotoLibrary performChanges:^{
                     if (file.video) [PHAssetChangeRequest creationRequestForAssetFromVideoAtFileURL:url];
                     else [PHAssetChangeRequest creationRequestForAssetFromImageAtFileURL:url];
                 } completionHandler:^(BOOL success, NSError *photoError) {
                     [NSFileManager.defaultManager removeItemAtURL:url error:NULL];
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        [self finishedWithKey:success ? @"PAID_MEDIA_SAVED" : @"PAID_MEDIA_SAVE_FAILED"];
+                        if (success) [self finishedWithKey:@"PAID_MEDIA_SAVED"];
+                        else [self failed:photoError stage:@"Photos"];
                     });
                 }];
             });
@@ -54,12 +55,25 @@
 }
 
 - (void)finishedWithKey:(NSString *)key {
+    [self finishedWithMessage:[TGExtraLocalization localizedStringForKey:key]];
+}
+
+- (void)failed:(NSError *)error stage:(NSString *)stage {
+    NSString *detail = [NSString stringWithFormat:@"%@: %@ (%@:%ld)", stage,
+        error.localizedDescription ?: @"Unknown error", error.domain ?: @"TGExtra.PaidMedia", (long)error.code];
+    [NSUserDefaults.standardUserDefaults setObject:[NSString stringWithFormat:@"%@ %@", NSDate.date, detail]
+        forKey:@"TGExtraPaidMediaLastError"];
+    [self finishedWithMessage:[NSString stringWithFormat:@"%@\n%@",
+        [TGExtraLocalization localizedStringForKey:@"PAID_MEDIA_SAVE_FAILED"], detail]];
+}
+
+- (void)finishedWithMessage:(NSString *)message {
     self.saving = NO;
     self.enabled = YES;
     self.imageView.hidden = NO;
     [self.spinner removeFromSuperview];
     self.spinner = nil;
-    TGExtraShowToast([TGExtraLocalization localizedStringForKey:key]);
+    TGExtraShowToast(message);
 }
 @end
 

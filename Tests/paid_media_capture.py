@@ -7,8 +7,12 @@ import tempfile
 
 root = Path(__file__).resolve().parent.parent
 source = (root / 'Sources/tgapi/PaidMediaCapture.xm').read_text()
-helpers = source[source.index('static char paidCaptureRootKey'):source.index('%hook UITextField')]
-hooks = source[source.index('%hook UITextField'):]
+helpers = source[source.index('static char paidCaptureRootKey'):source.index('// GalleryItemNode installs')]
+view_hook = source[source.index('%hook TGExtraPaidGalleryView'):source.index('%end', source.index('%hook TGExtraPaidGalleryView'))]
+view_hook = (view_hook.replace('%hook TGExtraPaidGalleryView', '@implementation TestGalleryView')
+             .replace('%orig;', '[super layoutSubviews];', 1)
+             .replace('%orig;', '[super didMoveToWindow];', 1) + '@end\n')
+hooks = source[source.index('%hook UITextField'):source.index('__attribute__((constructor))')]
 for host, replacement in [('UITextField', 'TestTextField'),
                           ('AVSampleBufferDisplayLayer', 'TestVideoLayer'), ('CALayer', 'TestLayer')]:
     hooks = hooks.replace(f'%hook {host}', f'@implementation {replacement}')
@@ -107,9 +111,19 @@ static void detach(CALayer *layer) {
 @interface UIView : NSObject
 @property(nonatomic, strong) CALayer *layer;
 @property(nonatomic, strong) NSArray<UIView *> *subviews;
+@property(nonatomic, weak) id node;
+@property(nonatomic) NSUInteger layouts;
+@property(nonatomic) NSUInteger windowMoves;
+- (id)asyncdisplaykit_node;
+- (void)layoutSubviews;
+- (void)didMoveToWindow;
 @end
 @implementation UIView
+- (id)asyncdisplaykit_node { return self.node; }
+- (void)layoutSubviews { self.layouts++; }
+- (void)didMoveToWindow { self.windowMoves++; }
 @end
+@interface TestGalleryView : UIView @end
 @interface TestTextLayoutCanvasView : UIView @end
 @implementation TestTextLayoutCanvasView @end
 @interface UITextField : UIView
@@ -145,10 +159,14 @@ static void detach(CALayer *layer) {
 @interface TGExtraPaidMediaFile : NSObject
 + (id)footerNodeFromItem:(TestNode *)node;
 + (instancetype)fileFromFooterNode:(TestNode *)node;
++ (BOOL)isUnlockedPaidItem:(TestNode *)node;
++ (void)bindGalleryItem:(TestNode *)node;
 @end
 @implementation TGExtraPaidMediaFile
 + (id)footerNodeFromItem:(TestNode *)node { return node.footer; }
 + (instancetype)fileFromFooterNode:(TestNode *)node { return node.unlocked ? (id)node : nil; }
++ (BOOL)isUnlockedPaidItem:(TestNode *)node { return ((TestNode *)node.footer).unlocked; }
++ (void)bindGalleryItem:(TestNode *)node {}
 @end
 '''
 
@@ -159,7 +177,8 @@ static TestNode *item(NSString *name, BOOL unlocked) {
         cls = objc_allocateClassPair(TestNode.class, name.UTF8String, 0);
         objc_registerClassPair(cls);
     }
-    TestNode *node = [cls new]; node.view = [UIView new]; node.view.layer = [TestLayer new];
+    TestNode *node = [cls new]; node.view = [TestGalleryView new]; node.view.node = node;
+    node.view.layer = [TestLayer new];
     TestNode *footer = [TestNode new]; footer.unlocked = unlocked; node.footer = footer;
     return node;
 }
@@ -219,10 +238,12 @@ int main(void) {
             TestVideoLayer *video = [TestVideoLayer new]; video.preventsCapture = YES;
             [node.view.layer addSublayer:image]; [node.view.layer addSublayer:video];
             [defaults setBool:NO forKey:kDisableForwardRestriction];
-            TGExtraUpdatePaidMediaCapture(node);
+            [node.view didMoveToWindow];
+            NSCAssert(node.view.windowMoves == 1, @"Custom gallery view preserves inherited UIView lifecycle");
             NSCAssert(image.disableUpdateMask == 0x32 && video.preventsCapture, @"Switch off preserves both host protections");
             [defaults setBool:YES forKey:kDisableForwardRestriction];
-            TGExtraUpdatePaidMediaCapture(node);
+            [node.view layoutSubviews];
+            NSCAssert(node.view.layouts == 1, @"UITracingLayerView layout drives capture policy without _ASDisplayView");
             NSCAssert(image.disableUpdateMask == 0x20 && !video.preventsCapture, @"Unlock removes image and video protection, preserving other bits");
             TestVideoLayer *lateVideo = [TestVideoLayer new]; lateVideo.preventsCapture = YES;
             CALayer *crossfade = [CALayer new]; crossfade.disableUpdateMask = 0x12;
@@ -264,7 +285,7 @@ int main(void) {
 with tempfile.TemporaryDirectory(prefix='tgextra-paid-capture-') as directory:
     path = Path(directory)
     harness = path / 'capture.mm'
-    harness.write_text(re.sub(r'\bCALayer\b', 'MockCaptureLayer', support + helpers + hooks + tests))
+    harness.write_text(re.sub(r'\bCALayer\b', 'MockCaptureLayer', support + helpers + view_hook + hooks + tests))
     binary = path / 'tests'
     subprocess.run(['clang++', '-fobjc-arc', '-Werror', '-I', str(root / 'Sources/tgapi'),
                     '-framework', 'Foundation', str(harness), '-o', str(binary)], check=True)

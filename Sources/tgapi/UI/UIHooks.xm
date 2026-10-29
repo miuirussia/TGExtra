@@ -983,7 +983,6 @@ static ASDisplayNode *tgextraMessageNodeForView(UIView *view) {
     %orig;
     if ([(UIView *)self respondsToSelector:@selector(asyncdisplaykit_node)]) {
         TGExtraUpdatePaidMediaSaveButton([(UIView *)self asyncdisplaykit_node]);
-        TGExtraUpdatePaidMediaCapture([(UIView *)self asyncdisplaykit_node]);
     }
     ASDisplayNode *node = tgextraMessageNodeForView((UIView *)self);
     if (node) scheduleTGExtraEditBadgeUpdate(node);
@@ -997,7 +996,6 @@ static ASDisplayNode *tgextraMessageNodeForView(UIView *view) {
     %orig;
     if ([(UIView *)self respondsToSelector:@selector(asyncdisplaykit_node)]) {
         TGExtraUpdatePaidMediaSaveButton([(UIView *)self asyncdisplaykit_node]);
-        TGExtraUpdatePaidMediaCapture([(UIView *)self asyncdisplaykit_node]);
     }
     ASDisplayNode *node = tgextraMessageNodeForView((UIView *)self);
     if (node) scheduleTGExtraEditBadgeUpdate(node);
