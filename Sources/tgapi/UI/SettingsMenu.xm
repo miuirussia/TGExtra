@@ -84,7 +84,13 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
         self.iconGradient.colors = @[(id)UIColor.systemTealColor.CGColor, (id)UIColor.systemBlueColor.CGColor];
         [self.iconTile.layer addSublayer:self.iconGradient];
         [self insertSubview:self.iconTile belowSubview:self.imageView];
-        self.disclosureView = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"chevron.right"]];
+        UIImage *arrow = [UIImage imageNamed:@"Item List/DisclosureArrow"];
+        if (!arrow) {
+            UIImageSymbolConfiguration *arrowSymbol = [UIImageSymbolConfiguration configurationWithPointSize:13.0 weight:UIImageSymbolWeightSemibold];
+            arrow = [UIImage systemImageNamed:@"chevron.right" withConfiguration:arrowSymbol];
+        }
+        self.disclosureView = [[UIImageView alloc] initWithImage:[arrow imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate]];
+        self.disclosureView.contentMode = UIViewContentModeCenter;
         self.disclosureView.tintColor = UIColor.tertiaryLabelColor;
         [self addSubview:self.disclosureView];
         self.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
@@ -103,7 +109,7 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
     CGFloat height = row.view.bounds.size.height;
     self.referenceTitleFrame = CGRectMake(61.0, 0.0, 0.0, 0.0);
     self.referenceIconFrame = CGRectMake(16.0, (height - 30.0) / 2.0, 30.0, 30.0);
-    self.referenceArrowFrame = CGRectMake(width - 22.0, (height - 13.0) / 2.0, 7.0, 13.0);
+    self.referenceArrowFrame = CGRectMake(width - 31.0, (height - 24.0) / 2.0, 24.0, 24.0);
     for (ASDisplayNode *node in row.subnodes) {
         CGRect frame = node.frame;
         if ([NSStringFromClass(node.class) containsString:@"ImmediateTextNode"] &&
