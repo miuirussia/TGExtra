@@ -46,16 +46,15 @@ jobs:
   build:
     needs: checks
     runs-on: macos-26-intel
-    strategy:
-      matrix:
-        scheme: [rootful, rootless, roothide]
-        include:
-          - scheme: rootful
-            scheme_arg: ""
-          - scheme: rootless
-            scheme_arg: "THEOS_PACKAGE_SCHEME=rootless"
-          - scheme: roothide
-            scheme_arg: "THEOS_PACKAGE_SCHEME=roothide"
+    env:
+      THEOS: ${{ github.workspace }}/theos
+      CCACHE_DIR: ${{ github.workspace }}/.build/ccache
+      CCACHE_MAXSIZE: 500M
+      # Theos enables Clang modules; ccache requires depend mode for them.
+      CCACHE_DEPEND: "true"
+      CCACHE_SLOPPINESS: modules
+      CLANG_MODULE_CACHE_PATH: ${{ github.workspace }}/.build/clang-module-cache
+      SWIFT_MODULECACHE_PATH: ${{ github.workspace }}/.build/swift-module-cache
     steps:
       - uses: actions/checkout@v7
         with:
@@ -64,37 +63,87 @@ jobs:
       - name: Install Theos dependencies
         shell: bash
         run: |
-          brew install make ldid
+          brew install make ldid ccache
           echo "$(brew --prefix make)/libexec/gnubin" >> "$GITHUB_PATH"
-          echo "THEOS=$GITHUB_WORKSPACE/theos" >> "$GITHUB_ENV"
 
-      # Check out the selected branches directly; the cached updater expects origin/master.
+      - name: Resolve dependency and toolchain versions
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          theos_sha=$(git ls-remote --exit-code https://github.com/waruhachi/theos.git refs/heads/main | awk '{print $1}')
+          sdks_sha=$(git ls-remote --exit-code https://github.com/waruhachi/sdks.git refs/heads/main | awk '{print $1}')
+          echo "theos=$theos_sha" >> "$GITHUB_OUTPUT"
+          echo "sdks=$sdks_sha" >> "$GITHUB_OUTPUT"
+          toolchain=$({ sw_vers -buildVersion; xcodebuild -version; xcrun swiftc --version; ccache --version; } | shasum -a 256 | awk '{print $1}')
+          echo "toolchain=$toolchain" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Theos and iOS SDKs
+        id: theos-cache
+        uses: actions/cache@v5
+        with:
+          path: theos
+          key: ${{ runner.os }}-${{ runner.arch }}-theos-v1-${{ steps.versions.outputs.toolchain }}-${{ steps.versions.outputs.theos }}-${{ steps.versions.outputs.sdks }}
+
       - name: Set up Theos
+        if: steps.theos-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v7
         with:
           repository: waruhachi/theos
-          ref: main
+          ref: ${{ steps.versions.outputs.theos }}
           submodules: recursive
           path: theos
+          persist-credentials: false
 
       - name: Set up iOS SDKs
+        if: steps.theos-cache.outputs.cache-hit != 'true'
         uses: actions/checkout@v7
         with:
           repository: waruhachi/sdks
-          ref: main
+          ref: ${{ steps.versions.outputs.sdks }}
           submodules: recursive
           path: theos/sdks
+          persist-credentials: false
 
-      - name: Build Package
+      - name: Cache compiler outputs and modules
+        uses: actions/cache@v5
+        with:
+          path: |
+            .build/ccache
+            .build/clang-module-cache
+            .build/swift-module-cache
+          key: ${{ runner.os }}-${{ runner.arch }}-compiler-v1-${{ steps.versions.outputs.toolchain }}-${{ steps.versions.outputs.theos }}-${{ steps.versions.outputs.sdks }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-compiler-v1-${{ steps.versions.outputs.toolchain }}-${{ steps.versions.outputs.theos }}-${{ steps.versions.outputs.sdks }}-
+
+      - name: Build all jailbreak packages
         shell: bash
         run: |
-          make clean package FINALPACKAGE=1 ${{ matrix.scheme_arg }}
+          set -euo pipefail
+          ccache --zero-stats
+          for scheme in rootful rootless roothide; do
+            scheme_arg=""
+            if [[ "$scheme" != rootful ]]; then
+              scheme_arg="$scheme"
+            fi
+            echo "::group::Build $scheme"
+            make clean package FINALPACKAGE=1 "THEOS_PACKAGE_SCHEME=$scheme_arg" \
+              "TARGET_CC=ccache $(xcrun --sdk iphoneos -f clang)" \
+              "TARGET_CXX=ccache $(xcrun --sdk iphoneos -f clang++)" \
+              "ADDITIONAL_SWIFTFLAGS=-module-cache-path $SWIFT_MODULECACHE_PATH"
+            echo "::endgroup::"
+          done
 
-      - name: Upload DEB
+      - name: Show compiler cache statistics
+        if: always()
+        run: ccache --show-stats
+
+      - name: Upload DEBs
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.scheme }}-package
+          name: deb-packages
           path: packages/*.deb
+          if-no-files-found: error
 
   ipatch:
     needs: [checks, build]
@@ -107,9 +156,8 @@ jobs:
       - name: Download all packages
         uses: actions/download-artifact@v8
         with:
-          pattern: '*-package'
+          name: deb-packages
           path: packages
-          merge-multiple: true
 
       - name: Download tested patch profiles compiled from C
         uses: actions/download-artifact@v8
@@ -240,9 +288,7 @@ jobs:
         uses: geekyeggo/delete-artifact@v6
         with:
           name: |
-            rootful-package
-            rootless-package
-            roothide-package
+            deb-packages
             ipatch-packages
             compiled-payloads
           failOnError: false
