@@ -9,7 +9,8 @@ root = Path(__file__).resolve().parent.parent
 with tempfile.TemporaryDirectory(prefix='tgextra-paid-download-') as directory:
     binary = Path(directory) / 'tests'
     subprocess.run([
-        'clang', '-fobjc-arc', '-Werror', '-I', str(root / 'Sources/tgapiC/include'),
+        'clang', '-g', '-fsanitize=address', '-fno-omit-frame-pointer',
+        '-fobjc-arc', '-Werror', '-I', str(root / 'Sources/tgapiC/include'),
         '-framework', 'Foundation', str(root / 'Sources/tgapi/PaidMediaDownload.m'),
         str(root / 'Tests/paid_media_download.m'), '-o', str(binary),
     ], check=True)

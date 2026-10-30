@@ -11,6 +11,7 @@ static NSUInteger nativeStarts;
 static NSUInteger activeRequests, maximumRequests, cancelledRequests;
 static NSMutableArray<NSNumber *> *completedOffsets;
 static BOOL reorderResponses;
+static dispatch_group_t pendingResponses;
 
 @interface TGExtraPaidMediaFile ()
 @property(nonatomic, readwrite) NSObject *context;
@@ -128,11 +129,14 @@ static BOOL reorderResponses;
             maximumRequests = MAX(maximumRequests, activeRequests);
         }
         void (^completed)(id, MTRequestResponseInfo *, MTRpcError *) = request.completed;
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (offset == 0 ? 40 : 5) * NSEC_PER_MSEC), dispatch_get_global_queue(0, 0), ^{
+        dispatch_group_t responses = pendingResponses;
+        dispatch_group_enter(responses);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (offset == 0 ? 200 : 5) * NSEC_PER_MSEC), dispatch_get_global_queue(0, 0), ^{
             // Reproduce a transport that can still deliver a queued callback
             // after cancellation. Production must reject its retired token.
             @synchronized(offsets) { activeRequests--; [completedOffsets addObject:@(offset)]; }
             completed(response, nil, error);
+            dispatch_group_leave(responses);
         });
     } else { request.completed(response, nil, error); }
 }
@@ -141,11 +145,15 @@ static BOOL reorderResponses;
 @end
 
 static void runCase(NSUInteger index) {
+    @synchronized(offsets) {
+        NSCAssert(activeRequests == 0, @"Previous transport callbacks finish before advancing or exiting");
+    }
     if (index == 12) { puts("PASS purchased-media download: native video fetch, partial cache, transport fallback, RPC errors, chunks and cleanup"); exit(0); }
     serverBytes = [NSMutableData dataWithLength:index == 1 ? 524288 : 524291];
     offsets = [NSMutableArray new];
     activeRequests = maximumRequests = cancelledRequests = 0;
     completedOffsets = [NSMutableArray new];
+    pendingResponses = dispatch_group_create();
     reorderResponses = index >= 10;
     if (reorderResponses) {
         NSMutableData *bytes = [NSMutableData dataWithLength:7 * 524288 + 19];
@@ -205,7 +213,7 @@ static void runCase(NSUInteger index) {
         [NSFileManager.defaultManager removeItemAtPath:cache error:NULL];
         [NSFileManager.defaultManager removeItemAtPath:[cache stringByAppendingString:@"_partial"] error:NULL];
         if (reorderResponses) {
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 60 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{ runCase(index + 1); });
+            dispatch_group_notify(pendingResponses, dispatch_get_main_queue(), ^{ runCase(index + 1); });
         } else { runCase(index + 1); }
     });
 }
