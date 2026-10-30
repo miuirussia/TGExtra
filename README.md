@@ -111,7 +111,7 @@ and temporary disk space. Polls, stickers, custom emoji media, paid or disappear
 media, rich-message bodies and some forward options are unsupported.
 
 To save purchased media, enable saving protected content and use the gallery's
-bottom-left download button. Only unlocked photos and videos can be saved. If a
+top-right glass download button. Only unlocked photos and videos can be saved. If a
 file reference has expired, reopen the purchase and retry. Videos must finish
 downloading before they can be imported into Photos. Save errors and the last
 created asset are available under **Message Data → Debug Log**.

@@ -13,9 +13,27 @@
 @property(nonatomic, weak) id footer;
 @property(nonatomic) BOOL saving;
 @property(nonatomic, strong) UIActivityIndicatorView *spinner;
+@property(nonatomic, weak) UIView *hostView;
+@property(nonatomic, strong) NSMapTable<UIView *, NSNumber *> *originalHidden;
+@property(nonatomic) BOOL hostWasAccessibilityElement;
 @end
 
 @implementation TGExtraPaidMediaButton
+- (void)restoreHost {
+    for (UIView *view in self.originalHidden) {
+        view.hidden = [[self.originalHidden objectForKey:view] boolValue];
+    }
+    self.hostView.isAccessibilityElement = self.hostWasAccessibilityElement;
+    [self.originalHidden removeAllObjects];
+    self.hostView = nil;
+    [self removeFromSuperview];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.spinner.center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
+}
+
 - (void)save {
     if (self.saving || ![NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction]) return;
     id footer = self.footer;
@@ -82,26 +100,42 @@ void TGExtraUpdatePaidMediaSaveButton(id node) {
     TGExtraPaidMediaButton *button = objc_getAssociatedObject(node, &buttonKey);
     if (![NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] ||
         ![TGExtraPaidMediaFile fileFromFooterNode:node]) {
-        button.hidden = YES;
+        [button restoreHost];
         return;
     }
-    button.hidden = YES;
-    id content = [TGExtraPaidMediaFile contentNodeFromFooter:node];
-    if (![content respondsToSelector:@selector(view)]) return;
-    UIView *view = [content view];
-    CGFloat bottomInset = [TGExtraPaidMediaFile bottomInsetFromFooter:node];
-    if (!view || view.bounds.size.width < 44 || view.bounds.size.height < bottomInset + 54) return;
+    id nativeButton = [TGExtraPaidMediaFile saveButtonNodeFromFooter:node];
+    if (![nativeButton respondsToSelector:@selector(view)]) { [button restoreHost]; return; }
+    UIView *view = [nativeButton view];
+    if (!view) { [button restoreHost]; return; }
     if (!button) {
         button = [TGExtraPaidMediaButton buttonWithType:UIButtonTypeSystem];
         button.footer = node;
         button.tintColor = UIColor.whiteColor;
-        [button setImage:[UIImage systemImageNamed:@"arrow.down.to.line"] forState:UIControlStateNormal];
+        [button setImage:[UIImage systemImageNamed:@"arrow.down.to.line"
+            withConfiguration:[UIImageSymbolConfiguration configurationWithPointSize:21 weight:UIImageSymbolWeightRegular]]
+            forState:UIControlStateNormal];
         button.accessibilityIdentifier = @"TGExtra.SavePaidMedia";
+        button.originalHidden = [NSMapTable weakToStrongObjectsMapTable];
         [button addTarget:button action:@selector(save) forControlEvents:UIControlEventTouchUpInside];
         objc_setAssociatedObject(node, &buttonKey, button, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
+    if (button.hostView != view) {
+        [button restoreHost];
+        button.hostView = view;
+        button.hostWasAccessibilityElement = view.isAccessibilityElement;
+    }
+    // Keep the navigation bar's native glass capsule, replacing only its content and action.
+    for (UIView *child in view.subviews) {
+        if (child == button) continue;
+        if (![button.originalHidden objectForKey:child]) {
+            [button.originalHidden setObject:@(child.hidden) forKey:child];
+        }
+        child.hidden = YES;
+    }
+    view.isAccessibilityElement = NO;
     if (button.superview != view) [view addSubview:button];
-    button.frame = CGRectMake(8 + view.safeAreaInsets.left, view.bounds.size.height - bottomInset - 49, 44, 44);
+    button.frame = CGRectMake(0, 0, MAX(44, view.bounds.size.width), MAX(44, view.bounds.size.height));
+    button.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     button.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"PAID_MEDIA_SAVE"];
     button.hidden = NO;
     [view bringSubviewToFront:button];

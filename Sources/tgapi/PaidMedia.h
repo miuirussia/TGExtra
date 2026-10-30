@@ -10,9 +10,8 @@
 + (instancetype)fileFromFooterNode:(id)footer;
 + (BOOL)isUnlockedPaidItem:(id)item;
 + (void)bindGalleryItem:(id)item;
-+ (id)contentNodeFromFooter:(id)footer;
++ (id)saveButtonNodeFromFooter:(id)footer;
 + (id)footerNodeFromItem:(id)item;
-+ (double)bottomInsetFromFooter:(id)footer;
 - (NSData *)downloadRequestAtOffset:(int64_t)offset;
 - (BOOL)beginNativeDownload;
 @property(nonatomic, readonly) NSNumber *nativeDownloadProgress;

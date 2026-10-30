@@ -1,5 +1,4 @@
 import Foundation
-import CoreGraphics
 
 @objc(TGExtraPaidMediaFile)
 final class PaidMediaFile: NSObject {
@@ -177,19 +176,14 @@ final class PaidMediaFile: NSObject {
         return Api.functions.upload.getFile(flags: 0, location: location, offset: offset, limit: 524288).1.makeValidData()
     }
 
-    @objc(contentNodeFromFooter:)
-    static func contentNode(footer: AnyObject) -> AnyObject? {
-        field(footer, "contentNode") as AnyObject?
+    @objc(saveButtonNodeFromFooter:)
+    static func saveButtonNode(footer: AnyObject) -> AnyObject? {
+        guard Thread.isMainThread, let item = galleryItems.object(forKey: footer) else { return nil }
+        return field(item, "moreBarButton") as AnyObject?
     }
 
     @objc(footerNodeFromItem:)
     static func footerNode(item: AnyObject) -> AnyObject? {
         field(item, "footerContentNode") as AnyObject?
-    }
-
-    @objc(bottomInsetFromFooter:)
-    static func bottomInset(footer: AnyObject) -> Double {
-        guard let layout = field(footer, "validLayout"), let inset = field(layout, ".4") as? CGFloat else { return 0 }
-        return Double(inset)
     }
 }

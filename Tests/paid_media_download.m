@@ -24,9 +24,8 @@ static BOOL reorderResponses;
 + (instancetype)fileFromFooterNode:(id)footer { return nil; }
 + (BOOL)isUnlockedPaidItem:(id)item { return NO; }
 + (void)bindGalleryItem:(id)item {}
-+ (id)contentNodeFromFooter:(id)footer { return nil; }
++ (id)saveButtonNodeFromFooter:(id)footer { return nil; }
 + (id)footerNodeFromItem:(id)item { return nil; }
-+ (double)bottomInsetFromFooter:(id)footer { return 0; }
 - (NSData *)downloadRequestAtOffset:(int64_t)offset { return [NSData dataWithBytes:&offset length:8]; }
 - (BOOL)beginNativeDownload {
     dispatch_assert_queue(dispatch_get_main_queue());

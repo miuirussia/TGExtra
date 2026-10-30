@@ -1,5 +1,4 @@
 import Foundation
-import CoreGraphics
 
 // Stored-property shapes from Telegram-iOS fb0e62ba8a. These deliberately have
 // no host methods or Objective-C getters: extraction must use Swift reflection.
@@ -36,8 +35,6 @@ private enum PaidMediaMocks {
         let context: Context
         var currentMessage: Message?
         var mediaSubject: Subject?
-        let contentNode = NSObject()
-        let validLayout: (CGSize, Int, CGFloat, CGFloat, CGFloat, CGFloat)? = (.zero, 0, 0, 0, 34, 0)
         init(path: String) {
             context = Context(account: Account(postbox: Postbox(mediaBox: MediaBox(basePath: path))))
         }
@@ -46,6 +43,7 @@ private enum PaidMediaMocks {
     final class DerivedFooter: Footer {}
     final class Item: NSObject {
         let footerContentNode: Footer
+        let moreBarButton = NSObject()
         var message: Message?
         var mediaSubject: Subject?
         var item: VideoItem?
@@ -80,8 +78,6 @@ func testPaidMedia() {
     check(!first.video && first.size == 524291 && first.datacenterId == 4 && first.masterDatacenterId == 2,
           "Paid file keeps its source DC, master DC and byte size")
     check(first.context === footer.context.account.network.context, "Paid download uses the footer account's MTContext")
-    check(PaidMediaFile.contentNode(footer: footer) === footer.contentNode, "Save control follows the native controls container")
-    check(PaidMediaFile.bottomInset(footer: footer) == 34, "Save control respects the footer bottom inset")
     check(PaidMediaFile.footerNode(item: M.Item(footer: footer)) === footer,
           "Capture policy resolves the gallery item's own footer")
     let earlyImage = M.Item(footer: M.Footer(path: ""))
@@ -120,6 +116,8 @@ func testPaidMedia() {
     var nativeFetches = 0
     videoItem.fetchControls = .init(fetch: { nativeFetches += 1 }, cancel: { fatalError("Saving must never cancel a native fetch") })
     PaidMediaFile.bindGalleryItem(videoItem)
+    check(PaidMediaFile.saveButtonNode(footer: footer) === videoItem.moreBarButton,
+          "Saving uses the selected gallery item's native navigation button")
     let nativeVideo = PaidMediaFile.file(footer: footer)!
     check(nativeVideo.beginNativeDownload() && nativeFetches == 1, "Video saving starts the host's native full-file fetch")
     videoItem.fetchStatus = .Fetching(isActive: true, progress: 0.5)
