@@ -23,12 +23,12 @@ with tempfile.TemporaryDirectory(prefix='tgextra-history-diff-') as directory:
     sdk = Path(subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'],
                                       env=environment, text=True).strip())
     frameworks = sdk / 'System/iOSSupport/System/Library/Frameworks'
-    if platform.machine() != 'arm64' or not (frameworks / 'UIKit.framework/Headers/UIKit.h').exists():
-        print('SKIP history UIKit test: requires Apple Silicon and Mac Catalyst SDK')
+    if not (frameworks / 'UIKit.framework/Headers/UIKit.h').exists():
+        print('SKIP history UIKit test: requires Mac Catalyst SDK')
     else:
         (work / 'roothide.h').write_text('#define jbroot(path) (path)\n')
         subprocess.run([
-            'xcrun', 'clang', '-target', 'arm64-apple-ios17.0-macabi', '-isysroot', str(sdk),
+            'xcrun', 'clang', '-target', f'{platform.machine()}-apple-ios17.0-macabi', '-isysroot', str(sdk),
             '-iframework', str(frameworks), '-F', str(frameworks), '-fobjc-arc', '-Werror',
             '-Wno-deprecated-declarations', '-Wno-arc-performSelector-leaks', '-DTGEXTRA_UIKIT',
             '-I', str(ui), '-I', str(work), '-framework', 'UIKit', '-framework', 'Foundation', '-framework', 'CoreGraphics',

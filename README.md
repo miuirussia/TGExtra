@@ -192,6 +192,16 @@ Run the protocol and regression tests on macOS:
 bash Tests/run.sh
 ```
 
+Tests build for the Mac's native architecture on both Intel and Apple Silicon;
+Rosetta is not required. CI runs the suite on Intel. UIKit checks require the
+Mac Catalyst SDK; compiling Logos hooks also requires the Logos preprocessor.
+Tests executing arm64 machine code require Apple Silicon.
+Optional downloader diagnostics are separate from the normal run:
+
+```sh
+python3 Tests/paid_media_download.py --sanitize
+```
+
 The suite covers privacy, message protection, edit history, account isolation,
 API compatibility and protected-copy recovery. It also mutates a host schema to
 check changed method/constructor IDs, reordered request fields, added required

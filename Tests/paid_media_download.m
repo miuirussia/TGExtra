@@ -11,7 +11,8 @@ static NSUInteger nativeStarts;
 static NSUInteger activeRequests, maximumRequests, cancelledRequests;
 static NSMutableArray<NSNumber *> *completedOffsets;
 static BOOL reorderResponses;
-static dispatch_group_t pendingResponses;
+static NSMutableDictionary<NSNumber *, id> *pendingReplies;
+static NSURL *downloadURL;
 
 @interface TGExtraPaidMediaFile ()
 @property(nonatomic, readwrite) NSObject *context;
@@ -32,13 +33,18 @@ static dispatch_group_t pendingResponses;
     dispatch_assert_queue(dispatch_get_main_queue());
     if (!nativeSupported) return NO;
     nativeStarts++;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_MSEC * 50), dispatch_get_main_queue(), ^{
-        [serverBytes writeToFile:self.cachePath atomically:YES];
-        nativeReady = YES;
-    });
     return YES;
 }
-- (NSNumber *)nativeDownloadProgress { dispatch_assert_queue(dispatch_get_main_queue()); return @0.5; }
+- (NSNumber *)nativeDownloadProgress {
+    dispatch_assert_queue(dispatch_get_main_queue());
+    NSCAssert(nativeStarts == 1, @"Progress is queried only after starting the native fetch");
+    if (!nativeReady) {
+        // Publish the completed native file only after the downloader begins waiting for progress.
+        [serverBytes writeToFile:self.cachePath atomically:YES];
+        nativeReady = YES;
+    }
+    return @0.5;
+}
 @end
 
 // The Swift codec has separate wire-level tests; this harness exercises the
@@ -111,9 +117,19 @@ static dispatch_group_t pendingResponses;
 @interface MTRequestMessageService (TestMediaInitializer)
 - (instancetype)initWithContext:(id)context;
 @end
+static void deliverReply(NSNumber *offset) {
+    dispatch_block_t reply = pendingReplies[offset];
+    NSCAssert(reply, @"Each queued response is delivered exactly once");
+    [pendingReplies removeObjectForKey:offset];
+    activeRequests--;
+    [completedOffsets addObject:offset];
+    reply();
+}
+
 @implementation MTRequestMessageService
 - (instancetype)initWithContext:(id)context { NSCAssert(context == expectedContext, @"Service context"); return [super init]; }
 - (void)addRequest:(MTRequest *)request {
+    downloadURL = [self.delegate valueForKey:@"url"];
     int64_t offset = 0;
     [request.payload getBytes:&offset length:8];
     NSCAssert(offset >= 0 && offset <= (int64_t)serverBytes.length, @"No requests past EOF");
@@ -124,36 +140,45 @@ static dispatch_group_t pendingResponses;
     NSData *response = [serverBytes subdataWithRange:NSMakeRange(offset, length)];
     MTRpcError *error = serverError ? [[MTRpcError alloc] initWithErrorCode:400 errorDescription:@"FILE_REFERENCE_EXPIRED"] : nil;
     if (reorderResponses) {
-        @synchronized(offsets) {
-            activeRequests++;
-            maximumRequests = MAX(maximumRequests, activeRequests);
-        }
+        activeRequests++;
+        maximumRequests = MAX(maximumRequests, activeRequests);
         void (^completed)(id, MTRequestResponseInfo *, MTRpcError *) = request.completed;
-        dispatch_group_t responses = pendingResponses;
-        dispatch_group_enter(responses);
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (offset == 0 ? 200 : 5) * NSEC_PER_MSEC), dispatch_get_global_queue(0, 0), ^{
-            // Reproduce a transport that can still deliver a queued callback
-            // after cancellation. Production must reject its retired token.
-            @synchronized(offsets) { activeRequests--; [completedOffsets addObject:@(offset)]; }
-            completed(response, nil, error);
-            dispatch_group_leave(responses);
-        });
+        dispatch_block_t reply = ^{ completed(response, nil, error); };
+        pendingReplies[@(offset)] = [reply copy];
+        if (offsets.count == 4) {
+            if (serverError) {
+                deliverReply(@524288);
+            } else {
+                // Fill the window, then deliver its replies in reverse order, keeping the first pending.
+                for (int64_t chunk = 3; chunk > 0; chunk--) deliverReply(@(chunk * 524288));
+            }
+        } else if (offsets.count > 4) {
+            deliverReply(@(offset));
+            if (offsets.count == (serverBytes.length + 524287) / 524288) deliverReply(@0);
+        }
     } else { request.completed(response, nil, error); }
 }
-- (void)removeRequestByInternalId:(id)internalId { cancelledRequests++; }
+- (void)removeRequestByInternalId:(id)internalId {
+    cancelledRequests++;
+    if (reorderResponses && serverError && cancelledRequests == 3) {
+        // The transport already captured these callbacks before cancellation.
+        // Deliver them after every remaining request has been cancelled.
+        for (NSNumber *offset in pendingReplies.allKeys) deliverReply(offset);
+    }
+}
 - (void)removeRequestByInternalId:(id)internalId askForReconnectionOnDrop:(bool)ask {}
 @end
 
 static void runCase(NSUInteger index) {
-    @synchronized(offsets) {
-        NSCAssert(activeRequests == 0, @"Previous transport callbacks finish before advancing or exiting");
-    }
+    NSCAssert(activeRequests == 0 && pendingReplies.count == 0,
+              @"Previous transport callbacks finish before advancing or exiting");
     if (index == 12) { puts("PASS purchased-media download: native video fetch, partial cache, transport fallback, RPC errors, chunks and cleanup"); exit(0); }
     serverBytes = [NSMutableData dataWithLength:index == 1 ? 524288 : 524291];
     offsets = [NSMutableArray new];
     activeRequests = maximumRequests = cancelledRequests = 0;
     completedOffsets = [NSMutableArray new];
-    pendingResponses = dispatch_group_create();
+    pendingReplies = [NSMutableDictionary new];
+    downloadURL = nil;
     reorderResponses = index >= 10;
     if (reorderResponses) {
         NSMutableData *bytes = [NSMutableData dataWithLength:7 * 524288 + 19];
@@ -207,14 +232,13 @@ static void runCase(NSUInteger index) {
             NSCAssert(offsets.count == 2, @"Correct number of aligned chunks, including EOF for unknown size");
             NSCAssert(stops == 1 && authRequests == 1, @"Worker closes and requests the account's DC authorization");
         }
-        for (NSString *name in [NSFileManager.defaultManager contentsOfDirectoryAtPath:NSTemporaryDirectory() error:NULL]) {
-            NSCAssert(![name hasPrefix:@"TGExtraPaid-"], @"No failed download leaves a partial export behind");
+        if (shouldFail) {
+            NSCAssert(downloadURL && ![NSFileManager.defaultManager fileExistsAtPath:downloadURL.path],
+                      @"A failed download removes its own partial export");
         }
         [NSFileManager.defaultManager removeItemAtPath:cache error:NULL];
         [NSFileManager.defaultManager removeItemAtPath:[cache stringByAppendingString:@"_partial"] error:NULL];
-        if (reorderResponses) {
-            dispatch_group_notify(pendingResponses, dispatch_get_main_queue(), ^{ runCase(index + 1); });
-        } else { runCase(index + 1); }
+        runCase(index + 1);
     });
 }
 

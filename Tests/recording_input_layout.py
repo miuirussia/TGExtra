@@ -11,8 +11,8 @@ environment = dict(os.environ)
 xcode = Path('/Applications/Xcode.app/Contents/Developer')
 if 'DEVELOPER_DIR' not in environment and xcode.exists():
     environment['DEVELOPER_DIR'] = str(xcode)
-if platform.system() != 'Darwin' or platform.machine() != 'arm64':
-    print('SKIP UIKit recording layout test: requires Apple Silicon and Mac Catalyst')
+if platform.system() != 'Darwin':
+    print('SKIP UIKit recording layout test: requires macOS and Mac Catalyst')
     raise SystemExit(0)
 sdk = Path(subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'],
                                   env=environment, text=True).strip())
@@ -20,7 +20,7 @@ frameworks = sdk / 'System/iOSSupport/System/Library/Frameworks'
 if not (frameworks / 'UIKit.framework/Headers/UIKit.h').exists():
     print('SKIP UIKit recording layout test: Mac Catalyst SDK unavailable')
     raise SystemExit(0)
-target = 'arm64-apple-ios17.0-macabi'
+target = f'{platform.machine()}-apple-ios17.0-macabi'
 with tempfile.TemporaryDirectory(prefix='tgextra-recording-layout-') as directory:
     work = Path(directory)
     obj = work / 'layout.o'
