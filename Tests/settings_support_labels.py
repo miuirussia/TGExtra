@@ -9,7 +9,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 source = (ROOT / 'Sources/tgapi/UI/SettingsEntryHooks.xm').read_text()
 helpers = source[source.index('BOOL TGExtraIsTelegramSupportLabel('):]
-helpers = helpers[:helpers.index('static BOOL tgextraLabelIsSupportRow(')]
+helpers = helpers[:helpers.index('%hook TGLocalization')]
 
 support = r'''
 #import <Foundation/Foundation.h>

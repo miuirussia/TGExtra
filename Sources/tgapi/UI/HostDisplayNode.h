@@ -4,11 +4,7 @@
 @property (atomic, readonly) UIView *view;
 @property (atomic, copy, readonly) NSArray *subnodes;
 @property (atomic, copy) NSString *accessibilityLabel;
-@property (nonatomic, strong) UILongPressGestureRecognizer *tgextraLongPressGesture;
-@property (nonatomic, strong) UITapGestureRecognizer *tapGesture;
 - (ASDisplayNode *)supernode;
-- (void)__handle5PleTap;
-- (void)__handleTGExtraLongPress:(UILongPressGestureRecognizer *)gesture;
 - (void)setNeedsLayout;
 - (void)layoutIfNeeded;
 @end

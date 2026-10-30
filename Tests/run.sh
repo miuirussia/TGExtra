@@ -7,7 +7,6 @@ python3 Tests/check_api_schema.py
 python3 Tests/host_schema.py
 python3 Tests/native_tl_profile.py
 python3 Tests/settings_support_labels.py
-python3 Tests/settings_search.py
 python3 Tests/settings_apply.py
 python3 Tests/review_regressions.py
 python3 Tests/review_fixes.py

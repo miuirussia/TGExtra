@@ -40,7 +40,3 @@ void TGExtraOpenTelegramURL(NSURL *url);
 
 @interface LocationSelector : UIViewController <MKMapViewDelegate>
 @end
-
-@interface ThreeFingerGestureHandler : NSObject
-- (void)handleThreeFingerLongPress:(UILongPressGestureRecognizer *)gesture;
-@end

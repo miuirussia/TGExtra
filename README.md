@@ -4,9 +4,7 @@ A tweak for Telegram on iOS.
 
 Developed by **KDevLab**. Original idea by **Chocolatefluffy**.
 
-Open **Telegram Settings → TGExtra** at the bottom of the page. You can also
-long-press **Ask a Question**, long-press the screen with three fingers, or tap
-the Chats tab five times.
+Open **Telegram Settings → TGExtra** at the bottom of the page.
 
 ## Screenshots
 
