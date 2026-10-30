@@ -70,8 +70,19 @@ mocks = r'''
 @end
 @interface ASImageNode ()
 @property (nonatomic, strong) UIImage *testImage;
+@property (nonatomic) CGRect layoutFrame;
 @end
 @implementation ASImageNode
+- (instancetype)init {
+    if ((self = [super init])) self.backingView = [UIImageView new];
+    return self;
+}
+- (CGRect)frame { return self.layoutFrame; }
+- (void)setFrame:(CGRect)frame { self.layoutFrame = frame; [super setFrame:frame]; }
+- (void)setTestImage:(UIImage *)image {
+    _testImage = image;
+    ((UIImageView *)self.view).image = image;
+}
 - (UIImage *)image { return self.testImage; }
 @end
 @interface ASScrollView ()
@@ -106,10 +117,26 @@ static ASImageNode *cornerMask(ASDisplayNode *section) {
     ASDisplayNode *row = section.children[0].children[0];
     ASImageNode *mask = [ASImageNode new];
     mask.frame = row.view.bounds;
-    mask.testImage = [UIImage new];
+    UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(56, 56)];
+    mask.testImage = [[renderer imageWithActions:^(UIGraphicsImageRendererContext *context) {
+        [UIColor.blackColor setFill];
+        UIRectFill(CGRectMake(0, 0, 56, 56));
+        CGContextSetBlendMode(context.CGContext, kCGBlendModeClear);
+        [[UIBezierPath bezierPathWithRoundedRect:CGRectMake(0, 0, 56, 56) cornerRadius:26] fill];
+    }] stretchableImageWithLeftCapWidth:28 topCapHeight:28];
     mask.view.userInteractionEnabled = NO;
     children(row, [row.children arrayByAddingObject:mask]);
     return mask;
+}
+static CGFloat brightness(UIView *view, CGPoint point) {
+    unsigned char pixel[4] = {0};
+    CGColorSpaceRef space = CGColorSpaceCreateDeviceRGB();
+    CGContextRef context = CGBitmapContextCreate(pixel, 1, 1, 8, 4, space, (CGBitmapInfo)kCGImageAlphaPremultipliedLast);
+    CGContextTranslateCTM(context, -point.x, -point.y);
+    [view.layer renderInContext:context];
+    CGContextRelease(context);
+    CGColorSpaceRelease(space);
+    return (pixel[0] + pixel[1] + pixel[2]) / (3.0 * 255.0);
 }
 int main(void) { @autoreleasepool {
     ASScrollView *scroll = [[ASScrollView alloc] initWithFrame:CGRectMake(0, 0, 390, 1400)];
@@ -147,6 +174,8 @@ int main(void) { @autoreleasepool {
     ASDisplayNode *pro = section(@"Swiftgram Pro", 376, 52);
     ASImageNode *sgMask = cornerMask(sg);
     ASImageNode *proMask = cornerMask(pro);
+    // Texture layout frames can be ready before backing-layer bounds are committed.
+    proMask.layer.bounds = CGRectZero;
     standard.frame = CGRectMake(16, 452, 358, 156);
     children(root, @[profile, pro, sg, standard, support]);
     TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
@@ -154,6 +183,16 @@ int main(void) { @autoreleasepool {
     NSCAssert(standard.view.frame.origin.y - CGRectGetMaxY(button.frame) == 24, @"Preserve spacing after the joined Swiftgram section");
     NSCAssert(!button.topSeparator.hidden && button.layer.maskedCorners == (kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner), @"Joined row has a separator and only lower rounded corners");
     NSCAssert(proMask.layer.mask != nil && proMask.layer.mask.frame.size.height == 26, @"Preserve Swiftgram's upper corners while opening the lower corners");
+    NSCAssert(proMask.layer.mask.frame.size.width == 358, @"Use layout size while backing-layer bounds are still pending");
+    proMask.frame = proMask.layoutFrame;
+    NSCAssert(button.cornerOverlay.image == proMask.image && button.layer.cornerRadius == 0, @"Use the native corner image instead of an approximate radius");
+    [button layoutIfNeeded];
+    pro.view.backgroundColor = UIColor.whiteColor;
+    button.backgroundColor = UIColor.whiteColor;
+    NSCAssert(brightness(pro.view, CGPointMake(1, 1)) < 0.1 &&
+              brightness(pro.view, CGPointMake(1, 50)) > 0.9, @"Native upper corners remain rounded and the join has no lower cutouts");
+    NSCAssert(brightness(button, CGPointMake(1, 1)) > 0.9 &&
+              brightness(button, CGPointMake(1, 50)) < 0.1, @"TGExtra continues the surface with native lower corners");
     NSCAssert(sg.view.frame.origin.y == 300 && pro.view.frame.origin.y == 376, @"Leave Swiftgram rows in place");
     pro.view.hidden = YES;
     TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));

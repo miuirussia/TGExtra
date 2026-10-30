@@ -29,6 +29,7 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
 @property (nonatomic, strong) CAGradientLayer *iconGradient;
 @property (nonatomic, strong) UIImageView *disclosureView;
 @property (nonatomic, strong) UIView *topSeparator;
+@property (nonatomic, strong) UIImageView *cornerOverlay;
 @property (nonatomic, strong) ASDisplayNode *joinedMaskNode;
 @property (nonatomic, strong) CALayer *joinedMask;
 @property (nonatomic, strong) CALayer *originalMask;
@@ -70,6 +71,11 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
         self.topSeparator.userInteractionEnabled = NO;
         self.topSeparator.hidden = YES;
         [self addSubview:self.topSeparator];
+        self.cornerOverlay = [UIImageView new];
+        self.cornerOverlay.userInteractionEnabled = NO;
+        self.cornerOverlay.layer.mask = [CALayer layer];
+        self.cornerOverlay.layer.mask.backgroundColor = UIColor.blackColor.CGColor;
+        [self addSubview:self.cornerOverlay];
         self.backgroundColor = UIColor.secondarySystemGroupedBackgroundColor;
         self.layer.cornerRadius = 11.0;
         self.layer.cornerCurve = kCACornerCurveContinuous;
@@ -83,6 +89,8 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
 }
 - (void)matchRow:(ASDisplayNode *)row joined:(BOOL)joined {
     self.topSeparator.hidden = YES;
+    self.cornerOverlay.image = nil;
+    self.layer.cornerRadius = 11.0;
     self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
     CGFloat width = row.view.bounds.size.width;
     CGFloat height = row.view.bounds.size.height;
@@ -139,18 +147,24 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
             self.topSeparator.backgroundColor = node.backgroundColor;
         }
         if (![node respondsToSelector:@selector(image)] || ![(ASImageNode *)node image] ||
-            node.frame.size.width < row.frame.size.width - 1.0 ||
+            node.frame.size.width < row.frame.size.width / 2.0 ||
             node.frame.size.height < row.frame.size.height - 1.0) continue;
         // Preserve the upper corners of a single-row Swiftgram section and
         // remove its lower corner cutouts where TGExtra continues the group.
         self.joinedMaskNode = node;
         self.originalMask = node.layer.mask;
         CALayer *mask = [CALayer layer];
-        CGRect bounds = node.layer.bounds;
-        mask.frame = CGRectMake(bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height / 2.0);
+        // Texture may not have committed the node's bounds to its layer yet.
+        // The layout frame already contains the size of the corner image.
+        CGSize size = node.frame.size;
+        mask.frame = CGRectMake(0.0, 0.0, size.width, size.height / 2.0);
         mask.backgroundColor = UIColor.blackColor.CGColor;
         self.joinedMask = mask;
         node.layer.mask = mask;
+        // Reuse the host's lower corner cutouts, including its radius and theme.
+        self.cornerOverlay.image = [(ASImageNode *)node image];
+        self.cornerOverlay.frame = node.frame;
+        self.layer.cornerRadius = 0.0;
         break;
     }
 }
@@ -165,6 +179,12 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
     self.imageView.frame = CGRectInset(self.iconTile.frame, 4.0, 4.0);
     self.imageView.contentMode = UIViewContentModeScaleAspectFit;
     self.disclosureView.frame = self.referenceArrowFrame;
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    CGRect corners = self.cornerOverlay.bounds;
+    self.cornerOverlay.layer.mask.frame = CGRectMake(0.0, corners.size.height / 2.0,
+                                                    corners.size.width, corners.size.height / 2.0);
+    [CATransaction commit];
     CGFloat titleX = self.referenceTitleFrame.origin.x;
     self.topSeparator.frame = CGRectMake(titleX, 0.0, MAX(0.0, self.bounds.size.width - titleX - 16.0), 1.0 / UIScreen.mainScreen.scale);
     CGFloat titleHeight = MAX(self.referenceTitleFrame.size.height, self.titleLabel.font.lineHeight);
