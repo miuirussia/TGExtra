@@ -36,7 +36,8 @@
     if (!file) return;
     self.saving = YES;
     self.item.enabled = NO;
-    self.item.image = [UIImage systemImageNamed:@"hourglass"];
+    self.item.image = [[UIImage systemImageNamed:@"hourglass"] imageWithTintColor:UIColor.whiteColor
+        renderingMode:UIImageRenderingModeAlwaysOriginal];
     [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelAddOnly handler:^(PHAuthorizationStatus status) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (status != PHAuthorizationStatusAuthorized && status != PHAuthorizationStatusLimited) {
@@ -114,11 +115,13 @@ void TGExtraUpdatePaidMediaSaveButton(id node) {
     if (!action) {
         action = [TGExtraPaidMediaSaveAction new];
         action.navigationItem = navigationItem;
-        action.downloadImage = [UIImage systemImageNamed:@"arrow.down.to.line"
-            withConfiguration:[UIImageSymbolConfiguration configurationWithPointSize:21 weight:UIImageSymbolWeightRegular]];
+        action.downloadImage = [[UIImage systemImageNamed:@"arrow.down.to.line"
+            withConfiguration:[UIImageSymbolConfiguration configurationWithPointSize:21 weight:UIImageSymbolWeightRegular]]
+            imageWithTintColor:UIColor.whiteColor renderingMode:UIImageRenderingModeAlwaysOriginal];
         // A standard image item lets Telegram render its own glass and dispatch the action.
         action.item = [[UIBarButtonItem alloc] initWithImage:action.downloadImage
             style:UIBarButtonItemStylePlain target:action action:@selector(save)];
+        action.item.tintColor = UIColor.whiteColor;
         action.item.accessibilityIdentifier = @"TGExtra.SavePaidMedia";
         objc_setAssociatedObject(navigationItem, &actionKey, action, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
