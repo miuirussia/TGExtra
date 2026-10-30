@@ -4,9 +4,14 @@
 #import <QuartzCore/QuartzCore.h>
 #import <math.h>
 
-@interface ASImageNode : ASDisplayNode
-@property (nonatomic, readonly) UIImage *image;
-@end
+static CALayer *TGExtraSettingsImageLayer(ASDisplayNode *node) {
+    // Display.ASImageNode.image is a Swift property without an ObjC getter.
+    // Its backing layer exposes both the image and the native stretch region.
+    if (![NSStringFromClass(node.class) hasSuffix:@"ASImageNode"]) return nil;
+    CALayer *layer = node.layer;
+    id contents = layer.contents;
+    return contents && CFGetTypeID((__bridge CFTypeRef)contents) == CGImageGetTypeID() ? layer : nil;
+}
 
 static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *background, UITraitCollection *traits) {
     UIColor *color = [background resolvedColorWithTraitCollection:traits];
@@ -29,7 +34,7 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
 @property (nonatomic, strong) CAGradientLayer *iconGradient;
 @property (nonatomic, strong) UIImageView *disclosureView;
 @property (nonatomic, strong) UIView *topSeparator;
-@property (nonatomic, strong) UIImageView *cornerOverlay;
+@property (nonatomic, strong) UIView *cornerOverlay;
 @property (nonatomic, strong) ASDisplayNode *joinedMaskNode;
 @property (nonatomic, strong) CALayer *joinedMask;
 @property (nonatomic, strong) CALayer *originalMask;
@@ -71,7 +76,7 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
         self.topSeparator.userInteractionEnabled = NO;
         self.topSeparator.hidden = YES;
         [self addSubview:self.topSeparator];
-        self.cornerOverlay = [UIImageView new];
+        self.cornerOverlay = [UIView new];
         self.cornerOverlay.userInteractionEnabled = NO;
         self.cornerOverlay.layer.mask = [CALayer layer];
         self.cornerOverlay.layer.mask.backgroundColor = UIColor.blackColor.CGColor;
@@ -89,7 +94,7 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
 }
 - (void)matchRow:(ASDisplayNode *)row joined:(BOOL)joined {
     self.topSeparator.hidden = YES;
-    self.cornerOverlay.image = nil;
+    self.cornerOverlay.layer.contents = nil;
     self.layer.cornerRadius = 11.0;
     self.layer.maskedCorners = kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner | kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner;
     CGFloat width = row.view.bounds.size.width;
@@ -105,11 +110,13 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
             UIFont *baseFont = [UIFont systemFontOfSize:17.0];
             self.titleLabel.font = [UIFont systemFontOfSize:ceil(17.0 * frame.size.height / baseFont.lineHeight)];
         }
-        if ([node respondsToSelector:@selector(image)]) {
-            UIImage *image = [(ASImageNode *)node image];
-            if (!image || frame.size.width <= 0.0 || frame.size.height <= 0.0) continue;
+        CALayer *imageLayer = TGExtraSettingsImageLayer(node);
+        if (imageLayer) {
+            if (frame.size.width <= 0.0 || frame.size.height <= 0.0) continue;
             if (frame.origin.x > width / 2.0 && frame.size.width <= 40.0 && frame.size.height <= 40.0) {
                 self.referenceArrowFrame = frame;
+                UIImage *image = [UIImage imageWithCGImage:(__bridge CGImageRef)imageLayer.contents
+                                                    scale:imageLayer.contentsScale orientation:UIImageOrientationUp];
                 self.disclosureView.image = [image imageWithRenderingMode:UIImageRenderingModeAlwaysOriginal];
             } else if (frame.size.width <= 40.0 && frame.size.height <= 40.0 && frame.origin.x < width / 2.0) {
                 self.referenceIconFrame = frame;
@@ -146,7 +153,8 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
         if (node.frame.size.height <= 1.0 && node.backgroundColor) {
             self.topSeparator.backgroundColor = node.backgroundColor;
         }
-        if (![node respondsToSelector:@selector(image)] || ![(ASImageNode *)node image] ||
+        CALayer *imageLayer = TGExtraSettingsImageLayer(node);
+        if (!imageLayer ||
             node.frame.size.width < row.frame.size.width / 2.0 ||
             node.frame.size.height < row.frame.size.height - 1.0) continue;
         // Preserve the upper corners of a single-row Swiftgram section and
@@ -162,7 +170,11 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
         self.joinedMask = mask;
         node.layer.mask = mask;
         // Reuse the host's lower corner cutouts, including its radius and theme.
-        self.cornerOverlay.image = [(ASImageNode *)node image];
+        self.cornerOverlay.layer.contents = imageLayer.contents;
+        self.cornerOverlay.layer.contentsScale = imageLayer.contentsScale;
+        self.cornerOverlay.layer.contentsCenter = imageLayer.contentsCenter;
+        self.cornerOverlay.layer.contentsRect = imageLayer.contentsRect;
+        self.cornerOverlay.layer.contentsGravity = imageLayer.contentsGravity;
         self.cornerOverlay.frame = node.frame;
         self.layer.cornerRadius = 0.0;
         break;

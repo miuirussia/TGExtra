@@ -68,22 +68,37 @@ mocks = r'''
     self.position = CGPointMake(CGRectGetMidX(frame), CGRectGetMidY(frame));
 }
 @end
-@interface ASImageNode ()
+// Display.ASImageNode stores its image in Swift; Objective-C can only read
+// the rendered CALayer contents, not an `image` selector.
+@interface ASImageNode : ASDisplayNode
 @property (nonatomic, strong) UIImage *testImage;
 @property (nonatomic) CGRect layoutFrame;
 @end
 @implementation ASImageNode
 - (instancetype)init {
-    if ((self = [super init])) self.backingView = [UIImageView new];
+    if ((self = [super init])) self.backingView = [UIView new];
     return self;
 }
 - (CGRect)frame { return self.layoutFrame; }
 - (void)setFrame:(CGRect)frame { self.layoutFrame = frame; [super setFrame:frame]; }
 - (void)setTestImage:(UIImage *)image {
     _testImage = image;
-    ((UIImageView *)self.view).image = image;
+    CALayer *layer = self.layer;
+    layer.contents = (__bridge id)image.CGImage;
+    layer.contentsScale = image.scale;
+    CGSize size = image.size;
+    UIEdgeInsets insets = image.capInsets;
+    CGRect center = CGRectMake(0, 0, 1, 1);
+    if (insets.left || insets.right) {
+        center.origin.x = (insets.left + 0.49) / size.width;
+        center.size.width = (size.width - insets.left - insets.right - 0.98) / size.width;
+    }
+    if (insets.top || insets.bottom) {
+        center.origin.y = (insets.top + 0.49) / size.height;
+        center.size.height = (size.height - insets.top - insets.bottom - 0.98) / size.height;
+    }
+    layer.contentsCenter = center;
 }
-- (UIImage *)image { return self.testImage; }
 @end
 @interface ASScrollView ()
 @property (nonatomic, strong) ASDisplayNode *node;
@@ -113,17 +128,24 @@ static ASDisplayNode *section(NSString *label, CGFloat y, CGFloat height) {
     children(row, @[area]); children(container, @[row]); children(section, @[container]);
     return section;
 }
+static UIImage *cornerImage(BOOL top, BOOL bottom, UIColor *background) {
+    UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(56, 56)];
+    return [[renderer imageWithActions:^(UIGraphicsImageRendererContext *context) {
+        [background setFill];
+        UIRectFill(CGRectMake(0, 0, 56, 56));
+        CGContextSetBlendMode(context.CGContext, kCGBlendModeClear);
+        UIRectCorner corners = 0;
+        if (top) corners |= UIRectCornerTopLeft | UIRectCornerTopRight;
+        if (bottom) corners |= UIRectCornerBottomLeft | UIRectCornerBottomRight;
+        [[UIBezierPath bezierPathWithRoundedRect:CGRectMake(0, 0, 56, 56) byRoundingCorners:corners
+                                   cornerRadii:CGSizeMake(26, 26)] fill];
+    }] stretchableImageWithLeftCapWidth:28 topCapHeight:28];
+}
 static ASImageNode *cornerMask(ASDisplayNode *section) {
     ASDisplayNode *row = section.children[0].children[0];
     ASImageNode *mask = [ASImageNode new];
     mask.frame = row.view.bounds;
-    UIGraphicsImageRenderer *renderer = [[UIGraphicsImageRenderer alloc] initWithSize:CGSizeMake(56, 56)];
-    mask.testImage = [[renderer imageWithActions:^(UIGraphicsImageRendererContext *context) {
-        [UIColor.blackColor setFill];
-        UIRectFill(CGRectMake(0, 0, 56, 56));
-        CGContextSetBlendMode(context.CGContext, kCGBlendModeClear);
-        [[UIBezierPath bezierPathWithRoundedRect:CGRectMake(0, 0, 56, 56) cornerRadius:26] fill];
-    }] stretchableImageWithLeftCapWidth:28 topCapHeight:28];
+    mask.testImage = cornerImage(YES, YES, UIColor.blackColor);
     mask.view.userInteractionEnabled = NO;
     children(row, [row.children arrayByAddingObject:mask]);
     return mask;
@@ -174,6 +196,7 @@ int main(void) { @autoreleasepool {
     ASDisplayNode *pro = section(@"Swiftgram Pro", 376, 52);
     ASImageNode *sgMask = cornerMask(sg);
     ASImageNode *proMask = cornerMask(pro);
+    NSCAssert(![proMask respondsToSelector:NSSelectorFromString(@"image")], @"Match the host Swift image node without an Objective-C image getter");
     // Texture layout frames can be ready before backing-layer bounds are committed.
     proMask.layer.bounds = CGRectZero;
     standard.frame = CGRectMake(16, 452, 358, 156);
@@ -185,7 +208,9 @@ int main(void) { @autoreleasepool {
     NSCAssert(proMask.layer.mask != nil && proMask.layer.mask.frame.size.height == 26, @"Preserve Swiftgram's upper corners while opening the lower corners");
     NSCAssert(proMask.layer.mask.frame.size.width == 358, @"Use layout size while backing-layer bounds are still pending");
     proMask.frame = proMask.layoutFrame;
-    NSCAssert(button.cornerOverlay.image == proMask.image && button.layer.cornerRadius == 0, @"Use the native corner image instead of an approximate radius");
+    NSCAssert(button.cornerOverlay.layer.contents == proMask.layer.contents &&
+              CGRectEqualToRect(button.cornerOverlay.layer.contentsCenter, proMask.layer.contentsCenter) &&
+              button.layer.cornerRadius == 0, @"Use the native corner image instead of an approximate radius");
     [button layoutIfNeeded];
     pro.view.backgroundColor = UIColor.whiteColor;
     button.backgroundColor = UIColor.whiteColor;
@@ -225,6 +250,24 @@ int main(void) { @autoreleasepool {
     children(root, @[profile, combined, standard, support]);
     TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
     NSCAssert(button.frame.origin.y == 404 && button.joinedMaskNode == lastMask && firstMask.layer.mask == nil, @"Join the final row of a shared Swiftgram/Pro group, preserving its first row");
+    for (NSNumber *dark in @[@NO, @YES]) {
+        UIColor *surface = dark.boolValue ? UIColor.blackColor : UIColor.whiteColor;
+        UIColor *background = dark.boolValue ? UIColor.whiteColor : UIColor.blackColor;
+        firstMask.testImage = cornerImage(YES, NO, background);
+        lastMask.testImage = cornerImage(NO, YES, background);
+        combined.view.backgroundColor = surface;
+        TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
+        button.backgroundColor = surface;
+        [button layoutIfNeeded];
+        CGFloat expectedSurface = dark.boolValue ? 0.0 : 1.0;
+        for (NSNumber *x in @[@1, @357]) {
+            NSCAssert(fabs(brightness(combined.view, CGPointMake(x.doubleValue, 103)) - expectedSurface) < 0.1 &&
+                      fabs(brightness(button, CGPointMake(x.doubleValue, 1)) - expectedSurface) < 0.1,
+                      @"Shared Swiftgram/Pro group has a straight join on both sides in either theme");
+            NSCAssert(fabs(brightness(button, CGPointMake(x.doubleValue, 50)) - (1.0 - expectedSurface)) < 0.1,
+                      @"Move native bottom-only corner cutouts to the final TGExtra row in either theme");
+        }
+    }
     children(root, @[profile, standard, support]);
     TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
     NSCAssert(button.frame.origin.y == 276 && button.topSeparator.hidden && button.layer.maskedCorners == 15 && lastMask.layer.mask == nil, @"Return to a separate Telegram block after Swiftgram rows disappear");
@@ -236,7 +279,7 @@ int main(void) { @autoreleasepool {
     root.parentNode = nil;
     size = TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
     NSCAssert(button.hidden && size.height == 1100 && support.view.frame.origin.y == 900, @"Unrelated screens restore layout and have no tweak entry");
-    puts("PASS UIKit settings placement, Swiftgram ordering, repeated layout, geometry updates, resizing, edit mode, VoiceOver and opening");
+    puts("PASS UIKit settings placement, Swift image layers, joined corners in both themes, repeated layout, resizing, edit mode, VoiceOver and opening");
 } }
 '''
 
