@@ -8,6 +8,10 @@ _THEOS_TARGET_LDFLAGS := $(subst -multiply_defined suppress,,$(_THEOS_TARGET_LDF
 
 TWEAK_NAME = TGExtra
 
+TGEXTRA_VERSION := $(shell sed -n 's/^Version:[[:space:]]*//p' layout/DEBIAN/control)
+TGEXTRA_COMMIT := $(shell git rev-parse --short HEAD)
+Sources/tgapi/UI/TGExtra.m_CFLAGS = -DTGEXTRA_VERSION=\"$(TGEXTRA_VERSION)\" -DTGEXTRA_COMMIT=\"$(TGEXTRA_COMMIT)\"
+
 $(TWEAK_NAME)_FILES = $(shell find Sources \( -name '*.swift' -o -name '*.m' -o -name '*.xm' \))
 $(TWEAK_NAME)_SWIFTFLAGS = -ISources/tgapiC/include
 $(TWEAK_NAME)_CFLAGS = -fobjc-arc -ISources/tgapiC/include -Wno-deprecated-declarations

@@ -12,6 +12,8 @@
 "FAKE_LOCATION_SECTION_HEADER" = "虛擬定位";
 "LANGUAGE_SECTION_HEADER" = "語言";
 "CREDITS_SECTION_HEADER" = "鳴謝";
+"DEVELOPED_BY" = "由 KDevLab 開發";
+"ORIGINAL_IDEA_BY" = "原創構想來自 Chocolatefluffy";
 
 /* Ghost Mode */
 "DISABLE_ONLINE_STATUS_TITLE" = "停用在線狀態";
@@ -121,7 +123,7 @@
 
 "DISCLAIMER" = "免責聲明";
 
-"AUTHOR_MESSAGE" = "本Telegram調整工具僅限於個人及教育用途。我們與Telegram無任何關聯。所有商標，包括Telegram名稱及標誌，皆屬其各自所有者所有。請勿使用本工具違反規則、進行不當行為或違反Telegram的服務條款。若因使用本工具而產生任何問題，我們概不負責，使用者須自行承擔風險。\n \n此外，若您對本工具感到滿意，歡迎提供意見或反饋，您的支持對我們至關重要。\n \n如有意透過小額捐款支持我，請透過Telegram與我聯繫。";
+"AUTHOR_MESSAGE" = "本Telegram調整工具僅限於個人及教育用途。我們與Telegram無任何關聯。所有商標，包括Telegram名稱及標誌，皆屬其各自所有者所有。請勿使用本工具違反規則、進行不當行為或違反Telegram的服務條款。若因使用本工具而產生任何問題，我們概不負責，使用者須自行承擔風險。\n\n由 KDevLab 開發\n原創構想來自 Chocolatefluffy";
 "ANTI_EDIT_TITLE" = "保存被編輯訊息的原文";
 "ANTI_EDIT_SUBTITLE" = "保留他人編輯過的每一個版本。聊天中仍顯示最新內容；點一下泡泡上的鉛筆即可查看先前寫了什麼。";
 "ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "此 Telegram 版本無法使用 —— 在 API 層更新之前讀不到編輯更新。";

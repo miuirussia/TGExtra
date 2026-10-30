@@ -12,6 +12,8 @@
 "FAKE_LOCATION_SECTION_HEADER" = "Ubicación Falsa";
 "LANGUAGE_SECTION_HEADER" = "Idioma";
 "CREDITS_SECTION_HEADER" = "Créditos";
+"DEVELOPED_BY" = "Desarrollado por KDevLab";
+"ORIGINAL_IDEA_BY" = "Idea original de Chocolatefluffy";
 
 
 /* Ghost Mode */
@@ -124,7 +126,7 @@
 
 "DISCLAIMER" = "Aviso legal";
 
-"AUTHOR_MESSAGE" = "Este ajuste de Telegram es solo para uso personal y educativo. No estamos afiliados con Telegram de ninguna manera. Todas las marcas registradas, incluido el nombre y logo de Telegram, pertenecen a sus respectivos propietarios. No uses esto para romper reglas, hacer cosas sospechosas o violar los términos de Telegram — no nos hacemos responsables si algo sale mal. Úsalo bajo tu propio riesgo.\n\nAdemás... si te gusta, dilo. En serio, vivo del reconocimiento.\n\nY también... si quieres apoyarme donando uno o dos dólares, contáctame por Telegram.";
+"AUTHOR_MESSAGE" = "Este ajuste de Telegram es solo para uso personal y educativo. No estamos afiliados con Telegram de ninguna manera. Todas las marcas registradas, incluido el nombre y logo de Telegram, pertenecen a sus respectivos propietarios. No uses esto para romper reglas, hacer cosas sospechosas o violar los términos de Telegram — no nos hacemos responsables si algo sale mal. Úsalo bajo tu propio riesgo.\n\nDesarrollado por KDevLab\nIdea original de Chocolatefluffy";
 "ANTI_EDIT_TITLE" = "Guardar el original de los mensajes editados";
 "ANTI_EDIT_SUBTITLE" = "Conserva todas las versiones de un mensaje que alguien edite. El chat sigue mostrando el texto más reciente; toca el lápiz de la burbuja para leer lo que decía antes.";
 "ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "No disponible en esta versión de Telegram: las actualizaciones de edición no se pueden leer hasta que se renueve la capa de la API.";

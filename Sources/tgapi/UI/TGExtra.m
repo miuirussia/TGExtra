@@ -1,7 +1,7 @@
 #import "SettingsController.h"
 #import "Icons.h"
 
-static NSString *const kTGExtraTweakVersion = @"1.3.0";
+static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
 
 @implementation TGExtra
 
@@ -41,9 +41,17 @@ static NSString *const kTGExtraTweakVersion = @"1.3.0";
   versionLabel.textAlignment = NSTextAlignmentCenter;
   versionLabel.numberOfLines = 0;
 
-    versionLabel.text =
-      [NSString stringWithFormat:@"TGExtra Version %@\nTGExtra",
-                                 kTGExtraTweakVersion];
+  NSBundle *clientBundle = NSBundle.mainBundle;
+  NSString *clientName = [clientBundle objectForInfoDictionaryKey:@"CFBundleDisplayName"];
+  if (clientName.length == 0) {
+    clientName = [clientBundle objectForInfoDictionaryKey:@"CFBundleName"];
+  }
+  if (clientName.length == 0) {
+    clientName = clientBundle.bundleIdentifier;
+  }
+  versionLabel.text =
+      [NSString stringWithFormat:@"TGExtra Version %@ (%@)\n%@",
+                                 kTGExtraTweakVersion, @TGEXTRA_COMMIT, clientName];
 
   [footerView addSubview:versionLabel];
 

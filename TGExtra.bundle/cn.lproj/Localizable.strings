@@ -12,6 +12,8 @@
 "FAKE_LOCATION_SECTION_HEADER" = "虚拟位置";
 "LANGUAGE_SECTION_HEADER" = "语言";
 "CREDITS_SECTION_HEADER" = "致谢";
+"DEVELOPED_BY" = "由 KDevLab 开发";
+"ORIGINAL_IDEA_BY" = "原创构思来自 Chocolatefluffy";
 
 /* Ghost Mode */
 "DISABLE_ONLINE_STATUS_TITLE" = "隐藏在线状态";
@@ -119,7 +121,7 @@
 "OK" = "确定";
 "CANCEL" = "取消";
 
-"AUTHOR_MESSAGE" = "此 Telegram 插件仅供个人和教育用途。我们与 Telegram 没有任何关联。所有商标，包括 Telegram 的名称和标志，均归其各自所有者所有。请不要用它来违反规则、做灰色操作或违反 Telegram 的服务条款——如果出问题，我们概不负责。使用风险自负。\n\n另外……如果你喜欢这个插件，记得说一声。我真的很需要认可来维持动力。\n\n还有……如果你愿意支持我，捐个一两美元的话，可以在 Telegram 上联系我。";
+"AUTHOR_MESSAGE" = "此 Telegram 插件仅供个人和教育用途。我们与 Telegram 没有任何关联。所有商标，包括 Telegram 的名称和标志，均归其各自所有者所有。请不要用它来违反规则、做灰色操作或违反 Telegram 的服务条款——如果出问题，我们概不负责。使用风险自负。\n\n由 KDevLab 开发\n原创构思来自 Chocolatefluffy";
 
 
 

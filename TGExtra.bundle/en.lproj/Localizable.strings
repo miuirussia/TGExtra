@@ -12,6 +12,8 @@
 "FAKE_LOCATION_SECTION_HEADER" = "Fake Location";
 "LANGUAGE_SECTION_HEADER" = "Language";
 "CREDITS_SECTION_HEADER" = "Credits";
+"DEVELOPED_BY" = "Developed by KDevLab";
+"ORIGINAL_IDEA_BY" = "Original idea by Chocolatefluffy";
 
 /* Ghost Mode */
 "DISABLE_ONLINE_STATUS_TITLE" = "Hide Online Status";
@@ -125,7 +127,7 @@
 
 "DISCLAIMER" = "Disclaimer";
 
-"AUTHOR_MESSAGE" = "This Telegram tweak is for personal and educational use only. We are not affiliated with Telegram in any way. All trademarks, including the Telegram name and logo, belong to their respective owners. Don't use this to break rules or violate Telegram's terms — we're not responsible if things go sideways. Use at your own risk.\n\nMade by Lead Team";
+"AUTHOR_MESSAGE" = "This Telegram tweak is for personal and educational use only. We are not affiliated with Telegram in any way. All trademarks, including the Telegram name and logo, belong to their respective owners. Don't use this to break rules or violate Telegram's terms — we're not responsible if things go sideways. Use at your own risk.\n\nDeveloped by KDevLab\nOriginal idea by Chocolatefluffy";
 "ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Unavailable on this Telegram version — edit updates cannot be read until the API layer is refreshed.";
 "CLOSE" = "Close";
 "EDIT_HISTORY_TITLE" = "Edit History";

@@ -193,8 +193,8 @@
   } else if (indexPath.section == CREDITS) {
     cell = TGExtraNormalSettingsCell(tableView);
     if (indexPath.row == 0) {
-      cell.textLabel.text = @"TGExtra";
-      cell.detailTextLabel.text = @"Developer";
+      cell.textLabel.text = TGLoc(@"DEVELOPED_BY");
+      cell.detailTextLabel.text = TGLoc(@"ORIGINAL_IDEA_BY");
       cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
       NSData *imageData = [[NSData alloc] initWithBase64EncodedString:CHOCOPNG options:NSDataBase64DecodingIgnoreUnknownCharacters];
       UIImage *rawImage = [UIImage imageWithData:imageData];

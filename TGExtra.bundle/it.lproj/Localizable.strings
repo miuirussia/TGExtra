@@ -14,6 +14,8 @@
 "FAKE_LOCATION_SECTION_HEADER" = "Posizione falsa";
 "LANGUAGE_SECTION_HEADER" = "Lingua";
 "CREDITS_SECTION_HEADER" = "Crediti";
+"DEVELOPED_BY" = "Sviluppato da KDevLab";
+"ORIGINAL_IDEA_BY" = "Idea originale di Chocolatefluffy";
 
 /* Ghost Mode */
 "DISABLE_ONLINE_STATUS_TITLE" = "Disattiva stato online";
@@ -123,7 +125,7 @@
 
 "DISCLAIMER" = "Avvertenza";
 
-"AUTHOR_MESSAGE" = "Questa modifica per Telegram è solo per uso personale ed educativo. Non siamo in alcun modo affiliati con Telegram. Tutti i marchi, incluso il nome e il logo di Telegram, appartengono ai rispettivi proprietari. Non usare questo tweak per infrangere le regole, fare i furbi o violare i termini di Telegram — non siamo responsabili se qualcosa va storto. Usalo a tuo rischio e pericolo. \n\nInoltre… se ti piace, fammelo sapere. Vivo seriamente di approvazione. \n\nE se vuoi supportarmi con una donazione di uno o due dollari, contattami su Telegram.";
+"AUTHOR_MESSAGE" = "Questa modifica per Telegram è solo per uso personale ed educativo. Non siamo in alcun modo affiliati con Telegram. Tutti i marchi, incluso il nome e il logo di Telegram, appartengono ai rispettivi proprietari. Non usare questo tweak per infrangere le regole, fare i furbi o violare i termini di Telegram — non siamo responsabili se qualcosa va storto. Usalo a tuo rischio e pericolo.\n\nSviluppato da KDevLab\nIdea originale di Chocolatefluffy";
 "ANTI_EDIT_TITLE" = "Salva l'originale dei messaggi modificati";
 "ANTI_EDIT_SUBTITLE" = "Conserva ogni versione di un messaggio che qualcuno modifica. La chat continua a mostrare il testo più recente; tocca la matita sul fumetto per leggere com'era prima.";
 "ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Non disponibile su questa versione di Telegram: gli aggiornamenti di modifica non sono leggibili finché il livello API non viene aggiornato.";
