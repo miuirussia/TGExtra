@@ -4,7 +4,8 @@ A tweak for Telegram on iOS.
 
 Developed by **KDevLab**. Original idea by **Chocolatefluffy**.
 
-Open **Telegram Settings → TGExtra** at the bottom of the page.
+Open **Telegram Settings → TGExtra** below **My Profile**. In Swiftgram, TGExtra
+appears after Swiftgram's own settings rows.
 
 ## Screenshots
 

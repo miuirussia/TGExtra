@@ -14,11 +14,14 @@ helpers = helpers[:helpers.index('%hook TGLocalization')]
 support = r'''
 #import <Foundation/Foundation.h>
 static NSString *supportTranslation;
+static NSString *profileTranslation;
 @interface TGLocalization : NSObject
 - (NSString *)get:(NSString *)key;
 @end
 @implementation TGLocalization
-- (NSString *)get:(NSString *)key { return supportTranslation ?: key; }
+- (NSString *)get:(NSString *)key {
+    return [key isEqualToString:@"Settings.MyProfile"] ? (profileTranslation ?: key) : (supportTranslation ?: key);
+}
 @end
 static TGLocalization *localization;
 static TGLocalization *getActiveTGLocalization(void) { return localization; }
@@ -34,6 +37,13 @@ int main(void) {
             NSCAssert(!TGExtraIsTelegramSupportLabel(label), @"Not a Telegram settings support row: %@", label);
         }
         NSCAssert(!TGExtraIsTelegramSupportLabel(nil), @"Missing label");
+        for (NSString *label in @[@"My Profile", @"Мой профиль", @"Mi perfil", @"我的资料"]) {
+            NSCAssert(TGExtraIsMyProfileLabel(label), @"Offline profile fallback: %@", label);
+        }
+        for (NSString *label in @[@"", @"Edit Profile", @"My Profile Settings", @"Swiftgram", @"Settings.MyProfile"]) {
+            NSCAssert(!TGExtraIsMyProfileLabel(label), @"Not the profile settings row: %@", label);
+        }
+        NSCAssert(!TGExtraIsMyProfileLabel(nil), @"Missing profile label");
         localization = [TGLocalization new];
         NSCAssert(!TGExtraIsTelegramSupportLabel(@"Settings.Support"), @"A missing translation returns its key");
         supportTranslation = @"طرح سؤال";
@@ -42,7 +52,10 @@ int main(void) {
         supportTranslation = @"Ställ en fråga";
         NSCAssert(TGExtraIsTelegramSupportLabel(@"STÄLL EN FRÅGA"), @"Changing host language");
         NSCAssert(!TGExtraIsTelegramSupportLabel(@"Ställ en fråga about my profile"), @"Do not accept extra profile text");
-        puts("PASS settings support detection, fallback languages, host language changes and unrelated labels");
+        profileTranslation = @"Min profil";
+        NSCAssert(TGExtraIsMyProfileLabel(@"MIN PROFIL"), @"Use the host profile translation");
+        NSCAssert(!TGExtraIsMyProfileLabel(supportTranslation), @"Support and profile translations remain distinct");
+        puts("PASS settings support/profile detection, fallback languages, host language changes and unrelated labels");
     }
     return 0;
 }

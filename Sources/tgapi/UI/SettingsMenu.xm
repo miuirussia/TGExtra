@@ -5,6 +5,7 @@
 #import "SettingsNavigation.h"
 
 BOOL TGExtraIsTelegramSupportLabel(NSString *label);
+BOOL TGExtraIsMyProfileLabel(NSString *label);
 
 @interface ASDisplayNode : NSObject
 @property (nonatomic, readonly) ASDisplayNode *supernode;
@@ -13,7 +14,8 @@ BOOL TGExtraIsTelegramSupportLabel(NSString *label);
 @property (nonatomic, readonly) NSString *accessibilityLabel;
 @property (nonatomic, readonly, getter=isHidden) BOOL hidden;
 @property (nonatomic, readonly) CGFloat alpha;
-@property (nonatomic, readonly) CGRect frame;
+@property (nonatomic) CGRect frame;
+@property (nonatomic) CGPoint position;
 @property (nonatomic, readonly) UIColor *backgroundColor;
 @end
 
@@ -25,18 +27,47 @@ BOOL TGExtraIsTelegramSupportLabel(NSString *label);
 - (ASDisplayNode *)scrollNode;
 @end
 
-static ASDisplayNode *TGExtraFindSupportRow(ASDisplayNode *node) {
+static ASDisplayNode *TGExtraFindSettingsRow(ASDisplayNode *node, BOOL (^matches)(NSString *)) {
     if (node.hidden || node.alpha <= 0.0) return nil;
     if ([NSStringFromClass(node.class) containsString:@"AccessibilityAreaNode"] &&
         [NSStringFromClass(node.supernode.class) containsString:@"PeerInfoScreenDisclosureItemNode"] &&
-        TGExtraIsTelegramSupportLabel(node.accessibilityLabel)) {
+        matches(node.accessibilityLabel)) {
         return node.supernode;
     }
     for (ASDisplayNode *child in node.subnodes) {
-        ASDisplayNode *row = TGExtraFindSupportRow(child);
+        ASDisplayNode *row = TGExtraFindSettingsRow(child, matches);
         if (row) return row;
     }
     return nil;
+}
+
+static ASDisplayNode *TGExtraSettingsSection(ASDisplayNode *row, ASDisplayNode *scrollNode) {
+    ASDisplayNode *section = row;
+    while (section && section.supernode != scrollNode) section = section.supernode;
+    return [NSStringFromClass(section.class) hasSuffix:@".PeerInfoScreenItemSectionContainerNode"] ? section : nil;
+}
+
+// Keep the host's layout coordinates intact while reserving space for our row.
+@interface TGExtraSettingsOffset : NSObject
+@property (nonatomic) CGFloat offset;
+@property (nonatomic) BOOL accessingGeometry;
+@end
+@implementation TGExtraSettingsOffset
+@end
+
+static char TGExtraSettingsOffsetKey;
+
+static void TGExtraSetSettingsOffset(ASDisplayNode *node, CGFloat offset) {
+    CGRect frame = node.frame;
+    TGExtraSettingsOffset *state = objc_getAssociatedObject(node, &TGExtraSettingsOffsetKey);
+    if (!state && offset == 0.0) return;
+    if (!state) {
+        state = [TGExtraSettingsOffset new];
+        objc_setAssociatedObject(node, &TGExtraSettingsOffsetKey, state, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    state.offset = offset;
+    node.frame = frame;
+    if (offset == 0.0) objc_setAssociatedObject(node, &TGExtraSettingsOffsetKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *background, UITraitCollection *traits) {
@@ -62,6 +93,7 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
 @property (nonatomic) CGRect referenceTitleFrame;
 @property (nonatomic) CGRect referenceIconFrame;
 @property (nonatomic) CGRect referenceArrowFrame;
+@property (nonatomic, copy) NSArray<ASDisplayNode *> *shiftedNodes;
 - (void)matchSupportRow:(ASDisplayNode *)row;
 @end
 
@@ -171,15 +203,28 @@ static char TGExtraSettingsButtonKey;
 
 static CGSize TGExtraSettingsContentSize(ASScrollView *scrollView, CGSize hostSize) {
     TGExtraSettingsButton *button = objc_getAssociatedObject(scrollView, &TGExtraSettingsButtonKey);
+    for (ASDisplayNode *node in button.shiftedNodes) TGExtraSetSettingsOffset(node, 0.0);
+    button.shiftedNodes = nil;
     ASDisplayNode *scrollNode = [scrollView scrollNode];
     ASDisplayNode *screenNode = scrollNode.supernode;
     ASDisplayNode *supportRow = nil;
+    ASDisplayNode *profileRow = nil;
     if ([NSStringFromClass(screenNode.class) hasSuffix:@".PeerInfoScreenNode"]) {
-        supportRow = TGExtraFindSupportRow(scrollNode);
+        supportRow = TGExtraFindSettingsRow(scrollNode, ^BOOL(NSString *label) { return TGExtraIsTelegramSupportLabel(label); });
+        profileRow = TGExtraFindSettingsRow(scrollNode, ^BOOL(NSString *label) { return TGExtraIsMyProfileLabel(label); });
     }
-    if (!supportRow || hostSize.width <= 0.0 || hostSize.height <= 0.0) {
+    ASDisplayNode *anchorSection = TGExtraSettingsSection(profileRow, scrollNode);
+    if (!supportRow || !anchorSection || hostSize.width <= 0.0 || hostSize.height <= 0.0) {
         button.hidden = YES;
         return hostSize;
+    }
+    for (ASDisplayNode *section in scrollNode.subnodes) {
+        if (section.hidden || section.alpha <= 0.0 || section.frame.size.height <= 0.0 ||
+            CGRectGetMinY(section.frame) < CGRectGetMaxY(anchorSection.frame)) continue;
+        ASDisplayNode *swiftgramRow = TGExtraFindSettingsRow(section, ^BOOL(NSString *label) {
+            return [label isEqualToString:@"Swiftgram"] || [label isEqualToString:@"Swiftgram Pro"];
+        });
+        if (TGExtraSettingsSection(swiftgramRow, scrollNode) == section) anchorSection = section;
     }
     if (!button) {
         button = [[TGExtraSettingsButton alloc] initWithFrame:CGRectZero];
@@ -189,21 +234,86 @@ static CGSize TGExtraSettingsContentSize(ASScrollView *scrollView, CGSize hostSi
     CGRect rowFrame = [supportRow.view convertRect:supportRow.view.bounds toView:scrollView];
     [button matchSupportRow:supportRow];
     CGFloat height = MAX(44.0, rowFrame.size.height);
-    button.frame = CGRectMake(rowFrame.origin.x, hostSize.height + 8.0, rowFrame.size.width, height);
+    CGFloat anchorBottom = CGRectGetMaxY(anchorSection.frame);
+    CGFloat spacing = 24.0;
+    CGFloat offset = height + spacing;
+    NSMutableArray<ASDisplayNode *> *shiftedNodes = [NSMutableArray array];
+    for (ASDisplayNode *node in scrollNode.subnodes) {
+        if (CGRectGetMinY(node.frame) < anchorBottom) continue;
+        TGExtraSetSettingsOffset(node, offset);
+        [shiftedNodes addObject:node];
+    }
+    button.shiftedNodes = shiftedNodes;
+    button.frame = CGRectMake(rowFrame.origin.x, anchorBottom + spacing, rowFrame.size.width, height);
     button.hidden = NO;
-    return CGSizeMake(hostSize.width, hostSize.height + height + 24.0);
+    return CGSizeMake(hostSize.width, hostSize.height + offset);
+}
+
+static NSArray *TGExtraSettingsAccessibilityElements(ASScrollView *scrollView, NSArray *elements) {
+    TGExtraSettingsButton *button = objc_getAssociatedObject(scrollView, &TGExtraSettingsButtonKey);
+    if (button && !button.hidden) {
+        NSMutableArray *ordered = [elements mutableCopy] ?: [NSMutableArray array];
+        [ordered removeObject:button];
+        NSUInteger index = [ordered indexOfObjectPassingTest:^BOOL(id element, NSUInteger idx, BOOL *stop) {
+            return CGRectGetMinY([element accessibilityFrame]) > CGRectGetMinY(button.accessibilityFrame);
+        }];
+        [ordered insertObject:button atIndex:index == NSNotFound ? ordered.count : index];
+        return ordered;
+    }
+    return elements;
 }
 
 %group TGExtraSettingsMenu
+%hook ASDisplayNode
+- (CGRect)frame {
+    TGExtraSettingsOffset *state = objc_getAssociatedObject(self, &TGExtraSettingsOffsetKey);
+    if (!state || state.accessingGeometry) return %orig;
+    state.accessingGeometry = YES;
+    CGRect frame = %orig;
+    state.accessingGeometry = NO;
+    frame.origin.y -= state.offset;
+    return frame;
+}
+- (void)setFrame:(CGRect)frame {
+    TGExtraSettingsOffset *state = objc_getAssociatedObject(self, &TGExtraSettingsOffsetKey);
+    if (!state || state.accessingGeometry) {
+        %orig(frame);
+        return;
+    }
+    frame.origin.y += state.offset;
+    state.accessingGeometry = YES;
+    %orig(frame);
+    state.accessingGeometry = NO;
+}
+- (CGPoint)position {
+    TGExtraSettingsOffset *state = objc_getAssociatedObject(self, &TGExtraSettingsOffsetKey);
+    if (!state || state.accessingGeometry) return %orig;
+    state.accessingGeometry = YES;
+    CGPoint position = %orig;
+    state.accessingGeometry = NO;
+    position.y -= state.offset;
+    return position;
+}
+- (void)setPosition:(CGPoint)position {
+    TGExtraSettingsOffset *state = objc_getAssociatedObject(self, &TGExtraSettingsOffsetKey);
+    if (!state || state.accessingGeometry) {
+        %orig(position);
+        return;
+    }
+    position.y += state.offset;
+    state.accessingGeometry = YES;
+    %orig(position);
+    state.accessingGeometry = NO;
+}
+%end
+
 %hook ASScrollView
 - (void)setContentSize:(CGSize)size {
     %orig(TGExtraSettingsContentSize(self, size));
 }
 - (NSArray *)accessibilityElements {
     NSArray *elements = %orig;
-    TGExtraSettingsButton *button = objc_getAssociatedObject(self, &TGExtraSettingsButtonKey);
-    if (button && !button.hidden) return [(elements ?: @[]) arrayByAddingObject:button];
-    return elements;
+    return TGExtraSettingsAccessibilityElements(self, elements);
 }
 %end
 %end
@@ -211,6 +321,6 @@ static CGSize TGExtraSettingsContentSize(ASScrollView *scrollView, CGSize hostSi
 %ctor {
     Class scrollView = objc_getClass("ASScrollView");
     if (scrollView && class_getInstanceMethod(scrollView, @selector(scrollNode))) {
-        %init(TGExtraSettingsMenu, ASScrollView = scrollView);
+        %init(TGExtraSettingsMenu, ASScrollView = scrollView, ASDisplayNode = objc_getClass("ASDisplayNode"));
     }
 }

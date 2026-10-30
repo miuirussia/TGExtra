@@ -40,6 +40,21 @@ BOOL TGExtraIsTelegramSupportLabel(NSString *label) {
     return NO;
 }
 
+BOOL TGExtraIsMyProfileLabel(NSString *label) {
+    if (label.length == 0) return NO;
+    NSString *lower = label.lowercaseString;
+    NSString *localized = [getActiveTGLocalization() get:@"Settings.MyProfile"];
+    if (localized.length && ![localized isEqualToString:@"Settings.MyProfile"] &&
+        [lower isEqualToString:localized.lowercaseString]) return YES;
+    for (NSString *text in @[@"my profile", @"мой профиль", @"mi perfil",
+         @"mon profil", @"mein profil", @"il mio profilo", @"profilim",
+         @"내 프로필", @"我的资料", @"我的個人資料", @"マイプロフィール",
+         @"hồ sơ của tôi"]) {
+        if ([lower isEqualToString:text]) return YES;
+    }
+    return NO;
+}
+
 %hook TGLocalization
 - (id)get:(id)key {
     if ([key isKindOfClass:NSString.class] && [key hasPrefix:@"Settings."]) {
