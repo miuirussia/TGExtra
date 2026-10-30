@@ -24,7 +24,7 @@ static BOOL reorderResponses;
 + (instancetype)fileFromFooterNode:(id)footer { return nil; }
 + (BOOL)isUnlockedPaidItem:(id)item { return NO; }
 + (void)bindGalleryItem:(id)item {}
-+ (id)saveButtonNodeFromFooter:(id)footer { return nil; }
++ (id)currentFooterNodeFromGalleryFooter:(id)container { return nil; }
 + (id)footerNodeFromItem:(id)item { return nil; }
 - (NSData *)downloadRequestAtOffset:(int64_t)offset { return [NSData dataWithBytes:&offset length:8]; }
 - (BOOL)beginNativeDownload {

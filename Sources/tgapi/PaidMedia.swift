@@ -176,10 +176,9 @@ final class PaidMediaFile: NSObject {
         return Api.functions.upload.getFile(flags: 0, location: location, offset: offset, limit: 524288).1.makeValidData()
     }
 
-    @objc(saveButtonNodeFromFooter:)
-    static func saveButtonNode(footer: AnyObject) -> AnyObject? {
-        guard Thread.isMainThread, let item = galleryItems.object(forKey: footer) else { return nil }
-        return field(item, "moreBarButton") as AnyObject?
+    @objc(currentFooterNodeFromGalleryFooter:)
+    static func currentFooterNode(container: AnyObject) -> AnyObject? {
+        field(container, "currentFooterContentNode") as AnyObject?
     }
 
     @objc(footerNodeFromItem:)

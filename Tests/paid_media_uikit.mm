@@ -13,14 +13,11 @@
 @interface TGExtraPaidMediaFile : NSObject
 + (void)bindGalleryItem:(id)item;
 + (BOOL)isUnlockedPaidItem:(id)item;
-+ (id)footerNodeFromItem:(id)item;
 @end
 @implementation TGExtraPaidMediaFile
 + (void)bindGalleryItem:(id)item {}
 + (BOOL)isUnlockedPaidItem:(id)item { return YES; }
-+ (id)footerNodeFromItem:(id)item { return nil; }
 @end
-extern "C" void TGExtraUpdatePaidMediaSaveButton(id node) {}
 static char nodeKey;
 @interface UIView (Node)
 - (id)asyncdisplaykit_node;

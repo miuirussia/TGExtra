@@ -122,7 +122,6 @@ void TGExtraUpdatePaidMediaCapture(id node) {
         ![name hasSuffix:@".UniversalVideoGalleryItemNode"]) return;
     if (!NSThread.isMainThread || ![node respondsToSelector:@selector(view)]) return;
     [TGExtraPaidMediaFile bindGalleryItem:node];
-    TGExtraUpdatePaidMediaSaveButton([TGExtraPaidMediaFile footerNodeFromItem:node]);
     CALayer *root = [node view].layer;
     BOOL wasAllowed = [objc_getAssociatedObject(root, &paidCaptureRootKey) boolValue];
     BOOL unlocked = [TGExtraPaidMediaFile isUnlockedPaidItem:node];

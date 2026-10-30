@@ -41,9 +41,11 @@ private enum PaidMediaMocks {
     }
     // Reading a Swift superclass is required for clients that subclass nodes.
     final class DerivedFooter: Footer {}
+    final class GalleryFooter: NSObject {
+        var currentFooterContentNode: Footer?
+    }
     final class Item: NSObject {
         let footerContentNode: Footer
-        let moreBarButton = NSObject()
         var message: Message?
         var mediaSubject: Subject?
         var item: VideoItem?
@@ -116,8 +118,10 @@ func testPaidMedia() {
     var nativeFetches = 0
     videoItem.fetchControls = .init(fetch: { nativeFetches += 1 }, cancel: { fatalError("Saving must never cancel a native fetch") })
     PaidMediaFile.bindGalleryItem(videoItem)
-    check(PaidMediaFile.saveButtonNode(footer: footer) === videoItem.moreBarButton,
-          "Saving uses the selected gallery item's native navigation button")
+    let galleryFooter = M.GalleryFooter()
+    galleryFooter.currentFooterContentNode = footer
+    check(PaidMediaFile.currentFooterNode(container: galleryFooter) === footer,
+          "Saving resolves the active footer without requiring a gallery-item capture hook")
     let nativeVideo = PaidMediaFile.file(footer: footer)!
     check(nativeVideo.beginNativeDownload() && nativeFetches == 1, "Video saving starts the host's native full-file fetch")
     videoItem.fetchStatus = .Fetching(isActive: true, progress: 0.5)

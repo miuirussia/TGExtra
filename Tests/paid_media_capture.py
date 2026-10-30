@@ -183,7 +183,6 @@ static void detach(CALayer *layer) {
 + (BOOL)isUnlockedPaidItem:(TestNode *)node { return ((TestNode *)node.footer).unlocked; }
 + (void)bindGalleryItem:(TestNode *)node {}
 @end
-void TGExtraUpdatePaidMediaSaveButton(id node) {}
 '''
 
 tests = r'''

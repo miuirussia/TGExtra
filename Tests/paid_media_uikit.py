@@ -37,3 +37,15 @@ with tempfile.TemporaryDirectory(prefix='tgextra-uikit-capture-') as directory:
         str(hook), str(root / 'Tests/paid_media_uikit.mm'), '-o', str(binary),
     ], env=environment, check=True)
     subprocess.run([str(binary)], check=True, timeout=30)
+    (work / 'roothide.h').write_text('#define jbroot(path) (path)\n')
+    save_binary = work / 'save-tests'
+    subprocess.run([
+        'xcrun', 'clang', '-target', 'arm64-apple-ios17.0-macabi', '-isysroot', str(sdk),
+        '-iframework', str(frameworks), '-F', str(frameworks), '-fobjc-arc', '-Werror',
+        '-Wno-deprecated-declarations', '-I', str(work), '-I', str(root / 'Sources/tgapi'),
+        '-framework', 'UIKit', '-framework', 'Foundation', '-framework', 'Photos',
+        '-Wl,-rpath,/System/iOSSupport/System/Library/Frameworks',
+        str(root / 'Sources/tgapi/PaidMediaSave.m'),
+        str(root / 'Tests/paid_media_save_uikit.m'), '-o', str(save_binary),
+    ], env=environment, check=True)
+    subprocess.run([str(save_binary)], check=True, timeout=30)

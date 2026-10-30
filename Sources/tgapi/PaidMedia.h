@@ -10,7 +10,7 @@
 + (instancetype)fileFromFooterNode:(id)footer;
 + (BOOL)isUnlockedPaidItem:(id)item;
 + (void)bindGalleryItem:(id)item;
-+ (id)saveButtonNodeFromFooter:(id)footer;
++ (id)currentFooterNodeFromGalleryFooter:(id)container;
 + (id)footerNodeFromItem:(id)item;
 - (NSData *)downloadRequestAtOffset:(int64_t)offset;
 - (BOOL)beginNativeDownload;

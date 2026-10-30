@@ -7,31 +7,25 @@
 
 @interface NSObject (TGExtraPaidMediaDisplayNode)
 - (UIView *)view;
+- (id)supernode;
 @end
 
-@interface TGExtraPaidMediaButton : UIButton
+@interface TGExtraPaidMediaSaveAction : NSObject
 @property(nonatomic, weak) id footer;
+@property(nonatomic, weak) UINavigationItem *navigationItem;
+@property(nonatomic, strong) UIBarButtonItem *item;
+@property(nonatomic, copy) NSArray<UIBarButtonItem *> *originalItems;
+@property(nonatomic, strong) UIImage *downloadImage;
 @property(nonatomic) BOOL saving;
-@property(nonatomic, strong) UIActivityIndicatorView *spinner;
-@property(nonatomic, weak) UIView *hostView;
-@property(nonatomic, strong) NSMapTable<UIView *, NSNumber *> *originalHidden;
-@property(nonatomic) BOOL hostWasAccessibilityElement;
 @end
 
-@implementation TGExtraPaidMediaButton
-- (void)restoreHost {
-    for (UIView *view in self.originalHidden) {
-        view.hidden = [[self.originalHidden objectForKey:view] boolValue];
+@implementation TGExtraPaidMediaSaveAction
+- (void)restore {
+    if ([self.navigationItem.rightBarButtonItems containsObject:self.item]) {
+        self.navigationItem.rightBarButtonItems = self.originalItems;
     }
-    self.hostView.isAccessibilityElement = self.hostWasAccessibilityElement;
-    [self.originalHidden removeAllObjects];
-    self.hostView = nil;
-    [self removeFromSuperview];
-}
-
-- (void)layoutSubviews {
-    [super layoutSubviews];
-    self.spinner.center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
+    self.originalItems = nil;
+    self.footer = nil;
 }
 
 - (void)save {
@@ -41,13 +35,8 @@
     TGExtraPaidMediaFile *file = [TGExtraPaidMediaFile fileFromFooterNode:footer];
     if (!file) return;
     self.saving = YES;
-    self.enabled = NO;
-    self.imageView.hidden = YES;
-    self.spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-    self.spinner.color = self.tintColor;
-    self.spinner.center = CGPointMake(CGRectGetMidX(self.bounds), CGRectGetMidY(self.bounds));
-    [self addSubview:self.spinner];
-    [self.spinner startAnimating];
+    self.item.enabled = NO;
+    self.item.image = [UIImage systemImageNamed:@"hourglass"];
     [PHPhotoLibrary requestAuthorizationForAccessLevel:PHAccessLevelAddOnly handler:^(PHAuthorizationStatus status) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (status != PHAuthorizationStatusAuthorized && status != PHAuthorizationStatusLimited) {
@@ -86,57 +75,57 @@
 
 - (void)finishedWithMessage:(NSString *)message {
     self.saving = NO;
-    self.enabled = YES;
-    self.imageView.hidden = NO;
-    [self.spinner removeFromSuperview];
-    self.spinner = nil;
+    self.item.enabled = YES;
+    self.item.image = self.downloadImage;
     TGExtraShowToast(message);
 }
 @end
 
 void TGExtraUpdatePaidMediaSaveButton(id node) {
-    if (![NSStringFromClass([node class]) hasSuffix:@".ChatItemGalleryFooterContentNode"]) return;
-    static char buttonKey;
-    TGExtraPaidMediaButton *button = objc_getAssociatedObject(node, &buttonKey);
+    NSString *name = NSStringFromClass([node class]);
+    id container;
+    if ([name hasSuffix:@".GalleryFooterNode"]) {
+        container = node;
+    } else if ([name hasSuffix:@".ChatItemGalleryFooterContentNode"] &&
+               [node respondsToSelector:@selector(supernode)]) {
+        container = [node supernode];
+    } else return;
+    if (![NSStringFromClass([container class]) hasSuffix:@".GalleryFooterNode"] ||
+        ![container respondsToSelector:@selector(view)]) return;
+
+    UIViewController *controller = nil;
+    for (UIResponder *responder = [container view]; responder; responder = responder.nextResponder) {
+        if ([responder isKindOfClass:UIViewController.class] &&
+            [NSStringFromClass([responder class]) hasSuffix:@".GalleryController"]) {
+            controller = (UIViewController *)responder;
+            break;
+        }
+    }
+    if (!controller) return;
+    id footer = [TGExtraPaidMediaFile currentFooterNodeFromGalleryFooter:container];
+    UINavigationItem *navigationItem = controller.navigationItem;
+    static char actionKey;
+    TGExtraPaidMediaSaveAction *action = objc_getAssociatedObject(navigationItem, &actionKey);
     if (![NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] ||
-        ![TGExtraPaidMediaFile fileFromFooterNode:node]) {
-        [button restoreHost];
+        !footer || ![TGExtraPaidMediaFile fileFromFooterNode:footer]) {
+        [action restore];
         return;
     }
-    id nativeButton = [TGExtraPaidMediaFile saveButtonNodeFromFooter:node];
-    if (![nativeButton respondsToSelector:@selector(view)]) { [button restoreHost]; return; }
-    UIView *view = [nativeButton view];
-    if (!view) { [button restoreHost]; return; }
-    if (!button) {
-        button = [TGExtraPaidMediaButton buttonWithType:UIButtonTypeSystem];
-        button.footer = node;
-        button.tintColor = UIColor.whiteColor;
-        [button setImage:[UIImage systemImageNamed:@"arrow.down.to.line"
-            withConfiguration:[UIImageSymbolConfiguration configurationWithPointSize:21 weight:UIImageSymbolWeightRegular]]
-            forState:UIControlStateNormal];
-        button.accessibilityIdentifier = @"TGExtra.SavePaidMedia";
-        button.originalHidden = [NSMapTable weakToStrongObjectsMapTable];
-        [button addTarget:button action:@selector(save) forControlEvents:UIControlEventTouchUpInside];
-        objc_setAssociatedObject(node, &buttonKey, button, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (!action) {
+        action = [TGExtraPaidMediaSaveAction new];
+        action.navigationItem = navigationItem;
+        action.downloadImage = [UIImage systemImageNamed:@"arrow.down.to.line"
+            withConfiguration:[UIImageSymbolConfiguration configurationWithPointSize:21 weight:UIImageSymbolWeightRegular]];
+        // A standard image item lets Telegram render its own glass and dispatch the action.
+        action.item = [[UIBarButtonItem alloc] initWithImage:action.downloadImage
+            style:UIBarButtonItemStylePlain target:action action:@selector(save)];
+        action.item.accessibilityIdentifier = @"TGExtra.SavePaidMedia";
+        objc_setAssociatedObject(navigationItem, &actionKey, action, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
-    if (button.hostView != view) {
-        [button restoreHost];
-        button.hostView = view;
-        button.hostWasAccessibilityElement = view.isAccessibilityElement;
+    action.footer = footer;
+    action.item.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"PAID_MEDIA_SAVE"];
+    if (![navigationItem.rightBarButtonItems containsObject:action.item]) {
+        action.originalItems = navigationItem.rightBarButtonItems;
+        navigationItem.rightBarButtonItems = @[action.item];
     }
-    // Keep the navigation bar's native glass capsule, replacing only its content and action.
-    for (UIView *child in view.subviews) {
-        if (child == button) continue;
-        if (![button.originalHidden objectForKey:child]) {
-            [button.originalHidden setObject:@(child.hidden) forKey:child];
-        }
-        child.hidden = YES;
-    }
-    view.isAccessibilityElement = NO;
-    if (button.superview != view) [view addSubview:button];
-    button.frame = CGRectMake(0, 0, MAX(44, view.bounds.size.width), MAX(44, view.bounds.size.height));
-    button.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    button.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"PAID_MEDIA_SAVE"];
-    button.hidden = NO;
-    [view bringSubviewToFront:button];
 }
