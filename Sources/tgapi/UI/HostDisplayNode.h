@@ -2,8 +2,14 @@
 
 @interface ASDisplayNode : NSObject
 @property (atomic, readonly) UIView *view;
+@property (atomic, readonly) CALayer *layer;
 @property (atomic, copy, readonly) NSArray *subnodes;
 @property (atomic, copy) NSString *accessibilityLabel;
+@property (nonatomic, readonly, getter=isHidden) BOOL hidden;
+@property (nonatomic, readonly) CGFloat alpha;
+@property (nonatomic, readonly) UIColor *backgroundColor;
+@property (nonatomic) CGRect frame;
+@property (nonatomic) CGPoint position;
 - (ASDisplayNode *)supernode;
 - (void)setNeedsLayout;
 - (void)layoutIfNeeded;

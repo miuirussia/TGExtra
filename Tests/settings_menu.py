@@ -18,13 +18,17 @@ if not (frameworks / 'UIKit.framework/Headers/UIKit.h').exists():
 
 root = Path(__file__).resolve().parent.parent
 source = (root / 'Sources/tgapi/UI/SettingsMenu.xm').read_text()
-helpers = source[:source.index('%group TGExtraSettingsMenu')]
-helpers = helpers.replace('#import "SettingsNavigation.h"', '''
+button = (root / 'Sources/tgapi/UI/SettingsMenuButton.m').read_text()
+button = button.replace('#import "SettingsNavigation.h"', '''
 static NSUInteger opens;
 void TGExtraShowSettings(void) { opens++; }
 BOOL TGExtraIsTelegramSupportLabel(NSString *label) { return [label isEqualToString:@"Ask a Question"]; }
 BOOL TGExtraIsMyProfileLabel(NSString *label) { return [label isEqualToString:@"My Profile"]; }
 ''')
+host_header = (root / 'Sources/tgapi/UI/HostDisplayNode.h').read_text().split('@interface UIView')[0]
+button_header = (root / 'Sources/tgapi/UI/SettingsMenuButton.h').read_text()
+helpers = host_header + button_header + button + source[:source.index('%group TGExtraSettingsMenu')]
+helpers = helpers.replace('#import "HostDisplayNode.h"', '').replace('#import "SettingsMenuButton.h"', '')
 geometry = source[source.index('%hook ASDisplayNode'):source.index('%hook ASScrollView')]
 geometry = geometry.replace('%hook ASDisplayNode', '@interface LayoutNode : ASDisplayNode @end\n@implementation LayoutNode')
 geometry = geometry.replace('%end', '@end')
@@ -42,9 +46,13 @@ mocks = r'''
 @end
 @implementation ASDisplayNode
 - (UIView *)view { if (!_backingView) _backingView = [UIView new]; return _backingView; }
+- (CALayer *)layer { return self.view.layer; }
 - (ASDisplayNode *)supernode { return self.parentNode; }
 - (NSArray *)subnodes { return self.children ?: @[]; }
 - (NSString *)accessibilityLabel { return self.label; }
+- (void)setAccessibilityLabel:(NSString *)label { self.label = label; }
+- (void)setNeedsLayout { [self.view setNeedsLayout]; }
+- (void)layoutIfNeeded { [self.view layoutIfNeeded]; }
 - (BOOL)isHidden { return self.view.hidden; }
 - (CGFloat)alpha { return self.view.alpha; }
 - (UIColor *)backgroundColor { return self.view.backgroundColor; }
@@ -60,8 +68,11 @@ mocks = r'''
     self.position = CGPointMake(CGRectGetMidX(frame), CGRectGetMidY(frame));
 }
 @end
+@interface ASImageNode ()
+@property (nonatomic, strong) UIImage *testImage;
+@end
 @implementation ASImageNode
-- (UIImage *)image { return nil; }
+- (UIImage *)image { return self.testImage; }
 @end
 @interface ASScrollView ()
 @property (nonatomic, strong) ASDisplayNode *node;
@@ -91,6 +102,15 @@ static ASDisplayNode *section(NSString *label, CGFloat y, CGFloat height) {
     children(row, @[area]); children(container, @[row]); children(section, @[container]);
     return section;
 }
+static ASImageNode *cornerMask(ASDisplayNode *section) {
+    ASDisplayNode *row = section.children[0].children[0];
+    ASImageNode *mask = [ASImageNode new];
+    mask.frame = row.view.bounds;
+    mask.testImage = [UIImage new];
+    mask.view.userInteractionEnabled = NO;
+    children(row, [row.children arrayByAddingObject:mask]);
+    return mask;
+}
 int main(void) { @autoreleasepool {
     ASScrollView *scroll = [[ASScrollView alloc] initWithFrame:CGRectMake(0, 0, 390, 1400)];
     ASDisplayNode *screen = node(@"TelegramUI.PeerInfoScreenNode", CGRectMake(0, 0, 390, 1400));
@@ -104,6 +124,9 @@ int main(void) { @autoreleasepool {
     TGExtraSettingsButton *button = objc_getAssociatedObject(scroll, &TGExtraSettingsButtonKey);
     NSCAssert(!button.hidden && button.frame.origin.y == 276, @"Telegram: directly below My Profile");
     NSCAssert(size.height == 1176 && standard.view.frame.origin.y == 352, @"Reserve one row plus section spacing");
+    NSCAssert(button.frame.origin.y - CGRectGetMaxY(profile.view.frame) == 24 &&
+              standard.view.frame.origin.y - CGRectGetMaxY(button.frame) == 24, @"Telegram has spacing above and below TGExtra");
+    NSCAssert(button.topSeparator.hidden && button.layer.maskedCorners == 15, @"Telegram keeps an independent rounded section");
     NSCAssert(standard.frame.origin.y == 276 && standard.position.y == 354, @"Host geometry stays unchanged");
     UIButton *nativeControl = [[UIButton alloc] initWithFrame:CGRectMake(0, 0, 358, 52)];
     [standard.view addSubview:nativeControl];
@@ -122,14 +145,19 @@ int main(void) { @autoreleasepool {
 
     ASDisplayNode *sg = section(@"Swiftgram", 300, 52);
     ASDisplayNode *pro = section(@"Swiftgram Pro", 376, 52);
+    ASImageNode *sgMask = cornerMask(sg);
+    ASImageNode *proMask = cornerMask(pro);
     standard.frame = CGRectMake(16, 452, 358, 156);
     children(root, @[profile, pro, sg, standard, support]);
     TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
-    NSCAssert(button.frame.origin.y == 452 && standard.view.frame.origin.y == 528, @"After all Swiftgram sections, independent of node enumeration order");
+    NSCAssert(button.frame.origin.y == 428 && standard.view.frame.origin.y == 504, @"Join the bottom of the final Swiftgram section without a gap");
+    NSCAssert(standard.view.frame.origin.y - CGRectGetMaxY(button.frame) == 24, @"Preserve spacing after the joined Swiftgram section");
+    NSCAssert(!button.topSeparator.hidden && button.layer.maskedCorners == (kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner), @"Joined row has a separator and only lower rounded corners");
+    NSCAssert(proMask.layer.mask != nil && proMask.layer.mask.frame.size.height == 26, @"Preserve Swiftgram's upper corners while opening the lower corners");
     NSCAssert(sg.view.frame.origin.y == 300 && pro.view.frame.origin.y == 376, @"Leave Swiftgram rows in place");
     pro.view.hidden = YES;
     TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
-    NSCAssert(button.frame.origin.y == 376, @"Hidden Swiftgram Pro is not an anchor");
+    NSCAssert(button.frame.origin.y == 352 && proMask.layer.mask == nil && sgMask.layer.mask != nil, @"Restore the old corner mask when joining another Swiftgram section");
     NSCAssert([[button actionsForTarget:button forControlEvent:UIControlEventTouchUpInside] containsObject:@"openMenu"], @"Keep the button action wired");
     [button openMenu];
     NSCAssert(opens == 1, @"Menu still opens from the relocated button");
@@ -146,7 +174,21 @@ int main(void) { @autoreleasepool {
     size = TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
     NSCAssert(button.hidden && size.height == 1100, @"Hide in edit mode when My Profile is absent");
     NSCAssert(standard.view.frame.origin.y == 452 && support.view.frame.origin.y == 900, @"Restore all native positions when inactive");
+    NSCAssert(sgMask.layer.mask == nil && proMask.layer.mask == nil, @"Restore native Swiftgram corners when inactive");
     profile.view.alpha = 1;
+    ASDisplayNode *combined = section(@"Swiftgram Pro", 300, 104);
+    ASDisplayNode *lastSection = section(@"Swiftgram", 0, 52);
+    ASImageNode *firstMask = cornerMask(combined);
+    ASImageNode *lastMask = cornerMask(lastSection);
+    ASDisplayNode *lastRow = lastSection.children[0].children[0];
+    lastRow.frame = CGRectMake(0, 52, 358, 52);
+    children(combined.children[0], @[combined.children[0].children[0], lastRow]);
+    children(root, @[profile, combined, standard, support]);
+    TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
+    NSCAssert(button.frame.origin.y == 404 && button.joinedMaskNode == lastMask && firstMask.layer.mask == nil, @"Join the final row of a shared Swiftgram/Pro group, preserving its first row");
+    children(root, @[profile, standard, support]);
+    TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
+    NSCAssert(button.frame.origin.y == 276 && button.topSeparator.hidden && button.layer.maskedCorners == 15 && lastMask.layer.mask == nil, @"Return to a separate Telegram block after Swiftgram rows disappear");
     for (CGFloat width = 375; width <= 812; width += 437) {
         support.children[0].children[0].frame = CGRectMake(0, 0, width - 32, 52);
         TGExtraSettingsContentSize(scroll, CGSizeMake(width, 1100));
