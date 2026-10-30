@@ -18,14 +18,15 @@ bundle IDs still constrain selection. Use `--patch-set-dir Patches` to include
 a profile in future GitHub releases. See [Patches/README.md](../../Patches/README.md)
 for engine requirements, validation and offline application.
 
-The reviewed references are Telegram 13.1.1 (35634) and Swiftgram 13.1.1 (343,
-`app.swiftgram.ios`). Swiftgram's 4640-byte `engineCreate` body has four additional
-link-time differences retained by the review fingerprint: stores at body offsets
+The reviewed references are Telegram 13.1.2 (35638) and Swiftgram 13.1.1 (343/344,
+`app.swiftgram.ios`). Their 4640-byte `engineCreate` bodies have four link-time
+differences retained by the review fingerprint: stores at body offsets
 `0x11c4`, `0x11e0`, `0x11e8` and `0x11f0` use the relocated global's page offset
-`0xcb8` instead of `0x860`. Disassembly confirms that each store uses the same
-global as its preceding ADRP/load pair across a conditional branch. All other
-normalized instructions and reviewed Rust function fingerprints match Telegram.
-`abi5.json` lists this constructor hash as an explicit reviewed variant; unknown
+`0xa18` (Telegram) or `0xcb8` (Swiftgram).
+Disassembly confirms that each store uses the same global as its preceding
+ADRP/load pair across a conditional branch. All other normalized instructions
+and reviewed Rust function fingerprints match between the clients.
+`abi5.json` lists Swiftgram's constructor hash as an explicit reviewed variant; unknown
 hashes and multiple matching constructors remain rejected. Portable engine
 fingerprints stay conservative, so each client has a separate generated profile.
 

@@ -14,11 +14,13 @@ import unittest
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'Tools'))
-from prepare_rust_patch import SELECTORS, thunk, engine_plan, apply_engine_plan
+from prepare_rust_patch import SELECTORS, thunk, engine_plan, apply_engine_plan, inspect_runtime, make_portable_patch, identify
 from RustBridge.macho import MachO
 from portable import payload_template
 from package_ipatch import write_archive, document
 from build_payloads import rebuild
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def fingerprint_image(words, offset=0x1000):
@@ -31,6 +33,58 @@ def fingerprint_image(words, offset=0x1000):
 
 
 class PortableRustTests(unittest.TestCase):
+    def test_reviewed_reference_clients_match_committed_profiles(self):
+        references = ('Telegram_v13.1.2.ipa', 'Swiftgram_v13.1.1.ipa')
+        images = [ROOT/'packages'/name for name in references if (ROOT/'packages'/name).is_file()]
+        if not images:
+            self.skipTest('reference IPAs are not present')
+        reviewed = json.loads((ROOT/'Tools/RustBridge/abi5.json').read_text())
+        profiles = [(path.parent, json.loads(path.read_text())) for path in (ROOT/'Patches').glob('rust-*/patch.json')]
+        with tempfile.TemporaryDirectory(prefix='tgextra-rust-references-') as directory:
+            for ipa in images:
+                with self.subTest(ipa=ipa.name), zipfile.ZipFile(ipa) as archive:
+                    binary = 'Frameworks/TelegramUIFramework.framework/TelegramUIFramework'
+                    entry = next(n for n in archive.namelist() if n.endswith('/'+binary))
+                    original = archive.read(entry)
+                    image, functions, _, branches, _, _, _, _ = inspect_runtime(original, reviewed)
+                    generated, payloads = make_portable_patch(original, reviewed)
+                    matches = [(folder, package) for folder, package in profiles
+                               if package['components'][0]['variants'][0]['binaries'] == [generated]]
+                    self.assertEqual(len(matches), 1, ipa.name)
+                    folder, package = matches[0]
+                    info = plistlib.loads(archive.read(entry.split('/Frameworks/')[0]+'/Info.plist'))
+                    self.assertIn(info['CFBundleIdentifier'], package['components'][0]['variants'][0]['bundle_ids'])
+                    for source, data in payloads.items():
+                        self.assertEqual((folder/source).read_bytes(), data)
+                    # Unreviewed changes to the global store must still fail.
+                    changed = bytearray(original)
+                    offset = image.offset(functions['engineCreate'])+0x11c4
+                    struct.pack_into('<I', changed, offset, image.u32(offset) ^ 0x400)
+                    with self.assertRaises(ValueError):
+                        identify(MachO(changed), reviewed)
+                    if not os.environ.get('IPATCH_ENGINE_CLI'):
+                        continue
+                    output = Path(directory)/(ipa.stem+'.ipatch')
+                    write_archive(output, package, payloads)
+                    plan = engine_plan(Path(os.environ['IPATCH_ENGINE_CLI']), ipa, output)
+                    app = Path(directory)/(ipa.stem+'.app')
+                    target = app/binary
+                    target.parent.mkdir(parents=True)
+                    target.write_bytes(original)
+                    apply_engine_plan(plan, app, binary)
+                    metadata = plistlib.loads((app/'TGExtraRustBridge.plist').read_bytes())
+                    self.assertEqual(metadata['ABI'], 5)
+                    self.assertEqual(metadata['UUID'], image.uuid)
+                    base = next(vm for name, vm, _, _ in image.segments if name == '__TEXT')
+                    for key, name in (('BufferData', 'bufferData'), ('BufferLength', 'bufferLength'),
+                                      ('BufferFree', 'bufferFree'), ('NextRequestID', 'nextRequestID'),
+                                      ('Send', 'send'), ('Cancel', 'cancel')):
+                        self.assertEqual(metadata[key]+base, functions[name])
+                    patched_branches = dict(MachO(target.read_bytes()).branches())
+                    for pc, original_target in branches:
+                        if original_target in (functions[name] for name in SELECTORS if name not in ('usageManager', 'authInfo')):
+                            self.assertNotEqual(patched_branches[pc], original_target)
+
     def test_rebuild_uses_adjacent_c_and_preserves_host_checks(self):
         original = next((Path(__file__).resolve().parents[1]/'Patches').glob('rust-abi5-*'))
         with tempfile.TemporaryDirectory(prefix='tgextra-c-rebuild-') as directory:

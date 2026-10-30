@@ -48,8 +48,8 @@ Releases include rootful, rootless and roothide DEBs, with a matching `.ipatch`
 for each package. Install the DEB or use the `.ipatch` with iOSPatchingEngine v4.
 Clients using Rust MTProto need a matching compatibility profile.
 
-The reference builds are Telegram 13.1.1 (35634) and Swiftgram 13.1.1
-(343, `app.swiftgram.ios`). Compatibility with newer builds depends on their
+The reference builds are Telegram 13.1.2 (35638) and Swiftgram 13.1.1
+(343/344, `app.swiftgram.ios`). Compatibility with newer builds depends on their
 protocol table, transport ABI and private UI interfaces, rather than the version
 number alone. TGExtra reads the installed app's TLS1 v3 schema, including outgoing
 method IDs, request field order, optional presence bits and synthetic response
@@ -168,7 +168,7 @@ python3 generate_langs.py
 To update the typed policy views and test fixture from an original decrypted IPA:
 
 ```sh
-python3 Tools/update_telegram_api.py packages/Telegram_v13.1.1.ipa
+python3 Tools/update_telegram_api.py packages/Telegram_v13.1.2.ipa
 ```
 
 The schema is stored under `Tests/Fixtures` with its checksum and app version.

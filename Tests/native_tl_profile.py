@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT/'Tools'))
 from prepare_native_tl import identify, matcher, payload_template, MachO
 from package_ipatch import write_archive
 PROFILE = ROOT/'Patches/native-tl-v1'
+REFERENCE_IPAS = ('Telegram_v13.1.2.ipa', 'Swiftgram_v13.1.1.ipa')
 
 
 class NativeTLProfileTests(unittest.TestCase):
@@ -36,7 +37,7 @@ class NativeTLProfileTests(unittest.TestCase):
         self.assertEqual([a['find']['import_stub']['import'] for a in profile['anchors'] if 'import_stub' in a['find']], ['_dlsym'])
 
     def test_reviewed_images_and_runtime_matcher(self):
-        images = list((ROOT/'packages').glob('*_v13.1.1.ipa'))
+        images = [ROOT/'packages'/name for name in REFERENCE_IPAS if (ROOT/'packages'/name).is_file()]
         if not images: self.skipTest('reference IPAs are not present')
         include = (ROOT/'Sources/tgapiC/NativeTLProfile.inc').read_text()
         patterns = {}
@@ -63,13 +64,13 @@ class NativeTLProfileTests(unittest.TestCase):
             subprocess.run([sys.executable, str(ROOT/'Tools/prepare_native_tl.py'), str(ipa), '--check'], check=True)
 
     @unittest.skipUnless(os.environ.get('IPATCH_ENGINE_CLI'), 'requires the real iPatch engine CLI')
-    def test_engine_plans_both_reference_clients(self):
+    def test_engine_plans_reference_clients(self):
         profile = json.loads((PROFILE/'patch.json').read_text())
         files = {b['source']: (PROFILE/b['source']).read_bytes() for b in profile['components'][0]['variants'][0]['binaries'][0]['payloads']}
         with tempfile.TemporaryDirectory(prefix='tgextra-native-profile-') as directory:
             package = Path(directory)/'native.ipatch'
             write_archive(package, profile, files)
-            images = list((ROOT/'packages').glob('*_v13.1.1.ipa'))
+            images = [ROOT/'packages'/name for name in REFERENCE_IPAS if (ROOT/'packages'/name).is_file()]
             if not images: self.skipTest('reference IPAs are not present')
             for ipa in images:
                 result = subprocess.run([os.environ['IPATCH_ENGINE_CLI'], '-dry-run', '-ipa', str(ipa), '-package', str(package)],
