@@ -46,8 +46,19 @@ jobs:
   build:
     needs: checks
     runs-on: macos-26-intel
+    strategy:
+      max-parallel: 3
+      matrix:
+        include:
+          - scheme: rootful
+            scheme_arg: ""
+          - scheme: rootless
+            scheme_arg: rootless
+          - scheme: roothide
+            scheme_arg: roothide
     env:
       THEOS: ${{ github.workspace }}/theos
+      THEOS_PACKAGE_SCHEME: ${{ matrix.scheme_arg }}
       CCACHE_DIR: ${{ github.workspace }}/.build/ccache
       CCACHE_MAXSIZE: 500M
       # Theos enables Clang modules; ccache requires depend mode for them.
@@ -112,27 +123,19 @@ jobs:
             .build/ccache
             .build/clang-module-cache
             .build/swift-module-cache
-          key: ${{ runner.os }}-${{ runner.arch }}-compiler-v1-${{ steps.versions.outputs.toolchain }}-${{ steps.versions.outputs.theos }}-${{ steps.versions.outputs.sdks }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ runner.arch }}-compiler-v1-${{ matrix.scheme }}-${{ steps.versions.outputs.toolchain }}-${{ steps.versions.outputs.theos }}-${{ steps.versions.outputs.sdks }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-compiler-v1-${{ steps.versions.outputs.toolchain }}-${{ steps.versions.outputs.theos }}-${{ steps.versions.outputs.sdks }}-
+            ${{ runner.os }}-${{ runner.arch }}-compiler-v1-${{ matrix.scheme }}-${{ steps.versions.outputs.toolchain }}-${{ steps.versions.outputs.theos }}-${{ steps.versions.outputs.sdks }}-
 
-      - name: Build all jailbreak packages
+      - name: Build ${{ matrix.scheme }} package
         shell: bash
         run: |
           set -euo pipefail
           ccache --zero-stats
-          for scheme in rootful rootless roothide; do
-            scheme_arg=""
-            if [[ "$scheme" != rootful ]]; then
-              scheme_arg="$scheme"
-            fi
-            echo "::group::Build $scheme"
-            make clean package FINALPACKAGE=1 "THEOS_PACKAGE_SCHEME=$scheme_arg" \
-              "TARGET_CC=ccache $(xcrun --sdk iphoneos -f clang)" \
-              "TARGET_CXX=ccache $(xcrun --sdk iphoneos -f clang++)" \
-              "ADDITIONAL_SWIFTFLAGS=-module-cache-path $SWIFT_MODULECACHE_PATH"
-            echo "::endgroup::"
-          done
+          make clean package FINALPACKAGE=1 "THEOS_PACKAGE_SCHEME=$THEOS_PACKAGE_SCHEME" \
+            "TARGET_CC=ccache $(xcrun --sdk iphoneos -f clang)" \
+            "TARGET_CXX=ccache $(xcrun --sdk iphoneos -f clang++)" \
+            "ADDITIONAL_SWIFTFLAGS=-module-cache-path $SWIFT_MODULECACHE_PATH"
 
       - name: Show compiler cache statistics
         if: always()
@@ -141,7 +144,7 @@ jobs:
       - name: Upload DEBs
         uses: actions/upload-artifact@v7
         with:
-          name: deb-packages
+          name: ${{ matrix.scheme }}-package
           path: packages/*.deb
           if-no-files-found: error
 
@@ -156,8 +159,9 @@ jobs:
       - name: Download all packages
         uses: actions/download-artifact@v8
         with:
-          name: deb-packages
+          pattern: '*-package'
           path: packages
+          merge-multiple: true
 
       - name: Download tested patch profiles compiled from C
         uses: actions/download-artifact@v8
@@ -288,7 +292,9 @@ jobs:
         uses: geekyeggo/delete-artifact@v6
         with:
           name: |
-            deb-packages
+            rootful-package
+            rootless-package
+            roothide-package
             ipatch-packages
             compiled-payloads
           failOnError: false
