@@ -171,6 +171,17 @@ The script downloads `waruhachi/theos` and `waruhachi/sdks` from `main` on first
 use. Set `THEOS=/path/to/theos` to use an existing installation. Packages are
 written to `packages/arm64/` and contain arm64 code only.
 
+To remove compiler caches, Theos intermediates and generated patch binaries:
+
+```sh
+bash Tools/clean.sh
+```
+
+This preserves SDKs and Theos in `.build/`, research drafts, and everything in
+`packages/`, including original IPAs. Patch binaries are rebuilt by
+`Tools/build_payloads.py` or `Tests/run.sh`. Run cleanup after builds and tests
+have finished.
+
 After editing translations, regenerate the embedded fallbacks:
 
 ```sh
