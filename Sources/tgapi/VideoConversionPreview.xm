@@ -27,22 +27,25 @@ static BOOL tgextraItemIsVideo(id item) {
     return NO;
 }
 
-static void tgextraStyleVoiceButton(UIButton *button, BOOL enabled) {
-    UIImage *icon = [UIImage systemImageNamed:@"waveform"];
+static void tgextraStyleConversionButton(UIButton *button, NSString *symbol, BOOL enabled) {
     UIImageSymbolConfiguration *cfg =
         [UIImageSymbolConfiguration configurationWithPointSize:18
                                                         weight:UIImageSymbolWeightSemibold];
-    if (cfg && icon) icon = [icon imageByApplyingSymbolConfiguration:cfg];
+    UIImage *icon = [[UIImage systemImageNamed:symbol withConfiguration:cfg]
+        imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate];
     [button setImage:icon forState:UIControlStateNormal];
+    button.imageView.contentMode = UIViewContentModeCenter;
     button.tintColor = [UIColor whiteColor];
     button.backgroundColor = enabled ? [UIColor systemBlueColor]
                                      : [UIColor colorWithWhite:0.0 alpha:0.5];
 }
 
+static void tgextraStyleVoiceButton(UIButton *button, BOOL enabled) {
+    tgextraStyleConversionButton(button, @"waveform", enabled);
+}
+
 static void tgextraStyleRoundButton(UIButton *button, BOOL enabled) {
-    tgextraStyleVoiceButton(button, enabled);
-    [button setImage:[UIImage systemImageNamed:enabled ? @"video.circle.fill" : @"video.circle"]
-           forState:UIControlStateNormal];
+    tgextraStyleConversionButton(button, @"video.circle", enabled);
 }
 
 @interface TGExtraVoiceToggleTarget : NSObject
@@ -149,7 +152,7 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
     }
 
     if (!button && tgextraVideoToVoiceEnabled()) {
-        button = [UIButton buttonWithType:UIButtonTypeSystem];
+        button = [UIButton buttonWithType:UIButtonTypeCustom];
         button.tag = kTGExtraVoiceButtonTag;
         button.layer.cornerRadius = kTGExtraVoiceButtonSide / 2.0;
         button.clipsToBounds = YES;
@@ -172,7 +175,7 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
     if (button) [interfaceView bringSubviewToFront:button];
 
     if (!roundButton && tgextraVideoToRoundEnabled()) {
-        roundButton = [UIButton buttonWithType:UIButtonTypeSystem];
+        roundButton = [UIButton buttonWithType:UIButtonTypeCustom];
         roundButton.tag = kTGExtraRoundButtonTag;
         roundButton.layer.cornerRadius = kTGExtraVoiceButtonSide / 2.0;
         roundButton.clipsToBounds = YES;

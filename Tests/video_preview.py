@@ -16,7 +16,7 @@ frameworks = sdk / 'System/iOSSupport/System/Library/Frameworks'
 if not (frameworks / 'UIKit.framework/Headers/UIKit.h').exists():
     print('SKIP video preview: set DEVELOPER_DIR to Xcode with Mac Catalyst')
     sys.exit(0)
-source = (ROOT / 'Sources/tgapi/VoicePreview.xm').read_text()
+source = (ROOT / 'Sources/tgapi/VideoConversionPreview.xm').read_text()
 helpers = source[source.index('@interface TGMediaPickerGalleryInterfaceView'):source.index('%group')]
 hooks = source[source.index('- (void)itemFocused:'):source.index('%end')]
 hooks = hooks.replace('return %orig;', 'return [super hitTest:point withEvent:event];').replace('%orig;', '')
