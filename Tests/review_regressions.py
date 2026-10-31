@@ -105,7 +105,7 @@ int main(void) { @autoreleasepool {
     NSCAssert([[TGExtraSettingRow.ghostRows valueForKey:@"key"] isEqual:ghostKeys], @"Keep every Ghost toggle in order");
     NSDictionary *sections = @{@(MESSAGE_HISTORY): @[kAntiRevoke, kAntiAutoDelete, kAntiEdit],
         @(CONTENT_ACCESS): @[kDisableForwardRestriction, kIgnorePrivateChatCopyProtection, kDisableScreenshotNotification, kAntiSelfDestruct, kHideDisappearingLabel],
-        @(MEDIA): @[kVideoToVoice, kVideoToRound, kForceTLottie], @(INTERFACE): @[kDisableAllAds, kDisableDoubleTapReactions, kHideRecordingButton]};
+        @(MEDIA): @[kVideoToVoice, kVideoToRound, kForceTLottie, FILE_PICKER_FIX_KEY], @(INTERFACE): @[kDisableAllAds, kDisableDoubleTapReactions, kHideRecordingButton]};
     for (NSNumber *section in sections) {
         NSArray *rows = [TGExtraSettingRow featureRowsForSection:section.integerValue];
         NSCAssert([[rows valueForKey:@"key"] isEqual:sections[section]], @"Keep all categorized toggles");
@@ -118,7 +118,7 @@ int main(void) { @autoreleasepool {
     for (NSUInteger i = 0; i < ghostKeys.count; i++) {
         NSCAssert([[TGExtraSettingRow rowForSection:GHOST_MODE row:i + 2].key isEqual:ghostKeys[i]], @"Expanded Ghost mapping");
     }
-    for (NSNumber *section in @[@(GHOST_MODE), @(FILE_FIXER), @(FAKE_LOCATION)]) {
+    for (NSNumber *section in @[@(GHOST_MODE), @(FAKE_LOCATION)]) {
         NSCAssert(![TGExtraSettingRow rowForSection:section.integerValue row:1], @"Action rows must not write a switch preference");
     }
     NSCAssert(![TGExtraSettingRow rowForSection:LANGUAGE row:0], @"Language is an action");

@@ -1,7 +1,7 @@
 /* Settings categories */
 "MESSAGE_HISTORY_SECTION_HEADER" = "История сообщений";
 "CONTENT_ACCESS_SECTION_HEADER" = "Доступ к контенту";
-"MEDIA_SECTION_HEADER" = "Медиа и анимации";
+"MEDIA_SECTION_HEADER" = "Медиа и файлы";
 "INTERFACE_SECTION_HEADER" = "Интерфейс и жесты";
 
 /* GHOST_MODE Section */
@@ -18,109 +18,109 @@
 
 /* Ghost Mode */
 "DISABLE_ONLINE_STATUS_TITLE" = "Скрыть онлайн-статус";
-"DISABLE_ONLINE_STATUS_SUBTITLE" = "Не показывать другим, что вы в сети.";
+"DISABLE_ONLINE_STATUS_SUBTITLE" = "Не сообщать Telegram, что вы в сети.";
 
 "DISABLE_TYPING_STATUS_TITLE" = "Скрыть статус набора";
-"DISABLE_TYPING_STATUS_SUBTITLE" = "Не показывать, что вы печатаете сообщение.";
+"DISABLE_TYPING_STATUS_SUBTITLE" = "Не отправлять статус «печатает…».";
 
 "DISABLE_RECORDING_VIDEO_STATUS_TITLE" = "Скрыть статус записи видео";
-"DISABLE_RECORDING_VIDEO_STATUS_SUBTITLE" = "Не показывать, что вы записываете видео.";
+"DISABLE_RECORDING_VIDEO_STATUS_SUBTITLE" = "Не сообщать собеседнику о записи видео.";
 
 "DISABLE_UPLOADING_VIDEO_STATUS_TITLE" = "Скрыть статус загрузки видео";
-"DISABLE_UPLOADING_VIDEO_STATUS_SUBTITLE" = "Скрывать при загрузке видео";
+"DISABLE_UPLOADING_VIDEO_STATUS_SUBTITLE" = "Не сообщать собеседнику об отправке видео.";
 
 "DISABLE_VC_MESSAGE_RECORDING_STATUS_TITLE" = "Скрыть запись голосового сообщения";
-"DISABLE_VC_MESSAGE_RECORDING_STATUS_SUBTITLE" = "Не показывать, что вы записываете голосовое сообщение.";
+"DISABLE_VC_MESSAGE_RECORDING_STATUS_SUBTITLE" = "Не сообщать собеседнику о записи голосового.";
 
 "DISABLE_VC_MESSAGE_UPLOADING_STATUS_TITLE" = "Скрыть загрузку голосового сообщения";
-"DISABLE_VC_MESSAGE_UPLOADING_STATUS_SUBTITLE" = "Не показывать, что вы загружаете голосовое сообщение.";
+"DISABLE_VC_MESSAGE_UPLOADING_STATUS_SUBTITLE" = "Не сообщать собеседнику об отправке голосового.";
 
 "DISABLE_UPLOADING_PHOTO_STATUS_TITLE" = "Скрыть статус загрузки фото";
-"DISABLE_UPLOADING_PHOTO_STATUS_SUBTITLE" = "Скрывать при загрузке фото";
+"DISABLE_UPLOADING_PHOTO_STATUS_SUBTITLE" = "Не сообщать собеседнику об отправке фото.";
 
 "DISABLE_UPLOADING_FILE_STATUS_TITLE" = "Скрыть статус загрузки файла";
-"DISABLE_UPLOADING_FILE_STATUS_SUBTITLE" = "Не показывать, что вы загружаете файл.";
+"DISABLE_UPLOADING_FILE_STATUS_SUBTITLE" = "Не сообщать собеседнику об отправке файла.";
 
 "DISABLE_CHOOSING_LOCATION_STATUS_TITLE" = "Скрыть выбор локации";
-"DISABLE_CHOOSING_LOCATION_STATUS_SUBTITLE" = "Не показывать, что вы выбираете местоположение.";
+"DISABLE_CHOOSING_LOCATION_STATUS_SUBTITLE" = "Не сообщать собеседнику о выборе геопозиции.";
 
 "DISABLE_CHOOSING_CONTACT_TITLE" = "Скрыть выбор контакта";
-"DISABLE_CHOOSING_CONTACT_SUBTITLE" = "Не показывать, что вы выбираете контакт.";
+"DISABLE_CHOOSING_CONTACT_SUBTITLE" = "Не сообщать собеседнику о выборе контакта.";
 
 "DISABLE_PLAYING_GAME_STATUS_TITLE" = "Скрыть игру";
-"DISABLE_PLAYING_GAME_STATUS_SUBTITLE" = "Не показывать, что вы играете в игру.";
+"DISABLE_PLAYING_GAME_STATUS_SUBTITLE" = "Не сообщать собеседнику о запуске игры.";
 
 "DISABLE_RECORDING_ROUND_VIDEO_STATUS_TITLE" = "Скрыть запись круглого видео";
-"DISABLE_RECORDING_ROUND_VIDEO_STATUS_SUBTITLE" = "Не показывать, что вы записываете круглое видео.";
+"DISABLE_RECORDING_ROUND_VIDEO_STATUS_SUBTITLE" = "Не сообщать собеседнику о записи кружка.";
 
 "DISABLE_UPLOADING_ROUND_VIDEO_STATUS_TITLE" = "Скрыть загрузку круглого видео";
 
 "DISABLE_SPEAKING_IN_GROUP_CALL_STATUS_TITLE" = "Скрыть голос в групповом звонке";
-"DISABLE_SPEAKING_IN_GROUP_CALL_STATUS_SUBTITLE" = "Не показывать, что вы говорите в групповом звонке.";
+"DISABLE_SPEAKING_IN_GROUP_CALL_STATUS_SUBTITLE" = "Не отправлять статус разговора в групповом звонке.";
 
 "DISABLE_CHOOSING_STICKER_STATUS_TITLE" = "Скрыть выбор стикера";
-"DISABLE_CHOOSING_STICKER_STATUS_SUBTITLE" = "Не показывать, что вы выбираете стикер.";
+"DISABLE_CHOOSING_STICKER_STATUS_SUBTITLE" = "Не сообщать собеседнику о выборе стикера.";
 
 "DISABLE_EMOJI_INTERACTION_STATUS_TITLE" = "Скрыть взаимодействие с эмодзи";
-"DISABLE_EMOJI_INTERACTION_STATUS_SUBTITLE" = "Не показывать, что вы взаимодействуете с эмодзи.";
+"DISABLE_EMOJI_INTERACTION_STATUS_SUBTITLE" = "Не отправлять сведения о нажатиях на анимированные эмодзи.";
 
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_TITLE" = "Скрыть реакцию эмодзи";
-"DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "Не показывать, что вы реагируете на сообщение эмодзи.";
+"DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "Не сообщать об открытии анимации эмодзи.";
 
 /* READ_RECEIPTS Section */
 "READ_RECEIPTS" = "Отчёты о прочтении";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Отключить отчёты о прочтении сообщений";
-"DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Не сообщать, что вы прочитали сообщение.";
+"DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Не отмечать сообщения прочитанными у собеседника.";
 
 "DISABLE_REACTION_READ_RECEIPT_TITLE" = "Скрыть прочтение реакций";
-"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "Не отмечать просмотренные реакции прочитанными.";
+"DISABLE_REACTION_READ_RECEIPT_SUBTITLE" = "Оставлять реакции непрочитанными после просмотра.";
 "DISABLE_MENTION_READ_RECEIPT_TITLE" = "Скрыть прочтение упоминаний";
-"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "Не отмечать просмотренные упоминания прочитанными.";
+"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" = "Оставлять упоминания непрочитанными после просмотра.";
 
 "DISABLE_STORY_READ_RECEIPT_TITLE" = "Отключить отчёты о прочтении историй";
-"DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Не сообщать, что вы просмотрели историю.";
+"DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Не добавлять вас в список зрителей истории.";
 
 /* MISC Section */
 "MISC" = "Разное";
 
 "DISABLE_ALL_ADS_TITLE" = "Отключить всю рекламу";
-"DISABLE_ALL_ADS_SUBTITLE" = "Убирает спонсорские сообщения и рекламный контент из приложения.";
+"DISABLE_ALL_ADS_SUBTITLE" = "Скрывать рекламные сообщения в чатах и каналах.";
 
 "ENABLE_SAVING_PROTECTED_CONTENT_TITLE" = "Сохранение медиа из закрытых чатов";
-"ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "Обходит запрет пересылки — сохраняй и пересылай медиа из защищённых каналов и чатов.";
+"ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "Разрешать сохранение и пересылку медиа из чатов с запретом копирования.";
 
 "ANTI_REVOKE_TITLE" = "Сохранять удалённые сообщения";
-"ANTI_REVOKE_SUBTITLE" = "Сообщения остаются у вас в чате даже после того, как отправитель их удалил.";
+"ANTI_REVOKE_SUBTITLE" = "Оставлять сообщения в чате после удаления отправителем.";
 
 "ANTI_EDIT_TITLE" = "Сохранять оригинал при редактировании";
-"ANTI_EDIT_SUBTITLE" = "Когда кто-то редактирует сообщение, вы видите первоначальный текст — до правки.";
+"ANTI_EDIT_SUBTITLE" = "Сохранять предыдущие версии отредактированных сообщений.";
 
 "ANTI_SCREENSHOT_TITLE" = "Скриншоты без уведомлений";
-"ANTI_SCREENSHOT_SUBTITLE" = "Делайте скриншоты в секретных чатах и защищённых каналах — без уведомления собеседника.";
+"ANTI_SCREENSHOT_SUBTITLE" = "Не уведомлять собеседника о скриншотах в секретных чатах.";
 
 "ANTI_SELF_DESTRUCT_TITLE" = "Просмотр исчезающих медиафайлов";
-"ANTI_SELF_DESTRUCT_SUBTITLE" = "Открывайте одноразовые и исчезающие фото/видео без запуска таймера самоуничтожения. Медиафайл остаётся доступным локально.";
+"ANTI_SELF_DESTRUCT_SUBTITLE" = "Не запускать таймер удаления при просмотре одноразовых фото и видео.";
 
 "ANTI_AUTO_DELETE_TITLE" = "Сохранять авто-удаляемые сообщения";
-"ANTI_AUTO_DELETE_SUBTITLE" = "Предотвращает удаление сообщений в чатах с авто-удалением (1 день, 7 дней и т.д.). Сообщения остаются видимыми даже после истечения таймера.";
+"ANTI_AUTO_DELETE_SUBTITLE" = "Оставлять сообщения в чате после истечения таймера автоудаления.";
 
 /* File Picker */
 "FIX_FILE_PICKER_TITLE" = "Исправить выбор файлов";
-"FIX_FILE_PICKER_SUBTITLE" = "Исправляет ошибку, из-за которой невозможно выбрать файлы из приложения 'Файлы' на установленных вручную версиях";
+"FIX_FILE_PICKER_SUBTITLE" = "Исправляет выбор из приложения «Файлы» при установке Telegram через IPA.";
 "CLEAR_FILE_PICKER_CACHE_TITLE" = "Очистить кэш выбора файлов";
-"CLEAR_FILE_PICKER_CACHE_SUBTITLE" = "Поскольку файлы копируются в временную папку, кэш нужно очищать вручную";
-"CACHE_CLEAR_WARNING_TITLE" = "Подтвердить";
-"CACHE_CLEAR_WARNING_MESSAGE" = "Вы уверены?";
+"CLEAR_FILE_PICKER_CACHE_SUBTITLE" = "Удалить копии файлов, созданные при выборе через приложение «Файлы».";
+"CACHE_CLEAR_WARNING_TITLE" = "Очистить кэш выбора файлов?";
+"CACHE_CLEAR_WARNING_MESSAGE" = "Будут удалены временные копии выбранных файлов. Дождитесь завершения отправок.";
 
 /* Fake Location */
 "ENABLE_FAKE_LOCATION_TITLE" = "Включить фейковую геолокацию";
-"ENABLE_FAKE_LOCATION_SUBTITLE" = "Позволяет подделывать GPS-локацию устройства";
+"ENABLE_FAKE_LOCATION_SUBTITLE" = "Передавать Telegram координаты выбранной точки.";
 "SELECT_FAKE_LOCATION_TITLE" = "Выбрать местоположение";
 
 /* Extras */
 "APPLY" = "Применить";
-"APPLY_CHANGES" = "Вы уверены, что хотите применить эти изменения?";
+"APPLY_CHANGES" = "Приложение закроется. Откройте его снова, чтобы применить изменения.";
 
 "OK" = "Ок";
 "CANCEL" = "Отмена";
@@ -129,27 +129,27 @@
 
 "AUTHOR_MESSAGE" = "Этот твик для Telegram предназначен только для личного и образовательного использования. Мы никоим образом не связаны с Telegram. Все торговые марки, включая название и логотип Telegram, принадлежат их владельцам. Не используйте это для нарушения правил, сомнительных действий или нарушений условий использования Telegram — мы не несем ответственности, если что-то пойдет не так. Используйте на свой страх и риск.\n\nРазработано KDevLab\nОригинальная идея — Chocolatefluffy";
 
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Недоступно в этой версии Telegram — обновления об изменениях не читаются, пока не обновлён слой API.";
+"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Эта версия Telegram пока не поддерживает сохранение правок.";
 "CLOSE" = "Закрыть";
-"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "Скрывать индикатор при отправке видеосообщения.";
+"DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "Не сообщать собеседнику об отправке кружка.";
 "EDIT_HISTORY_TITLE" = "История изменений";
 "EDIT_HISTORY_ORIGINAL" = "Оригинал:";
 "EDIT_HISTORY_EDIT" = "Изменение";
 "EDIT_HISTORY_COPY_LATEST" = "Копировать последнюю версию";
 "GHOST_EXCEPTIONS_SECTION_HEADER" = "Исключения режима-невидимки";
-"GHOST_EXCEPTIONS_SECTION_FOOTER" = "Эти люди по-прежнему видят, что вы печатаете, и что вы прочитали сообщение, пока режим-невидимка действует для всех остальных. Статус «в сети» сюда не входит: Telegram отправляет его сразу всем, поэтому открыть его одному человеку нельзя.";
+"GHOST_EXCEPTIONS_SECTION_FOOTER" = "Эти пользователи видят вашу активность и прочтение сообщений. Исключения не действуют на статус «в сети»: его нельзя показать только отдельным людям.";
 "GHOST_EXCEPTIONS_EMPTY_TITLE" = "Исключений пока нет";
-"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "Откройте профиль человека и нажмите кнопку с глазом в правом верхнем углу, чтобы добавить его.";
+"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "Чтобы добавить человека, нажмите на глаз в его профиле.";
 "GHOST_EXCEPTIONS_RENAME_TITLE" = "Переименовать";
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "Выберите имя для этого списка. Оставьте пустым, чтобы использовать имя из профиля.";
 "GHOST_EXCEPTION_ADDED_TOAST" = "Исключение добавлено — этот человек видит вашу настоящую активность";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "Исключение убрано — режим-невидимка снова действует";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "Сначала включите хотя бы одну функцию в расширенных настройках.";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "Скрыть метку исчезающих";
-"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Не добавлять метку \"dissapearing message\" перед перехваченными одноразовыми медиа.";
+"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Убрать подпись «dissapearing message» у сохранённых одноразовых фото и видео.";
 "SAVE" = "Сохранить";
 "VIDEO_TO_VOICE_TITLE" = "Видео в голосовое";
-"VIDEO_TO_VOICE_SUBTITLE" = "Показывает кнопку в предпросмотре видео для отправки звука голосовым сообщением. По умолчанию кнопка выключена для каждого видео — включите её для нужных роликов. Границы обрезки в предпросмотре учитываются.";
+"VIDEO_TO_VOICE_SUBTITLE" = "Кнопка в предпросмотре видео отправляет звук голосовым сообщением. Учитывает выбранную обрезку.";
 "VIDEO_TO_VOICE_ON_TOAST" = "Это видео будет отправлено как голосовое сообщение";
 "VIDEO_TO_VOICE_OFF_TOAST" = "Снова отправляем обычным видео";
 "VIDEO_TO_VOICE_EXTRACTING" = "Извлекаем звук…";
@@ -157,7 +157,7 @@
 "VIDEO_TO_VOICE_FAILED" = "Не удалось извлечь звук — отправляем видео";
 "VIDEO_TO_VOICE_NO_AUDIO" = "В этом видео нет звука — отправляем видео";
 "VIDEO_TO_ROUND_TITLE" = "Видео в кружок";
-"VIDEO_TO_ROUND_SUBTITLE" = "Показывает кнопку рядом с «Видео в голосовое» в предпросмотре видео. Включите её для нужного ролика: квадратная обрезка по центру, до 60 секунд выбранного отрезка.";
+"VIDEO_TO_ROUND_SUBTITLE" = "Кнопка в предпросмотре отправляет видео кружком: обрезка по центру, до 60 секунд выбранного отрезка.";
 "VIDEO_TO_ROUND_ON_TOAST" = "Это видео будет отправлено кружком";
 "VIDEO_TO_ROUND_OFF_TOAST" = "Снова отправляем обычным видео";
 "VIDEO_TO_ROUND_CONVERTING" = "Готовим кружок…";
@@ -166,17 +166,17 @@
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Расширенные настройки";
-"ADVANCED_SETTINGS_HIDE" = "Скрыть подробные настройки";
-"ADVANCED_SETTINGS_SHOW" = "Показать подробные настройки";
-"GHOST_MODE_SUBTITLE" = "Общий переключатель скрытия активности";
+"ADVANCED_SETTINGS_HIDE" = "Свернуть список скрываемых действий.";
+"ADVANCED_SETTINGS_SHOW" = "Выбрать, какие действия скрывать.";
+"GHOST_MODE_SUBTITLE" = "Скрывать действия, выбранные в расширенных настройках.";
 "CHANGE_LANGUAGE_TITLE" = "Изменить язык";
 "IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "Игнорировать запрет копирования в личных чатах";
-"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Разрешать копирование в личных чатах с запретом распространения. После изменения опции заново откройте профиль собеседника.";
+"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Разрешать копирование в личных чатах с запретом пересылки. После изменения заново откройте профиль собеседника.";
 
 /* Message data */
 "MESSAGE_DATA_SECTION_HEADER" = "Данные сообщений";
 "MESSAGE_DATA_CLEAR_TITLE" = "Очистить базу сообщений";
-"MESSAGE_DATA_CLEAR_SUBTITLE" = "История правок, исходные тексты и отметки удалений/таймеров для всех аккаунтов.";
+"MESSAGE_DATA_CLEAR_SUBTITLE" = "Удалить сохранённые сообщения, историю правок и отметки удаления для всех аккаунтов.";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Удалить историю правок, исходные тексты и отметки удалений/таймеров TGExtra для всех аккаунтов, включая старые архивы? Сообщения, сохранённые после удаления, также исчезнут с этого устройства. Отменить очистку нельзя. Остальные сообщения Telegram и настройки твика сохранятся.";
 "MESSAGE_DATA_CLEARING" = "Очистка данных сообщений…";
 "MESSAGE_DATA_CLEARED" = "База сообщений очищена";
@@ -188,10 +188,10 @@
 "SETTINGS_SAVE_FAILED" = "Не удалось сохранить настройки. Повторите попытку перед перезапуском приложения.";
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Отключить реакции по даблтапу";
-"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Не ставить реакцию двойным нажатием на сообщение. Реакции доступны через кнопки и меню по долгому нажатию.";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Реакции остаются доступны через меню по долгому нажатию.";
 
 "FORCE_TLOTTIE_TITLE" = "Принудительно использовать tlottie";
-"FORCE_TLOTTIE_SUBTITLE" = "Использовать tlottie вместо rlottie для новых кадров анимаций. Нужен клиент со встроенным tlottie. После изменения перезапустите приложение; готовые кадры в кеше сохранятся.";
+"FORCE_TLOTTIE_SUBTITLE" = "Сменить движок анимаций с rlottie на tlottie, если он есть в клиенте. Нужен перезапуск; готовые кадры останутся в кэше.";
 
 // Purchased media export
 "PAID_MEDIA_SAVE" = "Сохранить купленное медиа";
@@ -202,20 +202,25 @@
 
 // Media diagnostics
 "DEBUG_LOG_TITLE" = "Журнал диагностики";
-"DEBUG_LOG_SUBTITLE" = "Просмотр и копирование диагностики сохранения медиа и скриншотов.";
+"DEBUG_LOG_SUBTITLE" = "Записи об ошибках сохранения медиа и скриншотов. Можно скопировать для отчёта.";
 "DEBUG_LOG_COPY" = "Копировать";
 "DEBUG_LOG_CLEAR" = "Очистить";
 "DEBUG_LOG_EMPTY" = "Диагностических записей пока нет.";
 
 /* Recording button */
 "HIDE_RECORDING_BUTTON_TITLE" = "Убрать кнопку записи";
-"HIDE_RECORDING_BUTTON_SUBTITLE" = "Полностью убрать кнопку записи голосовых и кружков в Telegram и Swiftgram. Примените изменения для перезапуска приложения.";
+"HIDE_RECORDING_BUTTON_SUBTITLE" = "Скрыть кнопку голосовых сообщений и кружков рядом с полем ввода. Нужен перезапуск.";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "Не удалось очистить данные сообщений. Попробуйте ещё раз.";
 "TEMPORARY_FILES_CLEAR_TITLE" = "Принудительно очистить временные файлы";
-"TEMPORARY_FILES_CLEAR_SUBTITLE" = "Файлы из проводника, преобразованные голосовые сообщения и кружки, временные копии медиа и старые логи TGExtra.";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "Удалить копии файлов, результаты конвертации медиа и старые логи TGExtra.";
 "TEMPORARY_FILES_CLEAR_CONFIRM" = "Удалить все временные файлы TGExtra? Незавершённые отправки, преобразования и сохранения могут прерваться — их придётся повторить. История сообщений и настройки твика сохранятся.";
 "TEMPORARY_FILES_CLEARING" = "Очистка временных файлов…";
 "TEMPORARY_FILES_CLEARED" = "Временные файлы очищены";
 "TEMPORARY_FILES_USAGE" = "Файлов: %lu\nРазмер: %@";
 "TEMPORARY_FILES_CHECKING" = "Подсчёт временных файлов…";
+
+"TOOLS_SECTION_HEADER" = "Инструменты";
+"CLEANUP_TITLE" = "Очистка";
+"CLEANUP_SUBTITLE" = "Удаление сохранённых сообщений и временных файлов.";
+"CLEANUP_HIDE" = "Свернуть список очистки.";

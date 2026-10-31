@@ -1,7 +1,7 @@
 /* Settings categories */
 "MESSAGE_HISTORY_SECTION_HEADER" = "Message history";
 "CONTENT_ACCESS_SECTION_HEADER" = "Content access";
-"MEDIA_SECTION_HEADER" = "Media and animations";
+"MEDIA_SECTION_HEADER" = "Media and files";
 "INTERFACE_SECTION_HEADER" = "Interface and gestures";
 
 /* Sections */
@@ -62,10 +62,10 @@
 "DISABLE_CHOOSING_STICKER_STATUS_SUBTITLE" = "Hide the indicator when picking a sticker.";
 
 "DISABLE_EMOJI_INTERACTION_STATUS_TITLE" = "Hide Emoji Interaction Status";
-"DISABLE_EMOJI_INTERACTION_STATUS_SUBTITLE" = "Hide the indicator when interacting with emoji.";
+"DISABLE_EMOJI_INTERACTION_STATUS_SUBTITLE" = "Do not share taps on animated emoji with the other person.";
 
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_TITLE" = "Hide Emoji Reaction Status";
-"DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "Hide the indicator when reacting with emoji to a message.";
+"DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "Do not report when you view an emoji animation.";
 
 /* READ_RECEIPTS Section */
 "READ_RECEIPTS" = "Read Receipts";
@@ -85,42 +85,42 @@
 "MISC" = "Privacy & Extras";
 
 "DISABLE_ALL_ADS_TITLE" = "Disable All Ads";
-"DISABLE_ALL_ADS_SUBTITLE" = "Remove sponsored messages and promotional content from the app.";
+"DISABLE_ALL_ADS_SUBTITLE" = "Hide sponsored messages in chats and channels.";
 
 "ENABLE_SAVING_PROTECTED_CONTENT_TITLE" = "Save Restricted Media";
-"ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "Bypass forwarding restrictions — save and forward media from protected chats and channels.";
+"ENABLE_SAVING_PROTECTED_CONTENT_SUBTITLE" = "Allow saving and forwarding media from chats that restrict copying.";
 
 "ANTI_REVOKE_TITLE" = "Save Deleted Messages";
-"ANTI_REVOKE_SUBTITLE" = "Keep messages in your chat even after the sender deletes them. Deleted messages stay visible to you.";
+"ANTI_REVOKE_SUBTITLE" = "Keep messages in your chat after the sender deletes them.";
 
 "ANTI_EDIT_TITLE" = "Save Original Edited Messages";
-"ANTI_EDIT_SUBTITLE" = "When someone edits a message, the original text is preserved on your end. You'll always see what was first written.";
+"ANTI_EDIT_SUBTITLE" = "Keep previous versions of edited messages.";
 
 "ANTI_SCREENSHOT_TITLE" = "Disable Screenshot Notifications";
-"ANTI_SCREENSHOT_SUBTITLE" = "Take screenshots in secret chats and protected channels without sending a notification to the other person.";
+"ANTI_SCREENSHOT_SUBTITLE" = "Do not notify the other person about screenshots in secret chats.";
 
 "ANTI_SELF_DESTRUCT_TITLE" = "View Disappearing Media Freely";
-"ANTI_SELF_DESTRUCT_SUBTITLE" = "Open one-time and disappearing photos/videos without triggering the self-destruct timer. The media stays visible locally.";
+"ANTI_SELF_DESTRUCT_SUBTITLE" = "Do not start the deletion timer when viewing one-time photos and videos.";
 
 "ANTI_AUTO_DELETE_TITLE" = "Save Auto-Delete Messages";
-"ANTI_AUTO_DELETE_SUBTITLE" = "Prevent messages in chats with auto-delete (1 day, 7 days, etc.) from being deleted. Messages stay visible even after the timer expires.";
+"ANTI_AUTO_DELETE_SUBTITLE" = "Keep messages in your chat after the auto-delete timer expires.";
 
 /* File Picker */
 "FIX_FILE_PICKER_TITLE" = "Fix File Picker";
-"FIX_FILE_PICKER_SUBTITLE" = "Fixes the issue where you can't pick files from the Files app on sideloaded versions.";
+"FIX_FILE_PICKER_SUBTITLE" = "Fix selection from the Files app in Telegram installed through an IPA.";
 "CLEAR_FILE_PICKER_CACHE_TITLE" = "Clear File Picker Cache";
-"CLEAR_FILE_PICKER_CACHE_SUBTITLE" = "File Picker copies files to a temp directory. Tap here to clear that cache and free up storage.";
-"CACHE_CLEAR_WARNING_TITLE" = "Confirm";
-"CACHE_CLEAR_WARNING_MESSAGE" = "Are you sure you want to clear the file picker cache?";
+"CLEAR_FILE_PICKER_CACHE_SUBTITLE" = "Delete copies created when selecting files through the Files app.";
+"CACHE_CLEAR_WARNING_TITLE" = "Clear file picker cache?";
+"CACHE_CLEAR_WARNING_MESSAGE" = "Temporary copies of selected files will be deleted. Wait for uploads to finish first.";
 
 /* Fake Location */
 "ENABLE_FAKE_LOCATION_TITLE" = "Enable Location Spoofing";
-"ENABLE_FAKE_LOCATION_SUBTITLE" = "Override your device's GPS and share a custom location instead.";
+"ENABLE_FAKE_LOCATION_SUBTITLE" = "Send the coordinates of your selected location to Telegram.";
 "SELECT_FAKE_LOCATION_TITLE" = "Select Fake Location";
 
 /* Extras */
 "APPLY" = "Apply";
-"APPLY_CHANGES" = "The app will close and restart to apply your changes. Continue?";
+"APPLY_CHANGES" = "The app will close. Open it again to apply your changes.";
 
 "OK" = "OK";
 "CANCEL" = "Cancel";
@@ -128,26 +128,26 @@
 "DISCLAIMER" = "Disclaimer";
 
 "AUTHOR_MESSAGE" = "This Telegram tweak is for personal and educational use only. We are not affiliated with Telegram in any way. All trademarks, including the Telegram name and logo, belong to their respective owners. Don't use this to break rules or violate Telegram's terms — we're not responsible if things go sideways. Use at your own risk.\n\nDeveloped by KDevLab\nOriginal idea by Chocolatefluffy";
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Unavailable on this Telegram version — edit updates cannot be read until the API layer is refreshed.";
+"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Saving edits is not yet supported in this Telegram version.";
 "CLOSE" = "Close";
 "EDIT_HISTORY_TITLE" = "Edit History";
 "EDIT_HISTORY_ORIGINAL" = "Original:";
 "EDIT_HISTORY_EDIT" = "Edit";
 "EDIT_HISTORY_COPY_LATEST" = "Copy Latest Version";
 "GHOST_EXCEPTIONS_SECTION_HEADER" = "Ghost Exceptions";
-"GHOST_EXCEPTIONS_SECTION_FOOTER" = "These people still see your typing indicators and read receipts while Ghost Mode stays on for everyone else. Online status is not covered: Telegram sends it to everyone at once, so it cannot be revealed to one person only.";
+"GHOST_EXCEPTIONS_SECTION_FOOTER" = "These people can see your activity and read receipts. Exceptions do not affect online status: it cannot be shared with individual people.";
 "GHOST_EXCEPTIONS_EMPTY_TITLE" = "No exceptions yet";
-"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "Open someone's profile and tap the eye button in the top-right corner to add them.";
+"GHOST_EXCEPTIONS_EMPTY_SUBTITLE" = "To add someone, tap the eye button in their profile.";
 "GHOST_EXCEPTIONS_RENAME_TITLE" = "Rename";
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "Choose the name shown in this list. Leave empty to use the profile name.";
 "GHOST_EXCEPTION_ADDED_TOAST" = "Ghost Exception added — this person sees your real activity";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "Ghost Exception removed — Ghost Mode applies again";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "Please enable at least one feature in Advanced Settings first.";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "Hide Disappearing Label";
-"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Stop prepending the \"dissapearing message\" marker to intercepted one-time media.";
+"HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Remove the “dissapearing message” label from saved one-time photos and videos.";
 "SAVE" = "Save";
 "VIDEO_TO_VOICE_TITLE" = "Video to Voice";
-"VIDEO_TO_VOICE_SUBTITLE" = "Show a button in the video preview to send its audio as a voice message. The button is off by default for each video; turn it on for the clips you want to convert. The preview trim is respected.";
+"VIDEO_TO_VOICE_SUBTITLE" = "A button in the video preview sends its audio as a voice message, using your selected trim.";
 "VIDEO_TO_VOICE_ON_TOAST" = "This video will be sent as a voice message";
 "VIDEO_TO_VOICE_OFF_TOAST" = "Sending as a normal video again";
 "VIDEO_TO_VOICE_EXTRACTING" = "Extracting audio…";
@@ -155,7 +155,7 @@
 "VIDEO_TO_VOICE_FAILED" = "Could not extract audio — sending the video instead";
 "VIDEO_TO_VOICE_NO_AUDIO" = "This video has no sound — sending the video instead";
 "VIDEO_TO_ROUND_TITLE" = "Video to Round Message";
-"VIDEO_TO_ROUND_SUBTITLE" = "Show a button beside Video to Voice in the video preview. Enable it for each clip to send a round video message: centered square crop, up to 60 seconds of the selected trim.";
+"VIDEO_TO_ROUND_SUBTITLE" = "A button in the preview sends a round video: center crop, up to 60 seconds of your selected trim.";
 "VIDEO_TO_ROUND_ON_TOAST" = "This video will be sent as a round video message";
 "VIDEO_TO_ROUND_OFF_TOAST" = "Sending as a normal video again";
 "VIDEO_TO_ROUND_CONVERTING" = "Preparing round video…";
@@ -164,17 +164,17 @@
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";
-"ADVANCED_SETTINGS_HIDE" = "Hide detail settings";
-"ADVANCED_SETTINGS_SHOW" = "Show detail settings";
-"GHOST_MODE_SUBTITLE" = "Master switch for hidden activity";
+"ADVANCED_SETTINGS_HIDE" = "Collapse the list of hidden actions.";
+"ADVANCED_SETTINGS_SHOW" = "Choose which actions to hide.";
+"GHOST_MODE_SUBTITLE" = "Hide the actions selected in Advanced Settings.";
 "CHANGE_LANGUAGE_TITLE" = "Change Language";
 "IGNORE_PRIVATE_COPY_PROTECTION_TITLE" = "Ignore Copy Protection in Private Chats";
-"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Allow copying in private chats with sharing restrictions. Reopen the person's profile after changing this option.";
+"IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Allow copying in private chats that restrict forwarding. Reopen the person’s profile after changing this.";
 
 /* Message data */
 "MESSAGE_DATA_SECTION_HEADER" = "Message Data";
 "MESSAGE_DATA_CLEAR_TITLE" = "Clear Message Database";
-"MESSAGE_DATA_CLEAR_SUBTITLE" = "Edit histories, original texts, and deletion/timer markers for all accounts.";
+"MESSAGE_DATA_CLEAR_SUBTITLE" = "Delete saved messages, edit history and deletion markers for all accounts.";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Clear TGExtra edit histories, original texts and deletion/timer markers for all accounts, including legacy archives? Messages retained after deletion will also be removed from this device. This cannot be undone. Other Telegram messages and tweak settings will be kept.";
 "MESSAGE_DATA_CLEARING" = "Clearing message data…";
 "MESSAGE_DATA_CLEARED" = "Message database cleared";
@@ -186,10 +186,10 @@
 "SETTINGS_SAVE_FAILED" = "Could not save settings. Try again before restarting the app.";
 
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Disable double-tap reactions";
-"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Prevent double-tapping messages from adding a reaction. Use reaction buttons or the long-press menu instead.";
+"DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Reactions remain available in the long-press menu.";
 
 "FORCE_TLOTTIE_TITLE" = "Force tlottie";
-"FORCE_TLOTTIE_SUBTITLE" = "Use tlottie instead of rlottie for newly rendered animations. Requires a client with tlottie. Restart the app after changing this option; cached frames are kept.";
+"FORCE_TLOTTIE_SUBTITLE" = "Switch animations from rlottie to tlottie if the client includes it. Restart required; cached frames are kept.";
 
 // Purchased media export
 "PAID_MEDIA_SAVE" = "Save purchased media";
@@ -200,20 +200,25 @@
 
 // Media diagnostics
 "DEBUG_LOG_TITLE" = "Debug Log";
-"DEBUG_LOG_SUBTITLE" = "View and copy media saving and screenshot diagnostics.";
+"DEBUG_LOG_SUBTITLE" = "Media saving and screenshot errors. Copy the log to include in a bug report.";
 "DEBUG_LOG_COPY" = "Copy";
 "DEBUG_LOG_CLEAR" = "Clear";
 "DEBUG_LOG_EMPTY" = "No diagnostic entries yet.";
 
 /* Recording button */
 "HIDE_RECORDING_BUTTON_TITLE" = "Remove Recording Button";
-"HIDE_RECORDING_BUTTON_SUBTITLE" = "Remove the voice and round-video recording button in Telegram and Swiftgram. Apply changes to restart the app.";
+"HIDE_RECORDING_BUTTON_SUBTITLE" = "Hide the voice and round-video button beside the message field. Restart required.";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "Could not clear message data. Please try again.";
 "TEMPORARY_FILES_CLEAR_TITLE" = "Force Clear Temporary Files";
-"TEMPORARY_FILES_CLEAR_SUBTITLE" = "Picker files, converted voice messages and video notes, media exports, and old TGExtra logs.";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "Delete file copies, converted media and old TGExtra logs.";
 "TEMPORARY_FILES_CLEAR_CONFIRM" = "Delete all TGExtra temporary files? Pending sends, conversions and saves may fail and need to be restarted. Saved message history and tweak settings will be kept.";
 "TEMPORARY_FILES_CLEARING" = "Clearing temporary files…";
 "TEMPORARY_FILES_CLEARED" = "Temporary files cleared";
 "TEMPORARY_FILES_USAGE" = "Files: %lu\nSize: %@";
 "TEMPORARY_FILES_CHECKING" = "Calculating temporary files…";
+
+"TOOLS_SECTION_HEADER" = "Tools";
+"CLEANUP_TITLE" = "Cleanup";
+"CLEANUP_SUBTITLE" = "Delete saved messages and temporary files.";
+"CLEANUP_HIDE" = "Hide cleanup actions.";

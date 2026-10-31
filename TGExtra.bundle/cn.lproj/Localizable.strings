@@ -1,7 +1,7 @@
 /* Settings categories */
 "MESSAGE_HISTORY_SECTION_HEADER" = "消息历史";
 "CONTENT_ACCESS_SECTION_HEADER" = "内容访问";
-"MEDIA_SECTION_HEADER" = "媒体与动画";
+"MEDIA_SECTION_HEADER" = "媒体与文件";
 "INTERFACE_SECTION_HEADER" = "界面与手势";
 
 /* GHOST_MODE Section */
@@ -218,3 +218,8 @@
 "TEMPORARY_FILES_CLEARED" = "临时文件已清理";
 "TEMPORARY_FILES_USAGE" = "文件数：%lu\n大小：%@";
 "TEMPORARY_FILES_CHECKING" = "正在统计临时文件…";
+
+"TOOLS_SECTION_HEADER" = "工具";
+"CLEANUP_TITLE" = "清理";
+"CLEANUP_SUBTITLE" = "消息历史、临时文件和文件选择器缓存。";
+"CLEANUP_HIDE" = "收起清理选项。";

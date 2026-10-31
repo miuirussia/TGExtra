@@ -10,6 +10,7 @@
 @interface TGExtra ()
 @property(nonatomic, strong) UITableView *tableView;
 @property(nonatomic) BOOL isGhostModeExpanded;
+@property(nonatomic) BOOL isCleanupExpanded;
 @property(nonatomic) BOOL isClearingMessageData;
 @property(nonatomic) BOOL isClearingTemporaryFiles;
 @property(nonatomic) BOOL isCheckingTemporaryFiles;

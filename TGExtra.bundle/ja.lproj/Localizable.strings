@@ -1,7 +1,7 @@
 /* Settings categories */
 "MESSAGE_HISTORY_SECTION_HEADER" = "メッセージ履歴";
 "CONTENT_ACCESS_SECTION_HEADER" = "コンテンツへのアクセス";
-"MEDIA_SECTION_HEADER" = "メディアとアニメーション";
+"MEDIA_SECTION_HEADER" = "メディアとファイル";
 "INTERFACE_SECTION_HEADER" = "インターフェースとジェスチャー";
 
 /* Sections */
@@ -216,3 +216,8 @@
 "TEMPORARY_FILES_CLEARED" = "一時ファイルを削除しました";
 "TEMPORARY_FILES_USAGE" = "ファイル数：%lu\nサイズ：%@";
 "TEMPORARY_FILES_CHECKING" = "一時ファイルを集計中…";
+
+"TOOLS_SECTION_HEADER" = "ツール";
+"CLEANUP_TITLE" = "クリーンアップ";
+"CLEANUP_SUBTITLE" = "メッセージ履歴、一時ファイル、ファイル選択のキャッシュ。";
+"CLEANUP_HIDE" = "クリーンアップ項目を閉じる。";

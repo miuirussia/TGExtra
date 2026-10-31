@@ -1,7 +1,7 @@
 /* Settings categories */
 "MESSAGE_HISTORY_SECTION_HEADER" = "訊息歷史";
 "CONTENT_ACCESS_SECTION_HEADER" = "內容存取";
-"MEDIA_SECTION_HEADER" = "媒體與動畫";
+"MEDIA_SECTION_HEADER" = "媒體與檔案";
 "INTERFACE_SECTION_HEADER" = "介面與手勢";
 
 /* Sections */
@@ -216,3 +216,8 @@
 "TEMPORARY_FILES_CLEARED" = "暫存檔案已清除";
 "TEMPORARY_FILES_USAGE" = "檔案數：%lu\n大小：%@";
 "TEMPORARY_FILES_CHECKING" = "正在統計暫存檔案…";
+
+"TOOLS_SECTION_HEADER" = "工具";
+"CLEANUP_TITLE" = "清理";
+"CLEANUP_SUBTITLE" = "訊息歷史、暫存檔案和檔案選擇器快取。";
+"CLEANUP_HIDE" = "收起清理選項。";

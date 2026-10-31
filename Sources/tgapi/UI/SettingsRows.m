@@ -95,6 +95,8 @@
                 subtitle:@"VIDEO_TO_ROUND_SUBTITLE" icon:@"video.circle.fill"],
             [self rowWithKey:kForceTLottie title:@"FORCE_TLOTTIE_TITLE"
                 subtitle:@"FORCE_TLOTTIE_SUBTITLE" icon:@"play.rectangle"],
+            [self rowWithKey:FILE_PICKER_FIX_KEY title:@"FIX_FILE_PICKER_TITLE"
+                subtitle:@"FIX_FILE_PICKER_SUBTITLE" icon:@"folder.fill.badge.gear"],
         ],
         @(INTERFACE): @[
             [self rowWithKey:kDisableAllAds title:@"DISABLE_ALL_ADS_TITLE"
@@ -117,9 +119,6 @@
         if (row < 2) return nil;
         rows = self.ghostRows;
         row -= 2;
-    } else if (section == FILE_FIXER && row == 0) {
-        return [self rowWithKey:FILE_PICKER_FIX_KEY title:@"FIX_FILE_PICKER_TITLE"
-            subtitle:@"FIX_FILE_PICKER_SUBTITLE" icon:@"folder.fill.badge.gear"];
     } else if (section == FAKE_LOCATION && row == 0) {
         return [self rowWithKey:FAKE_LOCATION_ENABLED_KEY title:@"ENABLE_FAKE_LOCATION_TITLE"
             subtitle:@"ENABLE_FAKE_LOCATION_SUBTITLE" icon:@"location.fill"];

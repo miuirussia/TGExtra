@@ -19,7 +19,8 @@ expected_features = {
     'kDisableDoubleTapReactions', 'kHideRecordingButton', 'kForceTLottie',
 }
 categories = rows[rows.index('+ (NSArray<TGExtraSettingRow *> *)featureRowsForSection:'):rows.index('+ (TGExtraSettingRow *)rowForSection:')]
-feature_keys = re.findall(r'rowWithKey:(k\w+)', categories)
+feature_keys = re.findall(r'rowWithKey:(\w+)', categories)
+expected_features.add('FILE_PICKER_FIX_KEY')
 assert set(feature_keys) == expected_features, 'Keep every existing feature in the categorized menu'
 assert len(feature_keys) == len(expected_features), 'Each feature must appear in exactly one category'
 for section in ('MESSAGE_HISTORY', 'CONTENT_ACCESS', 'MEDIA', 'INTERFACE'):

@@ -7,7 +7,7 @@
 - (void)confirmClearTemporaryFiles {
   if (self.isClearingTemporaryFiles || self.isCheckingTemporaryFiles) return;
   self.isCheckingTemporaryFiles = YES;
-  NSIndexSet *section = [NSIndexSet indexSetWithIndex:MESSAGE_DATA];
+  NSIndexSet *section = [NSIndexSet indexSetWithIndex:TOOLS];
   [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
   [TGExtraTemporaryFiles usageWithCompletion:^(NSUInteger count, unsigned long long bytes, NSError *error) {
     self.isCheckingTemporaryFiles = NO;
@@ -29,8 +29,6 @@
           [TGExtraTemporaryFiles clearWithCompletion:^(NSError *error) {
             self.isClearingTemporaryFiles = NO;
             [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
-            [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:FILE_FIXER]
-                         withRowAnimation:UITableViewRowAnimationNone];
             TGExtraShowToast(error ? error.localizedDescription : TGLoc(@"TEMPORARY_FILES_CLEARED"));
           }];
         }]];
@@ -49,7 +47,7 @@
   [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"MESSAGE_DATA_CLEAR_TITLE")
       style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
         self.isClearingMessageData = YES;
-        NSIndexSet *section = [NSIndexSet indexSetWithIndex:MESSAGE_DATA];
+        NSIndexSet *section = [NSIndexSet indexSetWithIndex:TOOLS];
         [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
           BOOL cleared = [TLParser clearMessageData];
@@ -75,7 +73,7 @@
               handler:^(UIAlertAction *action) {
                 [TGExtraFilePickerCache clearWithCompletion:^(NSError *error) {
                   if (error) { TGExtraShowToast(error.localizedDescription); return; }
-                  [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:FILE_FIXER]
+                  [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:TOOLS]
                                 withRowAnimation:UITableViewRowAnimationAutomatic];
                 }];
               }];

@@ -1,7 +1,7 @@
 /* Settings categories */
 "MESSAGE_HISTORY_SECTION_HEADER" = "Historique des messages";
 "CONTENT_ACCESS_SECTION_HEADER" = "Accès au contenu";
-"MEDIA_SECTION_HEADER" = "Médias et animations";
+"MEDIA_SECTION_HEADER" = "Médias et fichiers";
 "INTERFACE_SECTION_HEADER" = "Interface et gestes";
 
 /* GHOST_MODE Section */
@@ -216,3 +216,8 @@
 "TEMPORARY_FILES_CLEARED" = "Fichiers temporaires supprimés";
 "TEMPORARY_FILES_USAGE" = "Fichiers : %lu\nTaille : %@";
 "TEMPORARY_FILES_CHECKING" = "Calcul des fichiers temporaires…";
+
+"TOOLS_SECTION_HEADER" = "Outils";
+"CLEANUP_TITLE" = "Nettoyage";
+"CLEANUP_SUBTITLE" = "Historique des messages, fichiers temporaires et cache du sélecteur de fichiers.";
+"CLEANUP_HIDE" = "Masquer les options de nettoyage.";

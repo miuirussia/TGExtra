@@ -1,7 +1,7 @@
 /* Settings categories */
 "MESSAGE_HISTORY_SECTION_HEADER" = "سجل الرسائل";
 "CONTENT_ACCESS_SECTION_HEADER" = "الوصول إلى المحتوى";
-"MEDIA_SECTION_HEADER" = "الوسائط والرسوم المتحركة";
+"MEDIA_SECTION_HEADER" = "الوسائط والملفات";
 "INTERFACE_SECTION_HEADER" = "الواجهة والإيماءات";
 
 /* GHOST_MODE Section */
@@ -215,3 +215,8 @@
 "TEMPORARY_FILES_CLEARED" = "تم مسح الملفات المؤقتة";
 "TEMPORARY_FILES_USAGE" = "الملفات: %lu\nالحجم: %@";
 "TEMPORARY_FILES_CHECKING" = "جارٍ حساب الملفات المؤقتة…";
+
+"TOOLS_SECTION_HEADER" = "الأدوات";
+"CLEANUP_TITLE" = "التنظيف";
+"CLEANUP_SUBTITLE" = "سجل الرسائل والملفات المؤقتة وذاكرة التخزين المؤقت لمنتقي الملفات.";
+"CLEANUP_HIDE" = "إخفاء خيارات التنظيف.";

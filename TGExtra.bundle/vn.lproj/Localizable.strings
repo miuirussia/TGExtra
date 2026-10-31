@@ -1,7 +1,7 @@
 /* Settings categories */
 "MESSAGE_HISTORY_SECTION_HEADER" = "Lịch sử tin nhắn";
 "CONTENT_ACCESS_SECTION_HEADER" = "Truy cập nội dung";
-"MEDIA_SECTION_HEADER" = "Phương tiện và hoạt ảnh";
+"MEDIA_SECTION_HEADER" = "Phương tiện và tệp";
 "INTERFACE_SECTION_HEADER" = "Giao diện và cử chỉ";
 
 /* Sections */
@@ -216,3 +216,8 @@
 "TEMPORARY_FILES_CLEARED" = "Đã xóa tệp tạm";
 "TEMPORARY_FILES_USAGE" = "Số tệp: %lu\nDung lượng: %@";
 "TEMPORARY_FILES_CHECKING" = "Đang tính tệp tạm…";
+
+"TOOLS_SECTION_HEADER" = "Công cụ";
+"CLEANUP_TITLE" = "Dọn dẹp";
+"CLEANUP_SUBTITLE" = "Lịch sử tin nhắn, tệp tạm thời và bộ nhớ đệm của trình chọn tệp.";
+"CLEANUP_HIDE" = "Thu gọn các tùy chọn dọn dẹp.";

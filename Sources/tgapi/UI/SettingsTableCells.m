@@ -89,27 +89,6 @@
     cell.selectionStyle = UITableViewCellSelectionStyleDefault;
     return cell;
 
-  } else if (indexPath.section == FILE_FIXER) {
-    cell = TGExtraNormalSettingsCell(tableView);
-    cell.textLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_TITLE");
-    cell.detailTextLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_SUBTITLE");
-    cell.imageView.image = [UIImage systemImageNamed:@"trash"];
-    cell.imageView.tintColor = [UIColor redColor];
-    UIActivityIndicatorView *loadingIcon = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
-    [loadingIcon startAnimating];
-    cell.accessoryView = loadingIcon;
-    [TGExtraFilePickerCache sizeWithCompletion:^(NSString *size) {
-      UITableViewCell *currentCell = [tableView cellForRowAtIndexPath:indexPath];
-      if (currentCell == cell && [cell.textLabel.text isEqualToString:TGLoc(@"CLEAR_FILE_PICKER_CACHE_TITLE")]) {
-        UILabel *label = [UILabel new];
-        label.text = size;
-        [label sizeToFit];
-        cell.accessoryView = label;
-      }
-    }];
-    cell.textLabel.numberOfLines = 0;
-    cell.detailTextLabel.numberOfLines = 0;
-    return cell;
   } else if (indexPath.section == FAKE_LOCATION) {
     if (indexPath.row == 1) {
       cell = TGExtraNormalSettingsCell(tableView);
@@ -133,39 +112,49 @@
     cell.textLabel.numberOfLines = 0;
     cell.detailTextLabel.numberOfLines = 0;
     return cell;
-  } else if (indexPath.section == MESSAGE_DATA) {
-    if (indexPath.row == 1) {
+  } else if (indexPath.section == TOOLS) {
+    if (indexPath.row == 0 || !self.isCleanupExpanded || indexPath.row == 4) {
       cell = TGExtraNormalSettingsCell(tableView);
-      cell.textLabel.text = TGLoc(@"DEBUG_LOG_TITLE");
-      cell.detailTextLabel.text = TGLoc(@"DEBUG_LOG_SUBTITLE");
-      cell.textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
-      cell.detailTextLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
-      cell.textLabel.adjustsFontForContentSizeCategory = YES;
-      cell.detailTextLabel.adjustsFontForContentSizeCategory = YES;
-      cell.textLabel.textColor = UIColor.labelColor;
-      cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
-      cell.textLabel.numberOfLines = 0;
-      cell.detailTextLabel.numberOfLines = 0;
-      cell.imageView.image = [UIImage systemImageNamed:@"doc.text.magnifyingglass"];
+      BOOL cleanup = indexPath.row == 0;
+      cell.textLabel.text = TGLoc(cleanup ? @"CLEANUP_TITLE" : @"DEBUG_LOG_TITLE");
+      cell.detailTextLabel.text = cleanup
+          ? TGLoc(self.isCleanupExpanded ? @"CLEANUP_HIDE" : @"CLEANUP_SUBTITLE")
+          : TGLoc(@"DEBUG_LOG_SUBTITLE");
+      cell.imageView.image = [UIImage systemImageNamed:cleanup ? @"trash" : @"doc.text.magnifyingglass"];
       cell.imageView.tintColor = [self dynamicColorBW];
-      cell.imageView.isAccessibilityElement = NO;
-      cell.accessoryView = nil;
       cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-      cell.isAccessibilityElement = YES;
       cell.accessibilityLabel = cell.textLabel.text;
       cell.accessibilityHint = cell.detailTextLabel.text;
       cell.accessibilityTraits = UIAccessibilityTraitButton;
       return cell;
     }
-    cell = [tableView dequeueReusableCellWithIdentifier:@"messageDataCell"];
-    if (!cell) {
-      cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle
-                                   reuseIdentifier:@"messageDataCell"];
-      cell.textLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleBody];
-      cell.detailTextLabel.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
-      cell.textLabel.adjustsFontForContentSizeCategory = YES;
-      cell.detailTextLabel.adjustsFontForContentSizeCategory = YES;
+    if (indexPath.row == 3) {
+      cell = TGExtraNormalSettingsCell(tableView);
+      cell.textLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_TITLE");
+      cell.detailTextLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_SUBTITLE");
+      cell.imageView.image = [UIImage systemImageNamed:@"trash"];
+      cell.textLabel.textColor = UIColor.systemRedColor;
+      cell.imageView.tintColor = UIColor.systemRedColor;
+      cell.accessibilityTraits = UIAccessibilityTraitButton;
+      cell.accessibilityLabel = cell.textLabel.text;
+      cell.accessibilityHint = cell.detailTextLabel.text;
+      UIActivityIndicatorView *loadingIcon = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
+      [loadingIcon startAnimating];
+      cell.accessoryView = loadingIcon;
+      [TGExtraFilePickerCache sizeWithCompletion:^(NSString *size) {
+        UITableViewCell *currentCell = [tableView cellForRowAtIndexPath:indexPath];
+        if (currentCell == cell && [cell.textLabel.text isEqualToString:TGLoc(@"CLEAR_FILE_PICKER_CACHE_TITLE")]) {
+          UILabel *label = [UILabel new];
+          label.text = size;
+          [label sizeToFit];
+          cell.accessoryView = label;
+        }
+      }];
+      cell.textLabel.numberOfLines = 0;
+      cell.detailTextLabel.numberOfLines = 0;
+      return cell;
     }
+    cell = TGExtraNormalSettingsCell(tableView);
     BOOL temporary = indexPath.row == 2;
     BOOL checking = temporary && self.isCheckingTemporaryFiles;
     BOOL clearing = temporary ? self.isClearingTemporaryFiles || checking : self.isClearingMessageData;

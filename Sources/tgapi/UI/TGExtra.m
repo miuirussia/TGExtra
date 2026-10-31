@@ -182,14 +182,12 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
     return 2 + (self.isGhostModeExpanded ? [TGExtraSettingRow ghostRows].count : 0);
   case GHOST_EXCEPTIONS:
     return MAX((NSInteger)[TGExtraGhostExceptions all].count, 1);
-  case FILE_FIXER:
-    return 2;
   case FAKE_LOCATION:
     return 2;
   case LANGUAGE:
     return 1;
-  case MESSAGE_DATA:
-    return 3;
+  case TOOLS:
+    return 2 + (self.isCleanupExpanded ? 3 : 0);
   case CREDITS:
     return 2;
   default:
@@ -214,14 +212,12 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
     return TGLoc(@"MEDIA_SECTION_HEADER");
   case INTERFACE:
     return TGLoc(@"INTERFACE_SECTION_HEADER");
-  case FILE_FIXER:
-    return TGLoc(@"FILE_FIXER_SECTION_HEADER");
   case FAKE_LOCATION:
     return TGLoc(@"FAKE_LOCATION_SECTION_HEADER");
   case LANGUAGE:
     return TGLoc(@"LANGUAGE_SECTION_HEADER");
-  case MESSAGE_DATA:
-    return TGLoc(@"MESSAGE_DATA_SECTION_HEADER");
+  case TOOLS:
+    return TGLoc(@"TOOLS_SECTION_HEADER");
   case CREDITS:
     return TGLoc(@"CREDITS_SECTION_HEADER");
   default:
@@ -260,11 +256,6 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
     return;
   }
 
-  if (indexPath.section == FILE_FIXER && indexPath.row == 1) {
-    [self clearFilePickerFixCache];
-    return;
-  }
-
   if (indexPath.section == FAKE_LOCATION) { // Fake Location
     if (indexPath.row == 1) {
       [self showLocationSelector];
@@ -277,10 +268,20 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
     }
   }
 
-  if (indexPath.section == MESSAGE_DATA) {
-    if (indexPath.row == 0) [self confirmClearMessageData];
-    else if (indexPath.row == 1) [self showDebugLog];
-    else if (indexPath.row == 2) [self confirmClearTemporaryFiles];
+  if (indexPath.section == TOOLS) {
+    if (indexPath.row == 0) {
+      self.isCleanupExpanded = !self.isCleanupExpanded;
+      [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:TOOLS]
+                    withRowAnimation:UITableViewRowAnimationAutomatic];
+    } else if (!self.isCleanupExpanded || indexPath.row == 4) {
+      [self showDebugLog];
+    } else if (indexPath.row == 1) {
+      [self confirmClearMessageData];
+    } else if (indexPath.row == 2) {
+      [self confirmClearTemporaryFiles];
+    } else if (indexPath.row == 3) {
+      [self clearFilePickerFixCache];
+    }
     return;
   }
 
