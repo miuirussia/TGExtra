@@ -143,6 +143,7 @@ static NSURL *tgextraExtractAudio(AVAsset *asset, CMTimeRange range, NSString *b
                                          presetName:AVAssetExportPresetAppleM4A];
     if (!session) {
         tgextraDiag("v2v: AppleM4A preset unavailable for this asset");
+        [NSFileManager.defaultManager removeItemAtURL:output.URLByDeletingLastPathComponent error:NULL];
         return nil;
     }
     session.outputURL = output;
@@ -152,13 +153,25 @@ static NSURL *tgextraExtractAudio(AVAsset *asset, CMTimeRange range, NSString *b
     TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"VIDEO_TO_VOICE_EXTRACTING"]);
 
     dispatch_semaphore_t done = dispatch_semaphore_create(0);
+    __block BOOL abandoned = NO;
     [session exportAsynchronouslyWithCompletionHandler:^{
+        @synchronized(session) {
+            if (abandoned || session.status != AVAssetExportSessionStatusCompleted) {
+                [NSFileManager.defaultManager removeItemAtURL:output.URLByDeletingLastPathComponent error:NULL];
+            }
+        }
         dispatch_semaphore_signal(done);
     }];
     if (dispatch_semaphore_wait(
             done, dispatch_time(DISPATCH_TIME_NOW,
                                 (int64_t)(kTGExtraExtractionTimeout * NSEC_PER_SEC))) != 0) {
         tgextraDiag("v2v: export timed out");
+        @synchronized(session) {
+            abandoned = YES;
+            if (session.status == AVAssetExportSessionStatusCompleted) {
+                [NSFileManager.defaultManager removeItemAtURL:output.URLByDeletingLastPathComponent error:NULL];
+            }
+        }
         [session cancelExport];
         TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"VIDEO_TO_VOICE_FAILED"]);
         return nil;

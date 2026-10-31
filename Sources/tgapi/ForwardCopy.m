@@ -73,6 +73,24 @@ static NSURL *copyJournalDirectory(void) {
 #endif
 }
 
+static void pruneCompletedCopyJournals(NSURL *directory) {
+    NSArray *files = [NSFileManager.defaultManager contentsOfDirectoryAtURL:directory includingPropertiesForKeys:nil options:0 error:nil];
+    for (NSURL *url in files) {
+        if (![url.pathExtension isEqual:@"plist"] || runningCopyKeys()[url.lastPathComponent.stringByDeletingPathExtension]) continue;
+        NSDictionary *entry = [NSDictionary dictionaryWithContentsOfURL:url];
+        NSDate *date = entry[@"updated"];
+        if ([entry[@"complete"] boolValue] && [date isKindOfClass:NSDate.class] && -date.timeIntervalSinceNow > 7 * 86400) {
+            [NSFileManager.defaultManager removeItemAtURL:url error:nil];
+        }
+    }
+}
+
+#if !TGEXTRA_TESTING
+__attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
+    dispatch_async(copyQueue(), ^{ pruneCompletedCopyJournals(copyJournalDirectory()); });
+}
+#endif
+
 @interface TGExtraCopyRPC : NSObject
 @property(nonatomic, strong) MTRequest *request;
 @property(nonatomic, strong) MTRequestMessageService *service;
@@ -253,6 +271,7 @@ static NSURL *copyJournalDirectory(void) {
     [directory setResourceValue:@YES forKey:NSURLIsExcludedFromBackupKey error:nil];
     self.operationKey = [TGExtraForwardCopyPlan operationKeyForAccount:account payload:self.original.payload];
     if (runningCopyKeys()[self.operationKey] && runningCopyKeys()[self.operationKey] != self) return NO;
+    pruneCompletedCopyJournals(directory);
     self.journalURL = [directory URLByAppendingPathComponent:[self.operationKey stringByAppendingPathExtension:@"plist"]];
     NSDictionary *saved = [NSDictionary dictionaryWithContentsOfURL:self.journalURL];
     if (saved) {
@@ -262,14 +281,6 @@ static NSURL *copyJournalDirectory(void) {
         self.journal = saved.mutableCopy;
         self.journal[@"results"] = [saved[@"results"] mutableCopy];
     } else {
-        NSArray *files = [NSFileManager.defaultManager contentsOfDirectoryAtURL:directory includingPropertiesForKeys:nil options:0 error:nil];
-        for (NSURL *url in files) {
-            NSDictionary *entry = [NSDictionary dictionaryWithContentsOfURL:url];
-            NSDate *date = entry[@"updated"];
-            if ([entry[@"complete"] boolValue] && [date isKindOfClass:NSDate.class] && -date.timeIntervalSinceNow > 7 * 86400) {
-                [NSFileManager.defaultManager removeItemAtURL:url error:nil];
-            }
-        }
         // Keep unfinished journals for safe retries. Their count must not prevent
         // unrelated copies (including those from other accounts) from starting.
         self.journal = [@{@"account": account, @"payload": self.original.payload, @"results": [NSMutableDictionary new]} mutableCopy];

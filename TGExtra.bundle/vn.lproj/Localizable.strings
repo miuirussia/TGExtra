@@ -209,3 +209,10 @@
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Xóa hoàn toàn nút ghi tin nhắn thoại và video tròn trong Telegram và Swiftgram. Áp dụng thay đổi để khởi động lại ứng dụng.";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "Không thể xóa dữ liệu tin nhắn. Vui lòng thử lại.";
+"TEMPORARY_FILES_CLEAR_TITLE" = "Buộc xóa tệp tạm";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "Tệp từ bộ chọn, tin nhắn thoại và video tròn đã chuyển đổi, tệp xuất đa phương tiện và nhật ký TGExtra cũ.";
+"TEMPORARY_FILES_CLEAR_CONFIRM" = "Xóa tất cả tệp tạm của TGExtra? Các tác vụ gửi, chuyển đổi và lưu chưa hoàn tất có thể thất bại và cần thực hiện lại. Lịch sử tin nhắn và cài đặt tweak sẽ được giữ nguyên.";
+"TEMPORARY_FILES_CLEARING" = "Đang xóa tệp tạm…";
+"TEMPORARY_FILES_CLEARED" = "Đã xóa tệp tạm";
+"TEMPORARY_FILES_USAGE" = "Số tệp: %lu\nDung lượng: %@";
+"TEMPORARY_FILES_CHECKING" = "Đang tính tệp tạm…";

@@ -155,6 +155,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"إزالة زر التسجيل",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"إزالة زر تسجيل الرسائل الصوتية والفيديو الدائري في Telegram وSwiftgram. طبّق التغييرات لإعادة تشغيل التطبيق.",
             @"MESSAGE_DATA_CLEAR_FAILED": @"تعذر مسح بيانات الرسائل. يرجى المحاولة مرة أخرى.",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"فرض مسح الملفات المؤقتة",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"ملفات منتقي الملفات والرسائل الصوتية ومقاطع الفيديو الدائرية المحوّلة وملفات تصدير الوسائط وسجلات TGExtra القديمة.",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"هل تريد حذف جميع ملفات TGExtra المؤقتة؟ قد تفشل عمليات الإرسال والتحويل والحفظ المعلّقة وتحتاج إلى إعادة تشغيلها. سيتم الاحتفاظ بسجل الرسائل المحفوظ وإعدادات الإضافة.",
+            @"TEMPORARY_FILES_CLEARING": @"جارٍ مسح الملفات المؤقتة…",
+            @"TEMPORARY_FILES_CLEARED": @"تم مسح الملفات المؤقتة",
+            @"TEMPORARY_FILES_USAGE": @"الملفات: %lu\nالحجم: %@",
+            @"TEMPORARY_FILES_CHECKING": @"جارٍ حساب الملفات المؤقتة…",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -311,6 +318,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"移除录制按钮",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"完全移除 Telegram 和 Swiftgram 中的语音及圆形视频录制按钮。应用更改以重启应用。",
             @"MESSAGE_DATA_CLEAR_FAILED": @"无法清除消息数据，请重试。",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"强制清理临时文件",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"文件选择器文件、转换后的语音和圆形视频消息、媒体导出文件，以及旧版 TGExtra 日志。",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"删除 TGExtra 的所有临时文件？尚未完成的发送、转换和保存可能失败，需要重试。已保存的消息历史和插件设置将保留。",
+            @"TEMPORARY_FILES_CLEARING": @"正在清理临时文件…",
+            @"TEMPORARY_FILES_CLEARED": @"临时文件已清理",
+            @"TEMPORARY_FILES_USAGE": @"文件数：%lu\n大小：%@",
+            @"TEMPORARY_FILES_CHECKING": @"正在统计临时文件…",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -467,6 +481,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"Remove Recording Button",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Remove the voice and round-video recording button in Telegram and Swiftgram. Apply changes to restart the app.",
             @"MESSAGE_DATA_CLEAR_FAILED": @"Could not clear message data. Please try again.",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"Force Clear Temporary Files",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"Picker files, converted voice messages and video notes, media exports, and old TGExtra logs.",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"Delete all TGExtra temporary files? Pending sends, conversions and saves may fail and need to be restarted. Saved message history and tweak settings will be kept.",
+            @"TEMPORARY_FILES_CLEARING": @"Clearing temporary files…",
+            @"TEMPORARY_FILES_CLEARED": @"Temporary files cleared",
+            @"TEMPORARY_FILES_USAGE": @"Files: %lu\nSize: %@",
+            @"TEMPORARY_FILES_CHECKING": @"Calculating temporary files…",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -623,6 +644,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"Quitar botón de grabación",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Quitar el botón para grabar mensajes de voz y vídeos circulares en Telegram y Swiftgram. Aplica los cambios para reiniciar la app.",
             @"MESSAGE_DATA_CLEAR_FAILED": @"No se pudieron borrar los datos de los mensajes. Inténtalo de nuevo.",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"Forzar borrado de archivos temporales",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"Archivos del selector, mensajes de voz y vídeos circulares convertidos, exportaciones multimedia y registros antiguos de TGExtra.",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"¿Borrar todos los archivos temporales de TGExtra? Los envíos, conversiones y guardados pendientes pueden fallar y deberán reiniciarse. Se conservarán el historial de mensajes y los ajustes del tweak.",
+            @"TEMPORARY_FILES_CLEARING": @"Borrando archivos temporales…",
+            @"TEMPORARY_FILES_CLEARED": @"Archivos temporales borrados",
+            @"TEMPORARY_FILES_USAGE": @"Archivos: %lu\nTamaño: %@",
+            @"TEMPORARY_FILES_CHECKING": @"Calculando archivos temporales…",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -779,6 +807,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"Supprimer le bouton d’enregistrement",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Supprimer le bouton des messages vocaux et vidéos circulaires dans Telegram et Swiftgram. Appliquez les modifications pour redémarrer l’app.",
             @"MESSAGE_DATA_CLEAR_FAILED": @"Impossible de supprimer les données des messages. Réessayez.",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"Forcer la suppression des fichiers temporaires",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"Fichiers du sélecteur, messages vocaux et vidéos rondes convertis, exports multimédias et anciens journaux TGExtra.",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"Supprimer tous les fichiers temporaires de TGExtra ? Les envois, conversions et enregistrements en cours peuvent échouer et devront être relancés. L’historique des messages et les réglages du tweak seront conservés.",
+            @"TEMPORARY_FILES_CLEARING": @"Suppression des fichiers temporaires…",
+            @"TEMPORARY_FILES_CLEARED": @"Fichiers temporaires supprimés",
+            @"TEMPORARY_FILES_USAGE": @"Fichiers : %lu\nTaille : %@",
+            @"TEMPORARY_FILES_CHECKING": @"Calcul des fichiers temporaires…",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -935,6 +970,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"Rimuovi pulsante di registrazione",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Rimuovi il pulsante per registrare messaggi vocali e video circolari in Telegram e Swiftgram. Applica le modifiche per riavviare l’app.",
             @"MESSAGE_DATA_CLEAR_FAILED": @"Impossibile cancellare i dati dei messaggi. Riprova.",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"Forza eliminazione dei file temporanei",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"File del selettore, messaggi vocali e video circolari convertiti, esportazioni multimediali e vecchi log di TGExtra.",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"Eliminare tutti i file temporanei di TGExtra? Invii, conversioni e salvataggi in corso potrebbero non riuscire e dovranno essere riavviati. La cronologia dei messaggi e le impostazioni del tweak verranno conservate.",
+            @"TEMPORARY_FILES_CLEARING": @"Eliminazione dei file temporanei…",
+            @"TEMPORARY_FILES_CLEARED": @"File temporanei eliminati",
+            @"TEMPORARY_FILES_USAGE": @"File: %lu\nDimensioni: %@",
+            @"TEMPORARY_FILES_CHECKING": @"Calcolo dei file temporanei…",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -1091,6 +1133,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"録音・録画ボタンを削除",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Telegram と Swiftgram のボイスメッセージと丸型動画の録音・録画ボタンを完全に削除します。変更を適用するとアプリが再起動します。",
             @"MESSAGE_DATA_CLEAR_FAILED": @"メッセージデータを削除できませんでした。もう一度お試しください。",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"一時ファイルを強制削除",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"ファイル選択で作成したファイル、変換した音声・丸い動画メッセージ、メディアの書き出しファイル、古い TGExtra ログ。",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"TGExtra の一時ファイルをすべて削除しますか？未完了の送信、変換、保存が失敗し、やり直しが必要になる場合があります。保存済みのメッセージ履歴と tweak の設定は保持されます。",
+            @"TEMPORARY_FILES_CLEARING": @"一時ファイルを削除中…",
+            @"TEMPORARY_FILES_CLEARED": @"一時ファイルを削除しました",
+            @"TEMPORARY_FILES_USAGE": @"ファイル数：%lu\nサイズ：%@",
+            @"TEMPORARY_FILES_CHECKING": @"一時ファイルを集計中…",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1247,6 +1296,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"Убрать кнопку записи",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Полностью убрать кнопку записи голосовых и кружков в Telegram и Swiftgram. Примените изменения для перезапуска приложения.",
             @"MESSAGE_DATA_CLEAR_FAILED": @"Не удалось очистить данные сообщений. Попробуйте ещё раз.",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"Принудительно очистить временные файлы",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"Файлы из проводника, преобразованные голосовые сообщения и кружки, временные копии медиа и старые логи TGExtra.",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"Удалить все временные файлы TGExtra? Незавершённые отправки, преобразования и сохранения могут прерваться — их придётся повторить. История сообщений и настройки твика сохранятся.",
+            @"TEMPORARY_FILES_CLEARING": @"Очистка временных файлов…",
+            @"TEMPORARY_FILES_CLEARED": @"Временные файлы очищены",
+            @"TEMPORARY_FILES_USAGE": @"Файлов: %lu\nРазмер: %@",
+            @"TEMPORARY_FILES_CHECKING": @"Подсчёт временных файлов…",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1403,6 +1459,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"移除錄製按鈕",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"完全移除 Telegram 和 Swiftgram 中的語音及圓形影片錄製按鈕。套用變更以重新啟動應用程式。",
             @"MESSAGE_DATA_CLEAR_FAILED": @"無法清除訊息資料，請再試一次。",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"強制清除暫存檔案",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"檔案選擇器檔案、轉換後的語音和圓形影片訊息、媒體匯出檔案，以及舊版 TGExtra 日誌。",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"刪除 TGExtra 的所有暫存檔案？尚未完成的傳送、轉換和儲存可能失敗，需要重試。已儲存的訊息歷史和外掛設定將保留。",
+            @"TEMPORARY_FILES_CLEARING": @"正在清除暫存檔案…",
+            @"TEMPORARY_FILES_CLEARED": @"暫存檔案已清除",
+            @"TEMPORARY_FILES_USAGE": @"檔案數：%lu\n大小：%@",
+            @"TEMPORARY_FILES_CHECKING": @"正在統計暫存檔案…",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1559,6 +1622,13 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"HIDE_RECORDING_BUTTON_TITLE": @"Xóa nút ghi âm và quay video",
             @"HIDE_RECORDING_BUTTON_SUBTITLE": @"Xóa hoàn toàn nút ghi tin nhắn thoại và video tròn trong Telegram và Swiftgram. Áp dụng thay đổi để khởi động lại ứng dụng.",
             @"MESSAGE_DATA_CLEAR_FAILED": @"Không thể xóa dữ liệu tin nhắn. Vui lòng thử lại.",
+            @"TEMPORARY_FILES_CLEAR_TITLE": @"Buộc xóa tệp tạm",
+            @"TEMPORARY_FILES_CLEAR_SUBTITLE": @"Tệp từ bộ chọn, tin nhắn thoại và video tròn đã chuyển đổi, tệp xuất đa phương tiện và nhật ký TGExtra cũ.",
+            @"TEMPORARY_FILES_CLEAR_CONFIRM": @"Xóa tất cả tệp tạm của TGExtra? Các tác vụ gửi, chuyển đổi và lưu chưa hoàn tất có thể thất bại và cần thực hiện lại. Lịch sử tin nhắn và cài đặt tweak sẽ được giữ nguyên.",
+            @"TEMPORARY_FILES_CLEARING": @"Đang xóa tệp tạm…",
+            @"TEMPORARY_FILES_CLEARED": @"Đã xóa tệp tạm",
+            @"TEMPORARY_FILES_USAGE": @"Số tệp: %lu\nDung lượng: %@",
+            @"TEMPORARY_FILES_CHECKING": @"Đang tính tệp tạm…",
         };
     }
     return nil;

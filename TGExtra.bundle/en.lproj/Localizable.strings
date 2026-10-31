@@ -210,3 +210,10 @@
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Remove the voice and round-video recording button in Telegram and Swiftgram. Apply changes to restart the app.";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "Could not clear message data. Please try again.";
+"TEMPORARY_FILES_CLEAR_TITLE" = "Force Clear Temporary Files";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "Picker files, converted voice messages and video notes, media exports, and old TGExtra logs.";
+"TEMPORARY_FILES_CLEAR_CONFIRM" = "Delete all TGExtra temporary files? Pending sends, conversions and saves may fail and need to be restarted. Saved message history and tweak settings will be kept.";
+"TEMPORARY_FILES_CLEARING" = "Clearing temporary files…";
+"TEMPORARY_FILES_CLEARED" = "Temporary files cleared";
+"TEMPORARY_FILES_USAGE" = "Files: %lu\nSize: %@";
+"TEMPORARY_FILES_CHECKING" = "Calculating temporary files…";

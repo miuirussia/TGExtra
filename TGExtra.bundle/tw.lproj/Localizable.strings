@@ -209,3 +209,10 @@
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "完全移除 Telegram 和 Swiftgram 中的語音及圓形影片錄製按鈕。套用變更以重新啟動應用程式。";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "無法清除訊息資料，請再試一次。";
+"TEMPORARY_FILES_CLEAR_TITLE" = "強制清除暫存檔案";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "檔案選擇器檔案、轉換後的語音和圓形影片訊息、媒體匯出檔案，以及舊版 TGExtra 日誌。";
+"TEMPORARY_FILES_CLEAR_CONFIRM" = "刪除 TGExtra 的所有暫存檔案？尚未完成的傳送、轉換和儲存可能失敗，需要重試。已儲存的訊息歷史和外掛設定將保留。";
+"TEMPORARY_FILES_CLEARING" = "正在清除暫存檔案…";
+"TEMPORARY_FILES_CLEARED" = "暫存檔案已清除";
+"TEMPORARY_FILES_USAGE" = "檔案數：%lu\n大小：%@";
+"TEMPORARY_FILES_CHECKING" = "正在統計暫存檔案…";

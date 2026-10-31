@@ -212,3 +212,10 @@
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Quitar el botón para grabar mensajes de voz y vídeos circulares en Telegram y Swiftgram. Aplica los cambios para reiniciar la app.";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "No se pudieron borrar los datos de los mensajes. Inténtalo de nuevo.";
+"TEMPORARY_FILES_CLEAR_TITLE" = "Forzar borrado de archivos temporales";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "Archivos del selector, mensajes de voz y vídeos circulares convertidos, exportaciones multimedia y registros antiguos de TGExtra.";
+"TEMPORARY_FILES_CLEAR_CONFIRM" = "¿Borrar todos los archivos temporales de TGExtra? Los envíos, conversiones y guardados pendientes pueden fallar y deberán reiniciarse. Se conservarán el historial de mensajes y los ajustes del tweak.";
+"TEMPORARY_FILES_CLEARING" = "Borrando archivos temporales…";
+"TEMPORARY_FILES_CLEARED" = "Archivos temporales borrados";
+"TEMPORARY_FILES_USAGE" = "Archivos: %lu\nTamaño: %@";
+"TEMPORARY_FILES_CHECKING" = "Calculando archivos temporales…";

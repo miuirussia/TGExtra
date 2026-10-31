@@ -14,6 +14,9 @@ python3 Tests/review_fixes.py
 python3 Tests/settings_persistence.py
 python3 Tests/video_to_voice.py
 python3 Tests/video_audio_recovery.py
+python3 Tests/audio_export_cleanup.py
+python3 Tests/temporary_files.py
+python3 Tests/temporary_files_uikit.py
 bash Tests/audio_waveform.sh
 bash Tests/round_video_recovery.sh
 python3 Tests/video_preview.py

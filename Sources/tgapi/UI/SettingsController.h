@@ -11,6 +11,8 @@
 @property(nonatomic, strong) UITableView *tableView;
 @property(nonatomic) BOOL isGhostModeExpanded;
 @property(nonatomic) BOOL isClearingMessageData;
+@property(nonatomic) BOOL isClearingTemporaryFiles;
+@property(nonatomic) BOOL isCheckingTemporaryFiles;
 - (UIColor *)dynamicColorBW;
 @end
 
@@ -38,4 +40,5 @@
 @interface TGExtra (Maintenance)
 - (void)confirmClearMessageData;
 - (void)clearFilePickerFixCache;
+- (void)confirmClearTemporaryFiles;
 @end

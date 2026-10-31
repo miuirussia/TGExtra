@@ -189,7 +189,7 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
   case LANGUAGE:
     return 1;
   case MESSAGE_DATA:
-    return 2;
+    return 3;
   case CREDITS:
     return 2;
   default:
@@ -280,6 +280,7 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
   if (indexPath.section == MESSAGE_DATA) {
     if (indexPath.row == 0) [self confirmClearMessageData];
     else if (indexPath.row == 1) [self showDebugLog];
+    else if (indexPath.row == 2) [self confirmClearTemporaryFiles];
     return;
   }
 

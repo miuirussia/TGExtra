@@ -353,6 +353,15 @@ final class MessageHistoryArchive {
             }
             pendingRevisions.removeAll(); removedRevisions.removeAll()
             pendingSnapshots.removeAll(); removedSnapshots.removeAll(); pendingMarkers.removeAll()
+            // DELETE frees pages for SQLite reuse; VACUUM returns them to the OS.
+            // The deletion is already committed even if compaction cannot finish.
+            for statement in statements.values { sqlite3_finalize(statement) }
+            statements.removeAll()
+            if execute("VACUUM") {
+                if sqlite3_wal_checkpoint_v2(database, nil, SQLITE_CHECKPOINT_TRUNCATE, nil, nil) != SQLITE_OK {
+                    reportError()
+                }
+            }
             return true
         }
     }

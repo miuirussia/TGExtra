@@ -1,7 +1,42 @@
 #import "SettingsController.h"
 #import "FilePickerCache.h"
+#import "../TemporaryFiles.h"
 
 @implementation TGExtra (Maintenance)
+
+- (void)confirmClearTemporaryFiles {
+  if (self.isClearingTemporaryFiles || self.isCheckingTemporaryFiles) return;
+  self.isCheckingTemporaryFiles = YES;
+  NSIndexSet *section = [NSIndexSet indexSetWithIndex:MESSAGE_DATA];
+  [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
+  [TGExtraTemporaryFiles usageWithCompletion:^(NSUInteger count, unsigned long long bytes, NSError *error) {
+    self.isCheckingTemporaryFiles = NO;
+    [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
+    if (error) { TGExtraShowToast(error.localizedDescription); return; }
+    NSString *size = [NSByteCountFormatter stringFromByteCount:(int64_t)MIN(bytes, (unsigned long long)INT64_MAX)
+                                                   countStyle:NSByteCountFormatterCountStyleFile];
+    NSString *usage = [NSString stringWithFormat:TGLoc(@"TEMPORARY_FILES_USAGE"), (unsigned long)count, size];
+    UIAlertController *alert = [UIAlertController
+        alertControllerWithTitle:TGLoc(@"TEMPORARY_FILES_CLEAR_TITLE")
+                         message:[NSString stringWithFormat:@"%@\n\n%@", usage, TGLoc(@"TEMPORARY_FILES_CLEAR_CONFIRM")]
+                  preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"CANCEL")
+        style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"TEMPORARY_FILES_CLEAR_TITLE")
+        style:UIAlertActionStyleDestructive handler:^(UIAlertAction *action) {
+          self.isClearingTemporaryFiles = YES;
+          [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
+          [TGExtraTemporaryFiles clearWithCompletion:^(NSError *error) {
+            self.isClearingTemporaryFiles = NO;
+            [self.tableView reloadSections:section withRowAnimation:UITableViewRowAnimationNone];
+            [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:FILE_FIXER]
+                         withRowAnimation:UITableViewRowAnimationNone];
+            TGExtraShowToast(error ? error.localizedDescription : TGLoc(@"TEMPORARY_FILES_CLEARED"));
+          }];
+        }]];
+    [self presentViewController:alert animated:YES completion:nil];
+  }];
+}
 
 - (void)confirmClearMessageData {
   if (self.isClearingMessageData) return;

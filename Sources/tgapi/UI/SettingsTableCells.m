@@ -166,25 +166,30 @@
       cell.textLabel.adjustsFontForContentSizeCategory = YES;
       cell.detailTextLabel.adjustsFontForContentSizeCategory = YES;
     }
-    cell.textLabel.text = self.isClearingMessageData
-        ? TGLoc(@"MESSAGE_DATA_CLEARING") : TGLoc(@"MESSAGE_DATA_CLEAR_TITLE");
-    cell.detailTextLabel.text = TGLoc(@"MESSAGE_DATA_CLEAR_SUBTITLE");
-    cell.textLabel.textColor = self.isClearingMessageData ? UIColor.secondaryLabelColor : UIColor.systemRedColor;
+    BOOL temporary = indexPath.row == 2;
+    BOOL checking = temporary && self.isCheckingTemporaryFiles;
+    BOOL clearing = temporary ? self.isClearingTemporaryFiles || checking : self.isClearingMessageData;
+    cell.textLabel.text = clearing
+        ? TGLoc(temporary ? @"TEMPORARY_FILES_CLEARING" : @"MESSAGE_DATA_CLEARING")
+        : TGLoc(temporary ? @"TEMPORARY_FILES_CLEAR_TITLE" : @"MESSAGE_DATA_CLEAR_TITLE");
+    if (checking) cell.textLabel.text = TGLoc(@"TEMPORARY_FILES_CHECKING");
+    cell.detailTextLabel.text = TGLoc(temporary ? @"TEMPORARY_FILES_CLEAR_SUBTITLE" : @"MESSAGE_DATA_CLEAR_SUBTITLE");
+    cell.textLabel.textColor = clearing ? UIColor.secondaryLabelColor : UIColor.systemRedColor;
     cell.detailTextLabel.textColor = UIColor.secondaryLabelColor;
     cell.imageView.image = [UIImage systemImageNamed:@"trash"];
     cell.imageView.tintColor = UIColor.systemRedColor;
     cell.imageView.isAccessibilityElement = NO;
     cell.accessoryType = UITableViewCellAccessoryNone;
     cell.accessoryView = nil;
-    cell.userInteractionEnabled = !self.isClearingMessageData;
+    cell.userInteractionEnabled = !clearing;
     cell.isAccessibilityElement = YES;
     cell.accessibilityLabel = cell.textLabel.text;
     cell.accessibilityHint = cell.detailTextLabel.text;
     cell.accessibilityTraits = UIAccessibilityTraitButton |
-        (self.isClearingMessageData ? UIAccessibilityTraitNotEnabled : 0);
+        (clearing ? UIAccessibilityTraitNotEnabled : 0);
     cell.textLabel.numberOfLines = 0;
     cell.detailTextLabel.numberOfLines = 0;
-    if (self.isClearingMessageData) {
+    if (clearing) {
       UIActivityIndicatorView *spinner = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleMedium];
       [spinner startAnimating];
       cell.accessoryView = spinner;

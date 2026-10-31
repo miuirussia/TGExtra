@@ -208,3 +208,10 @@
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "إزالة زر تسجيل الرسائل الصوتية والفيديو الدائري في Telegram وSwiftgram. طبّق التغييرات لإعادة تشغيل التطبيق.";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "تعذر مسح بيانات الرسائل. يرجى المحاولة مرة أخرى.";
+"TEMPORARY_FILES_CLEAR_TITLE" = "فرض مسح الملفات المؤقتة";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "ملفات منتقي الملفات والرسائل الصوتية ومقاطع الفيديو الدائرية المحوّلة وملفات تصدير الوسائط وسجلات TGExtra القديمة.";
+"TEMPORARY_FILES_CLEAR_CONFIRM" = "هل تريد حذف جميع ملفات TGExtra المؤقتة؟ قد تفشل عمليات الإرسال والتحويل والحفظ المعلّقة وتحتاج إلى إعادة تشغيلها. سيتم الاحتفاظ بسجل الرسائل المحفوظ وإعدادات الإضافة.";
+"TEMPORARY_FILES_CLEARING" = "جارٍ مسح الملفات المؤقتة…";
+"TEMPORARY_FILES_CLEARED" = "تم مسح الملفات المؤقتة";
+"TEMPORARY_FILES_USAGE" = "الملفات: %lu\nالحجم: %@";
+"TEMPORARY_FILES_CHECKING" = "جارٍ حساب الملفات المؤقتة…";

@@ -209,3 +209,10 @@
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Telegram と Swiftgram のボイスメッセージと丸型動画の録音・録画ボタンを完全に削除します。変更を適用するとアプリが再起動します。";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "メッセージデータを削除できませんでした。もう一度お試しください。";
+"TEMPORARY_FILES_CLEAR_TITLE" = "一時ファイルを強制削除";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "ファイル選択で作成したファイル、変換した音声・丸い動画メッセージ、メディアの書き出しファイル、古い TGExtra ログ。";
+"TEMPORARY_FILES_CLEAR_CONFIRM" = "TGExtra の一時ファイルをすべて削除しますか？未完了の送信、変換、保存が失敗し、やり直しが必要になる場合があります。保存済みのメッセージ履歴と tweak の設定は保持されます。";
+"TEMPORARY_FILES_CLEARING" = "一時ファイルを削除中…";
+"TEMPORARY_FILES_CLEARED" = "一時ファイルを削除しました";
+"TEMPORARY_FILES_USAGE" = "ファイル数：%lu\nサイズ：%@";
+"TEMPORARY_FILES_CHECKING" = "一時ファイルを集計中…";

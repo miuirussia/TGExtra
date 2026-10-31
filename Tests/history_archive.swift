@@ -30,8 +30,16 @@ func testHistoryArchive() {
     check(reopened.migrate([key.storageKey: original]) && reopened.load()[key.storageKey] == nil,
           "Stale defaults cannot resurrect an entry after migration and deletion")
     reopened.save(original, key: key)
+    let archiveBytes = { () -> UInt64 in
+        ["", "-wal", "-shm"].reduce(0) { total, suffix in
+            total + ((try? FileManager.default.attributesOfItem(atPath: path + suffix)[.size] as? NSNumber)?.uint64Value ?? 0)
+        }
+    }
+    _ = reopened.changeCount
+    let bytesBeforeClear = archiveBytes()
     reopened.clear()
     check(reopened.load().isEmpty, "Clear drains pending writes before deleting all accounts")
+    check(archiveBytes() < bytesBeforeClear / 2, "Clearing a populated archive releases database and WAL disk space")
     check(reopened.migrate([key.storageKey: original]) && reopened.load().isEmpty,
           "Cleared history stays cleared if the old preferences file reappears")
     let unavailable = MessageHistoryArchive(path: "/dev/null/History.sqlite")

@@ -209,3 +209,10 @@
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Supprimer le bouton des messages vocaux et vidéos circulaires dans Telegram et Swiftgram. Appliquez les modifications pour redémarrer l’app.";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "Impossible de supprimer les données des messages. Réessayez.";
+"TEMPORARY_FILES_CLEAR_TITLE" = "Forcer la suppression des fichiers temporaires";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "Fichiers du sélecteur, messages vocaux et vidéos rondes convertis, exports multimédias et anciens journaux TGExtra.";
+"TEMPORARY_FILES_CLEAR_CONFIRM" = "Supprimer tous les fichiers temporaires de TGExtra ? Les envois, conversions et enregistrements en cours peuvent échouer et devront être relancés. L’historique des messages et les réglages du tweak seront conservés.";
+"TEMPORARY_FILES_CLEARING" = "Suppression des fichiers temporaires…";
+"TEMPORARY_FILES_CLEARED" = "Fichiers temporaires supprimés";
+"TEMPORARY_FILES_USAGE" = "Fichiers : %lu\nTaille : %@";
+"TEMPORARY_FILES_CHECKING" = "Calcul des fichiers temporaires…";

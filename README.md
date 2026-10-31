@@ -33,6 +33,7 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
 - Save high-frame-rate videos and stories to Photos at 30 fps in H.264/AAC.
   Videos at 24/30 fps are unchanged.
 - Fix the Files picker and clear its temporary cache.
+- Automatically remove temporary upload sources after Telegram copies them to its media cache.
 - Set a fake location.
 - Choose from ten interface languages.
 - Disable double-tap reactions.
@@ -134,6 +135,15 @@ within 30 seconds for active accounts, or when an inactive account is opened.
 Existing cloud auto-delete timers are not removed.
 
 History is stored locally in SQLite and survives updates.
+
+**Message Data → Force Clear Temporary Files** removes TGExtra's picker files,
+converted voice messages and video notes, temporary media exports, and legacy
+TGExtra logs in Documents and the app's shared containers. The
+confirmation shows their file count and total size. Wait for
+sends, conversions and saves to finish first; forcing cleanup can interrupt them.
+Saved message history, settings and forward-recovery journals are kept.
+Interrupted media exports are also cleaned up at the next app launch. Clearing
+the message database compacts its SQLite file to release disk space.
 
 **Message Data → Clear Message Database** clears TGExtra's histories, snapshots
 and deletion/timer markers for all accounts. Messages retained after deletion

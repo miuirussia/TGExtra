@@ -211,3 +211,10 @@
 "HIDE_RECORDING_BUTTON_SUBTITLE" = "Rimuovi il pulsante per registrare messaggi vocali e video circolari in Telegram e Swiftgram. Applica le modifiche per riavviare l’app.";
 
 "MESSAGE_DATA_CLEAR_FAILED" = "Impossibile cancellare i dati dei messaggi. Riprova.";
+"TEMPORARY_FILES_CLEAR_TITLE" = "Forza eliminazione dei file temporanei";
+"TEMPORARY_FILES_CLEAR_SUBTITLE" = "File del selettore, messaggi vocali e video circolari convertiti, esportazioni multimediali e vecchi log di TGExtra.";
+"TEMPORARY_FILES_CLEAR_CONFIRM" = "Eliminare tutti i file temporanei di TGExtra? Invii, conversioni e salvataggi in corso potrebbero non riuscire e dovranno essere riavviati. La cronologia dei messaggi e le impostazioni del tweak verranno conservate.";
+"TEMPORARY_FILES_CLEARING" = "Eliminazione dei file temporanei…";
+"TEMPORARY_FILES_CLEARED" = "File temporanei eliminati";
+"TEMPORARY_FILES_USAGE" = "File: %lu\nDimensioni: %@";
+"TEMPORARY_FILES_CHECKING" = "Calcolo dei file temporanei…";
