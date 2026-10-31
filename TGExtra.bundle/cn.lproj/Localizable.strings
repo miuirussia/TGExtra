@@ -223,3 +223,15 @@
 "CLEANUP_TITLE" = "清理";
 "CLEANUP_SUBTITLE" = "消息历史、临时文件和文件选择器缓存。";
 "CLEANUP_HIDE" = "收起清理选项。";
+"LOCATION_COORDINATES" = "坐标";
+"LOCATION_COORDINATES_HINT" = "纬度：−90 到 90。经度：−180 到 180。小数可使用点或逗号。";
+"LOCATION_LATITUDE" = "纬度";
+"LOCATION_LONGITUDE" = "经度";
+"LOCATION_SEARCH_ADDRESS" = "按地址搜索";
+"LOCATION_SEARCHING" = "正在搜索…";
+"LOCATION_SEARCH_EMPTY" = "未找到地点。请尝试其他地址。";
+"LOCATION_SEARCH_FAILED" = "搜索失败。请检查网络连接后重试。";
+"LOCATION_SELECTED" = "所选位置";
+"LOCATION_MAP" = "地图";
+"LOCATION_SATELLITE" = "卫星";
+"LOCATION_HYBRID" = "混合";

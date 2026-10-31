@@ -12,6 +12,7 @@ python3 Tests/settings_apply.py
 python3 Tests/review_regressions.py
 python3 Tests/review_fixes.py
 python3 Tests/settings_persistence.py
+python3 Tests/location_selector.py
 python3 Tests/video_to_voice.py
 python3 Tests/video_audio_recovery.py
 python3 Tests/audio_export_cleanup.py

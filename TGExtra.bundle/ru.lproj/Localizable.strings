@@ -224,3 +224,15 @@
 "CLEANUP_TITLE" = "Очистка";
 "CLEANUP_SUBTITLE" = "Удаление сохранённых сообщений и временных файлов.";
 "CLEANUP_HIDE" = "Свернуть список очистки.";
+"LOCATION_COORDINATES" = "Координаты";
+"LOCATION_COORDINATES_HINT" = "Широта: от −90 до 90. Долгота: от −180 до 180. Дробную часть отделяйте точкой или запятой.";
+"LOCATION_LATITUDE" = "Широта";
+"LOCATION_LONGITUDE" = "Долгота";
+"LOCATION_SEARCH_ADDRESS" = "Поиск по адресу";
+"LOCATION_SEARCHING" = "Поиск…";
+"LOCATION_SEARCH_EMPTY" = "Ничего не найдено. Попробуйте другой адрес.";
+"LOCATION_SEARCH_FAILED" = "Не удалось выполнить поиск. Проверьте подключение и повторите попытку.";
+"LOCATION_SELECTED" = "Выбранное местоположение";
+"LOCATION_MAP" = "Карта";
+"LOCATION_SATELLITE" = "Спутник";
+"LOCATION_HYBRID" = "Гибрид";

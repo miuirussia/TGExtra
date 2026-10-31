@@ -221,3 +221,15 @@
 "CLEANUP_TITLE" = "Dọn dẹp";
 "CLEANUP_SUBTITLE" = "Lịch sử tin nhắn, tệp tạm thời và bộ nhớ đệm của trình chọn tệp.";
 "CLEANUP_HIDE" = "Thu gọn các tùy chọn dọn dẹp.";
+"LOCATION_COORDINATES" = "Tọa độ";
+"LOCATION_COORDINATES_HINT" = "Vĩ độ: từ −90 đến 90. Kinh độ: từ −180 đến 180. Dùng dấu chấm hoặc dấu phẩy cho phần thập phân.";
+"LOCATION_LATITUDE" = "Vĩ độ";
+"LOCATION_LONGITUDE" = "Kinh độ";
+"LOCATION_SEARCH_ADDRESS" = "Tìm theo địa chỉ";
+"LOCATION_SEARCHING" = "Đang tìm…";
+"LOCATION_SEARCH_EMPTY" = "Không tìm thấy địa điểm. Hãy thử địa chỉ khác.";
+"LOCATION_SEARCH_FAILED" = "Tìm kiếm thất bại. Kiểm tra kết nối và thử lại.";
+"LOCATION_SELECTED" = "Vị trí đã chọn";
+"LOCATION_MAP" = "Bản đồ";
+"LOCATION_SATELLITE" = "Vệ tinh";
+"LOCATION_HYBRID" = "Kết hợp";

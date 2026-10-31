@@ -221,3 +221,15 @@
 "CLEANUP_TITLE" = "Nettoyage";
 "CLEANUP_SUBTITLE" = "Historique des messages, fichiers temporaires et cache du sélecteur de fichiers.";
 "CLEANUP_HIDE" = "Masquer les options de nettoyage.";
+"LOCATION_COORDINATES" = "Coordonnées";
+"LOCATION_COORDINATES_HINT" = "Latitude : de −90 à 90. Longitude : de −180 à 180. Utilisez un point ou une virgule pour les décimales.";
+"LOCATION_LATITUDE" = "Latitude";
+"LOCATION_LONGITUDE" = "Longitude";
+"LOCATION_SEARCH_ADDRESS" = "Rechercher une adresse";
+"LOCATION_SEARCHING" = "Recherche…";
+"LOCATION_SEARCH_EMPTY" = "Aucun lieu trouvé. Essayez une autre adresse.";
+"LOCATION_SEARCH_FAILED" = "Échec de la recherche. Vérifiez votre connexion et réessayez.";
+"LOCATION_SELECTED" = "Lieu sélectionné";
+"LOCATION_MAP" = "Carte";
+"LOCATION_SATELLITE" = "Satellite";
+"LOCATION_HYBRID" = "Mixte";

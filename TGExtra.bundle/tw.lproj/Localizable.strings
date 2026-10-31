@@ -221,3 +221,15 @@
 "CLEANUP_TITLE" = "清理";
 "CLEANUP_SUBTITLE" = "訊息歷史、暫存檔案和檔案選擇器快取。";
 "CLEANUP_HIDE" = "收起清理選項。";
+"LOCATION_COORDINATES" = "座標";
+"LOCATION_COORDINATES_HINT" = "緯度：−90 到 90。經度：−180 到 180。小數可使用點或逗號。";
+"LOCATION_LATITUDE" = "緯度";
+"LOCATION_LONGITUDE" = "經度";
+"LOCATION_SEARCH_ADDRESS" = "依地址搜尋";
+"LOCATION_SEARCHING" = "正在搜尋…";
+"LOCATION_SEARCH_EMPTY" = "找不到地點。請嘗試其他地址。";
+"LOCATION_SEARCH_FAILED" = "搜尋失敗。請檢查網路連線後再試。";
+"LOCATION_SELECTED" = "所選位置";
+"LOCATION_MAP" = "地圖";
+"LOCATION_SATELLITE" = "衛星";
+"LOCATION_HYBRID" = "混合";

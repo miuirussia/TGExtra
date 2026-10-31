@@ -222,3 +222,15 @@
 "CLEANUP_TITLE" = "Cleanup";
 "CLEANUP_SUBTITLE" = "Delete saved messages and temporary files.";
 "CLEANUP_HIDE" = "Hide cleanup actions.";
+"LOCATION_COORDINATES" = "Coordinates";
+"LOCATION_COORDINATES_HINT" = "Latitude: −90 to 90. Longitude: −180 to 180. Use a dot or comma for decimals.";
+"LOCATION_LATITUDE" = "Latitude";
+"LOCATION_LONGITUDE" = "Longitude";
+"LOCATION_SEARCH_ADDRESS" = "Search by address";
+"LOCATION_SEARCHING" = "Searching…";
+"LOCATION_SEARCH_EMPTY" = "No places found. Try a different address.";
+"LOCATION_SEARCH_FAILED" = "Search failed. Check your connection and try again.";
+"LOCATION_SELECTED" = "Selected Location";
+"LOCATION_MAP" = "Map";
+"LOCATION_SATELLITE" = "Satellite";
+"LOCATION_HYBRID" = "Hybrid";

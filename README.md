@@ -34,7 +34,7 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
   Videos at 24/30 fps are unchanged.
 - Fix the Files picker and clear its temporary cache.
 - Automatically remove temporary upload sources after Telegram copies them to its media cache.
-- Set a fake location.
+- Set a fake location on the map, by searching for an address, or by entering coordinates.
 - Choose from ten interface languages.
 - Disable double-tap reactions.
 - Hide the voice/round-video recording button under **Interface and gestures**.

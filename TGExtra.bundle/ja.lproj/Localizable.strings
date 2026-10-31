@@ -221,3 +221,15 @@
 "CLEANUP_TITLE" = "クリーンアップ";
 "CLEANUP_SUBTITLE" = "メッセージ履歴、一時ファイル、ファイル選択のキャッシュ。";
 "CLEANUP_HIDE" = "クリーンアップ項目を閉じる。";
+"LOCATION_COORDINATES" = "座標";
+"LOCATION_COORDINATES_HINT" = "緯度：−90〜90。経度：−180〜180。小数にはピリオドまたはカンマを使用できます。";
+"LOCATION_LATITUDE" = "緯度";
+"LOCATION_LONGITUDE" = "経度";
+"LOCATION_SEARCH_ADDRESS" = "住所で検索";
+"LOCATION_SEARCHING" = "検索中…";
+"LOCATION_SEARCH_EMPTY" = "場所が見つかりません。別の住所をお試しください。";
+"LOCATION_SEARCH_FAILED" = "検索に失敗しました。接続を確認して再試行してください。";
+"LOCATION_SELECTED" = "選択した場所";
+"LOCATION_MAP" = "地図";
+"LOCATION_SATELLITE" = "航空写真";
+"LOCATION_HYBRID" = "ハイブリッド";

@@ -166,6 +166,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"التنظيف",
             @"CLEANUP_SUBTITLE": @"سجل الرسائل والملفات المؤقتة وذاكرة التخزين المؤقت لمنتقي الملفات.",
             @"CLEANUP_HIDE": @"إخفاء خيارات التنظيف.",
+            @"LOCATION_COORDINATES": @"الإحداثيات",
+            @"LOCATION_COORDINATES_HINT": @"خط العرض: من −90 إلى 90. خط الطول: من −180 إلى 180. استخدم نقطة أو فاصلة للكسور العشرية.",
+            @"LOCATION_LATITUDE": @"خط العرض",
+            @"LOCATION_LONGITUDE": @"خط الطول",
+            @"LOCATION_SEARCH_ADDRESS": @"البحث بالعنوان",
+            @"LOCATION_SEARCHING": @"جارٍ البحث…",
+            @"LOCATION_SEARCH_EMPTY": @"لم يتم العثور على أماكن. جرّب عنوانًا آخر.",
+            @"LOCATION_SEARCH_FAILED": @"فشل البحث. تحقق من الاتصال وحاول مجددًا.",
+            @"LOCATION_SELECTED": @"الموقع المحدد",
+            @"LOCATION_MAP": @"خريطة",
+            @"LOCATION_SATELLITE": @"قمر صناعي",
+            @"LOCATION_HYBRID": @"مختلط",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -333,6 +345,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"清理",
             @"CLEANUP_SUBTITLE": @"消息历史、临时文件和文件选择器缓存。",
             @"CLEANUP_HIDE": @"收起清理选项。",
+            @"LOCATION_COORDINATES": @"坐标",
+            @"LOCATION_COORDINATES_HINT": @"纬度：−90 到 90。经度：−180 到 180。小数可使用点或逗号。",
+            @"LOCATION_LATITUDE": @"纬度",
+            @"LOCATION_LONGITUDE": @"经度",
+            @"LOCATION_SEARCH_ADDRESS": @"按地址搜索",
+            @"LOCATION_SEARCHING": @"正在搜索…",
+            @"LOCATION_SEARCH_EMPTY": @"未找到地点。请尝试其他地址。",
+            @"LOCATION_SEARCH_FAILED": @"搜索失败。请检查网络连接后重试。",
+            @"LOCATION_SELECTED": @"所选位置",
+            @"LOCATION_MAP": @"地图",
+            @"LOCATION_SATELLITE": @"卫星",
+            @"LOCATION_HYBRID": @"混合",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -500,6 +524,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"Cleanup",
             @"CLEANUP_SUBTITLE": @"Delete saved messages and temporary files.",
             @"CLEANUP_HIDE": @"Hide cleanup actions.",
+            @"LOCATION_COORDINATES": @"Coordinates",
+            @"LOCATION_COORDINATES_HINT": @"Latitude: −90 to 90. Longitude: −180 to 180. Use a dot or comma for decimals.",
+            @"LOCATION_LATITUDE": @"Latitude",
+            @"LOCATION_LONGITUDE": @"Longitude",
+            @"LOCATION_SEARCH_ADDRESS": @"Search by address",
+            @"LOCATION_SEARCHING": @"Searching…",
+            @"LOCATION_SEARCH_EMPTY": @"No places found. Try a different address.",
+            @"LOCATION_SEARCH_FAILED": @"Search failed. Check your connection and try again.",
+            @"LOCATION_SELECTED": @"Selected Location",
+            @"LOCATION_MAP": @"Map",
+            @"LOCATION_SATELLITE": @"Satellite",
+            @"LOCATION_HYBRID": @"Hybrid",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -667,6 +703,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"Limpieza",
             @"CLEANUP_SUBTITLE": @"Historial de mensajes, archivos temporales y caché del selector de archivos.",
             @"CLEANUP_HIDE": @"Ocultar opciones de limpieza.",
+            @"LOCATION_COORDINATES": @"Coordenadas",
+            @"LOCATION_COORDINATES_HINT": @"Latitud: de −90 a 90. Longitud: de −180 a 180. Usa un punto o una coma para los decimales.",
+            @"LOCATION_LATITUDE": @"Latitud",
+            @"LOCATION_LONGITUDE": @"Longitud",
+            @"LOCATION_SEARCH_ADDRESS": @"Buscar por dirección",
+            @"LOCATION_SEARCHING": @"Buscando…",
+            @"LOCATION_SEARCH_EMPTY": @"No se encontraron lugares. Prueba otra dirección.",
+            @"LOCATION_SEARCH_FAILED": @"Error de búsqueda. Comprueba la conexión e inténtalo de nuevo.",
+            @"LOCATION_SELECTED": @"Ubicación seleccionada",
+            @"LOCATION_MAP": @"Mapa",
+            @"LOCATION_SATELLITE": @"Satélite",
+            @"LOCATION_HYBRID": @"Híbrido",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -834,6 +882,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"Nettoyage",
             @"CLEANUP_SUBTITLE": @"Historique des messages, fichiers temporaires et cache du sélecteur de fichiers.",
             @"CLEANUP_HIDE": @"Masquer les options de nettoyage.",
+            @"LOCATION_COORDINATES": @"Coordonnées",
+            @"LOCATION_COORDINATES_HINT": @"Latitude : de −90 à 90. Longitude : de −180 à 180. Utilisez un point ou une virgule pour les décimales.",
+            @"LOCATION_LATITUDE": @"Latitude",
+            @"LOCATION_LONGITUDE": @"Longitude",
+            @"LOCATION_SEARCH_ADDRESS": @"Rechercher une adresse",
+            @"LOCATION_SEARCHING": @"Recherche…",
+            @"LOCATION_SEARCH_EMPTY": @"Aucun lieu trouvé. Essayez une autre adresse.",
+            @"LOCATION_SEARCH_FAILED": @"Échec de la recherche. Vérifiez votre connexion et réessayez.",
+            @"LOCATION_SELECTED": @"Lieu sélectionné",
+            @"LOCATION_MAP": @"Carte",
+            @"LOCATION_SATELLITE": @"Satellite",
+            @"LOCATION_HYBRID": @"Mixte",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -1001,6 +1061,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"Pulizia",
             @"CLEANUP_SUBTITLE": @"Cronologia dei messaggi, file temporanei e cache del selettore di file.",
             @"CLEANUP_HIDE": @"Nascondi le opzioni di pulizia.",
+            @"LOCATION_COORDINATES": @"Coordinate",
+            @"LOCATION_COORDINATES_HINT": @"Latitudine: da −90 a 90. Longitudine: da −180 a 180. Usa un punto o una virgola per i decimali.",
+            @"LOCATION_LATITUDE": @"Latitudine",
+            @"LOCATION_LONGITUDE": @"Longitudine",
+            @"LOCATION_SEARCH_ADDRESS": @"Cerca per indirizzo",
+            @"LOCATION_SEARCHING": @"Ricerca…",
+            @"LOCATION_SEARCH_EMPTY": @"Nessun luogo trovato. Prova un altro indirizzo.",
+            @"LOCATION_SEARCH_FAILED": @"Ricerca non riuscita. Controlla la connessione e riprova.",
+            @"LOCATION_SELECTED": @"Posizione selezionata",
+            @"LOCATION_MAP": @"Mappa",
+            @"LOCATION_SATELLITE": @"Satellite",
+            @"LOCATION_HYBRID": @"Ibrida",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -1168,6 +1240,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"クリーンアップ",
             @"CLEANUP_SUBTITLE": @"メッセージ履歴、一時ファイル、ファイル選択のキャッシュ。",
             @"CLEANUP_HIDE": @"クリーンアップ項目を閉じる。",
+            @"LOCATION_COORDINATES": @"座標",
+            @"LOCATION_COORDINATES_HINT": @"緯度：−90〜90。経度：−180〜180。小数にはピリオドまたはカンマを使用できます。",
+            @"LOCATION_LATITUDE": @"緯度",
+            @"LOCATION_LONGITUDE": @"経度",
+            @"LOCATION_SEARCH_ADDRESS": @"住所で検索",
+            @"LOCATION_SEARCHING": @"検索中…",
+            @"LOCATION_SEARCH_EMPTY": @"場所が見つかりません。別の住所をお試しください。",
+            @"LOCATION_SEARCH_FAILED": @"検索に失敗しました。接続を確認して再試行してください。",
+            @"LOCATION_SELECTED": @"選択した場所",
+            @"LOCATION_MAP": @"地図",
+            @"LOCATION_SATELLITE": @"航空写真",
+            @"LOCATION_HYBRID": @"ハイブリッド",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1335,6 +1419,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"Очистка",
             @"CLEANUP_SUBTITLE": @"Удаление сохранённых сообщений и временных файлов.",
             @"CLEANUP_HIDE": @"Свернуть список очистки.",
+            @"LOCATION_COORDINATES": @"Координаты",
+            @"LOCATION_COORDINATES_HINT": @"Широта: от −90 до 90. Долгота: от −180 до 180. Дробную часть отделяйте точкой или запятой.",
+            @"LOCATION_LATITUDE": @"Широта",
+            @"LOCATION_LONGITUDE": @"Долгота",
+            @"LOCATION_SEARCH_ADDRESS": @"Поиск по адресу",
+            @"LOCATION_SEARCHING": @"Поиск…",
+            @"LOCATION_SEARCH_EMPTY": @"Ничего не найдено. Попробуйте другой адрес.",
+            @"LOCATION_SEARCH_FAILED": @"Не удалось выполнить поиск. Проверьте подключение и повторите попытку.",
+            @"LOCATION_SELECTED": @"Выбранное местоположение",
+            @"LOCATION_MAP": @"Карта",
+            @"LOCATION_SATELLITE": @"Спутник",
+            @"LOCATION_HYBRID": @"Гибрид",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1502,6 +1598,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"清理",
             @"CLEANUP_SUBTITLE": @"訊息歷史、暫存檔案和檔案選擇器快取。",
             @"CLEANUP_HIDE": @"收起清理選項。",
+            @"LOCATION_COORDINATES": @"座標",
+            @"LOCATION_COORDINATES_HINT": @"緯度：−90 到 90。經度：−180 到 180。小數可使用點或逗號。",
+            @"LOCATION_LATITUDE": @"緯度",
+            @"LOCATION_LONGITUDE": @"經度",
+            @"LOCATION_SEARCH_ADDRESS": @"依地址搜尋",
+            @"LOCATION_SEARCHING": @"正在搜尋…",
+            @"LOCATION_SEARCH_EMPTY": @"找不到地點。請嘗試其他地址。",
+            @"LOCATION_SEARCH_FAILED": @"搜尋失敗。請檢查網路連線後再試。",
+            @"LOCATION_SELECTED": @"所選位置",
+            @"LOCATION_MAP": @"地圖",
+            @"LOCATION_SATELLITE": @"衛星",
+            @"LOCATION_HYBRID": @"混合",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1669,6 +1777,18 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"CLEANUP_TITLE": @"Dọn dẹp",
             @"CLEANUP_SUBTITLE": @"Lịch sử tin nhắn, tệp tạm thời và bộ nhớ đệm của trình chọn tệp.",
             @"CLEANUP_HIDE": @"Thu gọn các tùy chọn dọn dẹp.",
+            @"LOCATION_COORDINATES": @"Tọa độ",
+            @"LOCATION_COORDINATES_HINT": @"Vĩ độ: từ −90 đến 90. Kinh độ: từ −180 đến 180. Dùng dấu chấm hoặc dấu phẩy cho phần thập phân.",
+            @"LOCATION_LATITUDE": @"Vĩ độ",
+            @"LOCATION_LONGITUDE": @"Kinh độ",
+            @"LOCATION_SEARCH_ADDRESS": @"Tìm theo địa chỉ",
+            @"LOCATION_SEARCHING": @"Đang tìm…",
+            @"LOCATION_SEARCH_EMPTY": @"Không tìm thấy địa điểm. Hãy thử địa chỉ khác.",
+            @"LOCATION_SEARCH_FAILED": @"Tìm kiếm thất bại. Kiểm tra kết nối và thử lại.",
+            @"LOCATION_SELECTED": @"Vị trí đã chọn",
+            @"LOCATION_MAP": @"Bản đồ",
+            @"LOCATION_SATELLITE": @"Vệ tinh",
+            @"LOCATION_HYBRID": @"Kết hợp",
         };
     }
     return nil;
