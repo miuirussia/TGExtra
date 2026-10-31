@@ -2,7 +2,7 @@ import Foundation
 
 @objc(TGExtraProfileBridge)
 final class ProfileBridge: NSObject {
-    @objc static var sharedContext: Any?
+    @objc static weak var sharedContext: AnyObject?
 
     @objc static func debugPeerCandidates(_ node: Any) -> NSString {
         var out = [String]()
@@ -36,7 +36,7 @@ final class ProfileBridge: NSObject {
     @objc static func getPeerIdFromNode(_ node: Any) -> NSNumber? {
         if sharedContext == nil, let obj = node as? NSObject {
             if obj.responds(to: NSSelectorFromString("context")), let ctx = obj.value(forKey: "context") {
-                sharedContext = ctx
+                sharedContext = ctx as AnyObject
             }
         }
 

@@ -9,6 +9,7 @@ final class MessageHistoryStore {
     }
 
     private var entries = [MessageKey: EditEntry]()
+    private var cacheOrder = MessageKeyOrder()
     private var originalOrder = [MessageKey]()
     private var loaded = false
     private let archive: MessageHistoryArchive
@@ -31,17 +32,8 @@ final class MessageHistoryStore {
         if loaded { return true }
         let legacy = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: [String: Any]] ?? [:]
         guard archive.migrate(legacy) else { return false }
-        let saved = archive.load()
+        originalOrder = archive.originalKeys()
         UserDefaults.standard.removeObject(forKey: storageKey)
-        for (key, value) in saved {
-            guard let messageKey = MessageKey(storageKey: key),
-                  let versions = value["versions"] as? [String], !versions.isEmpty else { continue }
-            let savedContents = value["contents"] as? [[String: Data]] ?? []
-            let contents = savedContents.count == versions.count ? savedContents : Array(repeating: [:], count: versions.count)
-            entries[messageKey] = EditEntry(versions: versions,
-                editDate: (value["editDate"] as? NSNumber)?.int32Value, contents: contents)
-            if versions.count == 1 { originalOrder.append(messageKey) }
-        }
         loaded = true
         trimOriginalsLocked()
         return true
@@ -51,8 +43,33 @@ final class MessageHistoryStore {
         while originalOrder.count > maxTrackedOriginals {
             let key = originalOrder.removeFirst()
             entries.removeValue(forKey: key)
+            cacheOrder.remove(key)
             dirty.remove(key)
             archive.remove(key)
+        }
+    }
+
+    private func entryLocked(for key: MessageKey) -> EditEntry? {
+        guard loadLocked() else { return nil }
+        cacheOrder.append(key)
+        if let entry = entries[key] { return entry }
+        guard let value = archive.revision(for: key), let versions = value["versions"] as? [String], !versions.isEmpty else {
+            cacheOrder.remove(key)
+            return nil
+        }
+        let savedContents = value["contents"] as? [[String: Data]] ?? []
+        let entry = EditEntry(versions: versions, editDate: (value["editDate"] as? NSNumber)?.int32Value,
+                              contents: savedContents.count == versions.count ? savedContents : Array(repeating: [:], count: versions.count))
+        entries[key] = entry
+        trimCacheLocked()
+        return entry
+    }
+
+    private func trimCacheLocked() {
+        while cacheOrder.count > maxTrackedOriginals, let key = cacheOrder.first {
+            if dirty.contains(key) { persistLocked(key) }
+            entries.removeValue(forKey: key)
+            cacheOrder.remove(key)
         }
     }
 
@@ -95,11 +112,13 @@ final class MessageHistoryStore {
                 localSnapshot: Bool = false) -> Bool {
         return queue.sync(flags: .barrier) {
             guard loadLocked() else { return false }
-            guard var entry = entries[key] else {
+            guard var entry = entryLocked(for: key) else {
                 entries[key] = EditEntry(versions: [text], editDate: editDate, contents: [content])
+                cacheOrder.append(key)
                 originalOrder.append(key)
                 dirty.insert(key)
                 trimOriginalsLocked()
+                trimCacheLocked()
                 schedulePersistLocked()
                 return false
             }
@@ -144,6 +163,7 @@ final class MessageHistoryStore {
             guard archive.clear() else { return false }
             loaded = true
             entries.removeAll()
+            cacheOrder = MessageKeyOrder()
             dirty.removeAll()
             originalOrder.removeAll()
             persistGeneration &+= 1
@@ -157,7 +177,9 @@ final class MessageHistoryStore {
 
     func discard(_ key: MessageKey) -> Bool {
         queue.sync(flags: .barrier) {
-            guard entries.removeValue(forKey: key) != nil else { return false }
+            guard entryLocked(for: key) != nil else { return false }
+            entries.removeValue(forKey: key)
+            cacheOrder.remove(key)
             originalOrder.removeAll { $0 == key }
             dirty.remove(key)
             archive.remove(key)
@@ -166,15 +188,15 @@ final class MessageHistoryStore {
     }
 
     func versions(for key: MessageKey) -> [String]? {
-        queue.sync {
-            guard let versions = entries[key]?.versions, versions.count > 1 else { return nil }
+        queue.sync(flags: .barrier) {
+            guard let versions = entryLocked(for: key)?.versions, versions.count > 1 else { return nil }
             return versions
         }
     }
 
     func details(for key: MessageKey) -> [[String: Any]]? {
-        return queue.sync {
-            guard let entry = entries[key], entry.versions.count > 1 else { return nil }
+        return queue.sync(flags: .barrier) {
+            guard let entry = entryLocked(for: key), entry.versions.count > 1 else { return nil }
             return entry.contents.enumerated().map { index, content in
                 let previous = index > 0 ? entry.contents[index - 1] : content
                 let richFormattingChanged = index > 0 && entry.versions[index] == entry.versions[index - 1] &&
@@ -185,4 +207,8 @@ final class MessageHistoryStore {
             }
         }
     }
+
+#if TGEXTRA_TESTING
+    var cachedEntryCount: Int { queue.sync { entries.count } }
+#endif
 }

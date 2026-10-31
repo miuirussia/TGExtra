@@ -440,8 +440,8 @@ func testSnapshotCacheIndex() {
     TLParser.addDeletedId(1, peer: 42, account: testAccount)
     for id in Int32(2)...Int32(2502) { TLParser.cacheMessage(message(id)) }
     let pinned = MessageKey(account: testAccount, peer: 42, id: 1)
-    check(TLParser.snapshots[pinned] != nil && TLParser.snapshotOrder.count == 2000 && TLParser.snapshots.count == 2001,
-          "Deleted snapshots remain pinned while unpinned history has a fixed capacity")
+    check(TLParser.snapshots[pinned] == nil && TLParser.snapshotOrder.count == 2000 && TLParser.snapshots.count == 2000,
+          "Pinned snapshots can leave memory while unpinned history has a fixed capacity")
     check(TLParser.snapshots[MessageKey(account: testAccount, peer: 42, id: 2)] == nil,
           "Evict the oldest unpinned snapshot")
     let touched = MessageKey(account: testAccount, peer: 42, id: 503)
@@ -462,8 +462,40 @@ func testSnapshotCacheIndex() {
           "Channel range pinning updates eviction without mixing channel and cloud ids")
     TLParser.writeSnapshots()
     let saved = MessageHistoryArchive.shared.loadSnapshots()
-    check(saved.count == TLParser.snapshots.count && saved.contains(where: { $0.key == pinned }),
-          "Persist only live snapshots after eviction")
+    check(saved.count == TLParser.snapshots.count + 1 && saved.contains(where: { $0.key == pinned }),
+          "Evicting pinned bytes from RAM preserves them on disk")
+    TLParser.requestedMessageIds = [1]
+    TLParser.requestedMessagePeer = nil
+    check(TLParser.restoreValidatedMessages([]).0.first.map { messageData($0).message } == "Pinned",
+          "Revalidation restores a pinned snapshot after memory eviction")
+    TLParser.requestedMessageIds = nil
+    for id in Int32(3000)...Int32(5501) {
+        TLParser.cacheMessage(message(id))
+        TLParser.addDeletedId(id, peer: 42, account: testAccount)
+    }
+    TLParser.writeSnapshots()
+    check(TLParser.snapshots.count <= 2000 && TLParser.snapshotPositions.count <= 2000 &&
+          TLParser.snapshotKeysByMarker.count <= 2000 && TLParser.snapshotCacheOrder.count <= 2000,
+          "Pinned traffic cannot grow snapshot bytes or their memory indexes without a bound")
+    check(TLParser.snapshots[touched] == nil && TLParser.snapshotOrder.keys.contains(touched),
+          "Unpinned snapshots can leave RAM before reaching their disk retention limit")
+    TLParser.addDeletedId(touched.id, peer: touched.peer, account: touched.account)
+    check(!TLParser.snapshotOrder.keys.contains(touched), "Deletion pins snapshots even after they leave RAM")
+    TLParser.cacheMessage(message(503, text: "Stale after eviction", edit: 19))
+    check(TLParser.snapshots[touched] == recent, "Disk edit dates prevent stale traffic from overwriting evicted snapshots")
+    TLParser.writeSnapshots()
+    TLParser.snapshotsLoaded = false
+    TLParser.snapshots.removeAll()
+    TLParser.snapshotPositions.removeAll()
+    TLParser.snapshotKeysByMarker.removeAll()
+    TLParser.snapshotOrder = MessageKeyOrder()
+    TLParser.snapshotCacheOrder = MessageKeyOrder()
+    TLParser.loadSnapshots()
+    check(TLParser.snapshots.count <= 2000, "Reloading a large pinned archive has a bounded cache")
+    TLParser.requestedMessageIds = [1]
+    check(TLParser.restoreValidatedMessages([]).0.first.map { messageData($0).message } == "Pinned",
+          "Revalidation reads older pinned snapshots after archive reload")
+    TLParser.requestedMessageIds = nil
     check(TLParser.clearMessageData(), "Clear snapshot indexes and pending writes")
     check(TLParser.snapshotOrder.count == 0 && TLParser.snapshotKeysByMarker.isEmpty && MessageHistoryArchive.shared.loadSnapshots().isEmpty,
           "Clearing removes all cache indexes and archived snapshots")

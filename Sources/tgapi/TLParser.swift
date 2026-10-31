@@ -20,7 +20,8 @@ class TLParser: NSObject {
         MessageDataCleanup.enqueue(messageMarkers)
         snapshotsLoaded = true
         snapshots.removeAll()
-        snapshotOrder = MessageSnapshotOrder()
+        snapshotOrder = MessageKeyOrder()
+        snapshotCacheOrder = MessageKeyOrder()
         snapshotPositions.removeAll()
         snapshotPosition = 0
         snapshotKeysByMarker.removeAll()

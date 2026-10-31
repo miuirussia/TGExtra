@@ -174,9 +174,55 @@ final class MessageHistoryArchive {
         }
     }
 
-    func loadSnapshots() -> [MessageSnapshotRow] {
+    func revision(for key: MessageKey) -> [String: Any]? {
         queue.sync {
-            guard open(), flushPending(), let statement = statement("SELECT key, value, position FROM snapshots ORDER BY position, key") else { return [] }
+            if removedRevisions.contains(key.storageKey) { return nil }
+            if let value = pendingRevisions[key.storageKey] { return value }
+            guard open(), let statement = statement("SELECT value FROM revisions WHERE key = ?") else { return nil }
+            defer { sqlite3_reset(statement); sqlite3_clear_bindings(statement) }
+            guard sqlite3_bind_text(statement, 1, key.storageKey, -1, transient) == SQLITE_OK,
+                  sqlite3_step(statement) == SQLITE_ROW,
+                  let bytes = sqlite3_column_blob(statement, 0) else { return nil }
+            let data = Data(bytes: bytes, count: Int(sqlite3_column_bytes(statement, 0)))
+            return (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any]
+        }
+    }
+
+    func originalKeys() -> [MessageKey] {
+        queue.sync {
+            guard open(), flushPending(), let statement = statement("SELECT key, value FROM revisions") else { return [] }
+            defer { sqlite3_reset(statement) }
+            var keys = [MessageKey]()
+            while sqlite3_step(statement) == SQLITE_ROW {
+                autoreleasepool {
+                    guard let raw = sqlite3_column_text(statement, 0), let key = MessageKey(storageKey: String(cString: raw)),
+                          let bytes = sqlite3_column_blob(statement, 1) else { return }
+                    let data = Data(bytes: bytes, count: Int(sqlite3_column_bytes(statement, 1)))
+                    let value = (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any]
+                    if (value?["versions"] as? [String])?.count == 1 { keys.append(key) }
+                }
+            }
+            return keys
+        }
+    }
+
+    func visitSnapshotKeys(_ visit: (MessageKey, Int64) -> Void) {
+        queue.sync {
+            guard open(), flushPending(), let statement = statement("SELECT key, position FROM snapshots ORDER BY position, key") else { return }
+            defer { sqlite3_reset(statement) }
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if let raw = sqlite3_column_text(statement, 0), let key = MessageKey(storageKey: String(cString: raw)) {
+                    visit(key, sqlite3_column_int64(statement, 1))
+                }
+            }
+        }
+    }
+
+    func loadSnapshots(limit: Int? = nil) -> [MessageSnapshotRow] {
+        queue.sync {
+            let sql = limit.map { "SELECT key, value, position FROM (SELECT * FROM snapshots ORDER BY position DESC, key DESC LIMIT \(max(0, $0))) ORDER BY position, key" }
+                ?? "SELECT key, value, position FROM snapshots ORDER BY position, key"
+            guard open(), flushPending(), let statement = statement(sql) else { return [] }
             defer { sqlite3_reset(statement) }
             var result = [MessageSnapshotRow]()
             var status = sqlite3_step(statement)
@@ -190,6 +236,33 @@ final class MessageHistoryArchive {
             }
             if status != SQLITE_DONE { reportError() }
             return result
+        }
+    }
+
+    func snapshots(account: String, id: Int32, peer: Int64?) -> [MessageSnapshotRow] {
+        queue.sync {
+            guard open() else { return [] }
+            let sql = peer == nil ? "SELECT key, value, position FROM snapshots WHERE key LIKE ? ESCAPE '\\'" :
+                "SELECT key, value, position FROM snapshots WHERE key = ?"
+            guard let statement = statement(sql) else { return [] }
+            defer { sqlite3_reset(statement); sqlite3_clear_bindings(statement) }
+            let escaped = account.replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "%", with: "\\%").replacingOccurrences(of: "_", with: "\\_")
+            let pattern = peer.map { MessageKey(account: account, peer: $0, id: id).storageKey } ?? "\(escaped):%:\(id)"
+            guard sqlite3_bind_text(statement, 1, pattern, -1, transient) == SQLITE_OK else { return [] }
+            var result = [MessageKey: MessageSnapshotRow]()
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if let raw = sqlite3_column_text(statement, 0), let key = MessageKey(storageKey: String(cString: raw)),
+                   let bytes = sqlite3_column_blob(statement, 1), !removedSnapshots.contains(key),
+                   key.account == account, key.id == id, key.namespace == 0,
+                   peer != nil || key.peer > -1_000_000_000_000 {
+                    result[key] = MessageSnapshotRow(key: key, bytes: Data(bytes: bytes, count: Int(sqlite3_column_bytes(statement, 1))),
+                                                     position: sqlite3_column_int64(statement, 2))
+                }
+            }
+            for (key, row) in pendingSnapshots where key.account == account && key.id == id && key.namespace == 0 &&
+                (peer.map { key.peer == $0 } ?? (key.peer > -1_000_000_000_000)) { result[key] = row }
+            return Array(result.values)
         }
     }
 

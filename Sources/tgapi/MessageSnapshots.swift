@@ -1,34 +1,13 @@
 import Foundation
 
-// Only unpinned snapshots participate in eviction. Links make touches and
-// removals constant time even when deleted-message history grows indefinitely.
-struct MessageSnapshotOrder {
-    private struct Links { var previous: MessageKey?; var next: MessageKey? }
-    private var links = [MessageKey: Links]()
-    private(set) var first: MessageKey?
-    private var last: MessageKey?
-    var count: Int { links.count }
-
-    mutating func remove(_ key: MessageKey) {
-        guard let entry = links.removeValue(forKey: key) else { return }
-        if let previous = entry.previous { links[previous]?.next = entry.next } else { first = entry.next }
-        if let next = entry.next { links[next]?.previous = entry.previous } else { last = entry.previous }
-    }
-
-    mutating func append(_ key: MessageKey) {
-        remove(key)
-        links[key] = Links(previous: last, next: nil)
-        if let last = last { links[last]?.next = key } else { first = key }
-        last = key
-    }
-}
-
 extension TLParser {
     static let snapshotUdKey = "TGExtraObservedMessages"
 
     // Access requires processingLock.
     static var snapshots = [MessageKey: Data]()
-    static var snapshotOrder = MessageSnapshotOrder()
+    // Disk retention excludes pinned messages; the RAM cache includes them.
+    static var snapshotOrder = MessageKeyOrder()
+    static var snapshotCacheOrder = MessageKeyOrder()
     static var snapshotPositions = [MessageKey: Int64]()
     static var snapshotPosition: Int64 = 0
     static var snapshotKeysByMarker = [MessageKey: Set<MessageKey>]()
@@ -57,17 +36,20 @@ extension TLParser {
     static func indexSnapshot(_ key: MessageKey) {
         guard let marker = markerKey(id: key.id, peer: key.peer, account: key.account, namespace: key.namespace) else { return }
         snapshotKeysByMarker[marker, default: []].insert(key)
+        snapshotCacheOrder.append(key)
         if markerBits(id: key.id, peer: key.peer, account: key.account, namespace: key.namespace) & deletedMarker == 0 {
             snapshotOrder.append(key)
         }
     }
 
     static func pinSnapshots(for marker: MessageKey) {
-        for key in snapshotKeysByMarker[marker] ?? [] { snapshotOrder.remove(key) }
+        for key in snapshotOrder.keys where markerKey(id: key.id, peer: key.peer, account: key.account, namespace: key.namespace) == marker {
+            snapshotOrder.remove(key)
+        }
     }
 
     static func pinChannelSnapshots(account: String, peer: Int64, through id: Int32) {
-        for key in snapshots.keys where key.account == account && key.peer == peer && key.namespace == 0 && key.id > 0 && key.id <= id {
+        for key in snapshotOrder.keys where key.account == account && key.peer == peer && key.namespace == 0 && key.id > 0 && key.id <= id {
             snapshotOrder.remove(key)
         }
     }
@@ -75,11 +57,19 @@ extension TLParser {
     static func loadSnapshots() {
         guard !snapshotsLoaded, prepareMessageArchive() else { return }
         loadMarkers()
-        for row in MessageHistoryArchive.shared.loadSnapshots() {
+        MessageHistoryArchive.shared.visitSnapshotKeys { key, position in
+            snapshotPosition = max(snapshotPosition, position)
+            if markerBits(id: key.id, peer: key.peer, account: key.account, namespace: key.namespace) & deletedMarker == 0 {
+                snapshotOrder.append(key)
+            }
+        }
+        for row in MessageHistoryArchive.shared.loadSnapshots(limit: 2000) {
             snapshots[row.key] = row.bytes
             snapshotPositions[row.key] = row.position
-            snapshotPosition = max(snapshotPosition, row.position)
-            indexSnapshot(row.key)
+            if let marker = markerKey(id: row.key.id, peer: row.key.peer, account: row.key.account, namespace: row.key.namespace) {
+                snapshotKeysByMarker[marker, default: []].insert(row.key)
+            }
+            snapshotCacheOrder.append(row.key)
         }
         snapshotsLoaded = true
         trimSnapshots()
@@ -127,19 +117,29 @@ extension TLParser {
         return message
     }
 
+    static func removeCachedSnapshot(_ key: MessageKey) {
+        snapshots.removeValue(forKey: key)
+        snapshotCacheOrder.remove(key)
+        snapshotPositions.removeValue(forKey: key)
+        snapshotEditDates.removeValue(forKey: key)
+        snapshotDatesLoaded.remove(key)
+        dirtySnapshots.remove(key)
+        if let marker = markerKey(id: key.id, peer: key.peer, account: key.account, namespace: key.namespace) {
+            snapshotKeysByMarker[marker]?.remove(key)
+            if snapshotKeysByMarker[marker]?.isEmpty == true { snapshotKeysByMarker.removeValue(forKey: marker) }
+        }
+    }
+
     static func trimSnapshots() {
         while snapshotOrder.count > 2000, let key = snapshotOrder.first {
             snapshotOrder.remove(key)
-            snapshots.removeValue(forKey: key)
-            snapshotPositions.removeValue(forKey: key)
-            snapshotEditDates.removeValue(forKey: key)
-            snapshotDatesLoaded.remove(key)
-            dirtySnapshots.remove(key)
+            removeCachedSnapshot(key)
             removedSnapshots.insert(key)
-            if let marker = markerKey(id: key.id, peer: key.peer, account: key.account, namespace: key.namespace) {
-                snapshotKeysByMarker[marker]?.remove(key)
-                if snapshotKeysByMarker[marker]?.isEmpty == true { snapshotKeysByMarker.removeValue(forKey: marker) }
-            }
+        }
+        while snapshotCacheOrder.count > 2000, let key = snapshotCacheOrder.first {
+            // Persist dirty bytes before evicting them. Pinned snapshots stay on disk.
+            if dirtySnapshots.contains(key) { flushMessageData() }
+            removeCachedSnapshot(key)
         }
     }
 
@@ -158,6 +158,13 @@ extension TLParser {
         loadSnapshots()
         guard snapshotsLoaded else { return }
         let key = MessageKey(account: account, peer: peer, id: id)
+        if snapshots[key] == nil, !removedSnapshots.contains(key),
+           let row = MessageHistoryArchive.shared.snapshots(account: account, id: id, peer: peer).first {
+            snapshots[key] = row.bytes
+            snapshotPositions[key] = row.position
+            indexSnapshot(key)
+            trimSnapshots()
+        }
         if !snapshotDatesLoaded.contains(key), let bytes = snapshots[key] {
             if case let .message(data)? = decodedSnapshot(bytes) { snapshotEditDates[key] = data.editDate }
             snapshotDatesLoaded.insert(key)
@@ -195,10 +202,13 @@ extension TLParser {
         for id in requested where !available.contains(id) {
             let scope = requestedMessagePeer ?? cloudScope
             let marker = MessageKey(account: account, peer: scope, id: id)
-            let matches = (snapshotKeysByMarker[marker] ?? []).filter { key in
-                requestedMessagePeer.map { key.peer == $0 } ?? (key.peer > -1_000_000_000_000)
+            var matches = Dictionary(uniqueKeysWithValues: MessageHistoryArchive.shared.snapshots(account: account, id: id,
+                peer: requestedMessagePeer).filter { !removedSnapshots.contains($0.key) }.map { ($0.key, $0.bytes) })
+            for key in snapshotKeysByMarker[marker] ?? [] where
+                requestedMessagePeer.map({ key.peer == $0 }) ?? (key.peer > -1_000_000_000_000) {
+                matches[key] = snapshots[key]
             }
-            guard matches.count == 1, let key = matches.first, let bytes = snapshots[key],
+            guard matches.count == 1, let (key, bytes) = matches.first,
                   let snapshot = decodedSnapshot(bytes),
                   neutralizeDeletions([id], peer: key.peer) != nil else { continue }
             recovered[id] = snapshot

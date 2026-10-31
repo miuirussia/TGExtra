@@ -85,4 +85,44 @@ func testHistoryArchive() {
     data.saveMessageData(snapshots: [MessageSnapshotRow(key: dataKey, bytes: Data([6]), position: 3)], removing: [], markers: [:])
     check(data.clear() && data.load().isEmpty && data.loadSnapshots().isEmpty && data.loadMarkers().isEmpty, "Clear all message tables and pending writes together")
     print("PASS incremental history archive, migration, reopen, binary content, removal and queued clearing")
+
+    let boundedArchive = MessageHistoryArchive(path: directory.appendingPathComponent("Bounded.sqlite").path)
+    let bounded = MessageHistoryStore(archive: boundedArchive)
+    for id: Int32 in 1...2501 {
+        let message = MessageKey(account: "account-1", peer: 42, id: id)
+        _ = bounded.record("original \(id)", key: message, editDate: nil, content: [:])
+        _ = bounded.record("edited \(id)", key: message, editDate: 1, content: [:])
+    }
+    check(bounded.cachedEntryCount <= 2000, "Edited histories have a bounded memory cache")
+    check(bounded.versions(for: key) == ["original 1", "edited 1"], "Evicted revisions remain available from disk")
+    check(bounded.record("new edit", key: key, editDate: 2, content: [:]) &&
+          bounded.versions(for: key) == ["original 1", "edited 1", "new edit"], "Append to an evicted history without losing older revisions")
+    let lazy = MessageHistoryStore(archive: boundedArchive)
+    lazy.load()
+    check(lazy.cachedEntryCount == 0, "Opening an archive does not load every revision into memory")
+    check(lazy.details(for: key)?.count == 3, "Lazy history reads retain revision details")
+    check(lazy.discard(MessageKey(account: "account-1", peer: 42, id: 2)) &&
+          boundedArchive.revision(for: MessageKey(account: "account-1", peer: 42, id: 2)) == nil,
+          "Discard removes histories that have not been loaded into the cache")
+    let lookups = MessageHistoryArchive(path: ":memory:")
+    let account = "account_a%"
+    let cloud = MessageKey(account: account, peer: 42, id: 7)
+    let channel = MessageKey(account: account, peer: -1_000_000_000_077, id: 7)
+    let otherAccount = MessageKey(account: "accountXaZ", peer: 42, id: 7)
+    lookups.saveMessageData(snapshots: [MessageSnapshotRow(key: cloud, bytes: Data([1]), position: 1),
+        MessageSnapshotRow(key: channel, bytes: Data([2]), position: 2),
+        MessageSnapshotRow(key: otherAccount, bytes: Data([3]), position: 3)], removing: [], markers: [:])
+    check(lookups.snapshots(account: account, id: 7, peer: nil).map(\.key) == [cloud],
+          "Lazy cloud lookup escapes account patterns and excludes channel snapshots")
+    check(lookups.snapshots(account: account, id: 7, peer: channel.peer).first?.key == channel,
+          "Lazy channel lookup uses the exact account, peer and message id")
+    lookups.setReadOnly(true)
+    lookups.saveMessageData(snapshots: [MessageSnapshotRow(key: cloud, bytes: Data([4]), position: 4)], removing: [], markers: [:])
+    check(lookups.snapshots(account: account, id: 7, peer: nil).first?.bytes == Data([4]),
+          "Lazy reads see pending bytes after a failed disk write")
+    lookups.saveMessageData(snapshots: [], removing: [cloud], markers: [:])
+    check(lookups.snapshots(account: account, id: 7, peer: nil).isEmpty,
+          "Lazy reads do not resurrect a pending snapshot removal")
+    lookups.setReadOnly(false)
+    print("PASS bounded revision cache, lazy reload, editing and discarding evicted histories")
 }

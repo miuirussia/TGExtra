@@ -32,3 +32,26 @@ struct MessageKey: Hashable {
     }
 }
 
+// Constant-time ordering for bounded message caches.
+struct MessageKeyOrder {
+    private struct Links { var previous: MessageKey?; var next: MessageKey? }
+    private var links = [MessageKey: Links]()
+    private(set) var first: MessageKey?
+    private var last: MessageKey?
+    var count: Int { links.count }
+    var keys: [MessageKey] { Array(links.keys) }
+
+    mutating func remove(_ key: MessageKey) {
+        guard let entry = links.removeValue(forKey: key) else { return }
+        if let previous = entry.previous { links[previous]?.next = entry.next } else { first = entry.next }
+        if let next = entry.next { links[next]?.previous = entry.previous } else { last = entry.previous }
+    }
+
+    mutating func append(_ key: MessageKey) {
+        remove(key)
+        links[key] = Links(previous: last, next: nil)
+        if let last = last { links[last]?.next = key } else { first = key }
+        last = key
+    }
+}
+

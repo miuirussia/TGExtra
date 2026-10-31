@@ -4,7 +4,10 @@ private struct OwnAccount {
     let basePath: String
     let peerId: Int64?
 }
-private struct OwnContext { let account: OwnAccount }
+private final class OwnContext {
+    let account: OwnAccount
+    init(account: OwnAccount) { self.account = account }
+}
 private class ProfileNode {
     let context: OwnContext?
     // This is the displayed peer, which can belong to somebody else.
@@ -66,8 +69,16 @@ private func testProfileBridge() {
     check(ProfileBridge.getPeerIdFromNode(node) == 7332, "Keep the Objective-C peer lookup path")
     check(ProfileBridge.sharedContext as? NSObject === node.context, "Capture an available host context")
     check(ProfileBridge.debugPeerCandidates(node).contains("kvc.peerId="), "Profile diagnostics remain available to UI hooks")
-    ProfileBridge.sharedContext = ProfileNode("account-7333", ownId: 7333).context
+    let currentNode = ProfileNode("account-7333", ownId: 7333)
+    ProfileBridge.sharedContext = currentNode.context
     check(ProfileBridge.getCurrentUserId() == 7333, "Read the current user through a wrapped account context")
+    weak var releasedContext: NSObject?
+    autoreleasepool {
+        let context = NSObject()
+        releasedContext = context
+        ProfileBridge.sharedContext = context
+    }
+    check(releasedContext == nil && ProfileBridge.sharedContext == nil, "The profile bridge does not keep a closed account context alive")
     ProfileBridge.sharedContext = nil
     check(ProfileBridge.getCurrentUserId() == 7333, "Keep the legacy current-user cache")
 }
