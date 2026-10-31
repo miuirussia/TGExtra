@@ -1,6 +1,64 @@
 #import "RoundVideoExport.h"
 #import "Logger/Logger.h"
 
+static BOOL tgextraWaitForRoundExport(AVAssetExportSession *export, dispatch_semaphore_t done,
+                                     NSTimeInterval timeout, NSTimeInterval stallTimeout) {
+    NSTimeInterval started = NSProcessInfo.processInfo.systemUptime;
+    NSTimeInterval advanced = started;
+    float progress = 0;
+    NSTimeInterval interval = MIN(1.0, stallTimeout);
+    while (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW,
+               (int64_t)(interval * NSEC_PER_SEC))) != 0) {
+        NSTimeInterval now = NSProcessInfo.processInfo.systemUptime;
+        float current = export.progress;
+        if (current > progress) {
+            progress = current;
+            advanced = now;
+        }
+        if (now - started >= timeout || now - advanced >= stallTimeout) {
+            customLog(@"Round video: export timed out (status %ld, progress %.3f)",
+                      (long)export.status, current);
+            return NO;
+        }
+    }
+    return YES;
+}
+
+static CGImageRef tgextraCopyRoundPreview(AVAssetImageGenerator *generator, NSTimeInterval timeout) {
+    dispatch_semaphore_t done = dispatch_semaphore_create(0);
+    __block CGImageRef preview = NULL;
+    __block BOOL abandoned = NO;
+    [generator generateCGImagesAsynchronouslyForTimes:@[[NSValue valueWithCMTime:kCMTimeZero]]
+        completionHandler:^(CMTime requested, CGImageRef image, CMTime actual,
+                            AVAssetImageGeneratorResult result, NSError *error) {
+            @synchronized(done) {
+                if (!abandoned && result == AVAssetImageGeneratorSucceeded && image) {
+                    preview = CGImageRetain(image);
+                }
+            }
+            dispatch_semaphore_signal(done);
+        }];
+    if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW,
+            (int64_t)(timeout * NSEC_PER_SEC))) != 0) {
+        @synchronized(done) {
+            abandoned = YES;
+            if (preview) { CGImageRelease(preview); preview = NULL; }
+        }
+        [generator cancelAllCGImageGeneration];
+        customLog(@"Round video: preview timed out — sending without a preview");
+        return NULL;
+    }
+    return preview;
+}
+
+CGImageRef TGExtraCopyRoundVideoPreview(AVAsset *asset) {
+    if (NSThread.isMainThread) return NULL;
+    AVAssetImageGenerator *generator = [AVAssetImageGenerator assetImageGeneratorWithAsset:asset];
+    generator.appliesPreferredTrackTransform = YES;
+    generator.maximumSize = CGSizeMake(384, 384);
+    return tgextraCopyRoundPreview(generator, 5.0);
+}
+
 NSURL *TGExtraExportRoundVideo(AVAsset *asset, CMTimeRange range) {
     if (NSThread.isMainThread) {
         customLog(@"Round video: export must run off the main thread");
@@ -77,18 +135,18 @@ NSURL *TGExtraExportRoundVideo(AVAsset *asset, CMTimeRange range) {
         }
         dispatch_semaphore_signal(done);
     }];
-    if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 180 * NSEC_PER_SEC))) {
+    if (!tgextraWaitForRoundExport(export, done, 180.0, 30.0)) {
         @synchronized(export) {
             abandoned = YES;
             [NSFileManager.defaultManager removeItemAtURL:output error:NULL];
         }
         [export cancelExport];
-        customLog(@"Round video: export timed out");
         return nil;
     }
     if (export.status != AVAssetExportSessionStatusCompleted) {
         customLog(@"Round video: export failed (status %ld) — %@", (long)export.status, export.error);
         return nil;
     }
+    customLog(@"Round video: export completed");
     return output;
 }

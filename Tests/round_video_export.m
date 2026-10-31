@@ -42,6 +42,10 @@ static void verify(AVAsset *source, CMTimeRange range, double duration, BOOL aud
         check(CMFormatDescriptionGetMediaSubType(format) == kAudioFormatMPEG4AAC, @"AAC audio");
     }
     if (green) checkGreen(asset);
+    CGImageRef preview = TGExtraCopyRoundVideoPreview(asset);
+    check(preview != NULL && CGImageGetWidth(preview) == 384 && CGImageGetHeight(preview) == 384,
+          @"Asynchronous round preview decodes the exported square");
+    CGImageRelease(preview);
     [NSFileManager.defaultManager removeItemAtURL:url error:NULL];
 }
 

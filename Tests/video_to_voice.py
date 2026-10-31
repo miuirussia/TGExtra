@@ -27,6 +27,9 @@ static TGExtraDescriptionGenerator generator;
 static TGExtraDescriptionGenerator rawGenerator;
 static id testValue;
 static BOOL roundSupported = YES;
+static BOOL descriptionFails;
+static __weak id conversionResource;
+extern id testAutoreleasedConversionResource(void);
 @interface TLParser : NSObject
 + (BOOL)roundVideoChatSupported;
 @end
@@ -61,7 +64,11 @@ static BOOL roundSupported = YES;
 - (id)map:(id (^)(id))transform {
     SSignal *result = [SSignal new];
     result.subscribe = ^(void (^next)(id), dispatch_block_t complete) {
-        self.subscribe(^(id value) { next(transform(value)); }, complete);
+        self.subscribe(^(id value) {
+            id result = transform(value);
+            NSCAssert(conversionResource == nil, @"Release temporary conversion resources before delivering the result");
+            next(result);
+        }, complete);
     };
     return result;
 }
@@ -85,6 +92,7 @@ static NSDictionary *tgextraRewriteToVoice(id dict, id context) {
 }
 static NSDictionary *tgextraRewriteToRound(id dict, id context) {
     NSCAssert(!NSThread.isMainThread, @"Round export rejects the UI thread");
+    conversionResource = testAutoreleasedConversionResource();
     // Main-thread work must keep running while the export waits for completion.
     dispatch_semaphore_t ui = dispatch_semaphore_create(0);
     dispatch_async(dispatch_get_main_queue(), ^{ dispatch_semaphore_signal(ui); });
@@ -143,7 +151,7 @@ static void prepareSend(id context) {
         currentItem:nil storeAssets:NO convertToJpeg:NO descriptionGenerator:
         ^id(id dict, NSAttributedString *caption, NSString *hash, NSString *uniqueId) {
             NSCAssert((!caption && !hash) || ([caption.string isEqual:@"caption"] && [hash isEqual:@"hash"]), @"Preserve caption and hash");
-            return dict;
+            return descriptionFails ? nil : dict;
         } saveEditedPhotos:NO];
     TGExtraDescriptionGenerator produce = rawGenerator;
     generator = ^id(id dict, NSAttributedString *caption, NSString *hash, NSString *uniqueId) {
@@ -151,14 +159,19 @@ static void prepareSend(id context) {
         testValue = produce(dict, caption, hash, uniqueId);
         __block id result;
         __block BOOL finished = NO;
+        __block BOOL received = NO;
         ((SSignal *)signals[0]).subscribe(^(id value) {
-            dispatch_async(dispatch_get_main_queue(), ^{ result = value; });
+            // SSignal.combineSignals never emits a batch containing nil. The
+            // picker enqueue bridge only finishes after it receives that batch.
+            if (!value) return;
+            dispatch_async(dispatch_get_main_queue(), ^{ result = value; received = YES; });
         }, ^{ dispatch_async(dispatch_get_main_queue(), ^{ finished = YES; }); });
         NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:5];
         while (!finished && deadline.timeIntervalSinceNow > 0) {
             [NSRunLoop.currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
         }
         NSCAssert(finished, @"Conversion signal completes after its converted value");
+        NSCAssert(received, @"Telegram's enqueue bridge must receive a value even when conversion fails");
         return result;
     };
 }
@@ -219,11 +232,11 @@ int main(void) {
         NSCAssert([result[@"type"] isEqual:@"voice"], @"Also accept camera paths passed as strings");
         NSCAssert(conversions == 5, @"Only explicitly selected videos reach extraction");
         conversionFails = YES;
-        NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil,
-                  @"Failed conversion must never send the source video");
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) count] == 0,
+                  @"Failed conversion emits an empty description, completing the send without the source video");
         conversionThrows = YES;
-        NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil,
-                  @"An extraction exception must never send the source video");
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) count] == 0,
+                  @"An extraction exception completes the send without the source video");
         conversionFails = NO; conversionThrows = NO;
         NSCAssert(!tgextraVideoToRoundEnabled(), @"Round conversion defaults off");
         [defaults setBool:YES forKey:kVideoToRound];
@@ -245,9 +258,18 @@ int main(void) {
         NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"round"], @"Round conversion works with voice feature off");
         NSCAssert(tgextraRoundItems([NSObject new]).count == 0, @"Round selections stay in their picker");
         conversionFails = YES;
-        NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil, @"Round failure must never send the original");
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) count] == 0,
+                  @"Round failure completes the send without the original video");
         conversionThrows = YES;
-        NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil, @"Round exception must never send the original");
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) count] == 0,
+                  @"Round exception completes the send without the original video");
+        conversionFails = NO; conversionThrows = NO;
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"round"],
+                  @"A round conversion succeeds after a failure without restarting the picker");
+        descriptionFails = YES;
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) count] == 0,
+                  @"A rejected host description also completes the send without media");
+        descriptionFails = NO;
         [defaults setBool:NO forKey:kVideoToRound];
         prepareSend(context);
         NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"cameraVideo"], @"Disabled round feature bypasses conversion");
@@ -263,7 +285,11 @@ with tempfile.TemporaryDirectory(prefix='tgextra-video-voice-') as tmp:
     harness = path / 'voice.m'
     sender = '@interface TestSender : NSObject\n' + send[:send.index(' {')] + ';\n@end\n@implementation TestSender\n'
     harness.write_text(support + helpers + toggle + conversion_helpers + sender + send + tests)
+    resource = path / 'resource.m'
+    resource.write_text('#import <Foundation/Foundation.h>\nid testAutoreleasedConversionResource(void) { return [[[NSObject alloc] init] autorelease]; }\n')
+    resource_object = path / 'resource.o'
+    subprocess.run(['clang', '-fno-objc-arc', '-c', str(resource), '-o', str(resource_object)], check=True)
     binary = path / 'voice'
     subprocess.run(['clang', '-fobjc-arc', '-Werror', '-framework', 'Foundation',
-                    '-I' + str(ROOT / 'Sources/tgapi'), str(harness), '-o', str(binary)], check=True)
+                    '-I' + str(ROOT / 'Sources/tgapi'), str(harness), str(resource_object), '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True)

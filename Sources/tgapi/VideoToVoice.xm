@@ -52,19 +52,24 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
             }
             TGExtraVideoConversion *conversion = [TGExtraVideoConversion new];
             conversion.generate = ^id {
-                NSDictionary *rewritten = nil;
+                id generated = nil;
                 @try {
-                    rewritten = round ? tgextraRewriteToRound(dict, editingContext)
-                                      : tgextraRewriteToVoice(dict, editingContext);
+                    NSDictionary *rewritten = round ? tgextraRewriteToRound(dict, editingContext)
+                                                    : tgextraRewriteToVoice(dict, editingContext);
+                    if (rewritten) generated = descriptionGenerator(rewritten, caption, hash, uniqueId);
                 } @catch (NSException *e) {
                     customLog(@"Video conversion (%@): %@ — %@", round ? @"round" : @"voice", e.name, e.reason);
                 }
-                if (!rewritten) {
+                if (!generated) {
                     TGExtraShowToast([TGExtraLocalization localizedStringForKey:
                         round ? @"VIDEO_TO_ROUND_FAILED" : @"VIDEO_TO_VOICE_FAILED"]);
-                    return nil;
+                    // combineSignals treats nil as a missing value. The picker
+                    // enqueue bridge ignores completion without a value, leaving
+                    // the send pending. An empty description completes the send
+                    // without enqueueing media for this failed conversion.
+                    return @{};
                 }
-                return descriptionGenerator(rewritten, caption, hash, uniqueId);
+                return generated;
             };
             return conversion;
         };
@@ -76,8 +81,12 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
         // A serial queue keeps completion behind the potentially slow export.
         id queue = [[objc_getClass("SQueue") alloc] init];
         [converted addObject:[[signal deliverOn:queue] map:^id(id value) {
-            return [value isKindOfClass:TGExtraVideoConversion.class]
-                ? ((TGExtraVideoConversion *)value).generate() : value;
+            // SQueue does not drain an autorelease pool after each item. Release
+            // AVFoundation's temporary decoder/export objects before the next send.
+            @autoreleasepool {
+                return [value isKindOfClass:TGExtraVideoConversion.class]
+                    ? ((TGExtraVideoConversion *)value).generate() : value;
+            }
         }]];
     }
     return converted;

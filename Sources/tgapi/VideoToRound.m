@@ -25,6 +25,8 @@ NSDictionary *tgextraRewriteToRound(id value, id editingContext) {
         }
     }
     TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"VIDEO_TO_ROUND_CONVERTING"]);
+    customLog(@"Round video: starting export (trim %.3f..%.3f)",
+              CMTimeGetSeconds(range.start), CMTimeGetSeconds(CMTimeRangeGetEnd(range)));
     NSURL *output = TGExtraExportRoundVideo(asset, range);
     if (!output) return nil;
     AVURLAsset *exported = [AVURLAsset URLAssetWithURL:output options:nil];
@@ -44,9 +46,7 @@ NSDictionary *tgextraRewriteToRound(id value, id editingContext) {
                            @"dimensions", @"duration", @"coverImage", @"previewImage", @"groupedId", @"stickers"]) {
         [rewritten removeObjectForKey:key];
     }
-    AVAssetImageGenerator *generator = [AVAssetImageGenerator assetImageGeneratorWithAsset:exported];
-    generator.appliesPreferredTrackTransform = YES;
-    CGImageRef image = [generator copyCGImageAtTime:kCMTimeZero actualTime:NULL error:NULL];
+    CGImageRef image = TGExtraCopyRoundVideoPreview(exported);
     if (image) {
         rewritten[@"previewImage"] = [UIImage imageWithCGImage:image];
         CGImageRelease(image);
