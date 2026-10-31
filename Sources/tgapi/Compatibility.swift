@@ -15,6 +15,7 @@ extension TLParser {
         lines.append("Copy protection protocol policies: " + (HostSchema.shared != nil ? "available (settings apply)" : "unavailable: host schema missing"))
         lines.append("Native TL decoder: " + (nativeTLAvailable() ? "active" : "unavailable; byte codec used when schema is available"))
         lines.append("Rust bridge: " + TGExtraRustCompatibilityStatus())
+        lines.append("Secret chat protection: " + SecretChatPolicy.compatibilityStatus)
         let hooks = TGExtraInstalledHookStatuses() ?? [:]
         for name in hooks.keys.sorted() { lines.append("\(name) hook: \(hooks[name]!)") }
         let interfaces: [(String, [String], String)] = [

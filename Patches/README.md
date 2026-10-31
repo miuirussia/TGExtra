@@ -16,9 +16,8 @@ by default; its name, description and defaults live in its own document.
 Payload sources are relative to the profile folder. Packaging rebases them under
 the archive's `payloads/` root.
 
-Display names are **Native TL Decoder**, **Rust MTProto Bridge** and
-**Swiftgram Pro**. Rust content hashes remain in profile IDs and directory names
-so rebuilding changed payloads still produces a distinct identity.
+Profiles: **Native TL Decoder**, **Rust MTProto Bridge**, **Secret Chat Protection**
+and optional **Swiftgram Pro**. Rust profile IDs include the payload hash.
 
 For the Rust bridge, the engine discovers exactly one
 compatible Mach-O, validates functions and call counts, allocates header padding,
@@ -100,6 +99,38 @@ IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/native_tl_profile.py
 Changed parser code requires a new review. These tests verify both reference IPA
 plans and execute the bridges against the fixture engine on macOS; they do not
 replace device testing. Native arm64e binary profiles are not currently provided.
+
+## Secret-chat protection
+
+`secret-chats-v1` supports Telegram 13.1.2 (35638) and Swiftgram 13.1.1 (343/344),
+generic arm64, through the required TGExtra component. It works with both MTProto
+transports and requires rebuilding the IPA; a DEB alone does not install it.
+
+The profile redirects five calls: screenshot reporting, incoming deletion,
+incoming history clearing, expiry lookup and media-consumption lookup. Suppressed
+deletions still acknowledge incoming operations. Protected expiry returns nil to
+the host's lookup so it clears the queue entry without deleting the message.
+Local deletion and history clearing remain available.
+
+Checks cover caller fingerprints, adapter ABIs, original targets and call bytes.
+Postbox stubs require exact bytes. Payloads preserve x0–x8, x20, x21 and stack
+arguments; without the TGExtra callback, they call the original function.
+
+`MediaCapture.xm` handles screenshots. Saving copies the account's completed
+decrypted `SecretFileMediaResource` cache entry after checking its length. Missing
+files wait for Telegram's fetcher; encrypted containers are never exported.
+
+Regenerate and test:
+
+~~~sh
+python3 Tools/prepare_secret_chats.py --telegram packages/Telegram_v13.1.2.ipa --swiftgram packages/Swiftgram_v13.1.1.ipa
+python3 Tools/build_payloads.py --check
+IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/secret_chats.py
+~~~
+
+Bridge execution tests require Apple Silicon. Engine planning requires the CLI
+and reference IPAs. Debug Log reports observed callbacks; device testing is still
+needed.
 
 ## Swiftgram Pro feature
 

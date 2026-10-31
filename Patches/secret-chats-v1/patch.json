@@ -1,0 +1,1264 @@
+{
+  "format": "ipatch",
+  "version": 4,
+  "name": "Secret Chat Protection",
+  "components": [
+    {
+      "id": "required",
+      "name": "TGExtra",
+      "match": "all_matching",
+      "variants": [
+        {
+          "id": "secret-chats-telegram-v1",
+          "description": "Secret Chat Protection",
+          "bundle_ids": [
+            "ph.telegra.Telegraph"
+          ],
+          "binaries": [
+            {
+              "id": "runtime",
+              "search": {
+                "roots": [
+                  "."
+                ],
+                "max_candidates": 128,
+                "max_bytes": 1073741824
+              },
+              "arch": "arm64",
+              "header_reserve": 4096,
+              "anchors": [
+                {
+                  "id": "incoming",
+                  "find": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 7644,
+                        "sha256": "bd0fa1f79d1fea8eb7b0f353c6b3038bb811f54ff219dadf715d535a5341c39c"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "timer",
+                  "find": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 836,
+                        "sha256": "7e7776be607d5624b6c4b63696f3614b40b72220caf56b5ef0c93b9563e541ad"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "screenshotBody",
+                  "find": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 608,
+                        "sha256": "653b478d6d4c7e036cfe75264e0f0f7258a9bd5a8725c0a97ec8cba05874d3ce"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "consume",
+                  "find": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 2600,
+                        "sha256": "a58bee53e2960c40aa960e6dad86e7f8112959783750c86946ae69d9e481c509"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "import.dlsym",
+                  "find": {
+                    "import_stub": {
+                      "import": "_dlsym"
+                    }
+                  }
+                },
+                {
+                  "id": "screenshotCall",
+                  "find": {
+                    "calls": {
+                      "to": "screenshotBody",
+                      "instruction": "b"
+                    }
+                  },
+                  "count": 1
+                },
+                {
+                  "id": "screenshotThunk",
+                  "find": {
+                    "containing_function": {
+                      "from": "screenshotCall"
+                    }
+                  }
+                },
+                {
+                  "id": "call.delete",
+                  "find": {
+                    "select": {
+                      "from": "incoming",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 5876
+                },
+                {
+                  "id": "original.delete",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.delete",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "call.clear",
+                  "find": {
+                    "select": {
+                      "from": "incoming",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 6096
+                },
+                {
+                  "id": "original.clear",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.clear",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "call.timer",
+                  "find": {
+                    "select": {
+                      "from": "timer",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 168
+                },
+                {
+                  "id": "original.timer",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.timer",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "call.consume",
+                  "find": {
+                    "select": {
+                      "from": "consume",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 52
+                },
+                {
+                  "id": "original.consume",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.consume",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "call.screenshot",
+                  "find": {
+                    "select": {
+                      "from": "screenshotThunk",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 8
+                },
+                {
+                  "id": "original.screenshot",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.screenshot",
+                      "instruction": "b"
+                    }
+                  }
+                }
+              ],
+              "checks": [
+                {
+                  "id": "verify.screenshotThunk",
+                  "at": {
+                    "anchor": "screenshotThunk"
+                  },
+                  "assert": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 12,
+                        "sha256": "b9ef61f412806cbaf84ab2577a286fb708d6e85ff699aee3d2287e4c8b023335"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.delete",
+                  "at": {
+                    "anchor": "original.delete"
+                  },
+                  "assert": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 508,
+                        "sha256": "bbc84e2f0228859d61b682fb45fea5257c80cc4e42e0dabf8faf92436ef2205d"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.delete",
+                  "at": {
+                    "anchor": "call.delete"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.delete",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.clear",
+                  "at": {
+                    "anchor": "original.clear"
+                  },
+                  "assert": {
+                    "bytes": {
+                      "expected": "f017009010fa41f900021fd6"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.clear",
+                  "at": {
+                    "anchor": "call.clear"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.clear",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.timer",
+                  "at": {
+                    "anchor": "original.timer"
+                  },
+                  "assert": {
+                    "bytes": {
+                      "expected": "f017009010e641f900021fd6"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.timer",
+                  "at": {
+                    "anchor": "call.timer"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.timer",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.consume",
+                  "at": {
+                    "anchor": "original.consume"
+                  },
+                  "assert": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 16,
+                        "sha256": "118c40bc0981767a3e65c64a7cc9dc692708168f8b52293dbb89de29b28268d9"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.consume",
+                  "at": {
+                    "anchor": "call.consume"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.consume",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.screenshot",
+                  "at": {
+                    "anchor": "original.screenshot"
+                  },
+                  "assert": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 608,
+                        "sha256": "653b478d6d4c7e036cfe75264e0f0f7258a9bd5a8725c0a97ec8cba05874d3ce"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.screenshot",
+                  "at": {
+                    "anchor": "call.screenshot"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.screenshot",
+                      "instruction": "b"
+                    }
+                  }
+                }
+              ],
+              "edits": [
+                {
+                  "id": "redirect.delete",
+                  "at": {
+                    "anchor": "call.delete"
+                  },
+                  "expect": {
+                    "bytes": "0f410894"
+                  },
+                  "replace": {
+                    "bytes": "00000094",
+                    "relocations": [
+                      {
+                        "type": "bl",
+                        "offset": 0,
+                        "anchor": "bridge.delete"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "redirect.clear",
+                  "at": {
+                    "anchor": "call.clear"
+                  },
+                  "expect": {
+                    "bytes": "bddf1794"
+                  },
+                  "replace": {
+                    "bytes": "00000094",
+                    "relocations": [
+                      {
+                        "type": "bl",
+                        "offset": 0,
+                        "anchor": "bridge.clear"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "redirect.timer",
+                  "at": {
+                    "anchor": "call.timer"
+                  },
+                  "expect": {
+                    "bytes": "88791a94"
+                  },
+                  "replace": {
+                    "bytes": "00000094",
+                    "relocations": [
+                      {
+                        "type": "bl",
+                        "offset": 0,
+                        "anchor": "bridge.timer"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "redirect.consume",
+                  "at": {
+                    "anchor": "call.consume"
+                  },
+                  "expect": {
+                    "bytes": "6c040094"
+                  },
+                  "replace": {
+                    "bytes": "00000094",
+                    "relocations": [
+                      {
+                        "type": "bl",
+                        "offset": 0,
+                        "anchor": "bridge.consume"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "redirect.screenshot",
+                  "at": {
+                    "anchor": "call.screenshot"
+                  },
+                  "expect": {
+                    "bytes": "37daed17"
+                  },
+                  "replace": {
+                    "bytes": "00000014",
+                    "relocations": [
+                      {
+                        "type": "b",
+                        "offset": 0,
+                        "anchor": "bridge.screenshot"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "payloads": [
+                {
+                  "id": "bridge.delete",
+                  "source": "payloads/deletion.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.delete",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.delete",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.delete"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.clear",
+                  "source": "payloads/deletion.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.clear",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.clear",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.clear"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.timer",
+                  "source": "payloads/timer.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.timer",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.timer",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.timer"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.consume",
+                  "source": "payloads/consume.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.consume",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.consume",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.consume"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.screenshot",
+                  "source": "payloads/screenshot.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.screenshot",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.screenshot",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.screenshot"
+                    }
+                  ]
+                }
+              ],
+              "generated_resources": [
+                {
+                  "destination": "TGExtraSecretChats.plist",
+                  "arch": "arm64",
+                  "values": {
+                    "ABI": {
+                      "type": "uint",
+                      "integer": 1
+                    },
+                    "UUID": {
+                      "type": "uuid"
+                    },
+                    "deleteCall": {
+                      "type": "image_offset",
+                      "anchor": "call.delete"
+                    },
+                    "deleteBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.delete"
+                    },
+                    "clearCall": {
+                      "type": "image_offset",
+                      "anchor": "call.clear"
+                    },
+                    "clearBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.clear"
+                    },
+                    "timerCall": {
+                      "type": "image_offset",
+                      "anchor": "call.timer"
+                    },
+                    "timerBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.timer"
+                    },
+                    "consumeCall": {
+                      "type": "image_offset",
+                      "anchor": "call.consume"
+                    },
+                    "consumeBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.consume"
+                    },
+                    "screenshotCall": {
+                      "type": "image_offset",
+                      "anchor": "call.screenshot"
+                    },
+                    "screenshotBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.screenshot"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "secret-chats-swiftgram-v1",
+          "description": "Secret Chat Protection",
+          "bundle_ids": [
+            "app.swiftgram.ios"
+          ],
+          "binaries": [
+            {
+              "id": "runtime",
+              "search": {
+                "roots": [
+                  "."
+                ],
+                "max_candidates": 128,
+                "max_bytes": 1073741824
+              },
+              "arch": "arm64",
+              "header_reserve": 4096,
+              "anchors": [
+                {
+                  "id": "incoming",
+                  "find": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 7648,
+                        "sha256": "6fc1428a7b0494ae1a5a71087ae0faa93137dd3a0ed198039f9da852771da76c"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "timer",
+                  "find": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 836,
+                        "sha256": "ff0a93ef0fae6aabedb05f3e5f7a9fec7c357a96b70a81d33d16769d9c5e39d0"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "screenshotBody",
+                  "find": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 608,
+                        "sha256": "dee0fdfe1ca4b83c6d852dce6929de084a994587167135e8c3f7b318aed1718a"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "consume",
+                  "find": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 2600,
+                        "sha256": "64ac19e6e6cca99ace300d3b1516cdad9e31c9c0114a7700429b62d7ab8e5d3d"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "import.dlsym",
+                  "find": {
+                    "import_stub": {
+                      "import": "_dlsym"
+                    }
+                  }
+                },
+                {
+                  "id": "screenshotCall",
+                  "find": {
+                    "calls": {
+                      "to": "screenshotBody",
+                      "instruction": "b"
+                    }
+                  },
+                  "count": 1
+                },
+                {
+                  "id": "screenshotThunk",
+                  "find": {
+                    "containing_function": {
+                      "from": "screenshotCall"
+                    }
+                  }
+                },
+                {
+                  "id": "call.delete",
+                  "find": {
+                    "select": {
+                      "from": "incoming",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 5880
+                },
+                {
+                  "id": "original.delete",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.delete",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "call.clear",
+                  "find": {
+                    "select": {
+                      "from": "incoming",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 6100
+                },
+                {
+                  "id": "original.clear",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.clear",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "call.timer",
+                  "find": {
+                    "select": {
+                      "from": "timer",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 168
+                },
+                {
+                  "id": "original.timer",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.timer",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "call.consume",
+                  "find": {
+                    "select": {
+                      "from": "consume",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 52
+                },
+                {
+                  "id": "original.consume",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.consume",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "call.screenshot",
+                  "find": {
+                    "select": {
+                      "from": "screenshotThunk",
+                      "index": 0
+                    }
+                  },
+                  "offset_bytes": 8
+                },
+                {
+                  "id": "original.screenshot",
+                  "find": {
+                    "branch_target": {
+                      "from": "call.screenshot",
+                      "instruction": "b"
+                    }
+                  }
+                }
+              ],
+              "checks": [
+                {
+                  "id": "verify.screenshotThunk",
+                  "at": {
+                    "anchor": "screenshotThunk"
+                  },
+                  "assert": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 12,
+                        "sha256": "b9ef61f412806cbaf84ab2577a286fb708d6e85ff699aee3d2287e4c8b023335"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.delete",
+                  "at": {
+                    "anchor": "original.delete"
+                  },
+                  "assert": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 496,
+                        "sha256": "4390ff4a5334a8f3063f9429e3af23771faca6364e3c517ea2383d387ba3daf3"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.delete",
+                  "at": {
+                    "anchor": "call.delete"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.delete",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.clear",
+                  "at": {
+                    "anchor": "original.clear"
+                  },
+                  "assert": {
+                    "bytes": {
+                      "expected": "501800b0104240f900021fd6"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.clear",
+                  "at": {
+                    "anchor": "call.clear"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.clear",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.timer",
+                  "at": {
+                    "anchor": "original.timer"
+                  },
+                  "assert": {
+                    "bytes": {
+                      "expected": "501800b0102e40f900021fd6"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.timer",
+                  "at": {
+                    "anchor": "call.timer"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.timer",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.consume",
+                  "at": {
+                    "anchor": "original.consume"
+                  },
+                  "assert": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 16,
+                        "sha256": "118c40bc0981767a3e65c64a7cc9dc692708168f8b52293dbb89de29b28268d9"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.consume",
+                  "at": {
+                    "anchor": "call.consume"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.consume",
+                      "instruction": "bl"
+                    }
+                  }
+                },
+                {
+                  "id": "verify.original.screenshot",
+                  "at": {
+                    "anchor": "original.screenshot"
+                  },
+                  "assert": {
+                    "function": {
+                      "fingerprint": {
+                        "algorithm": "arm64-reloc-v1",
+                        "size": 608,
+                        "sha256": "dee0fdfe1ca4b83c6d852dce6929de084a994587167135e8c3f7b318aed1718a"
+                      }
+                    }
+                  }
+                },
+                {
+                  "id": "verify.call.screenshot",
+                  "at": {
+                    "anchor": "call.screenshot"
+                  },
+                  "assert": {
+                    "branch": {
+                      "to": "original.screenshot",
+                      "instruction": "b"
+                    }
+                  }
+                }
+              ],
+              "edits": [
+                {
+                  "id": "redirect.delete",
+                  "at": {
+                    "anchor": "call.delete"
+                  },
+                  "expect": {
+                    "bytes": "fbe40794"
+                  },
+                  "replace": {
+                    "bytes": "00000094",
+                    "relocations": [
+                      {
+                        "type": "bl",
+                        "offset": 0,
+                        "anchor": "bridge.delete"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "redirect.clear",
+                  "at": {
+                    "anchor": "call.clear"
+                  },
+                  "expect": {
+                    "bytes": "7ce41794"
+                  },
+                  "replace": {
+                    "bytes": "00000094",
+                    "relocations": [
+                      {
+                        "type": "bl",
+                        "offset": 0,
+                        "anchor": "bridge.clear"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "redirect.timer",
+                  "at": {
+                    "anchor": "call.timer"
+                  },
+                  "expect": {
+                    "bytes": "747e1a94"
+                  },
+                  "replace": {
+                    "bytes": "00000094",
+                    "relocations": [
+                      {
+                        "type": "bl",
+                        "offset": 0,
+                        "anchor": "bridge.timer"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "redirect.consume",
+                  "at": {
+                    "anchor": "call.consume"
+                  },
+                  "expect": {
+                    "bytes": "6c040094"
+                  },
+                  "replace": {
+                    "bytes": "00000094",
+                    "relocations": [
+                      {
+                        "type": "bl",
+                        "offset": 0,
+                        "anchor": "bridge.consume"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "redirect.screenshot",
+                  "at": {
+                    "anchor": "call.screenshot"
+                  },
+                  "expect": {
+                    "bytes": "9a32ee17"
+                  },
+                  "replace": {
+                    "bytes": "00000014",
+                    "relocations": [
+                      {
+                        "type": "b",
+                        "offset": 0,
+                        "anchor": "bridge.screenshot"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "payloads": [
+                {
+                  "id": "bridge.delete",
+                  "source": "payloads/deletion.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.delete",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.delete",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.delete"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.clear",
+                  "source": "payloads/deletion.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.clear",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.clear",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.clear"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.timer",
+                  "source": "payloads/timer.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.timer",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.timer",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.timer"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.consume",
+                  "source": "payloads/consume.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.consume",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.consume",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.consume"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.screenshot",
+                  "source": "payloads/screenshot.bin",
+                  "size": 164,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.screenshot",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.screenshot",
+                      "addend": 132
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 120,
+                      "anchor": "original.screenshot"
+                    }
+                  ]
+                }
+              ],
+              "generated_resources": [
+                {
+                  "destination": "TGExtraSecretChats.plist",
+                  "arch": "arm64",
+                  "values": {
+                    "ABI": {
+                      "type": "uint",
+                      "integer": 1
+                    },
+                    "UUID": {
+                      "type": "uuid"
+                    },
+                    "deleteCall": {
+                      "type": "image_offset",
+                      "anchor": "call.delete"
+                    },
+                    "deleteBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.delete"
+                    },
+                    "clearCall": {
+                      "type": "image_offset",
+                      "anchor": "call.clear"
+                    },
+                    "clearBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.clear"
+                    },
+                    "timerCall": {
+                      "type": "image_offset",
+                      "anchor": "call.timer"
+                    },
+                    "timerBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.timer"
+                    },
+                    "consumeCall": {
+                      "type": "image_offset",
+                      "anchor": "call.consume"
+                    },
+                    "consumeBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.consume"
+                    },
+                    "screenshotCall": {
+                      "type": "image_offset",
+                      "anchor": "call.screenshot"
+                    },
+                    "screenshotBridge": {
+                      "type": "image_offset",
+                      "anchor": "bridge.screenshot"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

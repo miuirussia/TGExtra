@@ -3,22 +3,24 @@ import Foundation
 @objc(TGExtraPaidMediaFile)
 final class PaidMediaFile: NSObject {
     private static let galleryItems = NSMapTable<AnyObject, AnyObject>.weakToWeakObjects()
-    @objc let context: NSObject
+    @objc let context: NSObject?
     @objc let masterDatacenterId: Int
     @objc let datacenterId: Int
     @objc let size: Int64
     @objc let video: Bool
+    @objc let nativeOnly: Bool
     @objc let cachePath: String?
     private var nativeItem: AnyObject?
-    private let location: Api.InputFileLocation
+    private let location: Api.InputFileLocation?
 
-    private init(context: NSObject, master: Int, dc: Int, size: Int64, video: Bool,
-                 cachePath: String?, location: Api.InputFileLocation) {
+    private init(context: NSObject?, master: Int, dc: Int, size: Int64, video: Bool,
+                 cachePath: String?, location: Api.InputFileLocation?, nativeOnly: Bool = false) {
         self.context = context
         self.masterDatacenterId = master
         self.datacenterId = dc
         self.size = size
         self.video = video
+        self.nativeOnly = nativeOnly
         self.cachePath = cachePath
         self.location = location
     }
@@ -89,6 +91,22 @@ final class PaidMediaFile: NSObject {
     }
 
     @objc func beginNativeDownload() -> Bool {
+        if nativeOnly {
+            guard Thread.isMainThread else { return false }
+            // Secret photo galleries fetch automatically. Secret videos opened
+            // from the preview may already be using a completed local resource.
+            if let item = nativeItem {
+                guard let footer = Self.field(item, "footerContentNode"),
+                      Self.file(footer: footer as AnyObject)?.cachePath == cachePath else { return false }
+                if let controls = Self.field(item, "fetchControls"),
+                   let fetch = Self.field(controls, "fetch") as? () -> Void {
+                    if let status = Self.field(item, "fetchStatus"),
+                       Self.associated(status, case: "Fetching") != nil { return true }
+                    fetch()
+                }
+            }
+            return cachePath != nil
+        }
         guard Thread.isMainThread, video, let item = nativeItem,
               let footer = Self.field(item, "footerContentNode"),
               let current = Self.file(footer: footer as AnyObject), current.cachePath == cachePath,
@@ -109,8 +127,12 @@ final class PaidMediaFile: NSObject {
 
     @objc(fileFromFooterNode:)
     static func file(footer: AnyObject) -> PaidMediaFile? {
-        guard let message = field(footer, "currentMessage"),
-              let full = selectedMedia(message: message, subject: field(footer, "mediaSubject")),
+        let previewMessage = field(footer, "messageView").flatMap { field($0, "message") }
+        guard let message = field(footer, "currentMessage") ?? previewMessage else { return nil }
+        if SecretChatPolicy.isSecretMessage(message) {
+            return secretFile(footer: footer, message: message)
+        }
+        guard let full = selectedMedia(message: message, subject: field(footer, "mediaSubject")),
               let accountContext = field(footer, "context"), let account = field(accountContext, "account"),
               let network = field(account, "network"), let context = field(network, "context") as? NSObject,
               let master = field(network, "datacenterId") as? Int, master > 0 else { return nil }
@@ -170,9 +192,39 @@ final class PaidMediaFile: NSObject {
         return result
     }
 
+    private static func secretFile(footer: AnyObject, message: Any) -> PaidMediaFile? {
+        guard let media = field(message, "media") as? [Any],
+              let accountContext = field(footer, "context"), let account = field(accountContext, "account"),
+              let postbox = field(account, "postbox"), let mediaBox = field(postbox, "mediaBox"),
+              let basePath = field(mediaBox, "basePath") as? String, !basePath.isEmpty else { return nil }
+        let resource: Any
+        let video: Bool
+        if let image = media.first(where: { named($0, "TelegramMediaImage") }),
+           let representations = field(image, "representations") as? [Any],
+           let full = representations.compactMap({ field($0, "resource") }).first(where: { named($0, "SecretFileMediaResource") }) {
+            resource = full
+            video = false
+        } else if let file = media.first(where: { named($0, "TelegramMediaFile") }),
+                  let mime = field(file, "mimeType") as? String, mime.hasPrefix("video/"),
+                  let full = field(file, "resource"), named(full, "SecretFileMediaResource") {
+            resource = full
+            video = true
+        } else { return nil }
+        guard let id = field(resource, "fileId") as? Int64,
+              let dc = field(resource, "datacenterId") as? Int, dc > 0,
+              let size = field(resource, "decryptedSize") as? Int64, size > 0 else { return nil }
+        let path = (basePath as NSString).appendingPathComponent("secret-file-\(id)-\(dc)")
+        // Secret resources are decrypted by Telegram's own fetcher. Never send
+        // their encrypted container through the cloud upload.getFile fallback.
+        let result = PaidMediaFile(context: nil, master: 0, dc: dc, size: size,
+                                   video: video, cachePath: path, location: nil, nativeOnly: true)
+        if Thread.isMainThread { result.nativeItem = galleryItems.object(forKey: footer) }
+        return result
+    }
+
     @objc(downloadRequestAtOffset:)
     func downloadRequest(offset: Int64) -> Data? {
-        guard offset >= 0, offset % 524288 == 0, size == 0 || offset < size else { return nil }
+        guard let location = location, offset >= 0, offset % 524288 == 0, size == 0 || offset < size else { return nil }
         return Api.functions.upload.getFile(flags: 0, location: location, offset: offset, limit: 524288).1.makeValidData()
     }
 

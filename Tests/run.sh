@@ -24,6 +24,7 @@ python3 Tests/edit_history_diff.py
 python3 Tests/paid_media_download.py
 python3 Tests/paid_media_import.py
 python3 Tests/paid_media_capture.py
+python3 Tests/secret_chats.py
 python3 Tests/paid_media_uikit.py
 python3 Tests/rust_thunks.py
 python3 Tests/rust_patching.py

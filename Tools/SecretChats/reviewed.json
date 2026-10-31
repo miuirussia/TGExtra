@@ -1,0 +1,126 @@
+{
+  "telegram": {
+    "incoming": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 7644,
+        "sha256": "bd0fa1f79d1fea8eb7b0f353c6b3038bb811f54ff219dadf715d535a5341c39c"
+      }
+    },
+    "timer": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 836,
+        "sha256": "7e7776be607d5624b6c4b63696f3614b40b72220caf56b5ef0c93b9563e541ad"
+      }
+    },
+    "screenshotThunk": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 12,
+        "sha256": "b9ef61f412806cbaf84ab2577a286fb708d6e85ff699aee3d2287e4c8b023335"
+      }
+    },
+    "screenshotBody": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 608,
+        "sha256": "653b478d6d4c7e036cfe75264e0f0f7258a9bd5a8725c0a97ec8cba05874d3ce"
+      }
+    },
+    "consume": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 2600,
+        "sha256": "a58bee53e2960c40aa960e6dad86e7f8112959783750c86946ae69d9e481c509"
+      }
+    },
+    "consumeLookup": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 16,
+        "sha256": "118c40bc0981767a3e65c64a7cc9dc692708168f8b52293dbb89de29b28268d9"
+      }
+    },
+    "sites": {
+      "delete": {
+        "within": "incoming",
+        "offset": 5876
+      },
+      "clear": {
+        "within": "incoming",
+        "offset": 6096
+      },
+      "timer": {
+        "within": "timer",
+        "offset": 168
+      },
+      "consume": {
+        "within": "consume",
+        "offset": 52
+      }
+    }
+  },
+  "swiftgram": {
+    "incoming": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 7648,
+        "sha256": "6fc1428a7b0494ae1a5a71087ae0faa93137dd3a0ed198039f9da852771da76c"
+      }
+    },
+    "timer": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 836,
+        "sha256": "ff0a93ef0fae6aabedb05f3e5f7a9fec7c357a96b70a81d33d16769d9c5e39d0"
+      }
+    },
+    "screenshotThunk": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 12,
+        "sha256": "b9ef61f412806cbaf84ab2577a286fb708d6e85ff699aee3d2287e4c8b023335"
+      }
+    },
+    "screenshotBody": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 608,
+        "sha256": "dee0fdfe1ca4b83c6d852dce6929de084a994587167135e8c3f7b318aed1718a"
+      }
+    },
+    "consume": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 2600,
+        "sha256": "64ac19e6e6cca99ace300d3b1516cdad9e31c9c0114a7700429b62d7ab8e5d3d"
+      }
+    },
+    "consumeLookup": {
+      "fingerprint": {
+        "algorithm": "arm64-reloc-v1",
+        "size": 16,
+        "sha256": "118c40bc0981767a3e65c64a7cc9dc692708168f8b52293dbb89de29b28268d9"
+      }
+    },
+    "sites": {
+      "delete": {
+        "within": "incoming",
+        "offset": 5880
+      },
+      "clear": {
+        "within": "incoming",
+        "offset": 6100
+      },
+      "timer": {
+        "within": "timer",
+        "offset": 168
+      },
+      "consume": {
+        "within": "consume",
+        "offset": 52
+      }
+    }
+  }
+}

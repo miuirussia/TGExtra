@@ -12,7 +12,11 @@
 - (id)asyncdisplaykit_node;
 @end
 
-static char paidCaptureRootKey, originalImageCaptureKey, originalVideoCaptureKey;
+@interface TGExtraSecretChatPolicy : NSObject
++ (BOOL)isSecretGalleryItem:(id)node;
+@end
+
+static char paidCaptureRootKey, secretCaptureRootKey, originalImageCaptureKey, originalVideoCaptureKey;
 static char canvasOwnLayerKey, requestedImageCaptureKey;
 static BOOL applyingCaptureChange;
 static NSUInteger clearedImageLayers, clearedVideoLayers;
@@ -22,17 +26,25 @@ static void recordCaptureStatus(NSString *key, NSString *value) {
     if (![[defaults stringForKey:key] isEqualToString:value]) [defaults setObject:value forKey:key];
 }
 
-static BOOL paidLayerHasCaptureRoot(CALayer *layer) {
+static BOOL layerHasCaptureRoot(CALayer *layer) {
     if (!NSThread.isMainThread) return NO;
     for (CALayer *current = layer; current; current = current.superlayer) {
-        if ([objc_getAssociatedObject(current, &paidCaptureRootKey) boolValue]) return YES;
+        if ([objc_getAssociatedObject(current, &paidCaptureRootKey) boolValue] ||
+            [objc_getAssociatedObject(current, &secretCaptureRootKey) boolValue]) return YES;
     }
     return NO;
 }
 
-static BOOL paidLayerAllowsCapture(CALayer *layer) {
-    return paidLayerHasCaptureRoot(layer) &&
-        [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction];
+static BOOL layerAllowsCapture(CALayer *layer) {
+    if (!NSThread.isMainThread) return NO;
+    NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
+    for (CALayer *current = layer; current; current = current.superlayer) {
+        if ([objc_getAssociatedObject(current, &paidCaptureRootKey) boolValue] &&
+            [defaults boolForKey:kDisableForwardRestriction]) return YES;
+        if ([objc_getAssociatedObject(current, &secretCaptureRootKey) boolValue] &&
+            [defaults boolForKey:kDisableScreenshotNotification]) return YES;
+    }
+    return NO;
 }
 
 static UIView *captureCanvas(UITextField *field) {
@@ -112,22 +124,27 @@ static void updateCaptureLayers(CALayer *layer, BOOL allow) {
 
 static void updateMovedCaptureLayers(CALayer *layer, BOOL hadCaptureRoot) {
     if (applyingCaptureChange || !NSThread.isMainThread) return;
-    BOOL allow = paidLayerAllowsCapture(layer);
+    BOOL allow = layerAllowsCapture(layer);
     if (allow || hadCaptureRoot) updateCaptureLayers(layer, allow);
 }
 
-void TGExtraUpdatePaidMediaCapture(id node) {
+static void updateGalleryCapture(id node) {
     NSString *name = NSStringFromClass([node class]);
     if (![name hasSuffix:@".ChatImageGalleryItemNode"] &&
         ![name hasSuffix:@".UniversalVideoGalleryItemNode"]) return;
     if (!NSThread.isMainThread || ![node respondsToSelector:@selector(view)]) return;
     [TGExtraPaidMediaFile bindGalleryItem:node];
     CALayer *root = [node view].layer;
-    BOOL wasAllowed = [objc_getAssociatedObject(root, &paidCaptureRootKey) boolValue];
+    BOOL wasAllowed = layerHasCaptureRoot(root);
     BOOL unlocked = [TGExtraPaidMediaFile isUnlockedPaidItem:node];
-    BOOL allow = [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] && unlocked;
-    objc_setAssociatedObject(root, &paidCaptureRootKey, allow ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    BOOL paid = [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] && unlocked;
+    BOOL secret = [TGExtraSecretChatPolicy isSecretGalleryItem:node] &&
+        [NSUserDefaults.standardUserDefaults boolForKey:kDisableScreenshotNotification];
+    BOOL allow = paid || secret;
+    objc_setAssociatedObject(root, &paidCaptureRootKey, paid ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    objc_setAssociatedObject(root, &secretCaptureRootKey, secret ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     if (allow || wasAllowed) updateCaptureLayers(root, allow);
+    if (secret || wasAllowed) recordCaptureStatus(@"TGExtraSecretCaptureStatus", secret ? @"Secret gallery capture enabled" : @"Secret gallery capture inactive");
     NSString *reason = allow ? @"capture bypass enabled" :
         (!unlocked ? @"inactive: item not recognized as unlocked paid media" : @"inactive: saving protected content is off");
     recordCaptureStatus(@"TGExtraPaidCaptureStatus", [NSString stringWithFormat:
@@ -135,18 +152,18 @@ void TGExtraUpdatePaidMediaCapture(id node) {
         (unsigned long)clearedImageLayers, (unsigned long)clearedVideoLayers, reason]);
 }
 
-%group TGExtraPaidGalleryViews
-%hook TGExtraPaidGalleryView
+%group TGExtraGalleryCaptureViews
+%hook TGExtraGalleryCaptureView
 - (void)layoutSubviews {
     %orig;
     if ([(UIView *)self respondsToSelector:@selector(asyncdisplaykit_node)]) {
-        TGExtraUpdatePaidMediaCapture([(UIView *)self asyncdisplaykit_node]);
+        updateGalleryCapture([(UIView *)self asyncdisplaykit_node]);
     }
 }
 - (void)didMoveToWindow {
     %orig;
     if ([(UIView *)self respondsToSelector:@selector(asyncdisplaykit_node)]) {
-        TGExtraUpdatePaidMediaCapture([(UIView *)self asyncdisplaykit_node]);
+        updateGalleryCapture([(UIView *)self asyncdisplaykit_node]);
     }
 }
 %end
@@ -171,7 +188,7 @@ void TGExtraUpdatePaidMediaCapture(id node) {
         CALayer *layer = canvas.layer;
         if (ownLayer && layer != ownLayer) {
             objc_setAssociatedObject(layer, &requestedImageCaptureKey, @(value), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            if (paidLayerAllowsCapture(layer)) {
+            if (layerAllowsCapture(layer)) {
                 objc_setAssociatedObject(layer, &originalImageCaptureKey, @(value), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
                 value = NO;
             }
@@ -183,7 +200,7 @@ void TGExtraUpdatePaidMediaCapture(id node) {
 
 %hook AVSampleBufferDisplayLayer
 - (void)setPreventsCapture:(BOOL)value {
-    if (!applyingCaptureChange && paidLayerAllowsCapture((CALayer *)self)) {
+    if (!applyingCaptureChange && layerAllowsCapture((CALayer *)self)) {
         objc_setAssociatedObject(self, &originalVideoCaptureKey, @(value), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         value = NO;
     }
@@ -193,34 +210,34 @@ void TGExtraUpdatePaidMediaCapture(id node) {
 
 %hook CALayer
 - (void)addSublayer:(CALayer *)layer {
-    BOOL hadCaptureRoot = paidLayerHasCaptureRoot(layer);
+    BOOL hadCaptureRoot = layerHasCaptureRoot(layer);
     %orig;
     updateMovedCaptureLayers(layer, hadCaptureRoot);
 }
 - (void)insertSublayer:(CALayer *)layer atIndex:(unsigned int)index {
-    BOOL hadCaptureRoot = paidLayerHasCaptureRoot(layer);
+    BOOL hadCaptureRoot = layerHasCaptureRoot(layer);
     %orig;
     updateMovedCaptureLayers(layer, hadCaptureRoot);
 }
 - (void)insertSublayer:(CALayer *)layer below:(CALayer *)sibling {
-    BOOL hadCaptureRoot = paidLayerHasCaptureRoot(layer);
+    BOOL hadCaptureRoot = layerHasCaptureRoot(layer);
     %orig;
     updateMovedCaptureLayers(layer, hadCaptureRoot);
 }
 - (void)insertSublayer:(CALayer *)layer above:(CALayer *)sibling {
-    BOOL hadCaptureRoot = paidLayerHasCaptureRoot(layer);
+    BOOL hadCaptureRoot = layerHasCaptureRoot(layer);
     %orig;
     updateMovedCaptureLayers(layer, hadCaptureRoot);
 }
 - (void)replaceSublayer:(CALayer *)oldLayer with:(CALayer *)layer {
-    BOOL oldHadCaptureRoot = paidLayerHasCaptureRoot(oldLayer);
-    BOOL hadCaptureRoot = paidLayerHasCaptureRoot(layer);
+    BOOL oldHadCaptureRoot = layerHasCaptureRoot(oldLayer);
+    BOOL hadCaptureRoot = layerHasCaptureRoot(layer);
     %orig;
     updateMovedCaptureLayers(oldLayer, oldHadCaptureRoot);
     updateMovedCaptureLayers(layer, hadCaptureRoot);
 }
 - (void)removeFromSuperlayer {
-    BOOL hadCaptureRoot = paidLayerHasCaptureRoot((CALayer *)self);
+    BOOL hadCaptureRoot = layerHasCaptureRoot((CALayer *)self);
     %orig;
     updateMovedCaptureLayers((CALayer *)self, hadCaptureRoot);
 }
@@ -230,10 +247,10 @@ void TGExtraUpdatePaidMediaCapture(id node) {
         return;
     }
     NSArray<CALayer *> *previous = ((CALayer *)self).sublayers;
-    BOOL hadCaptureRoot = paidLayerHasCaptureRoot((CALayer *)self);
+    BOOL hadCaptureRoot = layerHasCaptureRoot((CALayer *)self);
     NSMutableIndexSet *previousRoots = [NSMutableIndexSet indexSet];
     [layers enumerateObjectsUsingBlock:^(CALayer *layer, NSUInteger index, BOOL *stop) {
-        if (paidLayerHasCaptureRoot(layer)) [previousRoots addIndex:index];
+        if (layerHasCaptureRoot(layer)) [previousRoots addIndex:index];
     }];
     %orig;
     for (CALayer *layer in previous) {
@@ -245,14 +262,14 @@ void TGExtraUpdatePaidMediaCapture(id node) {
 }
 %end
 
-__attribute__((constructor)) static void TGExtraInstallPaidGalleryViews(void) {
+__attribute__((constructor)) static void TGExtraInstallGalleryCaptureViews(void) {
     %init;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 2), dispatch_get_main_queue(), ^{
         Class view = NSClassFromString(@"Display.UITracingLayerView");
         if (class_getInstanceMethod(view, @selector(asyncdisplaykit_node)) &&
             class_getInstanceMethod(view, @selector(layoutSubviews)) &&
             class_getInstanceMethod(view, @selector(didMoveToWindow))) {
-            %init(TGExtraPaidGalleryViews, TGExtraPaidGalleryView = view);
+            %init(TGExtraGalleryCaptureViews, TGExtraGalleryCaptureView = view);
             recordCaptureStatus(@"TGExtraCaptureHookStatus", @"Gallery capture hook installed (secure-canvas ledger)");
         } else {
             recordCaptureStatus(@"TGExtraCaptureHookStatus", @"Gallery capture view or node accessor unavailable");

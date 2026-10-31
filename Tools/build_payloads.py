@@ -9,6 +9,7 @@ from payloads import compile_payload
 from prepare_native_tl import payload_template as native_payload
 from prepare_rust_patch import PATCH_NAME, SELECTORS
 from portable import payload_template as rust_payload
+from prepare_secret_chats import payload_template as secret_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,6 +25,21 @@ def rebuild(patches, check=False):
     for path in sorted(patches.glob('*/patch.json')):
         item = json.loads(path.read_text())
         identifier = path.parent.name
+        if identifier == 'secret-chats-v1':
+            for variant in item['components'][0]['variants']:
+                for patch in variant['binaries']:
+                    for block in patch['payloads']:
+                        name = Path(block['source']).stem
+                        code, relocations = secret_payload(name, block['id'],
+                            'original.'+block['id'].removeprefix('bridge.'),
+                            source=path.parent/Path(block['source']).with_suffix('.c'))
+                        if check and (block['size'] != len(code) or block['relocations'] != relocations):
+                            raise ValueError('stale secret-chat payload metadata')
+                        block.update(size=len(code), relocations=relocations)
+                        write(path.parent/block['source'], code)
+            write(path, (json.dumps(item, indent=2)+'\n').encode())
+            print(('Checked ' if check else 'Built ')+identifier)
+            continue
         if identifier == 'swiftgram-pro-status-v1':
             code, fixups = compile_payload(path.parent/'payloads/status.c')
             if fixups or len(code) != 20:

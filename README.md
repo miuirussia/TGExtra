@@ -21,13 +21,12 @@ appears after Swiftgram's own settings rows.
   for everyone.
 - Save protected content and forward photos, videos, documents, audio and voice
   messages as new copies, preserving formatting, captions and albums.
-- Save unlocked purchased photos and videos from the gallery, including purchases
-  opened from Stars transaction history. The same option allows screenshots.
+- Save purchased and secret-chat photos and videos from the gallery.
 - Ignore copy protection in private chats.
 - Keep deleted messages and messages with auto-delete timers.
 - Keep edit history; tap the pencil beside a message to view revisions.
 - View disappearing media without starting its timer.
-- Disable screenshot notifications for supported Telegram requests.
+- Allow screenshots in secret-chat galleries and disable screenshot notifications.
 - Send a video's trimmed audio as a voice message from the video preview.
 - Send a video as a round message using the adjacent preview button: centered
   square crop, up to 60 seconds of the selected trim. Enable **Video to Round
@@ -52,30 +51,19 @@ Releases include rootful, rootless and roothide DEBs, with a matching `.ipatch`
 for each package. Install the DEB or use the `.ipatch` with iOSPatchingEngine v4.
 Clients using Rust MTProto need a matching compatibility profile.
 
-The reference builds are Telegram 13.1.2 (35638) and Swiftgram 13.1.1
-(343/344, `app.swiftgram.ios`). Compatibility with newer builds depends on their
-protocol table, transport ABI and private UI interfaces, rather than the version
-number alone. TGExtra reads the installed app's TLS1 v3 schema, including outgoing
-method IDs, request field order, optional presence bits and synthetic response
-layouts. Request rewrites preserve fields introduced by the host. Missing or
-incompatible metadata leaves the original request or response unchanged; protocol
-privacy and message protection are unavailable without a compatible table.
-UI hooks depend on the client's private interfaces. The native decoder and Rust
-patches have passed fixture and patch-application checks; full integration still
-needs on-device validation.
+Reference builds: Telegram 13.1.2 (35638) and Swiftgram 13.1.1
+(343/344, `app.swiftgram.ios`). Newer builds may need updated profiles or UI hooks.
+Protocol privacy and message protection require the app's TLS1 v3 schema.
+Device testing is still needed.
 
-**Message Data → Debug Log** includes the current schema, method availability,
-native decoder, observed Rust integration and UI hook installation status.
-Finding a UI interface does not validate the Swift stored fields used by that
-feature. Swiftgram 13.1.1 stores the presentation-state copy-protection flag in
-Swift without an Objective-C getter, so the optional copy-protection UI hook is
-reported as skipped. Protocol copy-protection policies do not require this hook;
-their availability is reported separately. Standalone TL `true` flags (such as
-`noforwards`, `silent` and `voice`) are absent from TLS1 and retain reviewed bit
-mappings. Unknown protected-forward
-options are rejected. Changed Rust/native machine code still requires a reviewed
-profile; these checks are never relaxed automatically. A new client bundle ID
-must also be added to the injection filter and applicable patch profiles.
+Secret-chat notification, deletion and timer protection require rebuilding the
+IPA with the `.ipatch`; a DEB alone is insufficient. These profiles support
+generic arm64.
+
+**Message Data → Debug Log** shows schema and hook status. Swiftgram's optional
+copy-protection UI hook may be skipped because its flag has no Objective-C
+getter; protocol copy protection still works. See [Patches/README.md](Patches/README.md)
+for profile details.
 
 Restart Telegram after installing an update to refresh iOS content restrictions.
 After changing the private-chat copy protection option, reopen the other person's
@@ -93,8 +81,6 @@ services. A new account needs an online launch to initialize its status. Enablin
 this feature on an unsupported client fails the build.
 
 Please support Swiftgram's author by purchasing Pro officially.
-
-See [Patches/README.md](Patches/README.md) for supported profiles and patch details.
 
 ## Limitations
 
@@ -118,11 +104,16 @@ header. It requires access to the source, permission to send in the destination
 and temporary disk space. Polls, stickers, custom emoji media, paid or disappearing
 media, rich-message bodies and some forward options are unsupported.
 
-To save purchased media, enable saving protected content and use the gallery's
-top-right glass download button. Only unlocked photos and videos can be saved. If a
-file reference has expired, reopen the purchase and retry. Videos must finish
-downloading before they can be imported into Photos. Save errors and the last
-created asset are available under **Message Data → Debug Log**.
+To save purchased or secret-chat media, enable **Save Protected Content** and tap
+the gallery's top-right download button. Purchased media must be unlocked. If its
+file reference has expired, reopen the purchase and retry. Errors appear in
+**Message Data → Debug Log**.
+
+The same setting allows screenshots of purchased media.
+
+Keep the gallery open until the file finishes downloading. Secret media is saved
+from Telegram's decrypted cache. Enable **View Disappearing Media Freely** before
+opening timed media to prevent its countdown from starting.
 
 Video conversion cannot undo slow motion rendered into a file.
 
@@ -136,8 +127,14 @@ underlined. Attachment files and versions TGExtra never received are not saved.
 
 Deletion protection can restore messages TGExtra previously observed. It cannot
 recover uncached messages or media missing from both the server and local cache.
-Secret chats, local history clearing and local media expiry are not intercepted.
-Auto-delete timers stored before enabling protection are not removed.
+
+In secret chats, **Save Deleted Messages** blocks the other participant's deletion
+and history-clearing commands. **View Disappearing Media Freely** and
+**Save Auto-Delete Messages** prevent local expiry. You can still clear history
+yourself. Protection only affects your device.
+
+Existing secret-chat countdowns are kept, but their expiry is skipped while
+protection is enabled. Existing cloud auto-delete timers are not removed.
 
 Histories, recovery snapshots and deletion/timer markers are stored incrementally
 in SQLite. Existing data is migrated automatically when updating.
@@ -210,10 +207,7 @@ Optional downloader diagnostics are separate from the normal run:
 python3 Tests/paid_media_download.py --sanitize
 ```
 
-The suite covers privacy, message protection, edit history, account isolation,
-API compatibility and protected-copy recovery. It also mutates a host schema to
-check changed method/constructor IDs, reordered request fields, added required
-fields and moved optional presence bits. Benchmarks are available separately:
+To run benchmarks:
 
 ```sh
 bash Tests/run.sh --benchmark

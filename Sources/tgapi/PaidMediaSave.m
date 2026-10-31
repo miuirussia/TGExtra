@@ -87,7 +87,8 @@ void TGExtraUpdatePaidMediaSaveButton(id node) {
     id container;
     if ([name hasSuffix:@".GalleryFooterNode"]) {
         container = node;
-    } else if ([name hasSuffix:@".ChatItemGalleryFooterContentNode"] &&
+    } else if (([name hasSuffix:@".ChatItemGalleryFooterContentNode"] ||
+                [name hasSuffix:@".SecretMediaPreviewFooterContentNode"]) &&
                [node respondsToSelector:@selector(supernode)]) {
         container = [node supernode];
     } else return;
@@ -97,18 +98,21 @@ void TGExtraUpdatePaidMediaSaveButton(id node) {
     UIViewController *controller = nil;
     for (UIResponder *responder = [container view]; responder; responder = responder.nextResponder) {
         if ([responder isKindOfClass:UIViewController.class] &&
-            [NSStringFromClass([responder class]) hasSuffix:@".GalleryController"]) {
+            ([NSStringFromClass([responder class]) hasSuffix:@".GalleryController"] ||
+             [NSStringFromClass([responder class]) hasSuffix:@".SecretMediaPreviewController"])) {
             controller = (UIViewController *)responder;
             break;
         }
     }
     if (!controller) return;
     id footer = [TGExtraPaidMediaFile currentFooterNodeFromGalleryFooter:container];
+    if ([NSStringFromClass(controller.class) hasSuffix:@".SecretMediaPreviewController"]) footer = controller;
     UINavigationItem *navigationItem = controller.navigationItem;
     static char actionKey;
     TGExtraPaidMediaSaveAction *action = objc_getAssociatedObject(navigationItem, &actionKey);
+    TGExtraPaidMediaFile *file = footer ? [TGExtraPaidMediaFile fileFromFooterNode:footer] : nil;
     if (![NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] ||
-        !footer || ![TGExtraPaidMediaFile fileFromFooterNode:footer]) {
+        !file) {
         [action restore];
         return;
     }
@@ -126,7 +130,9 @@ void TGExtraUpdatePaidMediaSaveButton(id node) {
         objc_setAssociatedObject(navigationItem, &actionKey, action, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     action.footer = footer;
-    action.item.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"PAID_MEDIA_SAVE"];
+    BOOL secret = file.nativeOnly;
+    action.item.accessibilityIdentifier = secret ? @"TGExtra.SaveSecretMedia" : @"TGExtra.SavePaidMedia";
+    action.item.accessibilityLabel = [TGExtraLocalization localizedStringForKey:secret ? @"SAVE" : @"PAID_MEDIA_SAVE"];
     if (![navigationItem.rightBarButtonItems containsObject:action.item]) {
         action.originalItems = navigationItem.rightBarButtonItems;
         navigationItem.rightBarButtonItems = @[action.item];

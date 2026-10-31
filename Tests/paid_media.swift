@@ -24,7 +24,28 @@ private enum PaidMediaMocks {
     struct TelegramMediaFile { let mimeType: String; let resource: Any }
     enum ExtendedMedia { case preview(dimensions: Int?); case full(media: Any) }
     struct TelegramMediaPaidContent { let extendedMedia: [ExtendedMedia] }
-    struct Message { let media: [Any] }
+    struct PeerNamespace { let rawValue: UInt32 }
+    struct PeerId { let namespace: PeerNamespace }
+    struct MessageId { let peerId: PeerId }
+    struct Message {
+        let media: [Any]
+        var id = MessageId(peerId: PeerId(namespace: PeerNamespace(rawValue: 0)))
+    }
+    struct SecretFileMediaResource {
+        let fileId: Int64 = 987
+        let datacenterId = 4
+        let containerSize: Int64 = 524304
+        let decryptedSize: Int64 = 524291
+    }
+    struct MessageView { let message: Message? }
+    final class SecretPreview: NSObject {
+        let context: Context
+        let messageView: MessageView?
+        init(message: Message?) {
+            context = Context(account: Account(postbox: Postbox(mediaBox: MediaBox(basePath: "/cache/secret-account/media"))))
+            messageView = MessageView(message: message)
+        }
+    }
     enum Subject { case paidMediaIndex(Int); case other(Int) }
     struct MediaBox { let basePath: String }
     struct Postbox { let mediaBox: MediaBox }
@@ -148,4 +169,26 @@ func testPaidMedia() {
     ])])
     check(PaidMediaFile.file(footer: footer) == nil, "Unsupported media cannot be mislabeled as video")
     check(PaidMediaFile.file(footer: NSObject()) == nil, "Unknown host layouts fail closed")
+    var secretPhoto = M.Message(media: [M.TelegramMediaImage(representations: [
+        .init(dimensions: .init(width: 30, height: 20), resource: M.CloudPhotoSizeMediaResource(photoId: 5, sizeSpec: "s")),
+        .init(dimensions: .init(width: 3000, height: 2000), resource: M.SecretFileMediaResource())
+    ])])
+    secretPhoto.id = M.MessageId(peerId: M.PeerId(namespace: M.PeerNamespace(rawValue: 3)))
+    footer.currentMessage = secretPhoto
+    let secret = PaidMediaFile.file(footer: footer)
+    check(secret?.nativeOnly == true && secret?.video == false && secret?.size == 524291 &&
+          secret?.cachePath == "/cache/account-17/postbox/media/secret-file-987-4",
+          "Secret photos select the decrypted full resource, exact plaintext size and owning account cache")
+    check(secret?.downloadRequest(offset: 0) == nil, "Secret media never uses an unencrypted cloud download request")
+    let previewPhoto = PaidMediaFile.file(footer: M.SecretPreview(message: secretPhoto))
+    check(previewPhoto?.cachePath == "/cache/secret-account/media/secret-file-987-4",
+          "Disappearing-media preview resolves its own message and account without a footer message")
+    var secretVideo = M.Message(media: [M.TelegramMediaFile(mimeType: "video/mp4", resource: M.SecretFileMediaResource())])
+    secretVideo.id = secretPhoto.id
+    footer.currentMessage = secretVideo
+    check(PaidMediaFile.file(footer: footer)?.video == true && PaidMediaFile.file(footer: footer)?.nativeOnly == true,
+          "Secret videos use the native decrypted resource")
+    secretVideo.id = M.MessageId(peerId: M.PeerId(namespace: M.PeerNamespace(rawValue: 0)))
+    footer.currentMessage = secretVideo
+    check(PaidMediaFile.file(footer: footer) == nil, "Encrypted resource shapes in cloud chats do not enable secret saving")
 }

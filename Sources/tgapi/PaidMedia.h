@@ -6,6 +6,7 @@
 @property(nonatomic, readonly) NSInteger datacenterId;
 @property(nonatomic, readonly) int64_t size;
 @property(nonatomic, readonly) BOOL video;
+@property(nonatomic, readonly) BOOL nativeOnly;
 @property(nonatomic, readonly) NSString *cachePath;
 + (instancetype)fileFromFooterNode:(id)footer;
 + (BOOL)isUnlockedPaidItem:(id)item;
@@ -24,7 +25,6 @@ void TGExtraImportPaidMedia(NSURL *url, BOOL video, void (^completion)(NSString 
 extern "C" {
 #endif
 void TGExtraUpdatePaidMediaSaveButton(id node);
-void TGExtraUpdatePaidMediaCapture(id node);
 #ifdef __cplusplus
 }
 #endif

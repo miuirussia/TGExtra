@@ -24,9 +24,14 @@ static void (^downloadCompletion)(NSURL *, NSError *);
 static TGExtraPaidMediaFile *testFile;
 @interface TGExtraPaidMediaFile ()
 @property(nonatomic, readwrite) BOOL video;
+@property(nonatomic, readwrite) BOOL nativeOnly;
 @end
 @implementation TGExtraPaidMediaFile
 + (instancetype)fileFromFooterNode:(SaveTestNode *)footer {
+    if ([NSStringFromClass(footer.class) hasSuffix:@".SecretMediaPreviewController"]) {
+        downloadedFooter = footer;
+        return testFile;
+    }
     if (!footer.unlocked) return nil;
     downloadedFooter = footer;
     return testFile;
@@ -127,6 +132,21 @@ int main(void) {
         NSCAssert(controller.navigationItem.rightBarButtonItem == videoEmpty, @"Locked media has no download action");
         container.currentFooterContentNode = nil;
         TGExtraUpdatePaidMediaSaveButton(container);
+        registerClass(UIViewController.class, "GalleryUI.SecretMediaPreviewController");
+        UIViewController *preview = [NSClassFromString(@"GalleryUI.SecretMediaPreviewController") new];
+        [preview loadViewIfNeeded];
+        [preview.view addSubview:container.view];
+        testFile.nativeOnly = YES;
+        TGExtraUpdatePaidMediaSaveButton(container);
+        UIBarButtonItem *secretSave = preview.navigationItem.rightBarButtonItem;
+        NSCAssert([secretSave.accessibilityIdentifier isEqual:@"TGExtra.SaveSecretMedia"] && secretSave.image,
+                  @"Disappearing-media preview exposes its own save action without a footer message");
+        downloadedFooter = nil;
+        ((void (*)(id, SEL))[secretSave.target methodForSelector:secretSave.action])(secretSave.target, secretSave.action);
+        NSCAssert(downloadedFooter == preview, @"Secret save resolves the preview's current message");
+        defaults.savingEnabled = NO;
+        TGExtraUpdatePaidMediaSaveButton(container);
+        NSCAssert(!preview.navigationItem.rightBarButtonItem, @"Disabling restores the preview navigation item");
         puts("PASS real UIKit paid save: empty native item replacement, image, action dispatch, active page, busy state and restoration");
     }
     return 0;

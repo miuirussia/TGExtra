@@ -10,13 +10,20 @@
 - (NSString *)stringForKey:(NSString *)key { return self.values[key]; }
 - (void)setObject:(id)value forKey:(NSString *)key { self.values[key] = value; }
 @end
+static BOOL paidItem = YES, secretItem;
 @interface TGExtraPaidMediaFile : NSObject
 + (void)bindGalleryItem:(id)item;
 + (BOOL)isUnlockedPaidItem:(id)item;
 @end
 @implementation TGExtraPaidMediaFile
 + (void)bindGalleryItem:(id)item {}
-+ (BOOL)isUnlockedPaidItem:(id)item { return YES; }
++ (BOOL)isUnlockedPaidItem:(id)item { return paidItem; }
+@end
+@interface TGExtraSecretChatPolicy : NSObject
++ (BOOL)isSecretGalleryItem:(id)item;
+@end
+@implementation TGExtraSecretChatPolicy
++ (BOOL)isSecretGalleryItem:(id)item { return secretItem; }
 @end
 static char nodeKey;
 @interface UIView (Node)
@@ -76,6 +83,21 @@ int main(void) {
         video.preventsCapture = YES;
         [node.view.layer addSublayer:video];
         NSCAssert(!video.preventsCapture, @"Actual sample-buffer capture flag cleared");
+        [defaults setObject:@NO forKey:@"disableForwardRestriction"];
+        [node.view layoutSubviews];
+        NSCAssert(video.preventsCapture, @"Paid capture restores the video flag");
+        paidItem = NO;
+        secretItem = YES;
+        [defaults setObject:@YES forKey:@"TGExtraDisableScreenshotNotification"];
+        [node.view layoutSubviews];
+        NSCAssert(!video.preventsCapture, @"Secret screenshot setting independently clears video protection");
+        [canvas setValue:image forKey:@"layer"];
+        field.secureTextEntry = YES;
+        [canvas setValue:own forKey:@"layer"];
+        NSCAssert(!field.secureTextEntry, @"Secret gallery redraw stays capturable in real UIKit");
+        [defaults setObject:@NO forKey:@"TGExtraDisableScreenshotNotification"];
+        [node.view layoutSubviews];
+        NSCAssert(video.preventsCapture && password.secureTextEntry, @"Secret capture restores protection and preserves passwords");
         puts("PASS real UIKit production hooks: opaque mask, secure canvas, gallery lifecycle, video layer and password fields");
     }
     return 0;

@@ -158,6 +158,10 @@ static dispatch_queue_t mediaQueue(void) {
 }
 
 - (void)startNetwork {
+    if (self.media.nativeOnly) {
+        [self failWithReason:@"Secret media must finish downloading in Telegram before it can be saved"];
+        return;
+    }
     SEL initializer = @selector(initWithContext:datacenterId:usageCalculationInfo:requiredAuthToken:authTokenMasterDatacenterId:);
     Class networkClass = NSClassFromString(@"MTProto"), serviceClass = NSClassFromString(@"MTRequestMessageService");
     if (![networkClass instancesRespondToSelector:initializer] ||
@@ -183,7 +187,7 @@ static dispatch_queue_t mediaQueue(void) {
     self.url = [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:
         [NSString stringWithFormat:@"TGExtraPaid-%@.%@", NSUUID.UUID.UUIDString, self.media.video ? @"mp4" : @"jpg"]]];
     if ([self copyCompleteCache]) return;
-    if (self.media.video && self.media.cachePath) {
+    if ((self.media.video || self.media.nativeOnly) && self.media.cachePath) {
         dispatch_async(dispatch_get_main_queue(), ^{
             BOOL native = [self.media beginNativeDownload];
             dispatch_async(mediaQueue(), ^{

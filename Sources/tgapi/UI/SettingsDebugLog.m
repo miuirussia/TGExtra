@@ -12,7 +12,7 @@
                   [logContent substringFromIndex:logContent.length - 3000]];
   }
   logContent = [NSString stringWithFormat:@"%@\n\n%@", [TLParser compatibilityReport], logContent];
-  for (NSString *key in @[@"TGExtraCaptureHookStatus", @"TGExtraCaptureCanvasStatus", @"TGExtraPaidCaptureStatus",
+  for (NSString *key in @[@"TGExtraCaptureHookStatus", @"TGExtraCaptureCanvasStatus", @"TGExtraPaidCaptureStatus", @"TGExtraSecretCaptureStatus",
                          @"TGExtraPaidMediaLastImport", @"TGExtraPaidMediaLastError"]) {
     NSString *entry = [NSUserDefaults.standardUserDefaults stringForKey:key];
     if (entry.length) logContent = [logContent stringByAppendingFormat:@"%@%@: %@", logContent.length ? @"\n\n" : @"", key, entry];
@@ -29,7 +29,7 @@
   }]];
   [alert addAction:[UIAlertAction actionWithTitle:TGLoc(@"DEBUG_LOG_CLEAR") style:UIAlertActionStyleDestructive handler:^(UIAlertAction *a) {
     TGExtraClearLog();
-    for (NSString *key in @[@"TGExtraPaidMediaLastError", @"TGExtraPaidMediaLastImport", @"TGExtraPaidCaptureStatus"]) {
+    for (NSString *key in @[@"TGExtraPaidMediaLastError", @"TGExtraPaidMediaLastImport", @"TGExtraPaidCaptureStatus", @"TGExtraSecretCaptureStatus"]) {
       [NSUserDefaults.standardUserDefaults removeObjectForKey:key];
     }
   }]];

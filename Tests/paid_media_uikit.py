@@ -26,7 +26,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-uikit-capture-') as directory:
     if logos.exists():
         hook = work / 'capture.mm'
         hook.write_bytes(subprocess.check_output([
-            'perl', str(logos), '-c', 'generator=internal', str(root / 'Sources/tgapi/PaidMediaCapture.xm'),
+            'perl', str(logos), '-c', 'generator=internal', str(root / 'Sources/tgapi/MediaCapture.xm'),
         ]))
         binary = work / 'tests'
         subprocess.run([

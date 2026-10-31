@@ -6,10 +6,10 @@ import subprocess
 import tempfile
 
 root = Path(__file__).resolve().parent.parent
-source = (root / 'Sources/tgapi/PaidMediaCapture.xm').read_text()
-helpers = source[source.index('static char paidCaptureRootKey'):source.index('%group TGExtraPaidGalleryViews')]
-view_hook = source[source.index('%hook TGExtraPaidGalleryView'):source.index('%end', source.index('%hook TGExtraPaidGalleryView'))]
-view_hook = (view_hook.replace('%hook TGExtraPaidGalleryView', '@implementation TestGalleryView')
+source = (root / 'Sources/tgapi/MediaCapture.xm').read_text()
+helpers = source[source.index('static char paidCaptureRootKey'):source.index('%group TGExtraGalleryCaptureViews')]
+view_hook = source[source.index('%hook TGExtraGalleryCaptureView'):source.index('%end', source.index('%hook TGExtraGalleryCaptureView'))]
+view_hook = (view_hook.replace('%hook TGExtraGalleryCaptureView', '@implementation TestGalleryView')
              .replace('%orig;', '[super layoutSubviews];', 1)
              .replace('%orig;', '[super didMoveToWindow];', 1) + '@end\n')
 hooks = source[source.index('%hook UIView'):source.index('__attribute__((constructor))')]
@@ -45,13 +45,12 @@ support = r'''
 #import <objc/runtime.h>
 #import "Constants.h"
 @interface MemoryCaptureDefaults : NSUserDefaults
-@property BOOL enabled;
 @property NSMutableDictionary *values;
 @end
 @implementation MemoryCaptureDefaults
 - (instancetype)init { if ((self = [super init])) self.values = [NSMutableDictionary new]; return self; }
-- (BOOL)boolForKey:(NSString *)key { return self.enabled; }
-- (void)setBool:(BOOL)value forKey:(NSString *)key { self.enabled = value; }
+- (BOOL)boolForKey:(NSString *)key { return [self.values[key] boolValue]; }
+- (void)setBool:(BOOL)value forKey:(NSString *)key { self.values[key] = @(value); }
 - (NSString *)stringForKey:(NSString *)key { return self.values[key]; }
 - (void)setObject:(id)value forKey:(NSString *)key { self.values[key] = value; }
 @end
@@ -169,8 +168,15 @@ static void detach(CALayer *layer) {
 @property(nonatomic, strong) UIView *view;
 @property(nonatomic, strong) id footer;
 @property(nonatomic) BOOL unlocked;
+@property(nonatomic) BOOL secret;
 @end
 @implementation TestNode @end
+@interface TGExtraSecretChatPolicy : NSObject
++ (BOOL)isSecretGalleryItem:(TestNode *)node;
+@end
+@implementation TGExtraSecretChatPolicy
++ (BOOL)isSecretGalleryItem:(TestNode *)node { return node.secret; }
+@end
 @interface TGExtraPaidMediaFile : NSObject
 + (id)footerNodeFromItem:(TestNode *)node;
 + (instancetype)fileFromFooterNode:(TestNode *)node;
@@ -207,7 +213,7 @@ static void testReparenting(NSUserDefaults *defaults) {
         CALayer *unprotected = [CALayer new]; unprotected.disableUpdateMask = 0x20;
         player.sublayers = @[image, video, unprotected];
         [gallery.view.layer addSublayer:player];
-        TGExtraUpdatePaidMediaCapture(gallery);
+        updateGalleryCapture(gallery);
         NSCAssert(image.disableUpdateMask == 0x20 && !video.preventsCapture, @"Paid gallery allows capture");
         if (operation >= 7) [defaults setBool:NO forKey:kDisableForwardRestriction];
         TestLayer *chat = [TestLayer new];
@@ -225,11 +231,11 @@ static void testReparenting(NSUserDefaults *defaults) {
                   @"Leaving the gallery restores image and video protection immediately");
         NSCAssert(unprotected.disableUpdateMask == 0x20, @"Reparenting preserves unprotected layers and unrelated bits");
         [defaults setBool:NO forKey:kDisableForwardRestriction];
-        TGExtraUpdatePaidMediaCapture(gallery);
+        updateGalleryCapture(gallery);
         NSCAssert(image.disableUpdateMask == 0x32 && video.preventsCapture, @"Switching off after a move keeps protection");
         [defaults setBool:YES forKey:kDisableForwardRestriction];
         [gallery.view.layer addSublayer:player];
-        TGExtraUpdatePaidMediaCapture(gallery);
+        updateGalleryCapture(gallery);
         NSCAssert(image.disableUpdateMask == 0x20 && !video.preventsCapture, @"Returning to the paid gallery allows capture again");
         TestLayer *otherContainer = [TestLayer new]; [gallery.view.layer addSublayer:otherContainer];
         [otherContainer addSublayer:player];
@@ -290,23 +296,45 @@ int main(void) {
             [host.subviews.firstObject setValue:image forKey:@"layer"];
             host.secureTextEntry = NO; host.secureTextEntry = YES;
             NSCAssert(image.disableUpdateMask == 0x20, @"Telegram's secure-canvas redraw cannot re-enable image protection");
-            TGExtraUpdatePaidMediaCapture(node);
+            updateGalleryCapture(node);
             [defaults setBool:NO forKey:kDisableForwardRestriction];
-            TGExtraUpdatePaidMediaCapture(node);
+            updateGalleryCapture(node);
             NSCAssert(image.disableUpdateMask == 0x32 && video.preventsCapture && lateVideo.preventsCapture &&
                       crossfade.disableUpdateMask == 0x12, @"Turning off restores original protections, including late arrivals");
             [defaults setBool:YES forKey:kDisableForwardRestriction];
-            TGExtraUpdatePaidMediaCapture(node);
+            updateGalleryCapture(node);
             ((TestNode *)node.footer).unlocked = NO;
-            TGExtraUpdatePaidMediaCapture(node);
+            updateGalleryCapture(node);
             NSCAssert(image.disableUpdateMask == 0x32 && video.preventsCapture, @"Reused item restores protection when no longer showing unlocked media");
         }
         [defaults setBool:YES forKey:kDisableForwardRestriction];
         for (NSString *name in @[@"GalleryUI.ChatImageGalleryItemNode", @"GalleryUI.UniversalVideoGalleryItemNode", @"Other.SecretMediaNode"]) {
             TestNode *node = item(name, NO);
             CALayer *layer = [CALayer new]; layer.disableUpdateMask = 0x12;
-            [node.view.layer addSublayer:layer]; TGExtraUpdatePaidMediaCapture(node);
+            [node.view.layer addSublayer:layer]; updateGalleryCapture(node);
             NSCAssert(layer.disableUpdateMask == 0x12, @"Locked, ordinary and secret-media screens stay protected");
+        }
+        for (NSString *name in @[@"GalleryUI.ChatImageGalleryItemNode", @"GalleryUI.UniversalVideoGalleryItemNode"]) {
+            TestNode *secret = item(name, NO); secret.secret = YES;
+            CALayer *image = [CALayer new]; image.disableUpdateMask = 0x32;
+            TestVideoLayer *video = [TestVideoLayer new]; video.preventsCapture = YES;
+            secret.view.layer.sublayers = @[image, video];
+            [defaults setBool:NO forKey:kDisableForwardRestriction];
+            [defaults setBool:YES forKey:kDisableScreenshotNotification];
+            updateGalleryCapture(secret);
+            NSCAssert(image.disableUpdateMask == 0x20 && !video.preventsCapture, @"Secret gallery has its own screenshot setting");
+            TestTextField *redraw = [TestTextField new];
+            [redraw.subviews.firstObject setValue:image forKey:@"layer"];
+            redraw.secureTextEntry = YES;
+            NSCAssert(image.disableUpdateMask == 0x20, @"Secret image redraw stays capturable");
+            [defaults setBool:NO forKey:kDisableScreenshotNotification];
+            updateGalleryCapture(secret);
+            NSCAssert(image.disableUpdateMask == 0x32 && video.preventsCapture, @"Turning off secret capture restores host protection");
+            [defaults setBool:YES forKey:kDisableScreenshotNotification];
+            updateGalleryCapture(secret);
+            secret.secret = NO;
+            updateGalleryCapture(secret);
+            NSCAssert(image.disableUpdateMask == 0x32 && video.preventsCapture, @"Reusing a secret gallery for ordinary media restores protection");
         }
         TestTextField *password = [TestTextField new]; password.secureTextEntry = YES;
         NSCAssert(password.secureTextEntry && password.subviews.firstObject.layer.disableUpdateMask == 0x12,
