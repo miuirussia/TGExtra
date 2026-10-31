@@ -123,14 +123,16 @@
 }
 @end
 
-void TGExtraShowSettings(void) {
+void TGExtraShowSettings(id profileSourceNode) {
     UIViewController *presenter = UIApplication.sharedApplication.keyWindow.rootViewController;
     while (presenter.presentedViewController) presenter = presenter.presentedViewController;
     if (!presenter || presenter.isBeingDismissed || presenter.isBeingPresented) return;
     if ([presenter isKindOfClass:UINavigationController.class] &&
         [((UINavigationController *)presenter).viewControllers.firstObject isKindOfClass:TGExtra.class]) return;
+    TGExtra *settings = [TGExtra new];
+    settings.profileSourceNode = profileSourceNode;
     TGExtraSettingsNavigationController *navigation = [[TGExtraSettingsNavigationController alloc]
-        initWithRootViewController:[TGExtra new]];
+        initWithRootViewController:settings];
     navigation.modalPresentationStyle = UIModalPresentationFullScreen;
     navigation.settingsTransition = [TGExtraSettingsTransition new];
     navigation.transitioningDelegate = navigation.settingsTransition;

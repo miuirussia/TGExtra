@@ -1,5 +1,6 @@
 #import "SettingsController.h"
 #import "GhostExceptionDisplayName.h"
+#import "ProfileNavigation.h"
 @implementation TGExtra (GhostExceptions)
 
 - (BOOL)tableView:(UITableView *)tableView
@@ -79,18 +80,25 @@
 }
 
 - (void)openProfileForException:(NSDictionary *)entry {
+  if (self.isOpeningGhostProfile) return;
   NSNumber *peerId = entry[kTGExtraGhostExceptionId];
-
-  NSString *urlString =
-      [NSString stringWithFormat:@"tg://user?id=%@", peerId];
-
-  NSURL *url = [NSURL URLWithString:urlString];
-  if (!url) return;
-
-  [self dismissViewControllerAnimated:YES
-                           completion:^{
-                             TGExtraOpenTelegramURL(url);
-                           }];
+  self.isOpeningGhostProfile = YES;
+  __weak typeof(self) weakSelf = self;
+  [TGExtraProfileNavigation loadProfileForPeerId:peerId
+      fromNode:self.profileSourceNode completion:^(TGExtraProfileOpener openProfile) {
+        typeof(self) strongSelf = weakSelf;
+        if (!strongSelf) return;
+        if (!openProfile) {
+          strongSelf.isOpeningGhostProfile = NO;
+          TGExtraShowToast(TGLoc(@"GHOST_EXCEPTION_PROFILE_UNAVAILABLE"));
+          return;
+        }
+        [strongSelf dismissViewControllerAnimated:YES completion:^{
+          if (!openProfile()) {
+            TGExtraShowToast(TGLoc(@"GHOST_EXCEPTION_PROFILE_UNAVAILABLE"));
+          }
+        }];
+      }];
 }
 
 @end

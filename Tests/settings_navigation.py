@@ -24,7 +24,9 @@ if not (frameworks / 'UIKit.framework/Headers/UIKit.h').exists():
 ROOT = Path(__file__).resolve().parent.parent
 source = (ROOT / 'Sources/tgapi/UI/SettingsNavigation.m').read_text()
 stubs = '''#import <UIKit/UIKit.h>
-@interface TGExtra : UIViewController @end
+@interface TGExtra : UIViewController
+@property(nonatomic, strong) id profileSourceNode;
+@end
 @implementation TGExtra @end
 @interface TGExtraLocalization : NSObject
 + (NSString *)localizedStringForKey:(NSString *)key;

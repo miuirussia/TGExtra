@@ -208,7 +208,7 @@ static UIUserInterfaceStyle TGExtraSettingsStyleForBackground(UIColor *backgroun
     self.alpha = highlighted ? 0.65 : 1.0;
 }
 - (void)openMenu {
-    TGExtraShowSettings();
+    TGExtraShowSettings(self.profileSourceNode);
 }
 @end
 

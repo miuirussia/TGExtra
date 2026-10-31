@@ -10,6 +10,7 @@ python3 Tests/settings_support_labels.py
 python3 Tests/settings_menu.py
 python3 Tests/settings_apply.py
 python3 Tests/ghost_exception_navigation.py
+python3 Tests/profile_navigation.py
 python3 Tests/review_regressions.py
 python3 Tests/review_fixes.py
 python3 Tests/settings_persistence.py
@@ -69,6 +70,7 @@ clang++ -fobjc-arc -Werror Tests/native_linkage.mm "$test_build_dir/native-tl.o"
 "$test_build_dir/NativeLinkageTests"
 clang -fobjc-arc -c Sources/tgapiC/HistoryAccount.m -o "$test_build_dir/history-account.o"
 clang -fobjc-arc -Werror -c Sources/tgapiC/MessageCleanup.m -o "$test_build_dir/message-cleanup.o"
+clang -fobjc-arc -Werror -c Sources/tgapiC/ProfileNavigation.m -o "$test_build_dir/profile-navigation.o"
 clang -fobjc-arc -Werror -Wno-deprecated-declarations -DTGEXTRA_TESTING -ISources/tgapiC/include -c Sources/tgapi/ForwardCopy.m -o "$test_build_dir/forward-copy.o"
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -ISources/tgapiC/include -c Tests/forward_copy.m -o "$test_build_dir/forward-copy-tests.o"
 optimization=-Onone

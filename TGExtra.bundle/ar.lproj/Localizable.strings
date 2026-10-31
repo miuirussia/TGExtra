@@ -140,6 +140,7 @@
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "اختر الاسم الذي يظهر في هذه القائمة. اتركه فارغًا لاستخدام اسم الملف الشخصي.";
 "GHOST_EXCEPTION_ADDED_TOAST" = "تمت إضافة استثناء — هذا الشخص يرى نشاطك الحقيقي";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "تمت إزالة الاستثناء — عاد وضع الشبح للعمل";
+"GHOST_EXCEPTION_PROFILE_UNAVAILABLE" = "تعذّر فتح هذا الملف الشخصي.";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "فعّل أولًا ميزة واحدة على الأقل في الإعدادات المتقدمة.";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "إخفاء علامة الاختفاء";
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "التوقف عن إضافة علامة \"dissapearing message\" قبل الوسائط أحادية العرض المعترضة.";

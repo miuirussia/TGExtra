@@ -144,6 +144,7 @@
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "Elige el nombre que se mostrará en esta lista. Déjalo vacío para usar el del perfil.";
 "GHOST_EXCEPTION_ADDED_TOAST" = "Excepción añadida: esta persona ve tu actividad real";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "Excepción eliminada: el modo fantasma vuelve a aplicarse";
+"GHOST_EXCEPTION_PROFILE_UNAVAILABLE" = "No se pudo abrir este perfil.";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "Activa antes al menos una función en los ajustes avanzados.";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "Ocultar la etiqueta de temporales";
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Deja de anteponer la marca \"dissapearing message\" al contenido de una sola vez que se intercepta.";

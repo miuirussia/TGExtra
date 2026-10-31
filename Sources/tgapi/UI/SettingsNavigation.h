@@ -3,7 +3,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void TGExtraShowSettings(void);
+void TGExtraShowSettings(id profileSourceNode);
 #ifdef __cplusplus
 }
 #endif

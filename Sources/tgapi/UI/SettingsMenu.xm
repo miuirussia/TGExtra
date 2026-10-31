@@ -99,6 +99,7 @@ static CGSize TGExtraSettingsContentSize(ASScrollView *scrollView, CGSize hostSi
     ASDisplayNode *anchorSection = TGExtraSettingsAnchor(scrollNode, &referenceRow, &joinsSwiftgram);
     if (!anchorSection || hostSize.width <= 0.0 || hostSize.height <= 0.0) {
         button.hidden = YES;
+        button.profileSourceNode = nil;
         return hostSize;
     }
     if (!button) {
@@ -107,6 +108,7 @@ static CGSize TGExtraSettingsContentSize(ASScrollView *scrollView, CGSize hostSi
         [scrollView addSubview:button];
     }
     CGRect rowFrame = [referenceRow.view convertRect:referenceRow.view.bounds toView:scrollView];
+    button.profileSourceNode = scrollNode.supernode;
     [button matchRow:referenceRow joined:joinsSwiftgram];
     CGFloat height = MAX(44.0, rowFrame.size.height);
     CGFloat anchorBottom = CGRectGetMaxY(anchorSection.frame);

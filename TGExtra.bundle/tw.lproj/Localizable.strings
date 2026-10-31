@@ -141,6 +141,7 @@
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "選擇在這份清單中顯示的名稱。留空則使用個人檔案上的名字。";
 "GHOST_EXCEPTION_ADDED_TOAST" = "已加入例外 —— 這個人會看到你的真實動態";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "已移除例外 —— 幽靈模式重新生效";
+"GHOST_EXCEPTION_PROFILE_UNAVAILABLE" = "無法開啟此個人資料。";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "請先在進階設定中至少啟用一項功能。";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "隱藏閱後即焚標記";
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "不再在攔截到的一次性媒體前加上 \"dissapearing message\" 標記。";

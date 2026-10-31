@@ -14,6 +14,7 @@
 @property(nonatomic) BOOL isClearingMessageData;
 @property(nonatomic) BOOL isClearingTemporaryFiles;
 @property(nonatomic) BOOL isCheckingTemporaryFiles;
+@property(nonatomic) BOOL isOpeningGhostProfile;
 - (UIColor *)dynamicColorBW;
 @end
 

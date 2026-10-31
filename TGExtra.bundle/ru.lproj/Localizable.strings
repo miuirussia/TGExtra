@@ -144,6 +144,7 @@
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "Выберите имя для этого списка. Оставьте пустым, чтобы использовать имя из профиля.";
 "GHOST_EXCEPTION_ADDED_TOAST" = "Исключение добавлено — этот человек видит вашу настоящую активность";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "Исключение убрано — режим-невидимка снова действует";
+"GHOST_EXCEPTION_PROFILE_UNAVAILABLE" = "Не удалось открыть профиль.";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "Сначала включите хотя бы одну функцию в расширенных настройках.";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "Скрыть метку исчезающих";
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Убрать подпись «dissapearing message» у сохранённых одноразовых фото и видео.";

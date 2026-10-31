@@ -141,6 +141,7 @@
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "このリストに表示する名前を決めます。空のままにするとプロフィール名を使います。";
 "GHOST_EXCEPTION_ADDED_TOAST" = "例外に追加しました — この人にはあなたの実際の動きが見えます";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "例外を解除しました — ゴーストモードが再び適用されます";
+"GHOST_EXCEPTION_PROFILE_UNAVAILABLE" = "このプロフィールを開けませんでした。";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "先に詳細設定で少なくとも 1 つの機能をオンにしてください。";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "消えるメッセージの目印を隠す";
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "取得した一度きりのメディアの先頭に \"dissapearing message\" の目印を付けないようにします。";

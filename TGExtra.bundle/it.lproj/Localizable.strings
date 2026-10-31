@@ -143,6 +143,7 @@
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "Scegli il nome mostrato in questo elenco. Lascia vuoto per usare quello del profilo.";
 "GHOST_EXCEPTION_ADDED_TOAST" = "Eccezione aggiunta: questa persona vede la tua attività reale";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "Eccezione rimossa: la modalità fantasma torna valida";
+"GHOST_EXCEPTION_PROFILE_UNAVAILABLE" = "Impossibile aprire questo profilo.";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "Attiva prima almeno una funzione nelle impostazioni avanzate.";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "Nascondi l'etichetta effimera";
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Smetti di anteporre la dicitura \"dissapearing message\" ai contenuti usa e getta intercettati.";

@@ -142,6 +142,7 @@
 "GHOST_EXCEPTIONS_RENAME_MESSAGE" = "Choose the name shown in this list. Leave empty to use the profile name.";
 "GHOST_EXCEPTION_ADDED_TOAST" = "Ghost Exception added — this person sees your real activity";
 "GHOST_EXCEPTION_REMOVED_TOAST" = "Ghost Exception removed — Ghost Mode applies again";
+"GHOST_EXCEPTION_PROFILE_UNAVAILABLE" = "Could not open this profile.";
 "GHOST_MODE_NEEDS_SUBFEATURE" = "Please enable at least one feature in Advanced Settings first.";
 "HIDE_DISAPPEARING_LABEL_TITLE" = "Hide Disappearing Label";
 "HIDE_DISAPPEARING_LABEL_SUBTITLE" = "Remove the “dissapearing message” label from saved one-time photos and videos.";

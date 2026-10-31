@@ -21,7 +21,8 @@ source = (root / 'Sources/tgapi/UI/SettingsMenu.xm').read_text()
 button = (root / 'Sources/tgapi/UI/SettingsMenuButton.m').read_text()
 button = button.replace('#import "SettingsNavigation.h"', '''
 static NSUInteger opens;
-void TGExtraShowSettings(void) { opens++; }
+static id openedSource;
+void TGExtraShowSettings(id source) { opens++; openedSource = source; }
 BOOL TGExtraIsTelegramSupportLabel(NSString *label) { return [label isEqualToString:@"Ask a Question"]; }
 BOOL TGExtraIsMyProfileLabel(NSString *label) { return [label isEqualToString:@"My Profile"]; }
 ''')
@@ -224,7 +225,7 @@ int main(void) { @autoreleasepool {
     NSCAssert(button.frame.origin.y == 352 && proMask.layer.mask == nil && sgMask.layer.mask != nil, @"Restore the old corner mask when joining another Swiftgram section");
     NSCAssert([[button actionsForTarget:button forControlEvent:UIControlEventTouchUpInside] containsObject:@"openMenu"], @"Keep the button action wired");
     [button openMenu];
-    NSCAssert(opens == 1, @"Menu still opens from the relocated button");
+    NSCAssert(opens == 1 && openedSource == screen, @"Menu retains the actual account's native profile screen");
 
     UIAccessibilityElement *before = [[UIAccessibilityElement alloc] initWithAccessibilityContainer:scroll];
     UIAccessibilityElement *after = [[UIAccessibilityElement alloc] initWithAccessibilityContainer:scroll];

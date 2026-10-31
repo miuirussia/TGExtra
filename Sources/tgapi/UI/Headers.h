@@ -7,6 +7,7 @@
 #import "../Constants.h"
 
 @interface TGExtra : UIViewController <UITableViewDataSource, UITableViewDelegate>
+@property(nonatomic, strong) id profileSourceNode;
 @end
 
 @interface TGLocalization : NSObject
@@ -28,8 +29,6 @@ extern "C" {
 #endif
 
 void TGExtraShowToast(NSString *text);
-
-void TGExtraOpenTelegramURL(NSURL *url);
 
 #ifdef __cplusplus
 }
