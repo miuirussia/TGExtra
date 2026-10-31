@@ -15,6 +15,10 @@ public struct MessageId: Hashable {
     }
 }
 public protocol Media {}
+public final class Message {
+    public let id: MessageId
+    public init(_ id: MessageId) { self.id = id }
+}
 public final class Transaction {
     private let postbox: Postbox
     init(_ postbox: Postbox) { self.postbox = postbox }
@@ -27,12 +31,19 @@ public final class Transaction {
     public func deleteMessagesInRange(peerId: PeerId, namespace: Int32, minId: Int32, maxId: Int32, forEachMedia: ((Media) -> Void)?) {
         postbox.messages = postbox.messages.filter { $0.peerId != peerId || $0.namespace != namespace || $0.id < minId || $0.id > maxId }
     }
+    public func withAllMessages(peerId: PeerId, namespace: Int32? = nil, _ f: (Message) -> Bool) {
+        precondition(namespace == nil)
+        for id in postbox.messages where id.peerId == peerId {
+            if !f(Message(id)) { break }
+        }
+    }
 }
 public final class Postbox {
-    public let accountPath: String
+    public let basePath: String
+    public var accountPath: String { basePath }
     public var messages = Set<MessageId>()
     public var commits = 0
-    public init(_ account: String) { accountPath = "/accounts/\(account)/postbox" }
+    public init(_ account: String) { basePath = "/accounts/\(account)/postbox" }
     public func transaction<T>(userInteractive: Bool = false, ignoreDisabled: Bool = false, _ body: @escaping (Transaction) -> T, file: String = #file, line: Int = #line) -> Signal<T, NoError> {
         precondition(file.isEmpty && line == 0)
         return Signal { next, completed in

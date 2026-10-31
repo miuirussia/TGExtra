@@ -10,6 +10,8 @@
 + (void)loadPersistedIds;
 + (BOOL)clearMessageData;
 + (void)registerMessageCleanupContext:(id)context;
++ (void)registerVideoConversionChat:(id)controller;
++ (BOOL)roundVideoChatSupported;
 + (NSNumber *)getMessageId:(id)item;
 + (NSNumber *)getMessageIdFromNode:(id)node;
 + (BOOL)isDeleted:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;

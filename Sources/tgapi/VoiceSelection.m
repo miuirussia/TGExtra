@@ -1,5 +1,6 @@
 #import "VoiceSelection.h"
 #import "Constants.h"
+#import "Headers.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
 
@@ -8,7 +9,7 @@ BOOL tgextraVideoToVoiceEnabled(void) {
 }
 
 BOOL tgextraVideoToRoundEnabled(void) {
-    return [[NSUserDefaults standardUserDefaults] boolForKey:kVideoToRound];
+    return [[NSUserDefaults standardUserDefaults] boolForKey:kVideoToRound] && [TLParser roundVideoChatSupported];
 }
 
 static const void *kTGExtraVoiceItemsKey = &kTGExtraVoiceItemsKey;

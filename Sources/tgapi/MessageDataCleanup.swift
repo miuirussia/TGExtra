@@ -4,10 +4,18 @@ import tgapiC
 // Retain deletion targets until their account's Postbox commits the removal.
 enum MessageDataCleanup {
     static let storageKey = "TGExtraPendingMessageCleanup"
+    // Unlike an explicit cleanup, expired messages wait until timer protection is off.
+    private static let expiryMarker = 1 << 8
     private static let queue = DispatchQueue(label: "TGExtra.MessageCleanup")
     private static let postboxes = NSMapTable<NSString, AnyObject>(keyOptions: .strongMemory, valueOptions: .weakMemory)
     private static var ownPeers = [String: Int64]()
     private static var running = Set<String>()
+    private static var retrying = Set<String>()
+#if TGEXTRA_TESTING
+    private static let expiryRetryInterval: TimeInterval = 0.05
+#else
+    private static let expiryRetryInterval: TimeInterval = 30
+#endif
 
     // Postbox PeerId and MessageId layout, also used by SecretChatDeletion.
     struct LocalMessageId {
@@ -53,11 +61,26 @@ enum MessageDataCleanup {
     static func enqueue(_ markers: [MessageKey: Int]) {
         queue.sync {
             var pending = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: Int] ?? [:]
+            // Clear Message Database also removes messages retained by expired timers.
+            for (name, bits) in pending where bits & expiryMarker != 0 {
+                pending[name] = (bits & ~expiryMarker) | TLParser.deletedMarker
+            }
             for (key, bits) in markers where (key.id == 0 && bits > 0) || bits & TLParser.deletedMarker != 0 {
-                pending[key.storageKey] = max(pending[key.storageKey] ?? 0, bits)
+                pending[key.storageKey] = key.id == 0 ? max(pending[key.storageKey] ?? 0, bits) :
+                    (pending[key.storageKey, default: 0] & ~expiryMarker) | bits
             }
             if !pending.isEmpty { UserDefaults.standard.set(pending, forKey: storageKey) }
         }
+    }
+
+    static func deferExpiry(_ key: MessageKey) {
+        queue.sync {
+            var pending = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: Int] ?? [:]
+            // An explicit cleanup already queued for this ID takes precedence.
+            if pending[key.storageKey] == nil { pending[key.storageKey] = expiryMarker }
+            UserDefaults.standard.set(pending, forKey: storageKey)
+        }
+        queue.async { drain(key.account) }
     }
 
     static func start() {
@@ -69,20 +92,33 @@ enum MessageDataCleanup {
     }
 
     private static func drain(_ account: String) {
-        guard !running.contains(account), TGExtraMessageCleanupAvailable(),
-              let postbox = postboxes.object(forKey: account as NSString) else { return }
+        guard !running.contains(account) else { return }
         let pending = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: Int] ?? [:]
         let batch = pending.filter { MessageKey(storageKey: $0.key)?.account == account }
+        if batch.values.contains(where: { $0 & expiryMarker != 0 }), retrying.insert(account).inserted {
+            queue.asyncAfter(deadline: .now() + expiryRetryInterval) {
+                retrying.remove(account)
+                drain(account)
+            }
+        }
+        guard TGExtraMessageCleanupAvailable(),
+              let postbox = postboxes.object(forKey: account as NSString) else { return }
         let quickReplyPeer = ownPeers[account]
         // Cloud global IDs have no peer; other namespaces require a peer.
         let targets = batch.compactMap { name, bits -> (MessageKey, Int)? in
+            if bits & expiryMarker != 0 && SecretChatPolicy.shouldBlock(event: 2, peerNamespace: 3) { return nil }
             guard let key = MessageKey(storageKey: name),
                   key.peer != 0 || key.namespace == 0 || (key.namespace == 5 && quickReplyPeer != nil) else { return nil }
             return (key, bits)
         }
         guard !targets.isEmpty else { return }
         running.insert(account)
+        var executed = [(MessageKey, Int)]()
         let body: (UnsafeMutableRawPointer) -> Void = { pointer in
+            let targets = targets.filter { _, bits in
+                bits & expiryMarker == 0 || !SecretChatPolicy.shouldBlock(event: 2, peerNamespace: 3)
+            }
+            executed = targets
             let globalIds = targets.compactMap { key, _ in key.peer == 0 && key.namespace == 0 && key.id != 0 ? key.id : nil }
             if !globalIds.isEmpty {
                 withExtendedLifetime(globalIds) {
@@ -108,7 +144,7 @@ enum MessageDataCleanup {
         let completed: () -> Void = {
             queue.async {
                 var remaining = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: Int] ?? [:]
-                for (key, bits) in targets where remaining[key.storageKey] == bits { remaining.removeValue(forKey: key.storageKey) }
+                for (key, bits) in executed where remaining[key.storageKey] == bits { remaining.removeValue(forKey: key.storageKey) }
                 if remaining.isEmpty { UserDefaults.standard.removeObject(forKey: storageKey) }
                 else { UserDefaults.standard.set(remaining, forKey: storageKey) }
                 running.remove(account)

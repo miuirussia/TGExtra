@@ -8,12 +8,25 @@ typedef void * __attribute__((swiftcall)) (*TransactionFunction)(BOOL, BOOL, voi
 typedef TGExtraDisposable __attribute__((swiftcall)) (*StartFunction)(void *, void *, void *, void *, void *, void *, void * __attribute__((swift_context)));
 typedef void __attribute__((swiftcall)) (*DeleteFunction)(void *, void *, void *, void * __attribute__((swift_context)));
 typedef void __attribute__((swiftcall)) (*DeleteRangeFunction)(uint32_t, int64_t, int32_t, int32_t, int32_t, void *, void *, void * __attribute__((swift_context)));
+typedef void __attribute__((swiftcall)) (*VisitFunction)(uint32_t, int64_t, uint64_t, void *, void *, void * __attribute__((swift_context)));
 
 static void *hostMethod(const char *name) { return dlsym(RTLD_DEFAULT, name); }
 
 extern void TGExtraMessageCleanupBody(void *context, void *transaction);
 extern void TGExtraMessageCleanupCompleted(void *context);
 extern void TGExtraMessageCleanupReleaseDisposable(void *disposable);
+extern void TGExtraSecretChatClearedMessage(void *context, void *message);
+
+static bool __attribute__((swiftcall)) clearedMessage(void *message, void *context __attribute__((swift_context))) {
+    TGExtraSecretChatClearedMessage(context, message);
+    return true;
+}
+
+void TGExtraVisitLocalMessages(void *transaction, uint32_t peerNamespace, int64_t peer, void *context) {
+    VisitFunction visit = hostMethod("$s7Postbox11TransactionC15withAllMessages6peerId9namespace_yAA04PeerG0V_s5Int32VSgSbAA7MessageCXEtF");
+    // Optional<Int32>.none is the extra tag bit above its 32-bit payload.
+    if (visit) visit(peerNamespace, peer, 1ULL << 32, clearedMessage, context, transaction);
+}
 
 // Postbox's generic result is indirect, but Transaction is a concrete class.
 static void __attribute__((swiftcall)) cleanupBody(void *result __attribute__((swift_indirect_result)), void *transaction, void *context __attribute__((swift_context))) {

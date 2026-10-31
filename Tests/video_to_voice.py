@@ -26,6 +26,13 @@ static const void *kTGExtraVoicePreviewItemKey = &kTGExtraVoicePreviewItemKey;
 static TGExtraDescriptionGenerator generator;
 static TGExtraDescriptionGenerator rawGenerator;
 static id testValue;
+static BOOL roundSupported = YES;
+@interface TLParser : NSObject
++ (BOOL)roundVideoChatSupported;
+@end
+@implementation TLParser
++ (BOOL)roundVideoChatSupported { return roundSupported; }
+@end
 @interface SQueue : NSObject
 @property dispatch_queue_t queue;
 - (void)dispatch:(dispatch_block_t)block;

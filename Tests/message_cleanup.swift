@@ -2,7 +2,16 @@ import Foundation
 import Postbox
 import tgapiC
 
-@objc(TLParser) class TLParser: NSObject { static let deletedMarker = 1 }
+@objc(TLParser) class TLParser: NSObject {
+    static let deletedMarker = 1
+    static let processingLock = NSLock()
+    static var markerBatchDepth = 0
+    static var markers = [MessageKey: Int]()
+    static func recordMarker(_ bits: Int, id: Int32, peer: Int64, account: String?, namespace: Int32) {
+        markers[MessageKey(account: account!, peer: peer, id: id, namespace: namespace)] = bits
+    }
+    static func flushMarkers() {}
+}
 final class Context {
     let account: Account
     init(_ postbox: Postbox) { account = Account(postbox) }
@@ -29,11 +38,16 @@ func makeId(_ namespace: UInt32, _ peer: Int64, _ messageNamespace: Int32 = 0, _
 @main struct MessageCleanupTests {
     static func main() {
         let defaults = UserDefaults.standard
-        let previous = defaults.object(forKey: MessageDataCleanup.storageKey)
+        let keys = [MessageDataCleanup.storageKey, "TGExtraAntiSelfDestruct", "TGExtraAntiAutoDelete", "TGExtraAntiRevoke"]
+        let previous = keys.map { defaults.object(forKey: $0) }
         defer {
-            if let previous = previous { defaults.set(previous, forKey: MessageDataCleanup.storageKey) }
-            else { defaults.removeObject(forKey: MessageDataCleanup.storageKey) }
+            for (key, value) in zip(keys, previous) {
+                if let value = value { defaults.set(value, forKey: key) }
+                else { defaults.removeObject(forKey: key) }
+            }
         }
+        defaults.set(false, forKey: "TGExtraAntiSelfDestruct")
+        defaults.set(false, forKey: "TGExtraAntiAutoDelete")
         defaults.removeObject(forKey: MessageDataCleanup.storageKey)
         require(TGExtraMessageCleanupAvailable(), "Resolve actual Swift exports")
         let account = "account-99123"
@@ -72,6 +86,49 @@ func makeId(_ namespace: UInt32, _ peer: Int64, _ messageNamespace: Int32 = 0, _
         MessageDataCleanup.start()
         Thread.sleep(forTimeInterval: 0.03)
         require(postbox.commits == 1 && otherPostbox.commits == 1, "Completed cleanup is not replayed")
-        print("PASS local deletion bridge, Swift ABI, channel ranges, secret IDs, namespaces, inactive accounts and cleanup journal")
+        let sent = makeId(3, 123, 1, -7)
+        let received = makeId(3, 123, 2, 8)
+        postbox.messages.formUnion([sent, received])
+        defaults.set(true, forKey: "TGExtraAntiRevoke")
+        let visit = postbox.transaction({ transaction in
+            require(secretChatHandleClear(Unmanaged.passUnretained(transaction).toOpaque(), 3, 123) == 1,
+                    "Block remote clear and enumerate the actual transaction")
+        }, file: "", line: 0).start()
+        withExtendedLifetime(visit) { waitFor("Mark both secret message namespaces", { TLParser.markers.count == 2 }) }
+        require(TLParser.markers[MessageKey(account: account, peer: -2_000_000_000_123, id: -7, namespace: 1)] == 1 &&
+                TLParser.markers[MessageKey(account: account, peer: -2_000_000_000_123, id: 8, namespace: 2)] == 1,
+                "History clearing records exact signed IDs and namespaces")
+        defaults.set(true, forKey: "TGExtraAntiSelfDestruct")
+        let expiredKey = MessageKey(account: account, peer: -2_000_000_000_123, id: 8, namespace: 2)
+        let expiry = postbox.transaction({ transaction in
+            let pointer = Unmanaged.passUnretained(transaction).toOpaque()
+            require(secretChatHandleExpiry(pointer, 0, 123, 0, 11) == 0, "Cloud timers pass through")
+            require(secretChatHandleExpiry(pointer, 3, 123, 2, 8) == 1, "Journal the protected expiry before the host clears its index")
+        }, file: "", line: 0).start()
+        withExtendedLifetime(expiry) {
+            waitFor("Persist protected expiry", { defaults.dictionary(forKey: MessageDataCleanup.storageKey)?[expiredKey.storageKey] != nil })
+        }
+        Thread.sleep(forTimeInterval: 0.03)
+        require(postbox.messages.contains(received), "Protected expiry keeps the message")
+        require(defaults.dictionary(forKey: MessageDataCleanup.storageKey)?[expiredKey.storageKey] != nil,
+                "Expired message survives in the persistent retry journal")
+        defaults.set(false, forKey: "TGExtraAntiSelfDestruct")
+        defaults.set(false, forKey: "TGExtraAntiAutoDelete")
+        waitFor("Resume expiry after disabling protection", { !postbox.messages.contains(received) })
+        waitFor("Acknowledge deferred expiry", { defaults.object(forKey: MessageDataCleanup.storageKey) == nil })
+        require(postbox.messages.contains(sent), "Deferred expiry preserves other messages")
+        MessageDataCleanup.enqueue(TLParser.markers)
+        MessageDataCleanup.start()
+        waitFor("Cleanup also removes messages retained after remote clear", { !postbox.messages.contains(sent) })
+        waitFor("Finish remote-clear cleanup", { defaults.object(forKey: MessageDataCleanup.storageKey) == nil })
+        postbox.messages.insert(received)
+        defaults.set(true, forKey: "TGExtraAntiAutoDelete")
+        MessageDataCleanup.deferExpiry(expiredKey)
+        MessageDataCleanup.enqueue([:])
+        MessageDataCleanup.deferExpiry(expiredKey)
+        MessageDataCleanup.start()
+        waitFor("Explicit cleanup overrides timer protection and subsequent expiry callbacks", { !postbox.messages.contains(received) })
+        waitFor("Finish explicit expiry cleanup", { defaults.object(forKey: MessageDataCleanup.storageKey) == nil })
+        print("PASS local deletion bridge, Swift ABI, remote history clear, deferred expiry, namespaces, inactive accounts and cleanup journal")
     }
 }

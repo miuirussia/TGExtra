@@ -9,7 +9,20 @@ uintptr_t captured[11];
 static int block, calls, observedEvent, observedNamespace;
 
 #ifndef MISSING_RUNTIME
-#ifdef DELETION_BRIDGE
+#if defined(CLEAR_BRIDGE)
+int32_t TGExtraSecretChatHandleClear(const void *transaction, uint32_t peerNamespace, int64_t peer) {
+    assert((uintptr_t)transaction == 12 && peerNamespace == 3 && peer == 4);
+    observedEvent = 1;
+    return block;
+}
+#elif defined(EXPIRY_BRIDGE)
+int32_t TGExtraSecretChatHandleExpiry(const void *transaction, uint32_t peerNamespace, int64_t peer, int32_t ns, int32_t id) {
+    assert((uintptr_t)transaction == 12 && peerNamespace == 3 && peer == 4 && ns == 5 && id == 0);
+    observedEvent = 2;
+    observedNamespace = peerNamespace;
+    return block;
+}
+#elif defined(DELETION_BRIDGE)
 int32_t TGExtraSecretChatHandleDeletion(const void *transaction, const void *messageIds) {
     assert((uintptr_t)transaction == 3 && (uintptr_t)messageIds == 5);
     observedEvent = 1;

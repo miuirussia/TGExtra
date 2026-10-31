@@ -110,11 +110,16 @@ The profile redirects five calls: screenshot reporting, incoming deletion,
 incoming history clearing, expiry lookup and media-consumption lookup. Suppressed
 deletions still acknowledge incoming operations. Protected expiry returns nil to
 the host's lookup so it clears the queue entry without deleting the message.
+Before that lookup returns, TGExtra journals the expired message's exact identity.
+The local cleanup coordinator retries every 30 seconds and deletes it once timer
+protection is disabled, including after a restart or account switch.
 Local deletion and history clearing remain available.
 
 The incoming deletion bridge also passes the transaction and resolved message IDs
 to TGExtra. It saves account- and secret-chat-scoped deletion markers and refreshes
-visible badges. History clearing uses a separate policy-only bridge.
+visible badges. The history-clearing bridge enumerates the transaction's messages
+and records both sent and received IDs before blocking the clear. These markers
+also let Clear Message Database remove the retained messages later.
 
 Checks cover caller fingerprints, adapter ABIs, original targets and call bytes.
 Postbox stubs require exact bytes. Payloads preserve x0–x8, x20, x21 and stack

@@ -19,9 +19,11 @@ with tempfile.TemporaryDirectory(prefix='tgextra-cleanup-') as directory:
         run('clang', '-fobjc-arc', '-Werror', '-c', f'Sources/tgapiC/{name}.m', '-o', str(tmp / f'{name}.o'))
     binary = tmp / 'cleanup-tests'
     for optimization in ['-Onone', '-O']:
-        run('swiftc', optimization, '-I', str(tmp), '-L', str(tmp), '-lPostbox', '-lSwiftSignalKit',
+        run('swiftc', '-D', 'TGEXTRA_TESTING', optimization, '-I', str(tmp), '-L', str(tmp), '-lPostbox', '-lSwiftSignalKit',
             '-I', 'Sources/tgapiC/include', '-Xlinker', '-rpath', '-Xlinker', str(tmp),
             'Sources/tgapi/MessageDataCleanup.swift', 'Sources/tgapi/MessageKey.swift',
+            'Sources/tgapi/SecretChatPolicy.swift',
+            'Sources/tgapi/SecretChatDeletion.swift', 'Sources/tgapi/RenderedMessageReader.swift',
             'Sources/tgapi/HostValueReader.swift', 'Sources/tgapi/HostAccountReader.swift',
             'Tests/message_cleanup.swift', str(tmp / 'MessageCleanup.o'), str(tmp / 'HistoryAccount.o'), '-o', str(binary))
         run(str(binary))

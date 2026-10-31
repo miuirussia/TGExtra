@@ -1,6 +1,24 @@
 import Foundation
 
 extension TLParser {
+    private static weak var videoConversionChat: AnyObject?
+
+    @objc static func registerVideoConversionChat(_ controller: AnyObject) {
+        videoConversionChat = controller
+    }
+
+    @objc static func roundVideoChatSupported() -> Bool {
+        guard let controller = videoConversionChat,
+              let location = HostValueReader.storedField("chatLocation", in: controller) else { return true }
+        let mirror = Mirror(reflecting: HostValueReader.unwrapOptional(location))
+        guard mirror.displayStyle == .enum, let peer = mirror.children.first, peer.label == "peer" else { return true }
+        let payload = peer.value
+        let peerId = Mirror(reflecting: payload).displayStyle == .tuple ?
+            (HostValueReader.storedField("peerId", in: payload) ?? HostValueReader.storedField("id", in: payload) ?? payload) : payload
+        let namespace = HostValueReader.storedField("namespace", in: peerId).flatMap(HostValueReader.rawNumber)
+        return namespace != 3
+    }
+
     static let roundVideoQueue = DispatchQueue(label: "com.tgextra.roundVideoUploads")
     static var roundVideoUploads = [String: Double]()
     static var roundVideoOrder = [String]()

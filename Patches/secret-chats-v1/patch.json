@@ -469,7 +469,7 @@
                 {
                   "id": "bridge.clear",
                   "source": "payloads/clear.bin",
-                  "size": 164,
+                  "size": 168,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.clear",
@@ -479,7 +479,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.clear",
-                      "addend": 132
+                      "addend": 136
                     },
                     {
                       "type": "bl",
@@ -488,7 +488,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 124,
                       "anchor": "original.clear"
                     }
                   ]
@@ -496,7 +496,7 @@
                 {
                   "id": "bridge.timer",
                   "source": "payloads/timer.bin",
-                  "size": 164,
+                  "size": 176,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.timer",
@@ -506,7 +506,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.timer",
-                      "addend": 132
+                      "addend": 144
                     },
                     {
                       "type": "bl",
@@ -515,7 +515,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 132,
                       "anchor": "original.timer"
                     }
                   ]
@@ -1094,7 +1094,7 @@
                 {
                   "id": "bridge.clear",
                   "source": "payloads/clear.bin",
-                  "size": 164,
+                  "size": 168,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.clear",
@@ -1104,7 +1104,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.clear",
-                      "addend": 132
+                      "addend": 136
                     },
                     {
                       "type": "bl",
@@ -1113,7 +1113,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 124,
                       "anchor": "original.clear"
                     }
                   ]
@@ -1121,7 +1121,7 @@
                 {
                   "id": "bridge.timer",
                   "source": "payloads/timer.bin",
-                  "size": 164,
+                  "size": 176,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.timer",
@@ -1131,7 +1131,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.timer",
-                      "addend": 132
+                      "addend": 144
                     },
                     {
                       "type": "bl",
@@ -1140,7 +1140,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 132,
                       "anchor": "original.timer"
                     }
                   ]

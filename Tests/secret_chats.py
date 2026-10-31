@@ -42,6 +42,8 @@ class SecretChatTests(unittest.TestCase):
                     binary = str(Path(directory) / (name+str(missing)))
                     subprocess.run(['clang', '-O2', '-Werror', '-Wl,-export_dynamic', f'-DEVENT={event}',
                                     *(['-DDELETION_BRIDGE'] if name == 'deletion' else []),
+                                    *(['-DCLEAR_BRIDGE'] if name == 'clear' else []),
+                                    *(['-DEXPIRY_BRIDGE'] if name == 'timer' else []),
                                     *(['-DMISSING_RUNTIME'] if missing else []),
                                     str(ROOT/'Tests/secret_chat_gate.c'), str(PROFILE/f'payloads/{name}.c'),
                                     '-o', binary], check=True)

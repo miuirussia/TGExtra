@@ -22,8 +22,11 @@ __attribute__((naked)) void SecretChatGate(void) {
         "bl _dlsym\n"
         "cbz x0, 2f\n"
         "mov x16, x0\n"
-        "mov w0, #2\n"
+        "ldr x0, [sp, #72]\n"
         "ldr w1, [sp]\n"
+        "ldr x2, [sp, #8]\n"
+        "ldr w3, [sp, #16]\n"
+        "ldr w4, [sp, #20]\n"
         "blr x16\n"
         "mov w16, w0\n"
         "b 3f\n"
@@ -41,7 +44,7 @@ __attribute__((naked)) void SecretChatGate(void) {
         "4: mov x0, #0\n"
         "ret\n"
         ".section __TEXT,__cstring,cstring_literals\n"
-        "1: .asciz \"TGExtraSecretChatShouldBlock\"\n"
+        "1: .asciz \"TGExtraSecretChatHandleExpiry\"\n"
         ".text\n"
     );
 }

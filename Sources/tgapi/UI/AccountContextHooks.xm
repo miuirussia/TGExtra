@@ -9,6 +9,10 @@ static Class tgextraChatControllerClass(void) {
 
 %group TGExtraChatContext
 %hook _TtC10TelegramUI18ChatControllerImpl
+- (void)viewWillAppear:(BOOL)animated {
+    [TLParser registerVideoConversionChat:self];
+    %orig;
+}
 - (void)viewDidLoad {
     %orig;
     @try {

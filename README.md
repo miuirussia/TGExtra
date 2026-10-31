@@ -30,7 +30,8 @@ appears after Swiftgram's own settings rows.
 - Send a video's trimmed audio as a voice message from the video preview.
 - Send a video as a round message using the adjacent preview button: centered
   square crop, up to 60 seconds of the selected trim. Enable **Video to Round
-  Message** in TGExtra's media settings to show the button.
+  Message** in TGExtra's media settings to show the button. The button is hidden
+  in secret chats, where this cloud upload conversion is unavailable.
 - Save high-frame-rate videos and stories to Photos at 30 fps in H.264/AAC.
   Videos at 24/30 fps are unchanged.
 - Fix the Files picker and clear its temporary cache.
@@ -136,7 +137,10 @@ icon; updating this behavior requires rebuilding the IPA with the updated `.ipat
 yourself. Protection only affects your device.
 
 Existing secret-chat countdowns are kept, but their expiry is skipped while
-protection is enabled. Existing cloud auto-delete timers are not removed.
+protection is enabled. Expired message IDs are kept in a persistent journal;
+after protection is disabled, active accounts finish their deletion within
+30 seconds, and inactive accounts finish it when opened. Existing cloud
+auto-delete timers are not removed.
 
 Histories, recovery snapshots and deletion/timer markers are stored incrementally
 in SQLite. Existing data is migrated automatically when updating.

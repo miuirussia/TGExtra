@@ -1,6 +1,15 @@
 import Foundation
 
 func testRoundVideoUploads() {
+    struct PeerId { let namespace: UInt32; let id: Int64 }
+    enum ChatLocation { case peer(id: PeerId); case other }
+    final class Chat { let chatLocation: ChatLocation; init(_ location: ChatLocation) { chatLocation = location } }
+    let secretChat = Chat(.peer(id: PeerId(namespace: 3, id: -42)))
+    TLParser.registerVideoConversionChat(secretChat)
+    check(!TLParser.roundVideoChatSupported(), "Secret chats cannot select a cloud-only round upload rewrite")
+    let cloudChat = Chat(.peer(id: PeerId(namespace: 0, id: 42)))
+    TLParser.registerVideoConversionChat(cloudChat)
+    check(TLParser.roundVideoChatSupported(), "Switching back to a cloud chat restores round conversion")
     let peer = Api.InputPeer.inputPeerUser(.init(userId: 42, accessHash: 3))
     func media(_ name: String) -> Api.InputMedia {
         let file = Api.InputFile.inputFile(.init(id: 321, parts: 1, name: name, md5Checksum: "hash"))

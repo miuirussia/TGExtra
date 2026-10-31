@@ -26,6 +26,13 @@ support = r'''
 #import <objc/message.h>
 #import "Constants.h"
 #import "VoiceSelection.h"
+static BOOL roundSupported = YES;
+@interface TLParser : NSObject
++ (BOOL)roundVideoChatSupported;
+@end
+@implementation TLParser
++ (BOOL)roundVideoChatSupported { return roundSupported; }
+@end
 #define tgextraDiag(...) ((void)0)
 static void TGExtraShowToast(NSString *text) {}
 @interface TGExtraLocalization : NSObject
@@ -72,6 +79,12 @@ int main(void) { @autoreleasepool {
     NSCAssert(voice.selected && !round.selected, @"Voice tap clears round state immediately on layout");
     [[TGExtraVoiceToggleTarget shared] handleRoundTap:round]; [preview layoutSubviews];
     NSCAssert(round.selected && !voice.selected, @"Round tap clears voice state");
+    roundSupported = NO;
+    [preview layoutSubviews];
+    NSCAssert(round.hidden && !voice.hidden && !tgextraVideoToRoundEnabled(), @"Secret chats hide round conversion without disabling voice conversion");
+    roundSupported = YES;
+    [preview layoutSubviews];
+    NSCAssert(!round.hidden && round.selected, @"Cloud chats restore round conversion and retain their selection");
     TestVideoItem *second = [TestVideoItem new]; second.editingContext = item.editingContext; second.uniqueIdentifier = @"other";
     [preview itemFocused:second itemView:nil];
     NSCAssert(!round.selected && !voice.selected, @"Other clips start off");
