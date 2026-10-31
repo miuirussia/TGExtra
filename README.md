@@ -193,6 +193,10 @@ regenerate from the existing fixture without supplying an IPA:
 python3 Tools/update_telegram_api.py
 ```
 
+Generated views and the TL codec are internal to the tweak. Production generation
+scans only `Sources`; `Tests/run.sh` generates views including test-only usage in
+its temporary source snapshot via `--test-output`, leaving production views intact.
+
 Message policies live in
 [MessagePatches.swift](Sources/tgapi/TL/MessagePatches.swift), revision storage in
 [MessageHistory.swift](Sources/tgapi/MessageHistory.swift), and patch generation

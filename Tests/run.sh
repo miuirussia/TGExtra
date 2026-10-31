@@ -34,8 +34,9 @@ python3 Tests/ipatch_packaging.py
 test_build_dir=$(mktemp -d /private/tmp/tgextra-tests.XXXXXX)
 trap 'rm -rf "$test_build_dir"' EXIT
 # Compile a stable snapshot so concurrent edits cannot invalidate compiler inputs.
-cp -R Sources Tests Patches "$test_build_dir/"
+cp -R Sources Tests Patches Tools "$test_build_dir/"
 cd "$test_build_dir"
+python3 Tools/update_telegram_api.py --test-output Sources/tgapi/TL/ApiViews.swift
 python3 Tests/native_schema.py
 for source in Tests/Fixtures/NativeTL/{TLObject,TLSchemaLoader,TLEngine}.m; do
     clang -O2 -fno-objc-arc -I Tests/Fixtures/NativeTL/include -c "$source" -o "$test_build_dir/native-$(basename "$source").o"

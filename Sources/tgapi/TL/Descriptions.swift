@@ -1,16 +1,16 @@
 import Foundation
 
-public final class ConstructorParameterDescription {
-    public let value: Optional<Any>
+final class ConstructorParameterDescription {
+    let value: Optional<Any>
 
     init(_ value: Optional<Any>) {
         self.value = value
     }
 }
 
-public final class FunctionDescription {
-    public let name: String
-    public let parameters: [(String, ConstructorParameterDescription)]
+final class FunctionDescription {
+    let name: String
+    let parameters: [(String, ConstructorParameterDescription)]
 
     init(name: String, parameters: [(String, ConstructorParameterDescription)]) {
         self.name = name
@@ -18,6 +18,6 @@ public final class FunctionDescription {
     }
 }
 
-public protocol TypeConstructorDescription {
+protocol TypeConstructorDescription {
     func descriptionFields() -> (String, [(String, ConstructorParameterDescription)])
 }

@@ -2,7 +2,7 @@ import Foundation
 
 private var telegramApiLogger: (String) -> Void = { _ in }
 
-public func setTelegramApiLogger(_ f: @escaping (String) -> Void) {
+func setTelegramApiLogger(_ f: @escaping (String) -> Void) {
     telegramApiLogger = f
 }
 

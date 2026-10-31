@@ -1,7 +1,7 @@
 import Foundation
 import tgapiC
 
-public struct TLShape {
+struct TLShape {
     let kind: Int
     var elementKind = 0
     var objectType: String? = nil
@@ -17,69 +17,69 @@ public struct TLShape {
     }
 }
 
-public protocol TLValue {
+protocol TLValue {
     static var tlShape: TLShape { get }
     static func fromTL(_ value: Any) -> Self?
     static func canReadTL(_ value: Any) -> Swift.Bool
     var tlValue: Any { get }
 }
 
-public extension TLValue {
+extension TLValue {
     static func canReadTL(_ value: Any) -> Swift.Bool { fromTL(value) != nil }
 }
 
 extension Int32: TLValue {
-    public static var tlShape: TLShape { TLShape(kind: 0) }
-    public static func fromTL(_ value: Any) -> Int32? { value as? Int32 }
-    public var tlValue: Any { self }
+    static var tlShape: TLShape { TLShape(kind: 0) }
+    static func fromTL(_ value: Any) -> Int32? { value as? Int32 }
+    var tlValue: Any { self }
 }
 extension Int64: TLValue {
-    public static var tlShape: TLShape { TLShape(kind: 1) }
-    public static func fromTL(_ value: Any) -> Int64? { value as? Int64 }
-    public var tlValue: Any { self }
+    static var tlShape: TLShape { TLShape(kind: 1) }
+    static func fromTL(_ value: Any) -> Int64? { value as? Int64 }
+    var tlValue: Any { self }
 }
 extension Double: TLValue {
-    public static var tlShape: TLShape { TLShape(kind: 3) }
-    public static func fromTL(_ value: Any) -> Double? { value as? Double }
-    public var tlValue: Any { self }
+    static var tlShape: TLShape { TLShape(kind: 3) }
+    static func fromTL(_ value: Any) -> Double? { value as? Double }
+    var tlValue: Any { self }
 }
 extension String: TLValue {
-    public static var tlShape: TLShape { TLShape(kind: 4) }
-    public static func fromTL(_ value: Any) -> String? { value as? String }
-    public var tlValue: Any { self }
+    static var tlShape: TLShape { TLShape(kind: 4) }
+    static func fromTL(_ value: Any) -> String? { value as? String }
+    var tlValue: Any { self }
 }
 extension Int256: TLValue {
-    public static var tlShape: TLShape { TLShape(kind: 2) }
-    public static func fromTL(_ value: Any) -> Int256? { value as? Int256 }
-    public var tlValue: Any { self }
+    static var tlShape: TLShape { TLShape(kind: 2) }
+    static func fromTL(_ value: Any) -> Int256? { value as? Int256 }
+    var tlValue: Any { self }
 }
 extension Buffer: TLValue {
-    public static var tlShape: TLShape { TLShape(kind: 5) }
-    public static func fromTL(_ value: Any) -> Self? { value as? Self }
-    public var tlValue: Any { self }
+    static var tlShape: TLShape { TLShape(kind: 5) }
+    static func fromTL(_ value: Any) -> Self? { value as? Self }
+    var tlValue: Any { self }
 }
 extension Optional: TLValue where Wrapped: TLValue {
-    public static var tlShape: TLShape {
+    static var tlShape: TLShape {
         var shape = Wrapped.tlShape
         shape.optional = true
         return shape
     }
-    public static func canReadTL(_ value: Any) -> Swift.Bool { value is NSNull || Wrapped.canReadTL(value) }
-    public static func fromTL(_ value: Any) -> Self? {
+    static func canReadTL(_ value: Any) -> Swift.Bool { value is NSNull || Wrapped.canReadTL(value) }
+    static func fromTL(_ value: Any) -> Self? {
         if value is NSNull { return .some(nil) }
         return Wrapped.fromTL(value).map { .some($0) }
     }
-    public var tlValue: Any { self.map { $0.tlValue } ?? NSNull() }
+    var tlValue: Any { self.map { $0.tlValue } ?? NSNull() }
 }
 extension Array: TLValue where Element: TLValue {
-    public static var tlShape: TLShape {
+    static var tlShape: TLShape {
         TLShape(kind: 7, elementKind: Element.tlShape.kind, objectType: Element.tlShape.objectType)
     }
-    public static func canReadTL(_ value: Any) -> Swift.Bool {
+    static func canReadTL(_ value: Any) -> Swift.Bool {
         guard let values = value as? [Any] else { return false }
         return values.allSatisfy(Element.canReadTL)
     }
-    public static func fromTL(_ value: Any) -> Self? {
+    static func fromTL(_ value: Any) -> Self? {
         guard let values = value as? [Any] else { return nil }
         var result = [Element]()
         for value in values {
@@ -88,14 +88,14 @@ extension Array: TLValue where Element: TLValue {
         }
         return result
     }
-    public var tlValue: Any { map { $0.tlValue } }
+    var tlValue: Any { map { $0.tlValue } }
 }
 
-public protocol TLSerializable: TypeConstructorDescription {
+protocol TLSerializable: TypeConstructorDescription {
     var record: TLRecord { get }
 }
 
-public extension TLSerializable {
+extension TLSerializable {
     func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
         if !TLCodec.serialize(record, into: buffer, boxed: boxed) { buffer.isValid = false }
     }
@@ -106,12 +106,12 @@ public extension TLSerializable {
     }
 }
 
-public protocol TLObjectView: TLSerializable, TLValue {
+protocol TLObjectView: TLSerializable, TLValue {
     static var tlTypeName: String { get }
     init?(_ record: TLRecord)
 }
 
-public extension TLObjectView {
+extension TLObjectView {
     static var tlShape: TLShape { TLShape(kind: 6, objectType: tlTypeName) }
     static func canReadTL(_ value: Any) -> Swift.Bool {
         (value as? TLRecord)?.typeName == tlTypeName
@@ -123,10 +123,10 @@ public extension TLObjectView {
     var tlValue: Any { record }
 }
 
-public class TLPayload: TLSerializable {
-    public let record: TLRecord
-    public init(record: TLRecord) { self.record = record }
-    public init(type: String, constructor: String) {
+class TLPayload: TLSerializable {
+    let record: TLRecord
+    init(record: TLRecord) { self.record = record }
+    init(type: String, constructor: String) {
         self.record = TLRecord(type: type, constructor: constructor)
     }
 }
@@ -138,9 +138,9 @@ final class TLWireSource {
     init(_ buffer: Buffer) { bytes = buffer.makeData() }
 }
 
-public final class TLRecord: TLSerializable, TLValue {
-    public let typeName: String
-    public let constructorName: String
+final class TLRecord: TLSerializable, TLValue {
+    let typeName: String
+    let constructorName: String
     private(set) var descriptor: TLConstructor?
     var wireSource: TLWireSource?
     var wireRange = 0..<0
@@ -196,12 +196,12 @@ public final class TLRecord: TLSerializable, TLValue {
     var wireFields = [String: Range<Int>]()
     private(set) var changes = [TLFieldChange]()
     private var writtenFields = Set<String>()
-    public static var tlShape: TLShape { TLShape(kind: 6) }
-    public var record: TLRecord { self }
-    public var tlValue: Any { self }
-    public static func fromTL(_ value: Any) -> TLRecord? { value as? TLRecord }
+    static var tlShape: TLShape { TLShape(kind: 6) }
+    var record: TLRecord { self }
+    var tlValue: Any { self }
+    static func fromTL(_ value: Any) -> TLRecord? { value as? TLRecord }
 
-    public init(type: String, constructor: String) {
+    init(type: String, constructor: String) {
         typeName = type
         constructorName = constructor
         descriptor = HostSchema.shared?.constructor(type: type, name: constructor)
@@ -219,15 +219,15 @@ public final class TLRecord: TLSerializable, TLValue {
         self.constructorName = descriptor.name
         self.storageValues = values ?? Array(repeating: nil, count: descriptor.fields.count)
     }
-    public func value<T: TLValue>(_ name: String) -> T {
+    func value<T: TLValue>(_ name: String) -> T {
         T.fromTL(self[name] ?? NSNull())!
     }
-    public func set<T: TLValue>(_ name: String, _ value: T) {
+    func set<T: TLValue>(_ name: String, _ value: T) {
         if nativeObject == nil { writtenFields.insert(name) }
         let raw = value.tlValue
         self[name] = Swift.type(of: raw) == NSNull.self ? nil : raw
     }
-    public func canRead<T: TLValue>(_ name: String, as type: T.Type) -> Swift.Bool {
+    func canRead<T: TLValue>(_ name: String, as type: T.Type) -> Swift.Bool {
         T.canReadTL(self[name] ?? NSNull())
     }
 
