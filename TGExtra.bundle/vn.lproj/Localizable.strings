@@ -174,7 +174,7 @@
 "MESSAGE_DATA_SECTION_HEADER" = "Dữ liệu tin nhắn";
 "MESSAGE_DATA_CLEAR_TITLE" = "Xóa cơ sở dữ liệu tin nhắn";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "Lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của tất cả tài khoản.";
-"MESSAGE_DATA_CLEAR_CONFIRM" = "Xóa lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của TGExtra cho tất cả tài khoản, kể cả kho lưu trữ cũ? Không thể hoàn tác. Các cuộc trò chuyện Telegram và cài đặt tweak sẽ được giữ lại.";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "Xóa lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của TGExtra cho mọi tài khoản, bao gồm kho lưu trữ cũ? Các tin nhắn được giữ lại sau khi bị xóa cũng sẽ bị gỡ khỏi thiết bị này. Không thể hoàn tác. Các tin nhắn Telegram khác và cài đặt tweak sẽ được giữ nguyên.";
 "MESSAGE_DATA_CLEARING" = "Đang xóa dữ liệu tin nhắn…";
 "MESSAGE_DATA_CLEARED" = "Đã xóa cơ sở dữ liệu tin nhắn";
 

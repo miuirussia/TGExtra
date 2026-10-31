@@ -1,4 +1,5 @@
 #import "ProfileBridge.h"
+#import "../Headers.h"
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
 static Class tgextraChatControllerClass(void) {
@@ -13,6 +14,7 @@ static Class tgextraChatControllerClass(void) {
     @try {
         id context = [((id)self) valueForKey:@"context"];
         TGExtraProfileBridge.sharedContext = context;
+        [TLParser registerMessageCleanupContext:context];
         NSNumber *currId = [TGExtraProfileBridge getCurrentUserId];
         if (currId) {
             [[NSUserDefaults standardUserDefaults] setInteger:[currId integerValue] forKey:@"TGExtraLastKnownUserId"];
@@ -28,7 +30,10 @@ static Class tgextraChatControllerClass(void) {
     %orig;
     @try {
         id context = [((id)self) valueForKey:@"context"];
-        if (context) TGExtraProfileBridge.sharedContext = context;
+        if (context) {
+            TGExtraProfileBridge.sharedContext = context;
+            [TLParser registerMessageCleanupContext:context];
+        }
     } @catch (NSException *e) {}
 }
 %end

@@ -645,7 +645,13 @@ defaults.set(["1": ["Old", "Edited"]], forKey: "TGExtraEditHistory")
 defaults.set(["1": NSNumber(value: 42)], forKey: "TGExtraEditHistoryPeers")
 let messageStorageKeys = ["TGExtraEditHistoryByAccount", "TGExtraEditHistoryByPeer", "TGExtraEditHistory",
     "TGExtraEditHistoryPeers", "TGExtraObservedMessages", "TGExtraMessageMarkersByAccount", "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"]
-let preferencesBeforeClear = defaults.dictionaryRepresentation().filter { !messageStorageKeys.contains($0.key) }
+let preferencesBeforeClear = defaults.dictionaryRepresentation().filter { !messageStorageKeys.contains($0.key) && $0.key != MessageDataCleanup.storageKey }
+let pendingBeforeFailedClear = defaults.dictionary(forKey: MessageDataCleanup.storageKey) as? [String: Int] ?? [:]
+MessageHistoryArchive.shared.setReadOnly(true)
+check(!TLParser.clearMessageData() && isDeleted(900, peer: 42), "Failed archive clearing preserves deletion markers")
+check((defaults.dictionary(forKey: MessageDataCleanup.storageKey) as? [String: Int] ?? [:]) == pendingBeforeFailedClear,
+      "Failed archive clearing never schedules removal from Telegram")
+MessageHistoryArchive.shared.setReadOnly(false)
 var receivedClearNotification = false
 let clearObserver = NotificationCenter.default.addObserver(forName: NSNotification.Name("TGExtraMessageDataCleared"), object: nil, queue: nil) { _ in
     check(Thread.isMainThread, "Message clearing notifies UI on the main thread")
@@ -658,10 +664,16 @@ NotificationCenter.default.removeObserver(clearObserver)
 check(history(forId: 40, peer: 42) == nil, "Clearing removes the first account's in-memory history")
 check(history(forId: 137, peer: 42, account: "account-2") == nil, "Clearing removes every account's history")
 check(!isDeleted(900, peer: 42), "Clearing removes in-memory deletion markers")
+let cleanupTargets = defaults.dictionary(forKey: MessageDataCleanup.storageKey) as? [String: Int] ?? [:]
+check(cleanupTargets[MessageKey(account: testAccount, peer: 0, id: 900).storageKey] != nil,
+      "Clearing retains local deletion targets until Telegram commits their removal")
+check(cleanupTargets[MessageKey(account: testAccount, peer: 0, id: 901).storageKey] == nil &&
+      cleanupTargets[MessageKey(account: testAccount, peer: 0, id: 902).storageKey] == nil,
+      "Clearing never deletes live messages merely because they have timers")
 check(!isMessageSelfDestructing(902, peer: 42), "Clearing removes in-memory disappearing markers")
 check(patch(deletion([901, 902])) == nil, "Cleared timer classifications cannot protect stale message IDs")
 for key in messageStorageKeys { check(defaults.object(forKey: key) == nil, "Remove persisted message data and legacy archives") }
-let preferencesAfterClear = defaults.dictionaryRepresentation().filter { !messageStorageKeys.contains($0.key) }
+let preferencesAfterClear = defaults.dictionaryRepresentation().filter { !messageStorageKeys.contains($0.key) && $0.key != MessageDataCleanup.storageKey }
 check(NSDictionary(dictionary: preferencesBeforeClear).isEqual(to: preferencesAfterClear), "Message clearing preserves all unrelated preferences")
 TLParser.loadPersistedIds()
 check(history(forId: 40, peer: 42) == nil, "Reloading cannot restore cleared history")

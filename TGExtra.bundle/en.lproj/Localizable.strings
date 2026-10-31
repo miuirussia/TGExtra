@@ -175,7 +175,7 @@
 "MESSAGE_DATA_SECTION_HEADER" = "Message Data";
 "MESSAGE_DATA_CLEAR_TITLE" = "Clear Message Database";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "Edit histories, original texts, and deletion/timer markers for all accounts.";
-"MESSAGE_DATA_CLEAR_CONFIRM" = "Delete TGExtra's edit histories, original texts, and deletion/timer markers for all accounts, including older archives? This cannot be undone. Telegram chats and tweak settings will be kept.";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "Clear TGExtra edit histories, original texts and deletion/timer markers for all accounts, including legacy archives? Messages retained after deletion will also be removed from this device. This cannot be undone. Other Telegram messages and tweak settings will be kept.";
 "MESSAGE_DATA_CLEARING" = "Clearing message data…";
 "MESSAGE_DATA_CLEARED" = "Message database cleared";
 

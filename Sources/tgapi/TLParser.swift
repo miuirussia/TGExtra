@@ -15,7 +15,9 @@ class TLParser: NSObject {
     @objc static func clearMessageData() -> Bool {
         processingLock.lock()
         defer { processingLock.unlock() }
+        loadMarkers()
         guard editHistoryStore.clear() else { return false }
+        MessageDataCleanup.enqueue(messageMarkers)
         snapshotsLoaded = true
         snapshots.removeAll()
         snapshotOrder = MessageSnapshotOrder()
@@ -41,6 +43,7 @@ class TLParser: NSObject {
             UserDefaults.standard.removeObject(forKey: key)
         }
         clearRenderedMessageCache()
+        MessageDataCleanup.start()
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: NSNotification.Name("TGExtraMessageDataCleared"), object: nil)
         }

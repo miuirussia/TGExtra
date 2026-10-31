@@ -20,6 +20,7 @@ python3 Tests/recording_input_layout.py
 python3 Tests/force_tlottie.py
 python3 Tests/swiftgram_pro_ipatch.py
 python3 Tests/edit_badge_refresh.py
+python3 Tests/message_cleanup.py
 python3 Tests/edit_history_diff.py
 python3 Tests/paid_media_download.py
 python3 Tests/paid_media_import.py
@@ -58,6 +59,7 @@ clang++ -fobjc-arc -Werror Tests/native_linkage.mm "$test_build_dir/native-tl.o"
     -framework Foundation -o "$test_build_dir/NativeLinkageTests"
 "$test_build_dir/NativeLinkageTests"
 clang -fobjc-arc -c Sources/tgapiC/HistoryAccount.m -o "$test_build_dir/history-account.o"
+clang -fobjc-arc -Werror -c Sources/tgapiC/MessageCleanup.m -o "$test_build_dir/message-cleanup.o"
 clang -fobjc-arc -Werror -Wno-deprecated-declarations -DTGEXTRA_TESTING -ISources/tgapiC/include -c Sources/tgapi/ForwardCopy.m -o "$test_build_dir/forward-copy.o"
 clang -fobjc-arc -Werror -DTGEXTRA_TESTING -ISources/tgapiC/include -c Tests/forward_copy.m -o "$test_build_dir/forward-copy-tests.o"
 optimization=-Onone

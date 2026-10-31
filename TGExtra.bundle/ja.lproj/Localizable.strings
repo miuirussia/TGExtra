@@ -174,7 +174,7 @@
 "MESSAGE_DATA_SECTION_HEADER" = "メッセージデータ";
 "MESSAGE_DATA_CLEAR_TITLE" = "メッセージデータベースを消去";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "全アカウントの編集履歴、元のテキスト、削除・タイマーの記録。";
-"MESSAGE_DATA_CLEAR_CONFIRM" = "古いアーカイブを含む、全アカウントのTGExtraの編集履歴、元のテキスト、削除・タイマーの記録を消去しますか？この操作は取り消せません。Telegramのチャットとアドオンの設定は保持されます。";
+"MESSAGE_DATA_CLEAR_CONFIRM" = "旧アーカイブを含め、すべてのアカウントの TGExtra 編集履歴、元のテキスト、削除・タイマーマーカーを消去しますか？削除後に保持されたメッセージもこの端末から削除されます。この操作は取り消せません。その他の Telegram メッセージと tweak の設定は保持されます。";
 "MESSAGE_DATA_CLEARING" = "メッセージデータを消去中…";
 "MESSAGE_DATA_CLEARED" = "メッセージデータベースを消去しました";
 

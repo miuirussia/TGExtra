@@ -63,6 +63,7 @@ extension TLParser {
         } else {
             let messages = RenderedMessageReader.renderedMessages(from: item)
             guard !messages.isEmpty, let account = HostAccountReader.account(in: item, depth: 0) else { return nil }
+            MessageDataCleanup.register(from: item)
             current = RenderedItemState(messages: messages, account: account)
             if let object = object { renderedItems.setObject(current, forKey: object) }
         }

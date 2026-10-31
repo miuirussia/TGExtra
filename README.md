@@ -142,7 +142,10 @@ Histories, recovery snapshots and deletion/timer markers are stored incrementall
 in SQLite. Existing data is migrated automatically when updating.
 
 **Message Data → Clear Message Database** clears TGExtra's histories, snapshots
-and deletion/timer markers for all accounts. Telegram chats and tweak settings
+and deletion/timer markers for all accounts. Messages retained after deletion
+are also removed from Telegram's local history, updating the chat automatically.
+Inactive accounts finish this removal when opened; only pending deletion IDs
+are kept until their local transaction completes. Other messages and tweak settings
 are preserved. Protected-copy recovery journals are stored separately and are
 not cleared by this action.
 
