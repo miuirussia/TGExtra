@@ -5216,6 +5216,54 @@ public extension Api.help {
     }
 }
 
+public extension Api.help {
+    enum UserInfo: TLObjectView {
+        public static let tlTypeName = "help.UserInfo"
+        public final class Cons_userInfo: TLPayload {
+            public var `message`: String {
+                get { record.value("message") }
+                set { record.set("message", newValue) }
+            }
+            public var `entities`: [Api.MessageEntity] {
+                get { record.value("entities") }
+                set { record.set("entities", newValue) }
+            }
+            public var `author`: String {
+                get { record.value("author") }
+                set { record.set("author", newValue) }
+            }
+            public var `date`: Int32 {
+                get { record.value("date") }
+                set { record.set("date", newValue) }
+            }
+            public init(`message`: String, `entities`: [Api.MessageEntity], `author`: String, `date`: Int32) {
+                super.init(type: "help.UserInfo", constructor: "userInfo")
+                record.set("message", `message`)
+                record.set("entities", `entities`)
+                record.set("author", `author`)
+                record.set("date", `date`)
+            }
+            public override init(record: TLRecord) { super.init(record: record) }
+        }
+        case userInfo(Cons_userInfo)
+        case other(TLRecord)
+        public init?(_ record: TLRecord) {
+            guard record.typeName == Self.tlTypeName else { return nil }
+            switch record.constructorName {
+            case "userInfo" where record.hasCompatibleView || (record.canRead("message", as: String.self) && record.canRead("entities", as: [Api.MessageEntity].self) && record.canRead("author", as: String.self) && record.canRead("date", as: Int32.self)):
+                self = .userInfo(Cons_userInfo(record: record))
+            default: self = .other(record)
+            }
+        }
+        public var record: TLRecord {
+            switch self {
+            case let .userInfo(value): return value.record
+            case let .other(record): return record
+            }
+        }
+    }
+}
+
 public extension Api.messages {
     enum AffectedHistory: TLObjectView {
         public static let tlTypeName = "messages.AffectedHistory"
@@ -6565,6 +6613,7 @@ extension Api {
     static func supportsView(_ constructor: TLConstructor, type: String, types: [String]) -> Swift.Bool {
         switch (type, constructor.name) {
         case ("updates.Difference", "difference"): return constructor.canRead("newMessages", as: [Api.Message].self, types: types) && constructor.canRead("newEncryptedMessages", as: [TLRecord].self, types: types) && constructor.canRead("otherUpdates", as: [Api.Update].self, types: types) && constructor.canRead("chats", as: [Api.Chat].self, types: types) && constructor.canRead("users", as: [Api.User].self, types: types) && constructor.canRead("state", as: Api.updates.State.self, types: types)
+        case ("help.UserInfo", "userInfo"): return constructor.canRead("message", as: String.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity].self, types: types) && constructor.canRead("author", as: String.self, types: types) && constructor.canRead("date", as: Int32.self, types: types)
         case ("InputMedia", "inputMediaUploadedDocument"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("file", as: Api.InputFile.self, types: types) && constructor.canRead("thumb", as: Api.InputFile?.self, types: types) && constructor.canRead("mimeType", as: String.self, types: types) && constructor.canRead("attributes", as: [Api.DocumentAttribute].self, types: types) && constructor.canRead("stickers", as: [Api.InputDocument]?.self, types: types) && constructor.canRead("videoCover", as: Api.InputPhoto?.self, types: types) && constructor.canRead("videoTimestamp", as: Int32?.self, types: types) && constructor.canRead("ttlSeconds", as: Int32?.self, types: types)
         case ("MessageMedia", "messageMediaDice"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("value", as: Int32.self, types: types) && constructor.canRead("emoticon", as: String.self, types: types) && constructor.canRead("gameOutcome", as: TLRecord?.self, types: types)
         case ("upload.File", "file"): return constructor.canRead("type", as: Api.storage.FileType.self, types: types) && constructor.canRead("mtime", as: Int32.self, types: types) && constructor.canRead("bytes", as: Buffer.self, types: types)
@@ -6776,6 +6825,7 @@ extension Api {
         case "Username": return Api.Username(record) ?? .other(record)
         case "ephemeral.WelcomeMessages": return Api.ephemeral.WelcomeMessages(record) ?? .other(record)
         case "help.AppConfig": return Api.help.AppConfig(record) ?? .other(record)
+        case "help.UserInfo": return Api.help.UserInfo(record) ?? .other(record)
         case "messages.AffectedHistory": return Api.messages.AffectedHistory(record) ?? .other(record)
         case "messages.AffectedMessages": return Api.messages.AffectedMessages(record) ?? .other(record)
         case "messages.ChatFull": return Api.messages.ChatFull(record) ?? .other(record)
