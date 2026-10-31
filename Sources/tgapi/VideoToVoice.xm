@@ -18,17 +18,19 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
                                 convertToJpeg:(bool)convertToJpeg
                          descriptionGenerator:(TGExtraDescriptionGenerator)descriptionGenerator
                              saveEditedPhotos:(bool)saveEditedPhotos {
-    if (!tgextraVideoToVoiceEnabled() || !descriptionGenerator) return %orig;
+    if ((!tgextraVideoToVoiceEnabled() && !tgextraVideoToRoundEnabled()) || !descriptionGenerator) return %orig;
 
-    NSSet<NSString *> *voiceItems = tgextraVoiceItems(editingContext);
-    if (voiceItems.count == 0) return %orig;
+    NSSet<NSString *> *voiceItems = tgextraVideoToVoiceEnabled() ? tgextraVoiceItems(editingContext) : [NSSet set];
+    NSSet<NSString *> *roundItems = tgextraVideoToRoundEnabled() ? tgextraRoundItems(editingContext) : [NSSet set];
+    if (voiceItems.count == 0 && roundItems.count == 0) return %orig;
     TGExtraDescriptionGenerator wrapped =
         ^id(id dict, NSAttributedString *caption, NSString *hash, NSString *uniqueId) {
             NSString *identifier = uniqueId;
             if (!identifier && [dict isKindOfClass:NSDictionary.class]) {
                 identifier = tgextraVoiceItemIdentifier(dict[@"asset"] ?: dict[@"url"]);
             }
-            if (!identifier || ![voiceItems containsObject:identifier]) {
+            BOOL round = identifier && [roundItems containsObject:identifier];
+            if (!identifier || (!round && ![voiceItems containsObject:identifier])) {
                 return descriptionGenerator(dict, caption, hash, uniqueId);
             }
             NSString *type = [dict isKindOfClass:NSDictionary.class] ? dict[@"type"] : nil;
@@ -38,12 +40,14 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
             }
             NSDictionary *rewritten = nil;
             @try {
-                rewritten = tgextraRewriteToVoice(dict, editingContext);
+                rewritten = round ? tgextraRewriteToRound(dict, editingContext)
+                                  : tgextraRewriteToVoice(dict, editingContext);
             } @catch (NSException *e) {
                 tgextraDiag("v2v: rewrite threw — %{public}s", e.reason.UTF8String ?: "?");
             }
             if (!rewritten) {
-                TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"VIDEO_TO_VOICE_FAILED"]);
+                TGExtraShowToast([TGExtraLocalization localizedStringForKey:
+                    round ? @"VIDEO_TO_ROUND_FAILED" : @"VIDEO_TO_VOICE_FAILED"]);
                 return nil;
             }
             return descriptionGenerator(rewritten, caption, hash, uniqueId);

@@ -940,6 +940,48 @@ public extension Api {
             public override init(record: TLRecord) { super.init(record: record) }
         }
         case documentAttributeSticker(Cons_documentAttributeSticker)
+        public final class Cons_documentAttributeVideo: TLPayload {
+            public var `flags`: Int32 {
+                get { record.value("flags") }
+                set { record.set("flags", newValue) }
+            }
+            public var `duration`: Double {
+                get { record.value("duration") }
+                set { record.set("duration", newValue) }
+            }
+            public var `w`: Int32 {
+                get { record.value("w") }
+                set { record.set("w", newValue) }
+            }
+            public var `h`: Int32 {
+                get { record.value("h") }
+                set { record.set("h", newValue) }
+            }
+            public var `preloadPrefixSize`: Int32? {
+                get { record.value("preloadPrefixSize") }
+                set { record.set("preloadPrefixSize", newValue) }
+            }
+            public var `videoStartTs`: Double? {
+                get { record.value("videoStartTs") }
+                set { record.set("videoStartTs", newValue) }
+            }
+            public var `videoCodec`: String? {
+                get { record.value("videoCodec") }
+                set { record.set("videoCodec", newValue) }
+            }
+            public init(`flags`: Int32, `duration`: Double, `w`: Int32, `h`: Int32, `preloadPrefixSize`: Int32?, `videoStartTs`: Double?, `videoCodec`: String?) {
+                super.init(type: "DocumentAttribute", constructor: "documentAttributeVideo")
+                record.set("flags", `flags`)
+                record.set("duration", `duration`)
+                record.set("w", `w`)
+                record.set("h", `h`)
+                record.set("preloadPrefixSize", `preloadPrefixSize`)
+                record.set("videoStartTs", `videoStartTs`)
+                record.set("videoCodec", `videoCodec`)
+            }
+            public override init(record: TLRecord) { super.init(record: record) }
+        }
+        case documentAttributeVideo(Cons_documentAttributeVideo)
         case other(TLRecord)
         public init?(_ record: TLRecord) {
             guard record.typeName == Self.tlTypeName else { return nil }
@@ -952,6 +994,8 @@ public extension Api {
                 self = .documentAttributeFilename(Cons_documentAttributeFilename(record: record))
             case "documentAttributeSticker" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("alt", as: String.self) && record.canRead("stickerset", as: TLRecord.self) && record.canRead("maskCoords", as: TLRecord?.self)):
                 self = .documentAttributeSticker(Cons_documentAttributeSticker(record: record))
+            case "documentAttributeVideo" where record.hasCompatibleView || (record.canRead("flags", as: Int32.self) && record.canRead("duration", as: Double.self) && record.canRead("w", as: Int32.self) && record.canRead("h", as: Int32.self) && record.canRead("preloadPrefixSize", as: Int32?.self) && record.canRead("videoStartTs", as: Double?.self) && record.canRead("videoCodec", as: String?.self)):
+                self = .documentAttributeVideo(Cons_documentAttributeVideo(record: record))
             default: self = .other(record)
             }
         }
@@ -961,6 +1005,7 @@ public extension Api {
             case let .documentAttributeCustomEmoji(value): return value.record
             case let .documentAttributeFilename(value): return value.record
             case let .documentAttributeSticker(value): return value.record
+            case let .documentAttributeVideo(value): return value.record
             case let .other(record): return record
             }
         }
@@ -6562,6 +6607,7 @@ extension Api {
         case ("SearchPostsFlood", "searchPostsFlood"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("totalDaily", as: Int32.self, types: types) && constructor.canRead("remains", as: Int32.self, types: types) && constructor.canRead("waitTill", as: Int32?.self, types: types) && constructor.canRead("starsAmount", as: Int64.self, types: types)
         case ("InputFileLocation", "inputPhotoFileLocation"): return constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("accessHash", as: Int64.self, types: types) && constructor.canRead("fileReference", as: Buffer.self, types: types) && constructor.canRead("thumbSize", as: String.self, types: types)
         case ("Chat", "chat"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int64.self, types: types) && constructor.canRead("title", as: String.self, types: types) && constructor.canRead("photo", as: Api.ChatPhoto.self, types: types) && constructor.canRead("participantsCount", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("version", as: Int32.self, types: types) && constructor.canRead("migratedTo", as: Api.InputChannel?.self, types: types) && constructor.canRead("adminRights", as: TLRecord?.self, types: types) && constructor.canRead("defaultBannedRights", as: TLRecord?.self, types: types)
+        case ("DocumentAttribute", "documentAttributeVideo"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("duration", as: Double.self, types: types) && constructor.canRead("w", as: Int32.self, types: types) && constructor.canRead("h", as: Int32.self, types: types) && constructor.canRead("preloadPrefixSize", as: Int32?.self, types: types) && constructor.canRead("videoStartTs", as: Double?.self, types: types) && constructor.canRead("videoCodec", as: String?.self, types: types)
         case ("PageBlock", "pageBlockParagraph"): return constructor.canRead("text", as: Api.RichText.self, types: types)
         case ("Update", "updateEditEphemeralMessage"): return constructor.canRead("message", as: Api.EphemeralMessage.self, types: types)
         case ("Updates", "updateShortChatMessage"): return constructor.canRead("flags", as: Int32.self, types: types) && constructor.canRead("id", as: Int32.self, types: types) && constructor.canRead("fromId", as: Int64.self, types: types) && constructor.canRead("chatId", as: Int64.self, types: types) && constructor.canRead("message", as: String.self, types: types) && constructor.canRead("pts", as: Int32.self, types: types) && constructor.canRead("ptsCount", as: Int32.self, types: types) && constructor.canRead("date", as: Int32.self, types: types) && constructor.canRead("fwdFrom", as: TLRecord?.self, types: types) && constructor.canRead("viaBotId", as: Int64?.self, types: types) && constructor.canRead("replyTo", as: Api.MessageReplyHeader?.self, types: types) && constructor.canRead("entities", as: [Api.MessageEntity]?.self, types: types) && constructor.canRead("ttlPeriod", as: Int32?.self, types: types)

@@ -153,6 +153,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "Audio prêt — envoi en cours";
 "VIDEO_TO_VOICE_FAILED" = "Impossible d'extraire l'audio — la vidéo est envoyée à la place";
 "VIDEO_TO_VOICE_NO_AUDIO" = "Cette vidéo n'a pas de son — la vidéo est envoyée à la place";
+"VIDEO_TO_ROUND_TITLE" = "Vidéo en message rond";
+"VIDEO_TO_ROUND_SUBTITLE" = "Affiche un bouton à côté de Vidéo en message vocal dans l’aperçu. Activez-le pour chaque clip : recadrage carré centré, jusqu’à 60 secondes de la portion sélectionnée.";
+"VIDEO_TO_ROUND_ON_TOAST" = "Cette vidéo sera envoyée comme message vidéo rond";
+"VIDEO_TO_ROUND_OFF_TOAST" = "Envoi de nouveau en vidéo normale";
+"VIDEO_TO_ROUND_CONVERTING" = "Préparation de la vidéo ronde…";
+"VIDEO_TO_ROUND_SUCCESS" = "Vidéo ronde prête — envoi en cours";
+"VIDEO_TO_ROUND_FAILED" = "Impossible de créer la vidéo ronde — message non envoyé";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";

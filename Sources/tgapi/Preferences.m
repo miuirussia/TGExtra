@@ -14,7 +14,7 @@ static NSArray<NSString *> *TGExtraPreferenceKeys(void) {
         kDisableAllAds, kDisableForwardRestriction, kIgnorePrivateChatCopyProtection,
         kDisableDoubleTapReactions, kHideRecordingButton, kForceTLottie,
         kAntiRevoke, kAntiEdit, kAntiSelfDestruct, kAntiAutoDelete,
-        kVideoToVoice, kHideDisappearingLabel,
+        kVideoToVoice, kVideoToRound, kHideDisappearingLabel,
         FILE_PICKER_FIX_KEY, FAKE_LOCATION_ENABLED_KEY, FAKE_LATITUDE_KEY, FAKE_LONGITUDE_KEY,
         kGhostExceptions, @"TGExtraLanguage", @"TGExtraFeatureMigrationDone"
     ];

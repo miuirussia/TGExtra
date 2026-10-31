@@ -29,6 +29,9 @@ appears after Swiftgram's own settings rows.
 - View disappearing media without starting its timer.
 - Disable screenshot notifications for supported Telegram requests.
 - Send a video's trimmed audio as a voice message from the video preview.
+- Send a video as a round message using the adjacent preview button: centered
+  square crop, up to 60 seconds of the selected trim. Enable **Video to Round
+  Message** in TGExtra's media settings to show the button.
 - Save high-frame-rate videos and stories to Photos at 30 fps in H.264/AAC.
   Videos at 24/30 fps are unchanged.
 - Fix the Files picker and clear its temporary cache.
@@ -221,6 +224,8 @@ docker run --rm -v "$PWD:/work:ro" tgextra-menu-tests
 ```
 
 Run `bash Tests/story_video_export.sh` on macOS with FFmpeg to check video export.
+Run `bash Tests/round_video_export.sh` to check round-video cropping, trimming,
+orientation, codecs and the duration limit.
 Set `THEOS` or `LOGOS_PL` to also check the Photos hooks, or pass a video path to
 test a sample. These checks do not replace testing on an iOS device.
 

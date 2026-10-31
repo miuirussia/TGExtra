@@ -49,6 +49,7 @@ int main(int argc, const char **argv) {
             [defaults setBool:hidden forKey:kForceTLottie];
             [defaults setBool:hidden forKey:kHideRecordingButton];
             [defaults setBool:hidden forKey:kVideoToVoice];
+            [defaults setBool:hidden forKey:kVideoToRound];
             [defaults setBool:NO forKey:kGhostModeEnabled];
             [defaults setObject:@"ru" forKey:@"TGExtraLanguage"];
             [defaults setObject:@12.34 forKey:FAKE_LATITUDE_KEY];
@@ -65,6 +66,7 @@ int main(int argc, const char **argv) {
             NSCAssert([defaults boolForKey:kForceTLottie] == hidden, @"Restore the forced tlottie option");
             NSCAssert([defaults boolForKey:kHideRecordingButton] == hidden, @"Restore recording button removal");
             NSCAssert([defaults boolForKey:kVideoToVoice] == hidden, @"Restore the video-to-voice checkbox");
+            NSCAssert([defaults boolForKey:kVideoToRound] == hidden, @"Restore the video-to-round checkbox");
             NSCAssert(![defaults boolForKey:kGhostModeEnabled], @"False must override stale true defaults despite enabled subfeatures");
             NSCAssert([[defaults objectForKey:@"TGExtraLanguage"] isEqual:@"ru"], @"Preserve the selected language");
             NSCAssert([[defaults objectForKey:FAKE_LATITUDE_KEY] isEqual:@12.34], @"Preserve coordinates");
@@ -80,6 +82,7 @@ int main(int argc, const char **argv) {
             NSCAssert(![defaults boolForKey:kForceTLottie], @"A fresh install keeps the client's renderer selection");
             NSCAssert(![defaults boolForKey:kHideRecordingButton], @"Recording button removal defaults off");
             NSCAssert(![defaults boolForKey:kVideoToVoice], @"Video to voice defaults off");
+            NSCAssert(![defaults boolForKey:kVideoToRound], @"Video to round defaults off");
         }
         NSCAssert([[defaults objectForKey:@"HostSetting"] isEqual:@"keep"], @"Never restore the host app's settings");
         NSCAssert([[defaults objectForKey:@"TGExtraEditHistory"] isEqual:@{@"keep": @YES}], @"Never restore message data with settings");
@@ -113,6 +116,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-persistence-') as tmp:
         assert saved['TGExtraForceTLottie'] == hidden
         assert saved['TGExtraHideRecordingButton'] == hidden
         assert saved['TGExtraVideoToVoice'] == hidden
+        assert saved['TGExtraVideoToRound'] == hidden
         assert 'HostSetting' not in saved and 'TGExtraEditHistory' not in saved
         # Even an unexpected field in the file cannot overwrite unrelated defaults.
         saved.update(HostSetting='replace', TGExtraEditHistory={})

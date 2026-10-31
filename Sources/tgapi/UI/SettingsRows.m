@@ -91,6 +91,8 @@
         @(MEDIA): @[
             [self rowWithKey:kVideoToVoice title:@"VIDEO_TO_VOICE_TITLE"
                 subtitle:@"VIDEO_TO_VOICE_SUBTITLE" icon:@"waveform.circle.fill"],
+            [self rowWithKey:kVideoToRound title:@"VIDEO_TO_ROUND_TITLE"
+                subtitle:@"VIDEO_TO_ROUND_SUBTITLE" icon:@"video.circle.fill"],
             [self rowWithKey:kForceTLottie title:@"FORCE_TLOTTIE_TITLE"
                 subtitle:@"FORCE_TLOTTIE_SUBTITLE" icon:@"play.rectangle"],
         ],

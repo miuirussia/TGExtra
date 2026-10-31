@@ -153,6 +153,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "Âm thanh đã sẵn sàng — đang gửi";
 "VIDEO_TO_VOICE_FAILED" = "Không tách được âm thanh — gửi video thay thế";
 "VIDEO_TO_VOICE_NO_AUDIO" = "Video này không có tiếng — gửi video thay thế";
+"VIDEO_TO_ROUND_TITLE" = "Video thành tin nhắn tròn";
+"VIDEO_TO_ROUND_SUBTITLE" = "Hiện nút cạnh Video thành tin thoại trong phần xem trước. Bật cho từng video để gửi dạng tròn: cắt vuông ở giữa, tối đa 60 giây của đoạn đã chọn.";
+"VIDEO_TO_ROUND_ON_TOAST" = "Video này sẽ được gửi dưới dạng tin nhắn video tròn";
+"VIDEO_TO_ROUND_OFF_TOAST" = "Gửi lại như video bình thường";
+"VIDEO_TO_ROUND_CONVERTING" = "Đang tạo video tròn…";
+"VIDEO_TO_ROUND_SUCCESS" = "Video tròn đã sẵn sàng — đang gửi";
+"VIDEO_TO_ROUND_FAILED" = "Không tạo được video tròn — tin nhắn chưa được gửi";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";

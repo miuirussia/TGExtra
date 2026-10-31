@@ -86,7 +86,7 @@ func check(_ condition: @autoclosure () -> Bool, _ message: String) {
     precondition(condition(), message)
 }
 func flags(_ enabled: String...) {
-    for key in ["TGExtraAntiRevoke", "TGExtraAntiAutoDelete", "TGExtraAntiSelfDestruct", "TGExtraAntiEdit", "disableForwardRestriction", "TGExtraVideoToVoice", "TGExtraIgnorePrivateChatCopyProtection"] {
+    for key in ["TGExtraAntiRevoke", "TGExtraAntiAutoDelete", "TGExtraAntiSelfDestruct", "TGExtraAntiEdit", "disableForwardRestriction", "TGExtraVideoToVoice", "TGExtraVideoToRound", "TGExtraIgnorePrivateChatCopyProtection"] {
         defaults.set(enabled.contains(key), forKey: key)
     }
 }
@@ -630,6 +630,7 @@ check(audio.duration == 7 && audio.flags & (1 << 10) != 0 && audio.waveform?.siz
 check(parseString(voiceReader) == "caption" && voiceReader.readInt64() == 999, "Keep request fields after media unchanged")
 flags()
 check(TLParser.rewriteVoiceUpload(request.makeData() as NSData) == nil, "Video-to-voice toggle disables rewriting")
+testRoundVideoUploads()
 print("PASS TL updates (including opaque peer metadata), auto-delete, disappearing media, edits, gzip, containers and voice uploads")
 
 flags("TGExtraAntiEdit", "TGExtraAntiAutoDelete", "TGExtraAntiSelfDestruct")

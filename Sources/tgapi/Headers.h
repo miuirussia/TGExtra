@@ -16,6 +16,7 @@
 + (void)registerVoiceUploadWithFileName:(NSString *)fileName
                                duration:(NSInteger)duration
                                waveform:(NSData *)waveform;
++ (void)registerRoundVideoUploadWithFileName:(NSString *)fileName duration:(double)duration;
 + (BOOL)isMessageSelfDestructing:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSData *)fakeResponseForPayload:(NSData *)payload;
 + (NSData *)rewriteRequestPayload:(NSData *)payload;

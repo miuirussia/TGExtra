@@ -155,6 +155,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "音频已就绪 —— 正在发送";
 "VIDEO_TO_VOICE_FAILED" = "无法提取音频 —— 改为发送视频";
 "VIDEO_TO_VOICE_NO_AUDIO" = "这个视频没有声音 —— 改为发送视频";
+"VIDEO_TO_ROUND_TITLE" = "视频转圆形视频";
+"VIDEO_TO_ROUND_SUBTITLE" = "在视频预览中，在视频转语音旁显示按钮。为需要的片段开启后，将以居中方形裁剪发送圆形视频，最多取所选时段的60秒。";
+"VIDEO_TO_ROUND_ON_TOAST" = "这个视频将作为圆形视频消息发送";
+"VIDEO_TO_ROUND_OFF_TOAST" = "恢复按普通视频发送";
+"VIDEO_TO_ROUND_CONVERTING" = "正在生成圆形视频…";
+"VIDEO_TO_ROUND_SUCCESS" = "圆形视频已就绪 — 正在发送";
+"VIDEO_TO_ROUND_FAILED" = "无法生成圆形视频 — 消息未发送";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";

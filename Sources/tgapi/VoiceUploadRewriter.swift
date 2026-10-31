@@ -35,7 +35,8 @@ extension TLParser {
     }
 
     static func voiceMedia(from media: Api.InputMedia) -> Api.InputMedia? {
-        guard case let .inputMediaUploadedDocument(data) = media else { return nil }
+        guard MessagePatches.Settings().videoToVoice,
+              case let .inputMediaUploadedDocument(data) = media else { return nil }
 
         var fileName: String?
         for attribute in data.attributes {
@@ -61,7 +62,8 @@ extension TLParser {
     }
 
     @objc static func rewriteVoiceUpload(_ data: NSData) -> NSData? {
-        guard MessagePatches.Settings().videoToVoice, let method = requestMethod(data),
+        let settings = MessagePatches.Settings()
+        guard settings.videoToVoice || settings.videoToRound, let method = requestMethod(data),
               [TLMethodID.messagesSendMedia, .messagesUploadMedia, .messagesSendMultiMedia].contains(method),
               let record = request(data) else { return nil }
         var changed = false
@@ -69,12 +71,13 @@ extension TLParser {
             guard let items = record["multiMedia"] as? [TLRecord] else { return nil }
             for item in items {
                 guard let mediaRecord = item["media"] as? TLRecord,
-                      let media = Api.InputMedia(mediaRecord), voiceMedia(from: media) != nil else { continue }
+                      let media = Api.InputMedia(mediaRecord),
+                      (voiceMedia(from: media) ?? roundVideoMedia(from: media)) != nil else { continue }
                 changed = true
             }
         } else if let mediaRecord = record["media"] as? TLRecord,
                   let media = Api.InputMedia(mediaRecord) {
-            changed = voiceMedia(from: media) != nil
+            changed = (voiceMedia(from: media) ?? roundVideoMedia(from: media)) != nil
         }
         guard changed else { return nil }
         return record.serializedData().map { $0 as NSData }

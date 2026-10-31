@@ -152,6 +152,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "الصوت جاهز — جارٍ الإرسال";
 "VIDEO_TO_VOICE_FAILED" = "تعذّر استخراج الصوت — سيُرسل الفيديو بدلًا منه";
 "VIDEO_TO_VOICE_NO_AUDIO" = "هذا الفيديو بلا صوت — سيُرسل الفيديو بدلًا منه";
+"VIDEO_TO_ROUND_TITLE" = "فيديو إلى رسالة دائرية";
+"VIDEO_TO_ROUND_SUBTITLE" = "يُظهر زرًا بجانب تحويل الفيديو إلى رسالة صوتية في المعاينة. فعّله لكل مقطع لإرساله كفيديو دائري بقص مربع مركزي، حتى 60 ثانية من الجزء المحدد.";
+"VIDEO_TO_ROUND_ON_TOAST" = "سيُرسل هذا الفيديو كرسالة فيديو دائرية";
+"VIDEO_TO_ROUND_OFF_TOAST" = "سيُرسل كفيديو عادي مجددًا";
+"VIDEO_TO_ROUND_CONVERTING" = "جارٍ تجهيز الفيديو الدائري…";
+"VIDEO_TO_ROUND_SUCCESS" = "الفيديو الدائري جاهز — جارٍ الإرسال";
+"VIDEO_TO_ROUND_FAILED" = "تعذّر إنشاء الفيديو الدائري — لم تُرسل الرسالة";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";

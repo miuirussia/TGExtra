@@ -153,6 +153,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "音声の準備ができました — 送信します";
 "VIDEO_TO_VOICE_FAILED" = "音声を抽出できませんでした — 動画として送信します";
 "VIDEO_TO_VOICE_NO_AUDIO" = "この動画には音がありません — 動画として送信します";
+"VIDEO_TO_ROUND_TITLE" = "動画を丸いビデオメッセージに";
+"VIDEO_TO_ROUND_SUBTITLE" = "動画プレビューのボイス変換ボタンの隣にボタンを表示します。動画ごとにオンにすると、選択区間から最大60秒を中央の正方形に切り抜き、丸い動画として送信します。";
+"VIDEO_TO_ROUND_ON_TOAST" = "この動画は丸いビデオメッセージとして送信されます";
+"VIDEO_TO_ROUND_OFF_TOAST" = "通常の動画として送信します";
+"VIDEO_TO_ROUND_CONVERTING" = "丸い動画を準備中…";
+"VIDEO_TO_ROUND_SUCCESS" = "丸い動画の準備ができました — 送信します";
+"VIDEO_TO_ROUND_FAILED" = "丸い動画を作成できませんでした — メッセージは送信されていません";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";

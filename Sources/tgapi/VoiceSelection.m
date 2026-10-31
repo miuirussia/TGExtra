@@ -7,7 +7,12 @@ BOOL tgextraVideoToVoiceEnabled(void) {
     return [[NSUserDefaults standardUserDefaults] boolForKey:kVideoToVoice];
 }
 
+BOOL tgextraVideoToRoundEnabled(void) {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:kVideoToRound];
+}
+
 static const void *kTGExtraVoiceItemsKey = &kTGExtraVoiceItemsKey;
+static const void *kTGExtraRoundItemsKey = &kTGExtraRoundItemsKey;
 
 id tgextraVoiceProperty(id object, NSString *name) {
     SEL selector = NSSelectorFromString(name);
@@ -33,17 +38,37 @@ NSSet<NSString *> *tgextraVoiceItems(id editingContext) {
     }
 }
 
-BOOL tgextraToggleVoiceItem(id galleryItem) {
+NSSet<NSString *> *tgextraRoundItems(id editingContext) {
+    if (!editingContext) return [NSSet set];
+    @synchronized(editingContext) {
+        return [objc_getAssociatedObject(editingContext, kTGExtraRoundItemsKey) copy] ?: [NSSet set];
+    }
+}
+
+static BOOL tgextraToggleConversionItem(id galleryItem, const void *key, const void *otherKey) {
     id context = tgextraVoiceProperty(galleryItem, @"editingContext");
     NSString *identifier = tgextraVoiceItemIdentifier(galleryItem);
     if (!context || !identifier) return NO;
     @synchronized(context) {
-        NSMutableSet *items = [tgextraVoiceItems(context) mutableCopy];
+        NSMutableSet *items = [objc_getAssociatedObject(context, key) mutableCopy] ?: [NSMutableSet set];
         BOOL enabled = ![items containsObject:identifier];
         if (enabled) [items addObject:identifier];
         else [items removeObject:identifier];
-        objc_setAssociatedObject(context, kTGExtraVoiceItemsKey, items,
+        objc_setAssociatedObject(context, key, items,
                                  OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (enabled) {
+            NSMutableSet *otherItems = [objc_getAssociatedObject(context, otherKey) mutableCopy];
+            [otherItems removeObject:identifier];
+            objc_setAssociatedObject(context, otherKey, otherItems, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
         return enabled;
     }
+}
+
+BOOL tgextraToggleVoiceItem(id galleryItem) {
+    return tgextraToggleConversionItem(galleryItem, kTGExtraVoiceItemsKey, kTGExtraRoundItemsKey);
+}
+
+BOOL tgextraToggleRoundItem(id galleryItem) {
+    return tgextraToggleConversionItem(galleryItem, kTGExtraRoundItemsKey, kTGExtraVoiceItemsKey);
 }

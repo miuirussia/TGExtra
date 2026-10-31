@@ -155,6 +155,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "Audio pronto: invio in corso";
 "VIDEO_TO_VOICE_FAILED" = "Impossibile estrarre l'audio: viene inviato il video";
 "VIDEO_TO_VOICE_NO_AUDIO" = "Questo video non ha audio: viene inviato il video";
+"VIDEO_TO_ROUND_TITLE" = "Da video a videomessaggio";
+"VIDEO_TO_ROUND_SUBTITLE" = "Mostra un pulsante accanto a Da video a messaggio vocale nell’anteprima. Attivalo per ogni clip: ritaglio quadrato centrale e fino a 60 secondi del segmento selezionato.";
+"VIDEO_TO_ROUND_ON_TOAST" = "Questo video verrà inviato come videomessaggio circolare";
+"VIDEO_TO_ROUND_OFF_TOAST" = "Torna a essere inviato come video normale";
+"VIDEO_TO_ROUND_CONVERTING" = "Preparazione del videomessaggio…";
+"VIDEO_TO_ROUND_SUCCESS" = "Videomessaggio pronto: invio in corso";
+"VIDEO_TO_ROUND_FAILED" = "Impossibile creare il videomessaggio: messaggio non inviato";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";

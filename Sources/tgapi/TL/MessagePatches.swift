@@ -11,6 +11,7 @@ enum MessagePatches {
         case keepEditHistory = "TGExtraAntiEdit"
         case hideDisappearingLabel = "TGExtraHideDisappearingLabel"
         case videoToVoice = "TGExtraVideoToVoice"
+        case videoToRound = "TGExtraVideoToRound"
         case ghostMode = "TGExtraGhostModeEnabled"
         case hideMentionReads = "disableMentionReadReceipt"
         case hideReactionReads = "disableReactionReadReceipt"
@@ -40,6 +41,7 @@ enum MessagePatches {
         var keepEditHistory: Bool { enabled(.keepEditHistory) }
         var hideDisappearingLabel: Bool { enabled(.hideDisappearingLabel) }
         var videoToVoice: Bool { enabled(.videoToVoice) }
+        var videoToRound: Bool { enabled(.videoToRound) }
         var ghostMode: Bool { enabled(.ghostMode) }
         var hideMentionReads: Bool { enabled(.hideMentionReads) }
         var hideReactionReads: Bool { enabled(.hideReactionReads) }
@@ -229,6 +231,14 @@ enum MessagePatches {
         guard settings.videoToVoice, registeredUpload, record.typeName == "InputMedia",
               record.constructorName == "inputMediaUploadedDocument" else { return false }
         return TLDataPatch(record, rule: Setting.videoToVoice.rawValue).replaceField("attributes", attributes)
+    }
+
+    @discardableResult
+    static func replaceRoundVideoAttributes(in record: TLRecord, attributes: [Api.DocumentAttribute], registeredUpload: Bool,
+                                            settings: Settings = .init()) -> Bool {
+        guard settings.videoToRound, registeredUpload, record.typeName == "InputMedia",
+              record.constructorName == "inputMediaUploadedDocument" else { return false }
+        return TLDataPatch(record, rule: Setting.videoToRound.rawValue).replaceField("attributes", attributes)
     }
 }
 

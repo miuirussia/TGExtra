@@ -156,6 +156,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "Audio listo: enviando";
 "VIDEO_TO_VOICE_FAILED" = "No se pudo extraer el audio: se envía el vídeo";
 "VIDEO_TO_VOICE_NO_AUDIO" = "Este vídeo no tiene sonido: se envía el vídeo";
+"VIDEO_TO_ROUND_TITLE" = "Vídeo a mensaje circular";
+"VIDEO_TO_ROUND_SUBTITLE" = "Muestra un botón junto a Vídeo a nota de voz en la vista previa. Actívalo para cada clip: recorte cuadrado centrado y hasta 60 segundos del tramo seleccionado.";
+"VIDEO_TO_ROUND_ON_TOAST" = "Este vídeo se enviará como mensaje de vídeo circular";
+"VIDEO_TO_ROUND_OFF_TOAST" = "Se volverá a enviar como vídeo normal";
+"VIDEO_TO_ROUND_CONVERTING" = "Preparando vídeo circular…";
+"VIDEO_TO_ROUND_SUCCESS" = "Vídeo circular listo: enviando";
+"VIDEO_TO_ROUND_FAILED" = "No se pudo crear el vídeo circular: mensaje no enviado";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";

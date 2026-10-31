@@ -50,6 +50,8 @@ func testMessagePatchSettings() {
                  apply: { MessagePatches.removePrivateCopyProtection(from: $0) }),
         RuleCase(setting: .videoToVoice, make: upload,
                  apply: { MessagePatches.replaceVoiceAttributes(in: $0, attributes: [voice], registeredUpload: true) }),
+        RuleCase(setting: .videoToRound, make: upload,
+                 apply: { MessagePatches.replaceRoundVideoAttributes(in: $0, attributes: [voice], registeredUpload: true) }),
     ]
     // Each individual switch must activate its own rule, without activating
     // unrelated field transformations. Also exercise the all-off state.

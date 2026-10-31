@@ -153,6 +153,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "音訊已就緒 —— 正在傳送";
 "VIDEO_TO_VOICE_FAILED" = "無法擷取音訊 —— 改為傳送影片";
 "VIDEO_TO_VOICE_NO_AUDIO" = "這支影片沒有聲音 —— 改為傳送影片";
+"VIDEO_TO_ROUND_TITLE" = "影片轉圓形影片";
+"VIDEO_TO_ROUND_SUBTITLE" = "在影片預覽中，在影片轉語音旁顯示按鈕。為需要的片段開啟後，將以置中正方形裁剪傳送圓形影片，最多取所選時段的60秒。";
+"VIDEO_TO_ROUND_ON_TOAST" = "這支影片將作為圓形影片訊息傳送";
+"VIDEO_TO_ROUND_OFF_TOAST" = "恢復以一般影片傳送";
+"VIDEO_TO_ROUND_CONVERTING" = "正在製作圓形影片…";
+"VIDEO_TO_ROUND_SUCCESS" = "圓形影片已就緒 — 正在傳送";
+"VIDEO_TO_ROUND_FAILED" = "無法製作圓形影片 — 訊息未傳送";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";

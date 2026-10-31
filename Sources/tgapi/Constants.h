@@ -48,6 +48,7 @@
 #define FILE_PICKER_PATH @"TGExtraFileFixUsingSomeUglyHacks"
 
 #define kVideoToVoice @"TGExtraVideoToVoice"
+#define kVideoToRound @"TGExtraVideoToRound"
 
 #define kGhostExceptions @"TGExtraGhostExceptions"
 

@@ -15,7 +15,7 @@ rows = (ROOT / 'Sources/tgapi/UI/SettingsRows.m').read_text()
 expected_features = {
     'kDisableAllAds', 'kDisableForwardRestriction', 'kAntiRevoke', 'kAntiAutoDelete',
     'kDisableScreenshotNotification', 'kAntiSelfDestruct', 'kAntiEdit',
-    'kHideDisappearingLabel', 'kVideoToVoice', 'kIgnorePrivateChatCopyProtection',
+    'kHideDisappearingLabel', 'kVideoToVoice', 'kVideoToRound', 'kIgnorePrivateChatCopyProtection',
     'kDisableDoubleTapReactions', 'kHideRecordingButton', 'kForceTLottie',
 }
 categories = rows[rows.index('+ (NSArray<TGExtraSettingRow *> *)featureRowsForSection:'):rows.index('+ (TGExtraSettingRow *)rowForSection:')]

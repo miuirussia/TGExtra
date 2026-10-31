@@ -47,7 +47,7 @@ static NSURL *tgextraNewOutputURL(NSString *baseName) {
     return [NSURL fileURLWithPath:[dir stringByAppendingPathComponent:name]];
 }
 
-static AVAsset *tgextraResolveAVAsset(NSDictionary *dict) {
+AVAsset *tgextraResolveAVAsset(NSDictionary *dict) {
     id asset = dict[@"asset"];
     if ([asset respondsToSelector:@selector(backingAsset)]) {
         PHAsset *backing = [asset backingAsset];
@@ -86,7 +86,7 @@ static AVAsset *tgextraResolveAVAsset(NSDictionary *dict) {
     return [AVURLAsset URLAssetWithURL:url options:nil];
 }
 
-static CMTimeRange tgextraTrimRange(id editingContext, id item, AVAsset *asset) {
+CMTimeRange tgextraTrimRange(id editingContext, id item, AVAsset *asset) {
     CMTimeRange full = CMTimeRangeMake(kCMTimeZero, asset.duration);
     if (![editingContext respondsToSelector:@selector(adjustmentsForItem:)] || !item) {
         return full;

@@ -10,6 +10,7 @@
 
 static const void *kTGExtraVoicePreviewItemKey = &kTGExtraVoicePreviewItemKey;
 #define kTGExtraVoiceButtonTag 8877
+#define kTGExtraRoundButtonTag 8878
 static const CGFloat kTGExtraVoiceButtonSide = 44.0;
 
 static const void *kTGExtraItemIsVideoKey = &kTGExtraItemIsVideoKey;
@@ -38,6 +39,12 @@ static void tgextraStyleVoiceButton(UIButton *button, BOOL enabled) {
                                      : [UIColor colorWithWhite:0.0 alpha:0.5];
 }
 
+static void tgextraStyleRoundButton(UIButton *button, BOOL enabled) {
+    tgextraStyleVoiceButton(button, enabled);
+    [button setImage:[UIImage systemImageNamed:enabled ? @"video.circle.fill" : @"video.circle"]
+           forState:UIControlStateNormal];
+}
+
 @interface TGExtraVoiceToggleTarget : NSObject
 + (instancetype)shared;
 @end
@@ -58,11 +65,26 @@ static void tgextraStyleVoiceButton(UIButton *button, BOOL enabled) {
     tgextraStyleVoiceButton(sender, enabled);
     sender.accessibilityValue = [TGExtraLocalization localizedStringForKey:
         enabled ? @"VIDEO_TO_VOICE_ON_TOAST" : @"VIDEO_TO_VOICE_OFF_TOAST"];
+    [sender.superview setNeedsLayout];
     tgextraDiag("v2v: preview toggle -> %d", enabled);
 
     TGExtraShowToast([TGExtraLocalization localizedStringForKey:
         enabled ? @"VIDEO_TO_VOICE_ON_TOAST" : @"VIDEO_TO_VOICE_OFF_TOAST"]);
 
+    UIImpactFeedbackGenerator *haptic = [[UIImpactFeedbackGenerator alloc]
+        initWithStyle:UIImpactFeedbackStyleMedium];
+    [haptic impactOccurred];
+}
+
+- (void)handleRoundTap:(UIButton *)sender {
+    if (!tgextraVideoToRoundEnabled()) return;
+    id item = objc_getAssociatedObject(sender, kTGExtraVoicePreviewItemKey);
+    BOOL enabled = tgextraToggleRoundItem(item);
+    tgextraStyleRoundButton(sender, enabled);
+    sender.accessibilityValue = [TGExtraLocalization localizedStringForKey:
+        enabled ? @"VIDEO_TO_ROUND_ON_TOAST" : @"VIDEO_TO_ROUND_OFF_TOAST"];
+    [sender.superview setNeedsLayout];
+    TGExtraShowToast(sender.accessibilityValue);
     UIImpactFeedbackGenerator *haptic = [[UIImpactFeedbackGenerator alloc]
         initWithStyle:UIImpactFeedbackStyleMedium];
     [haptic impactOccurred];
@@ -115,16 +137,18 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
 
     BOOL isVideo = [objc_getAssociatedObject(interfaceView, kTGExtraItemIsVideoKey) boolValue];
     UIButton *button = (UIButton *)[interfaceView viewWithTag:kTGExtraVoiceButtonTag];
+    UIButton *roundButton = (UIButton *)[interfaceView viewWithTag:kTGExtraRoundButtonTag];
 
     id item = objc_getAssociatedObject(interfaceView, kTGExtraVoicePreviewItemKey);
     id context = tgextraVoiceProperty(item, @"editingContext");
     NSString *identifier = tgextraVoiceItemIdentifier(item);
-    if (!tgextraVideoToVoiceEnabled() || !isVideo || !context || !identifier) {
+    if ((!tgextraVideoToVoiceEnabled() && !tgextraVideoToRoundEnabled()) || !isVideo || !context || !identifier) {
         button.hidden = YES;
+        roundButton.hidden = YES;
         return;
     }
 
-    if (!button) {
+    if (!button && tgextraVideoToVoiceEnabled()) {
         button = [UIButton buttonWithType:UIButtonTypeSystem];
         button.tag = kTGExtraVoiceButtonTag;
         button.layer.cornerRadius = kTGExtraVoiceButtonSide / 2.0;
@@ -135,16 +159,40 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
         [interfaceView addSubview:button];
     }
 
-    objc_setAssociatedObject(button, kTGExtraVoicePreviewItemKey, item,
-                             OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (button) objc_setAssociatedObject(button, kTGExtraVoicePreviewItemKey, item,
+                                         OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     BOOL enabled = [tgextraVoiceItems(context) containsObject:identifier];
     button.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"VIDEO_TO_VOICE_TITLE"];
     button.accessibilityValue = [TGExtraLocalization localizedStringForKey:
         enabled ? @"VIDEO_TO_VOICE_ON_TOAST" : @"VIDEO_TO_VOICE_OFF_TOAST"];
-    button.hidden = NO;
+    button.hidden = !tgextraVideoToVoiceEnabled();
+    button.selected = enabled;
     tgextraStyleVoiceButton(button, enabled);
     button.frame = tgextraVoiceButtonFrame(interfaceView);
-    [interfaceView bringSubviewToFront:button];
+    if (button) [interfaceView bringSubviewToFront:button];
+
+    if (!roundButton && tgextraVideoToRoundEnabled()) {
+        roundButton = [UIButton buttonWithType:UIButtonTypeSystem];
+        roundButton.tag = kTGExtraRoundButtonTag;
+        roundButton.layer.cornerRadius = kTGExtraVoiceButtonSide / 2.0;
+        roundButton.clipsToBounds = YES;
+        [roundButton addTarget:[TGExtraVoiceToggleTarget shared] action:@selector(handleRoundTap:)
+             forControlEvents:UIControlEventTouchUpInside];
+        [interfaceView addSubview:roundButton];
+    }
+    if (roundButton) objc_setAssociatedObject(roundButton, kTGExtraVoicePreviewItemKey, item,
+                                              OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    BOOL roundEnabled = [tgextraRoundItems(context) containsObject:identifier];
+    roundButton.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"VIDEO_TO_ROUND_TITLE"];
+    roundButton.accessibilityValue = [TGExtraLocalization localizedStringForKey:
+        roundEnabled ? @"VIDEO_TO_ROUND_ON_TOAST" : @"VIDEO_TO_ROUND_OFF_TOAST"];
+    roundButton.selected = roundEnabled;
+    roundButton.hidden = !tgextraVideoToRoundEnabled();
+    tgextraStyleRoundButton(roundButton, roundEnabled);
+    CGRect roundFrame = tgextraVoiceButtonFrame(interfaceView);
+    if (tgextraVideoToVoiceEnabled()) roundFrame.origin.y += kTGExtraVoiceButtonSide + 8.0;
+    roundButton.frame = roundFrame;
+    if (roundButton) [interfaceView bringSubviewToFront:roundButton];
 
 #if TGEXTRA_DIAG
     static CGRect lastFrame = {{0, 0}, {0, 0}};
@@ -177,10 +225,12 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
 }
 
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    UIButton *button = (UIButton *)[self viewWithTag:kTGExtraVoiceButtonTag];
-    if (button && !button.hidden && button.alpha > 0.01) {
-        if ([button pointInside:[self convertPoint:point toView:button] withEvent:event]) {
-            return button;
+    for (NSNumber *tag in @[@(kTGExtraVoiceButtonTag), @(kTGExtraRoundButtonTag)]) {
+        UIButton *button = (UIButton *)[self viewWithTag:tag.integerValue];
+        if (button && !button.hidden && button.alpha > 0.01) {
+            if ([button pointInside:[self convertPoint:point toView:button] withEvent:event]) {
+                return button;
+            }
         }
     }
     return %orig;

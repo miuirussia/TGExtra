@@ -33,6 +33,11 @@ static NSDictionary *tgextraRewriteToVoice(id dict, id context) {
     conversions++;
     return @{@"type": @"voice"};
 }
+static NSDictionary *tgextraRewriteToRound(id dict, id context) {
+    if (conversionThrows) [NSException raise:@"Conversion" format:@"Failed"];
+    if (conversionFails) return nil;
+    return @{@"type": @"round"};
+}
 #define tgextraDiag(...) ((void)0)
 static void TGExtraShowToast(NSString *text) {}
 @interface TGExtraLocalization : NSObject
@@ -44,10 +49,14 @@ static void TGExtraShowToast(NSString *text) {}
 @interface UIButton : NSObject
 @property NSString *accessibilityValue;
 @property BOOL active;
+@property UIButton *superview;
+- (void)setNeedsLayout;
 @end
 @implementation UIButton
+- (void)setNeedsLayout {}
 @end
 static void tgextraStyleVoiceButton(UIButton *button, BOOL enabled) { button.active = enabled; }
+static void tgextraStyleRoundButton(UIButton *button, BOOL enabled) { button.active = enabled; }
 #define UIImpactFeedbackStyleMedium 1
 @interface UIImpactFeedbackGenerator : NSObject
 - (instancetype)initWithStyle:(NSInteger)style;
@@ -76,7 +85,7 @@ static void prepareSend(id context) {
     [TestSender resultSignalsForSelectionContext:nil editingContext:context intent:0
         currentItem:nil storeAssets:NO convertToJpeg:NO descriptionGenerator:
         ^id(id dict, NSAttributedString *caption, NSString *hash, NSString *uniqueId) {
-            NSCAssert([caption.string isEqual:@"caption"] && [hash isEqual:@"hash"], @"Preserve caption and hash");
+            NSCAssert((!caption && !hash) || ([caption.string isEqual:@"caption"] && [hash isEqual:@"hash"]), @"Preserve caption and hash");
             return dict;
         } saveEditedPhotos:NO];
 }
@@ -142,6 +151,33 @@ int main(void) {
         conversionThrows = YES;
         NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil,
                   @"An extraction exception must never send the source video");
+        conversionFails = NO; conversionThrows = NO;
+        NSCAssert(!tgextraVideoToRoundEnabled(), @"Round conversion defaults off");
+        [defaults setBool:YES forKey:kVideoToRound];
+        [[TGExtraVoiceToggleTarget shared] handleRoundTap:button];
+        NSCAssert(button.active && [button.accessibilityValue isEqual:@"VIDEO_TO_ROUND_ON_TOAST"], @"Enable round conversion");
+        NSCAssert(![tgextraVoiceItems(context) containsObject:url.absoluteString], @"Round selection clears voice selection");
+        prepareSend(context);
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"round"], @"Convert camera video to round");
+        NSCAssert([sendItem(@"photo", camera, url.absoluteString)[@"type"] isEqual:@"photo"], @"Round selection leaves photos unchanged");
+        [[TGExtraVoiceToggleTarget shared] handleTap:button];
+        NSCAssert(![tgextraRoundItems(context) containsObject:url.absoluteString], @"Voice selection clears round selection");
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"round"], @"Round send keeps its selection snapshot");
+        [[TGExtraVoiceToggleTarget shared] handleRoundTap:button];
+        [[TGExtraVoiceToggleTarget shared] handleRoundTap:button];
+        NSCAssert(tgextraRoundItems(context).count == 0, @"Second tap disables round mode");
+        tgextraToggleRoundItem(item);
+        [defaults setBool:NO forKey:kVideoToVoice];
+        prepareSend(context);
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"round"], @"Round conversion works with voice feature off");
+        NSCAssert(tgextraRoundItems([NSObject new]).count == 0, @"Round selections stay in their picker");
+        conversionFails = YES;
+        NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil, @"Round failure must never send the original");
+        conversionThrows = YES;
+        NSCAssert(generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil) == nil, @"Round exception must never send the original");
+        [defaults setBool:NO forKey:kVideoToRound];
+        prepareSend(context);
+        NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"cameraVideo"], @"Disabled round feature bypasses conversion");
         [defaults removePersistentDomainForName:suite];
         puts("PASS video-to-voice: checkbox isolation, default off, per-clip selection, picker isolation, send snapshots and camera videos");
     }

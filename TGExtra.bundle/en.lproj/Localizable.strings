@@ -154,6 +154,13 @@
 "VIDEO_TO_VOICE_SUCCESS" = "Audio ready — sending";
 "VIDEO_TO_VOICE_FAILED" = "Could not extract audio — sending the video instead";
 "VIDEO_TO_VOICE_NO_AUDIO" = "This video has no sound — sending the video instead";
+"VIDEO_TO_ROUND_TITLE" = "Video to Round Message";
+"VIDEO_TO_ROUND_SUBTITLE" = "Show a button beside Video to Voice in the video preview. Enable it for each clip to send a round video message: centered square crop, up to 60 seconds of the selected trim.";
+"VIDEO_TO_ROUND_ON_TOAST" = "This video will be sent as a round video message";
+"VIDEO_TO_ROUND_OFF_TOAST" = "Sending as a normal video again";
+"VIDEO_TO_ROUND_CONVERTING" = "Preparing round video…";
+"VIDEO_TO_ROUND_SUCCESS" = "Round video ready — sending";
+"VIDEO_TO_ROUND_FAILED" = "Could not create a round video — message not sent";
 
 /* First-run alert */
 "ADVANCED_SETTINGS_TITLE" = "Advanced Settings";
