@@ -103,8 +103,7 @@ NSURL *TGExtraExportRoundVideo(AVAsset *asset, CMTimeRange range) {
     composition.frameDuration = CMTimeMake(1, 30);
 
     NSString *root = [NSTemporaryDirectory() stringByAppendingPathComponent:@"TGExtraVideoToRound"];
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{ [NSFileManager.defaultManager removeItemAtPath:root error:NULL]; });
+    // Pending Telegram uploads can outlive this process; preserve their source files.
     NSError *directoryError = nil;
     if (![NSFileManager.defaultManager createDirectoryAtPath:root withIntermediateDirectories:YES
                                                 attributes:nil error:&directoryError]) {

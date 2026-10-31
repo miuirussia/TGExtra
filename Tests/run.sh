@@ -13,6 +13,8 @@ python3 Tests/review_regressions.py
 python3 Tests/review_fixes.py
 python3 Tests/settings_persistence.py
 python3 Tests/video_to_voice.py
+python3 Tests/video_audio_recovery.py
+bash Tests/audio_waveform.sh
 bash Tests/round_video_recovery.sh
 python3 Tests/video_preview.py
 python3 Tests/double_tap_reactions.py

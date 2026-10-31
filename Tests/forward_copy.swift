@@ -63,6 +63,29 @@ func testForwardCopies(rust: Bool = false) {
     let payload = copyPayload([1])
     let history = copyHistory([message(1, text: "Text 😀")])
     let sent = copySent([1])
+    let crowded = directory.appendingPathComponent("crowded")
+    try! FileManager.default.createDirectory(at: crowded, withIntermediateDirectories: true)
+    let stale = Date(timeIntervalSinceNow: -365 * 86400)
+    let unfinished: [String: Any] = ["account": "inactive-account", "updated": stale,
+                                     "payload": payload, "requests": [], "results": [:]]
+    let unfinishedBytes = try! PropertyListSerialization.data(fromPropertyList: unfinished, format: .binary, options: 0)
+    for index in 0..<128 {
+        try! unfinishedBytes.write(to: crowded.appendingPathComponent("unfinished-\(index).plist"))
+    }
+    let completed: [String: Any] = ["complete": true, "updated": stale]
+    let completedBytes = try! PropertyListSerialization.data(fromPropertyList: completed, format: .binary, options: 0)
+    let expired = crowded.appendingPathComponent("old-completed.plist")
+    try! completedBytes.write(to: expired)
+    let crowdedCopy = run(payload, ["1673946374": [history], "-17526942": [sent]], subdirectory: "crowded")
+    check(crowdedCopy["error"] as! String == "", "Unfinished journals from other accounts do not block a new copy")
+    check(!FileManager.default.fileExists(atPath: expired.path), "Expired completed journals are still pruned")
+    for index in 0..<128 {
+        check((try? Data(contentsOf: crowded.appendingPathComponent("unfinished-\(index).plist"))) == unfinishedBytes,
+              "Keep unfinished journals intact for safe retries")
+    }
+    let crowdedRetry = run(payload, [:], subdirectory: "crowded")
+    check(crowdedRetry["error"] as! String == "" && calls(crowdedRetry).isEmpty,
+          "A retry after journal saturation reuses the saved result without duplicate sends")
     let plan = ForwardCopyPlan(payload: payload)!
     check(plan.prepare(response: history) && plan.buildRequests(), "Prepare text copy without host Swift APIs")
     check(plan.downloads.isEmpty, "Text copies need no file requests")

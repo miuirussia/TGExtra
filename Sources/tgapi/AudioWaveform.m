@@ -3,7 +3,14 @@
 
 enum { kTGExtraWaveformSamples = 100 };
 
-NSData *TGExtraAudioWaveform(AVURLAsset *asset) {
+@interface TGExtraWaveformTask : NSObject
+@property(nonatomic) BOOL cancelled;
+@property(nonatomic, strong) NSData *waveform;
+@end
+@implementation TGExtraWaveformTask
+@end
+
+static NSData *tgextraReadAudioWaveform(AVURLAsset *asset, TGExtraWaveformTask *task) {
     AVAssetTrack *track = [asset tracksWithMediaType:AVMediaTypeAudio].firstObject;
     if (!track) return nil;
 
@@ -13,6 +20,9 @@ NSData *TGExtraAudioWaveform(AVURLAsset *asset) {
         tgextraDiag("v2v: waveform reader failed — %{public}s",
                  error.localizedDescription.UTF8String ?: "unknown");
         return nil;
+    }
+    @synchronized(task) {
+        if (task.cancelled) return nil;
     }
 
     NSDictionary *settings = @{
@@ -34,7 +44,10 @@ NSData *TGExtraAudioWaveform(AVURLAsset *asset) {
     size_t windowFill = 0;
 
     CMSampleBufferRef sample = NULL;
-    while ((sample = [output copyNextSampleBuffer])) {
+    while (YES) {
+        @synchronized(task) { if (task.cancelled) break; }
+        sample = [output copyNextSampleBuffer];
+        if (!sample) break;
         CMBlockBufferRef block = CMSampleBufferGetDataBuffer(sample);
         if (block) {
             size_t length = CMBlockBufferGetDataLength(block);
@@ -99,4 +112,45 @@ NSData *TGExtraAudioWaveform(AVURLAsset *asset) {
         bars[i] = (uint8_t)((peaks[i] * 31 + loudest / 2) / loudest);
     }
     return result;
+}
+
+static NSData *tgextraAudioWaveformWithTimeout(AVURLAsset *asset, NSTimeInterval timeout) {
+    // If a decoder stays blocked, subsequent sends skip the optional
+    // waveform instead of accumulating blocked workers or queued assets.
+    static dispatch_semaphore_t available;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ available = dispatch_semaphore_create(1); });
+    if (dispatch_semaphore_wait(available, DISPATCH_TIME_NOW) != 0) return nil;
+
+    TGExtraWaveformTask *task = [TGExtraWaveformTask new];
+    dispatch_semaphore_t done = dispatch_semaphore_create(0);
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        @try {
+            @autoreleasepool {
+                NSData *waveform = tgextraReadAudioWaveform(asset, task);
+                @synchronized(task) { if (!task.cancelled) task.waveform = waveform; }
+            }
+        } @catch (NSException *exception) {
+            customLog(@"Video to voice: waveform failed — %@", exception.reason);
+        } @finally {
+            dispatch_semaphore_signal(available);
+            dispatch_semaphore_signal(done);
+        }
+    });
+    if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW,
+            (int64_t)(timeout * NSEC_PER_SEC))) != 0) {
+        @synchronized(task) {
+            task.cancelled = YES;
+            task.waveform = nil;
+        }
+        // cancelReading cannot run concurrently with copyNextSampleBuffer.
+        // The worker cancels between reads; the caller can already send the audio.
+        customLog(@"Video to voice: waveform timed out — sending without a waveform");
+        return nil;
+    }
+    @synchronized(task) { return task.waveform; }
+}
+
+NSData *TGExtraAudioWaveform(AVURLAsset *asset) {
+    return tgextraAudioWaveformWithTimeout(asset, 5.0);
 }

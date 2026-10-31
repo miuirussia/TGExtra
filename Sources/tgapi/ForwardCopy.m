@@ -263,15 +263,15 @@ static NSURL *copyJournalDirectory(void) {
         self.journal[@"results"] = [saved[@"results"] mutableCopy];
     } else {
         NSArray *files = [NSFileManager.defaultManager contentsOfDirectoryAtURL:directory includingPropertiesForKeys:nil options:0 error:nil];
-        NSUInteger retained = 0;
         for (NSURL *url in files) {
             NSDictionary *entry = [NSDictionary dictionaryWithContentsOfURL:url];
             NSDate *date = entry[@"updated"];
             if ([entry[@"complete"] boolValue] && [date isKindOfClass:NSDate.class] && -date.timeIntervalSinceNow > 7 * 86400) {
                 [NSFileManager.defaultManager removeItemAtURL:url error:nil];
-            } else { retained++; }
+            }
         }
-        if (retained >= 128) return NO;
+        // Keep unfinished journals for safe retries. Their count must not prevent
+        // unrelated copies (including those from other accounts) from starting.
         self.journal = [@{@"account": account, @"payload": self.original.payload, @"results": [NSMutableDictionary new]} mutableCopy];
     }
     runningCopyKeys()[self.operationKey] = self;

@@ -28,8 +28,7 @@ static NSString *tgextraVoiceCacheRoot(void) {
 }
 
 static NSURL *tgextraNewOutputURL(NSString *baseName) {
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{ [NSFileManager.defaultManager removeItemAtPath:tgextraVoiceCacheRoot() error:NULL]; });
+    // Telegram can still reference files from a previous process for pending uploads.
     NSString *dir = [tgextraVoiceCacheRoot()
         stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]];
     NSError *error = nil;
@@ -47,30 +46,44 @@ static NSURL *tgextraNewOutputURL(NSString *baseName) {
     return [NSURL fileURLWithPath:[dir stringByAppendingPathComponent:name]];
 }
 
+static AVAsset *tgextraResolvePhotosVideo(PHAsset *backing, NSTimeInterval timeout) {
+    PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
+    options.networkAccessAllowed = YES;
+    options.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
+    options.version = PHVideoRequestOptionsVersionCurrent;
+
+    __block AVAsset *resolved = nil;
+    __block BOOL finished = NO;
+    dispatch_semaphore_t done = dispatch_semaphore_create(0);
+    PHImageManager *manager = PHImageManager.defaultManager;
+    PHImageRequestID request = [manager requestAVAssetForVideo:backing options:options
+        resultHandler:^(AVAsset *avAsset, AVAudioMix *mix, NSDictionary *info) {
+            @synchronized(done) {
+                if (finished) return;
+                finished = YES;
+                resolved = avAsset;
+            }
+            dispatch_semaphore_signal(done);
+        }];
+    if (dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW,
+            (int64_t)(timeout * NSEC_PER_SEC))) != 0) {
+        @synchronized(done) {
+            finished = YES;
+            resolved = nil;
+        }
+        [manager cancelImageRequest:request];
+        customLog(@"Video conversion: Photos asset request timed out");
+        return nil;
+    }
+    @synchronized(done) { return resolved; }
+}
+
 AVAsset *tgextraResolveAVAsset(NSDictionary *dict) {
     id asset = dict[@"asset"];
     if ([asset respondsToSelector:@selector(backingAsset)]) {
         PHAsset *backing = [asset backingAsset];
         if (![backing isKindOfClass:[PHAsset class]]) return nil;
-
-        PHVideoRequestOptions *options = [[PHVideoRequestOptions alloc] init];
-        options.networkAccessAllowed = YES;
-        options.deliveryMode = PHVideoRequestOptionsDeliveryModeHighQualityFormat;
-        options.version = PHVideoRequestOptionsVersionCurrent;
-
-        __block AVAsset *resolved = nil;
-        dispatch_semaphore_t done = dispatch_semaphore_create(0);
-        [[PHImageManager defaultManager]
-            requestAVAssetForVideo:backing
-                           options:options
-                     resultHandler:^(AVAsset *avAsset, AVAudioMix *mix, NSDictionary *info) {
-                         resolved = avAsset;
-                         dispatch_semaphore_signal(done);
-                     }];
-        dispatch_semaphore_wait(
-            done, dispatch_time(DISPATCH_TIME_NOW,
-                                (int64_t)(kTGExtraExtractionTimeout * NSEC_PER_SEC)));
-        return resolved;
+        return tgextraResolvePhotosVideo(backing, kTGExtraExtractionTimeout);
     }
 
     id rawURL = dict[@"url"];
