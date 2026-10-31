@@ -84,8 +84,8 @@
 
   NSString *urlString =
       username.length
-          ? [NSString stringWithFormat:@"tg://resolve?domain=%@", username]
-          : [NSString stringWithFormat:@"tg://openmessage?user_id=%@", peerId];
+          ? [NSString stringWithFormat:@"tg://resolve?domain=%@&profile", username]
+          : [NSString stringWithFormat:@"tg://user?id=%@", peerId];
 
   NSURL *url = [NSURL URLWithString:urlString];
   if (!url) return;

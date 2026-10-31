@@ -9,6 +9,7 @@ python3 Tests/native_tl_profile.py
 python3 Tests/settings_support_labels.py
 python3 Tests/settings_menu.py
 python3 Tests/settings_apply.py
+python3 Tests/ghost_exception_navigation.py
 python3 Tests/review_regressions.py
 python3 Tests/review_fixes.py
 python3 Tests/settings_persistence.py
