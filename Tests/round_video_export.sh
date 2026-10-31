@@ -11,6 +11,6 @@ ffmpeg -v error -f lavfi -i 'color=c=yellow:size=128x64:rate=30' \
 ffmpeg -v error -i "$test_build_dir/source.mp4" -c:v copy -an "$test_build_dir/silent.mp4"
 clang -fobjc-arc -Werror -Wno-deprecated-declarations \
     -framework Foundation -framework AVFoundation -framework CoreMedia \
-    -framework CoreGraphics Sources/tgapi/RoundVideoExport.m Tests/round_video_export.m \
+    -framework CoreGraphics Sources/tgapi/Logger/Logger.m Sources/tgapi/RoundVideoExport.m Tests/round_video_export.m \
     -o "$test_build_dir/RoundVideoExportTests"
 "$test_build_dir/RoundVideoExportTests" "$test_build_dir"

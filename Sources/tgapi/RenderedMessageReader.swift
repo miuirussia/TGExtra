@@ -57,8 +57,17 @@ enum RenderedMessageReader {
 
     static func peerKey(fromPeerId value: Any) -> Int64? {
         guard let nsValue = HostValueReader.storedField("namespace", in: value), let namespace = HostValueReader.rawNumber(nsValue),
-              let idValue = HostValueReader.storedField("id", in: value), let id = HostValueReader.rawNumber(idValue),
-              id > 0, id <= Int64.max - 1_000_000_000_000 else { return nil }
+              let idValue = HostValueReader.storedField("id", in: value), let id = HostValueReader.rawNumber(idValue) else { return nil }
+        return peerKey(namespace: namespace, id: id)
+    }
+
+    static func peerKey(namespace: Int64, id: Int64) -> Int64? {
+        // Encrypted-chat IDs are signed Int32 values and have their own scope.
+        if namespace == 3 {
+            guard Int32(exactly: id) != nil else { return nil }
+            return -(2_000_000_000_000 + id)
+        }
+        guard id > 0, id <= Int64.max - 1_000_000_000_000 else { return nil }
         switch namespace {
         case 0: return id
         case 1: return -id

@@ -7,6 +7,18 @@
 
 typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, NSString *);
 
+@interface NSObject (TGExtraVideoConversionSignals)
+- (id)deliverOn:(id)queue;
+- (id)map:(id (^)(id))transform;
+@end
+
+@interface TGExtraVideoConversion : NSObject
+@property (nonatomic, copy) id (^generate)(void);
+@end
+
+@implementation TGExtraVideoConversion
+@end
+
 %group TGExtraVoiceSend
 %hook TGMediaAssetsController
 
@@ -38,23 +50,37 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
                 !([type isEqualToString:@"video"] || [type isEqualToString:@"cameraVideo"])) {
                 return descriptionGenerator(dict, caption, hash, uniqueId);
             }
-            NSDictionary *rewritten = nil;
-            @try {
-                rewritten = round ? tgextraRewriteToRound(dict, editingContext)
-                                  : tgextraRewriteToVoice(dict, editingContext);
-            } @catch (NSException *e) {
-                tgextraDiag("v2v: rewrite threw — %{public}s", e.reason.UTF8String ?: "?");
-            }
-            if (!rewritten) {
-                TGExtraShowToast([TGExtraLocalization localizedStringForKey:
-                    round ? @"VIDEO_TO_ROUND_FAILED" : @"VIDEO_TO_VOICE_FAILED"]);
-                return nil;
-            }
-            return descriptionGenerator(rewritten, caption, hash, uniqueId);
+            TGExtraVideoConversion *conversion = [TGExtraVideoConversion new];
+            conversion.generate = ^id {
+                NSDictionary *rewritten = nil;
+                @try {
+                    rewritten = round ? tgextraRewriteToRound(dict, editingContext)
+                                      : tgextraRewriteToVoice(dict, editingContext);
+                } @catch (NSException *e) {
+                    customLog(@"Video conversion (%@): %@ — %@", round ? @"round" : @"voice", e.name, e.reason);
+                }
+                if (!rewritten) {
+                    TGExtraShowToast([TGExtraLocalization localizedStringForKey:
+                        round ? @"VIDEO_TO_ROUND_FAILED" : @"VIDEO_TO_VOICE_FAILED"]);
+                    return nil;
+                }
+                return descriptionGenerator(rewritten, caption, hash, uniqueId);
+            };
+            return conversion;
         };
 
-    return %orig(selectionContext, editingContext, intent, currentItem, storeAssets,
-                 convertToJpeg, wrapped, saveEditedPhotos);
+    NSArray *signals = %orig(selectionContext, editingContext, intent, currentItem, storeAssets,
+                            convertToJpeg, wrapped, saveEditedPhotos);
+    NSMutableArray *converted = [NSMutableArray arrayWithCapacity:signals.count];
+    for (id signal in signals) {
+        // A serial queue keeps completion behind the potentially slow export.
+        id queue = [[objc_getClass("SQueue") alloc] init];
+        [converted addObject:[[signal deliverOn:queue] map:^id(id value) {
+            return [value isKindOfClass:TGExtraVideoConversion.class]
+                ? ((TGExtraVideoConversion *)value).generate() : value;
+        }]];
+    }
+    return converted;
 }
 
 %end
@@ -63,7 +89,10 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
 %ctor {
     Class cls = objc_getClass("TGMediaAssetsController");
     Method send = class_getClassMethod(cls, NSSelectorFromString(@"resultSignalsForSelectionContext:editingContext:intent:currentItem:storeAssets:convertToJpeg:descriptionGenerator:saveEditedPhotos:"));
-    if (send && method_getNumberOfArguments(send) == 10) {
+    Class signal = objc_getClass("SSignal");
+    if (send && method_getNumberOfArguments(send) == 10 && objc_getClass("SQueue") &&
+        [signal instancesRespondToSelector:@selector(deliverOn:)] &&
+        [signal instancesRespondToSelector:@selector(map:)]) {
         %init(TGExtraVoiceSend);
         TGExtraRecordHookStatus(@"Voice send", @"installed");
     } else {

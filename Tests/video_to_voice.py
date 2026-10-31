@@ -13,6 +13,8 @@ toggle = preview[preview.index('@interface TGExtraVoiceToggleTarget'):preview.in
 send = source[source.index('+ (NSArray *)resultSignalsForSelectionContext:'):source.index('%end')]
 send = send.replace('return %orig;', 'return testOriginal(descriptionGenerator);')
 send = send.replace('return %orig(selectionContext, editingContext, intent, currentItem, storeAssets,\n                 convertToJpeg, wrapped, saveEditedPhotos);', 'return testOriginal(wrapped);')
+send = send.replace('%orig(selectionContext, editingContext, intent, currentItem, storeAssets,\n                            convertToJpeg, wrapped, saveEditedPhotos)', 'testOriginal(wrapped)')
+conversion_helpers = source[source.index('@interface NSObject (TGExtraVideoConversionSignals)'):source.index('%group')] if '@interface NSObject (TGExtraVideoConversionSignals)' in source else ''
 
 support = r'''
 #import <Foundation/Foundation.h>
@@ -22,11 +24,52 @@ support = r'''
 typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, NSString *);
 static const void *kTGExtraVoicePreviewItemKey = &kTGExtraVoicePreviewItemKey;
 static TGExtraDescriptionGenerator generator;
+static TGExtraDescriptionGenerator rawGenerator;
+static id testValue;
+@interface SQueue : NSObject
+@property dispatch_queue_t queue;
+- (void)dispatch:(dispatch_block_t)block;
+@end
+@implementation SQueue
+- (instancetype)init {
+    if ((self = [super init])) _queue = dispatch_queue_create("test.conversion", DISPATCH_QUEUE_SERIAL);
+    return self;
+}
+- (void)dispatch:(dispatch_block_t)block { dispatch_async(_queue, block); }
+@end
+@interface SSignal : NSObject
+@property (copy) void (^subscribe)(void (^)(id), dispatch_block_t);
+- (id)deliverOn:(SQueue *)queue;
+- (id)map:(id (^)(id))transform;
+@end
+@implementation SSignal
+- (id)deliverOn:(SQueue *)queue {
+    SSignal *result = [SSignal new];
+    result.subscribe = ^(void (^next)(id), dispatch_block_t complete) {
+        self.subscribe(^(id value) { [queue dispatch:^{ next(value); }]; },
+                       ^{ [queue dispatch:complete]; });
+    };
+    return result;
+}
+- (id)map:(id (^)(id))transform {
+    SSignal *result = [SSignal new];
+    result.subscribe = ^(void (^next)(id), dispatch_block_t complete) {
+        self.subscribe(^(id value) { next(transform(value)); }, complete);
+    };
+    return result;
+}
+@end
 static NSUInteger conversions;
 static BOOL conversionFails;
 static BOOL conversionThrows;
-static NSArray *testOriginal(TGExtraDescriptionGenerator block) { generator = [block copy]; return @[]; }
+static NSArray *testOriginal(TGExtraDescriptionGenerator block) {
+    rawGenerator = [block copy];
+    SSignal *signal = [SSignal new];
+    signal.subscribe = ^(void (^next)(id), dispatch_block_t complete) { next(testValue); complete(); };
+    return @[signal];
+}
 static NSDictionary *tgextraRewriteToVoice(id dict, id context) {
+    NSCAssert(!NSThread.isMainThread, @"Audio extraction must not block the UI thread");
     if (![dict isKindOfClass:NSDictionary.class] || ![@[@"video", @"cameraVideo"] containsObject:dict[@"type"]]) return nil;
     if (conversionThrows) [NSException raise:@"Extraction" format:@"Failed"];
     if (conversionFails) return nil;
@@ -34,11 +77,18 @@ static NSDictionary *tgextraRewriteToVoice(id dict, id context) {
     return @{@"type": @"voice"};
 }
 static NSDictionary *tgextraRewriteToRound(id dict, id context) {
+    NSCAssert(!NSThread.isMainThread, @"Round export rejects the UI thread");
+    // Main-thread work must keep running while the export waits for completion.
+    dispatch_semaphore_t ui = dispatch_semaphore_create(0);
+    dispatch_async(dispatch_get_main_queue(), ^{ dispatch_semaphore_signal(ui); });
+    NSCAssert(dispatch_semaphore_wait(ui, dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC)) == 0,
+              @"Round export must leave the UI responsive");
     if (conversionThrows) [NSException raise:@"Conversion" format:@"Failed"];
     if (conversionFails) return nil;
     return @{@"type": @"round"};
 }
 #define tgextraDiag(...) ((void)0)
+static void customLog(NSString *format, ...) {}
 static void TGExtraShowToast(NSString *text) {}
 @interface TGExtraLocalization : NSObject
 + (NSString *)localizedStringForKey:(NSString *)key;
@@ -82,12 +132,28 @@ static void tgextraStyleRoundButton(UIButton *button, BOOL enabled) { button.act
 tests = r'''
 @end
 static void prepareSend(id context) {
-    [TestSender resultSignalsForSelectionContext:nil editingContext:context intent:0
+    NSArray *signals = [TestSender resultSignalsForSelectionContext:nil editingContext:context intent:0
         currentItem:nil storeAssets:NO convertToJpeg:NO descriptionGenerator:
         ^id(id dict, NSAttributedString *caption, NSString *hash, NSString *uniqueId) {
             NSCAssert((!caption && !hash) || ([caption.string isEqual:@"caption"] && [hash isEqual:@"hash"]), @"Preserve caption and hash");
             return dict;
         } saveEditedPhotos:NO];
+    TGExtraDescriptionGenerator produce = rawGenerator;
+    generator = ^id(id dict, NSAttributedString *caption, NSString *hash, NSString *uniqueId) {
+        NSCAssert(NSThread.isMainThread, @"Reproduce synchronous picker delivery on the UI thread");
+        testValue = produce(dict, caption, hash, uniqueId);
+        __block id result;
+        __block BOOL finished = NO;
+        ((SSignal *)signals[0]).subscribe(^(id value) {
+            dispatch_async(dispatch_get_main_queue(), ^{ result = value; });
+        }, ^{ dispatch_async(dispatch_get_main_queue(), ^{ finished = YES; }); });
+        NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:5];
+        while (!finished && deadline.timeIntervalSinceNow > 0) {
+            [NSRunLoop.currentRunLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+        }
+        NSCAssert(finished, @"Conversion signal completes after its converted value");
+        return result;
+    };
 }
 static id sendItem(NSString *type, id asset, NSString *uniqueId) {
     NSDictionary *dict = @{@"type": type, @"asset": asset};
@@ -179,7 +245,7 @@ int main(void) {
         prepareSend(context);
         NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"cameraVideo"], @"Disabled round feature bypasses conversion");
         [defaults removePersistentDomainForName:suite];
-        puts("PASS video-to-voice: checkbox isolation, default off, per-clip selection, picker isolation, send snapshots and camera videos");
+        puts("PASS video conversion: UI-thread picker delivery, background export, responsive UI, signal completion, per-clip selection, snapshots and failures");
     }
     return 0;
 }
@@ -189,7 +255,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-video-voice-') as tmp:
     path = Path(tmp)
     harness = path / 'voice.m'
     sender = '@interface TestSender : NSObject\n' + send[:send.index(' {')] + ';\n@end\n@implementation TestSender\n'
-    harness.write_text(support + helpers + toggle + sender + send + tests)
+    harness.write_text(support + helpers + toggle + conversion_helpers + sender + send + tests)
     binary = path / 'voice'
     subprocess.run(['clang', '-fobjc-arc', '-Werror', '-framework', 'Foundation',
                     '-I' + str(ROOT / 'Sources/tgapi'), str(harness), '-o', str(binary)], check=True)

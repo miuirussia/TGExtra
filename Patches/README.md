@@ -112,6 +112,10 @@ deletions still acknowledge incoming operations. Protected expiry returns nil to
 the host's lookup so it clears the queue entry without deleting the message.
 Local deletion and history clearing remain available.
 
+The incoming deletion bridge also passes the transaction and resolved message IDs
+to TGExtra. It saves account- and secret-chat-scoped deletion markers and refreshes
+visible badges. History clearing uses a separate policy-only bridge.
+
 Checks cover caller fingerprints, adapter ABIs, original targets and call bytes.
 Postbox stubs require exact bytes. Payloads preserve x0–x8, x20, x21 and stack
 arguments; without the TGExtra callback, they call the original function.

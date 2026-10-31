@@ -1,6 +1,7 @@
 // Swift integer arguments x0-x8, swiftself x20 and swifterror x21 are
 // restored before tail-calling the reviewed host. Stack arguments stay in place.
 // A missing TGExtra runtime always executes the original operation.
+// The reviewed deletion call passes Transaction in x0 and [MessageId] in x2.
 #include <stdint.h>
 __attribute__((visibility("hidden"))) extern void Original(void);
 __attribute__((visibility("hidden"))) extern void *dlsym(void *, const char *);
@@ -22,8 +23,8 @@ __attribute__((naked)) void SecretChatGate(void) {
         "bl _dlsym\n"
         "cbz x0, 2f\n"
         "mov x16, x0\n"
-        "mov w0, #1\n"
-        "mov w1, #0\n"
+        "ldr x0, [sp]\n"
+        "ldr x1, [sp, #16]\n"
         "blr x16\n"
         "mov w16, w0\n"
         "b 3f\n"
@@ -41,7 +42,7 @@ __attribute__((naked)) void SecretChatGate(void) {
         "4: mov x0, #0\n"
         "ret\n"
         ".section __TEXT,__cstring,cstring_literals\n"
-        "1: .asciz \"TGExtraSecretChatShouldBlock\"\n"
+        "1: .asciz \"TGExtraSecretChatHandleDeletion\"\n"
         ".text\n"
     );
 }

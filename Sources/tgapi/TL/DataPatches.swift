@@ -11,6 +11,7 @@ enum TLFlag: String {
     case mediaUnread = "media_unread"
     case noForwardsMyEnabled = "noforwards_my_enabled"
     case noForwardsPeerEnabled = "noforwards_peer_enabled"
+    case forceFile = "force_file"
 
     func location(in record: TLRecord) -> TLFlagLocation? {
         guard let location = reviewedLocation(in: record), let descriptor = record.descriptor,
@@ -40,6 +41,9 @@ enum TLFlag: String {
         case .noForwardsMyEnabled, .noForwardsPeerEnabled:
             guard constructor == "UserFull.userFull" else { return nil }
             return TLFlagLocation(field: "flags2", bit: self == .noForwardsMyEnabled ? 23 : 24)
+        case .forceFile:
+            guard constructor == "InputMedia.inputMediaUploadedDocument" else { return nil }
+            return TLFlagLocation(field: "flags", bit: 4)
         }
     }
 }

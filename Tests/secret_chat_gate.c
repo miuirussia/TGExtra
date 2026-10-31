@@ -9,11 +9,19 @@ uintptr_t captured[11];
 static int block, calls, observedEvent, observedNamespace;
 
 #ifndef MISSING_RUNTIME
+#ifdef DELETION_BRIDGE
+int32_t TGExtraSecretChatHandleDeletion(const void *transaction, const void *messageIds) {
+    assert((uintptr_t)transaction == 3 && (uintptr_t)messageIds == 5);
+    observedEvent = 1;
+    return block;
+}
+#else
 int32_t TGExtraSecretChatShouldBlock(int32_t event, int32_t peerNamespace) {
     observedEvent = event;
     observedNamespace = peerNamespace;
     return block;
 }
+#endif
 #endif
 
 __attribute__((naked)) void Original(void) {

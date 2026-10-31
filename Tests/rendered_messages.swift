@@ -79,6 +79,7 @@ private func cachedNode(_ message: CachedMessage, account: String = "account-1")
 
 func testRenderedMessages() {
     testEditHistoryButtonColors()
+    testSecretChatDeletionBadges()
     flags("TGExtraAntiEdit")
     let node = cachedNode(cachedMessage(82000))
     check(TLParser.getMessageId(from: node.item as Any) == 82000, "Unwrap inherited optional item and named enum tuple")
@@ -178,6 +179,72 @@ func testRenderedMessages() {
     _ = strip(serialized(message(82011, text: "After enabling", edit: 2000)))
     check(history(forId: 82011, peer: 42) == nil, "Disabled Anti-Edit never records cache originals")
     print("PASS stored message reflection, cache/wire merging, albums, content revisions, reuse and account/namespace isolation")
+}
+
+private func testSecretChatDeletionBadges() {
+    final class Postbox {
+        let basePath: String
+        init(_ account: String) { basePath = "/container/accounts/\(account)/postbox" }
+    }
+    final class Transaction {
+        weak var postbox: Postbox?
+        init(_ postbox: Postbox) { self.postbox = postbox }
+    }
+    let postbox = Postbox(testAccount)
+    let transaction = Transaction(postbox)
+    func revoke(_ messages: [CachedMessage], transaction: Transaction = transaction) -> Int32 {
+        let ids = messages.map { $0.id }
+        precondition(MemoryLayout<CachedMessageId>.stride == 24)
+        return withExtendedLifetime(ids) {
+            secretChatHandleDeletion(Unmanaged.passUnretained(transaction).toOpaque(),
+                                     unsafeBitCast(ids, to: UnsafeRawPointer.self))
+        }
+    }
+    let secret = cachedMessage(82500, peer: 42, peerNamespace: 3, namespace: 1)
+    let state = TLParser.messageState(from: cachedNode(secret), observe: false)!
+    check(state["peer"] as? NSNumber == -2000000000042 && state["namespace"] as? NSNumber == 1,
+          "Secret chats expose their own peer scope to status badges")
+    flags()
+    check(revoke([secret]) == 0 && !isDeleted(82500, peer: -2000000000042, namespace: 1),
+          "Disabled secret-chat protection passes through without marking messages")
+    flags("TGExtraAntiRevoke")
+    var notifications = [[AnyHashable: Any]]()
+    let observer = NotificationCenter.default.addObserver(forName: NSNotification.Name("TGExtraMessageDeletedRealtime"),
+                                                         object: nil, queue: nil) { note in
+        if note.userInfo?["peer"] as? NSNumber == -2000000000042 {
+            check(Thread.isMainThread, "Secret-chat badges refresh on the main thread")
+            notifications.append(note.userInfo!)
+        }
+    }
+    defer { NotificationCenter.default.removeObserver(observer) }
+    check(revoke([secret, cachedMessage(82501, peer: 42, peerNamespace: 3, namespace: 1)]) == 1,
+          "Protected remote deletions are blocked")
+    check(TLParser.isDeleted(state["id"] as! NSNumber, peer: state["peer"] as? NSNumber,
+                             account: state["account"] as? String, namespace: state["namespace"] as? NSNumber),
+          "The deletion callback writes the exact identity used by the visible badge")
+    check(isDeleted(82501, peer: -2000000000042, namespace: 1), "Mark every deleted message in the batch")
+    check(!isDeleted(82500, peer: 42, namespace: 1) && !isDeleted(82500, peer: -2000000000043, namespace: 1) &&
+          !isDeleted(82500, peer: -2000000000042) &&
+          !isDeleted(82500, peer: -2000000000042, account: "account-2", namespace: 1),
+          "Secret deletion markers isolate cloud chats, secret chats, namespaces and accounts")
+    RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+    check(notifications.count == 1 && notifications[0]["ids"] as? [NSNumber] == [82500, 82501] &&
+          notifications[0]["account"] as? String == testAccount && notifications[0]["namespace"] as? NSNumber == 1,
+          "Notify visible messages immediately with their account, peer and namespace")
+    check(MessageHistoryArchive.shared.loadMarkers()[MessageKey(account: testAccount, peer: -2000000000042,
+                                                               id: 82500, namespace: 1)] == TLParser.deletedMarker,
+          "Secret deletion marks persist for reopened chats")
+    let negative = cachedMessage(82502, peer: -42, peerNamespace: 3, namespace: 1)
+    check(revoke([negative]) == 1 && TLParser.getMessagePeerKeyFromNode(cachedNode(negative)) == -1999999999958 &&
+          isDeleted(82502, peer: -1999999999958, namespace: 1), "Signed encrypted-chat IDs resolve consistently")
+    let unresolvedPostbox = Postbox("account-invalid")
+    let unresolved = Transaction(unresolvedPostbox)
+    check(revoke([cachedMessage(82503, peer: 42, peerNamespace: 3, namespace: 1)], transaction: unresolved) == 1 &&
+          !isDeleted(82503, peer: -2000000000042, namespace: 1), "Unknown accounts never borrow an active account")
+    _ = revoke([cachedMessage(82504, peer: 42, peerNamespace: 3, namespace: 1), cachedMessage(82505)])
+    check(!isDeleted(82504, peer: -2000000000042, namespace: 1), "Reject an unexpected host layout before writing a batch")
+    check(revoke([]) == 1 && secretChatHandleDeletion(nil, nil) == 1, "Empty or unresolved batches retain protection")
+    print("PASS secret-chat deletion callback, persisted badge identity, immediate refresh and account/chat isolation")
 }
 
 private func testEditHistoryButtonColors() {

@@ -8,7 +8,10 @@ NSDictionary *tgextraRewriteToRound(id value, id editingContext) {
     NSDictionary *dict = value;
     if (![@[@"video", @"cameraVideo"] containsObject:dict[@"type"]]) return nil;
     AVAsset *asset = tgextraResolveAVAsset(dict);
-    if (!asset) return nil;
+    if (!asset) {
+        customLog(@"Round video: could not resolve source asset (%@)", dict[@"type"]);
+        return nil;
+    }
     CMTimeRange range = tgextraTrimRange(editingContext, dict[@"asset"] ?: dict[@"url"], asset);
     // Camera clips carry their trim in the outgoing description, without a Photos asset.
     id adjustments = dict[@"adjustments"];
@@ -27,6 +30,7 @@ NSDictionary *tgextraRewriteToRound(id value, id editingContext) {
     AVURLAsset *exported = [AVURLAsset URLAssetWithURL:output options:nil];
     double duration = CMTimeGetSeconds(exported.duration);
     if (!isfinite(duration) || duration <= 0 || duration > 60.1) {
+        customLog(@"Round video: invalid exported duration %.3f", duration);
         [NSFileManager.defaultManager removeItemAtURL:output error:NULL];
         return nil;
     }

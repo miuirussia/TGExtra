@@ -129,7 +129,9 @@ Deletion protection can restore messages TGExtra previously observed. It cannot
 recover uncached messages or media missing from both the server and local cache.
 
 In secret chats, **Save Deleted Messages** blocks the other participant's deletion
-and history-clearing commands. **View Disappearing Media Freely** and
+and history-clearing commands. Individually deleted messages show the deletion
+icon; updating this behavior requires rebuilding the IPA with the updated `.ipatch`.
+**View Disappearing Media Freely** and
 **Save Auto-Delete Messages** prevent local expiry. You can still clear history
 yourself. Protection only affects your device.
 

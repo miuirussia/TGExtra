@@ -238,7 +238,11 @@ enum MessagePatches {
                                             settings: Settings = .init()) -> Bool {
         guard settings.videoToRound, registeredUpload, record.typeName == "InputMedia",
               record.constructorName == "inputMediaUploadedDocument" else { return false }
-        return TLDataPatch(record, rule: Setting.videoToRound.rawValue).replaceField("attributes", attributes)
+        let patch = TLDataPatch(record, rule: Setting.videoToRound.rawValue)
+        let replaced = patch.replaceField("attributes", attributes)
+        // The picker enqueues the exported MP4 as a file, so Telegram sets force_file.
+        let cleared = patch.clearFlag(.forceFile)
+        return replaced || cleared
     }
 }
 

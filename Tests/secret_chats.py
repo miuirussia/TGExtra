@@ -37,10 +37,11 @@ class SecretChatTests(unittest.TestCase):
     @unittest.skipUnless(platform.machine() == 'arm64', 'native arm64 payload execution requires Apple Silicon')
     def test_production_bridges(self):
         with tempfile.TemporaryDirectory(prefix='tgextra-secret-bridge-') as directory:
-            for name, event in [('screenshot', 0), ('deletion', 1), ('timer', 2), ('consume', 3)]:
+            for name, event in [('screenshot', 0), ('deletion', 1), ('clear', 1), ('timer', 2), ('consume', 3)]:
                 for missing in (False, True):
                     binary = str(Path(directory) / (name+str(missing)))
                     subprocess.run(['clang', '-O2', '-Werror', '-Wl,-export_dynamic', f'-DEVENT={event}',
+                                    *(['-DDELETION_BRIDGE'] if name == 'deletion' else []),
                                     *(['-DMISSING_RUNTIME'] if missing else []),
                                     str(ROOT/'Tests/secret_chat_gate.c'), str(PROFILE/f'payloads/{name}.c'),
                                     '-o', binary], check=True)

@@ -468,7 +468,7 @@
                 },
                 {
                   "id": "bridge.clear",
-                  "source": "payloads/deletion.bin",
+                  "source": "payloads/clear.bin",
                   "size": 164,
                   "alignment": 4,
                   "permissions": "rx",
@@ -1093,7 +1093,7 @@
                 },
                 {
                   "id": "bridge.clear",
-                  "source": "payloads/deletion.bin",
+                  "source": "payloads/clear.bin",
                   "size": 164,
                   "alignment": 4,
                   "permissions": "rx",

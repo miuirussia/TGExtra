@@ -94,7 +94,7 @@ def generate_variant(ipa, client):
             {'id': 'verify.call.'+name, 'at': {'anchor': at},
              'assert': {'branch': {'to': original, 'instruction': instruction}}},
         ]
-        payload = 'deletion' if name in ('delete', 'clear') else name
+        payload = 'deletion' if name == 'delete' else name
         code, relocations = payload_template(payload, block, original)
         (PROFILE / f'payloads/{payload}.bin').write_bytes(code)
         patch['payloads'].append({'id': block, 'source': f'payloads/{payload}.bin', 'size': len(code),
