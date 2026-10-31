@@ -200,12 +200,13 @@ private func testSecretChatDeletionBadges() {
                                      unsafeBitCast(ids, to: UnsafeRawPointer.self))
         }
     }
-    let secret = cachedMessage(82500, peer: 42, peerNamespace: 3, namespace: 1)
+    // Telegram uses SecretIncoming (2) for received messages and Local (1) for sent messages.
+    let secret = cachedMessage(82500, peer: 42, peerNamespace: 3, namespace: 2)
     let state = TLParser.messageState(from: cachedNode(secret), observe: false)!
-    check(state["peer"] as? NSNumber == -2000000000042 && state["namespace"] as? NSNumber == 1,
+    check(state["peer"] as? NSNumber == -2000000000042 && state["namespace"] as? NSNumber == 2,
           "Secret chats expose their own peer scope to status badges")
     flags()
-    check(revoke([secret]) == 0 && !isDeleted(82500, peer: -2000000000042, namespace: 1),
+    check(revoke([secret]) == 0 && !isDeleted(82500, peer: -2000000000042, namespace: 2),
           "Disabled secret-chat protection passes through without marking messages")
     flags("TGExtraAntiRevoke")
     var notifications = [[AnyHashable: Any]]()
@@ -217,32 +218,56 @@ private func testSecretChatDeletionBadges() {
         }
     }
     defer { NotificationCenter.default.removeObserver(observer) }
-    check(revoke([secret, cachedMessage(82501, peer: 42, peerNamespace: 3, namespace: 1)]) == 1,
+    check(revoke([secret, cachedMessage(82501, peer: 42, peerNamespace: 3, namespace: 2)]) == 1,
           "Protected remote deletions are blocked")
     check(TLParser.isDeleted(state["id"] as! NSNumber, peer: state["peer"] as? NSNumber,
                              account: state["account"] as? String, namespace: state["namespace"] as? NSNumber),
           "The deletion callback writes the exact identity used by the visible badge")
-    check(isDeleted(82501, peer: -2000000000042, namespace: 1), "Mark every deleted message in the batch")
-    check(!isDeleted(82500, peer: 42, namespace: 1) && !isDeleted(82500, peer: -2000000000043, namespace: 1) &&
+    check(isDeleted(82501, peer: -2000000000042, namespace: 2), "Mark every deleted message in the batch")
+    check(!isDeleted(82500, peer: 42, namespace: 2) && !isDeleted(82500, peer: -2000000000043, namespace: 2) &&
           !isDeleted(82500, peer: -2000000000042) &&
-          !isDeleted(82500, peer: -2000000000042, account: "account-2", namespace: 1),
+          !isDeleted(82500, peer: -2000000000042, account: "account-2", namespace: 2),
           "Secret deletion markers isolate cloud chats, secret chats, namespaces and accounts")
     RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
     check(notifications.count == 1 && notifications[0]["ids"] as? [NSNumber] == [82500, 82501] &&
-          notifications[0]["account"] as? String == testAccount && notifications[0]["namespace"] as? NSNumber == 1,
+          notifications[0]["account"] as? String == testAccount && notifications[0]["namespace"] as? NSNumber == 2,
           "Notify visible messages immediately with their account, peer and namespace")
     check(MessageHistoryArchive.shared.loadMarkers()[MessageKey(account: testAccount, peer: -2000000000042,
-                                                               id: 82500, namespace: 1)] == TLParser.deletedMarker,
+                                                               id: 82500, namespace: 2)] == TLParser.deletedMarker,
           "Secret deletion marks persist for reopened chats")
-    let negative = cachedMessage(82502, peer: -42, peerNamespace: 3, namespace: 1)
+    notifications.removeAll()
+    let outgoing = cachedMessage(82506, peer: 42, peerNamespace: 3, namespace: 1)
+    let incoming = cachedMessage(82506, peer: 42, peerNamespace: 3, namespace: 2)
+    check(revoke([outgoing, incoming]) == 1 &&
+          isDeleted(82506, peer: -2000000000042, namespace: 1) &&
+          isDeleted(82506, peer: -2000000000042, namespace: 2),
+          "A remote deletion can mark sent and received messages in the same batch")
+    RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.05))
+    check(notifications.count == 2 && Set(notifications.compactMap { ($0["namespace"] as? NSNumber)?.int32Value }) == [1, 2] &&
+          notifications.allSatisfy { $0["ids"] as? [NSNumber] == [82506] && $0["account"] as? String == testAccount },
+          "Refresh each secret message namespace separately, even when numeric IDs coincide")
+    let outgoingState = TLParser.messageState(from: cachedNode(outgoing), observe: false)!
+    check(TLParser.isDeleted(outgoingState["id"] as! NSNumber, peer: outgoingState["peer"] as? NSNumber,
+                             account: outgoingState["account"] as? String, namespace: outgoingState["namespace"] as? NSNumber),
+          "Sent secret messages retain the exact identity used by their badge")
+    check(MessageHistoryArchive.shared.loadMarkers()[MessageKey(account: testAccount, peer: -2000000000042,
+                                                               id: 82506, namespace: 1)] == TLParser.deletedMarker &&
+          MessageHistoryArchive.shared.loadMarkers()[MessageKey(account: testAccount, peer: -2000000000042,
+                                                               id: 82506, namespace: 2)] == TLParser.deletedMarker,
+          "Both secret message namespaces persist independently")
+    let negative = cachedMessage(82502, peer: -42, peerNamespace: 3, namespace: 2)
     check(revoke([negative]) == 1 && TLParser.getMessagePeerKeyFromNode(cachedNode(negative)) == -1999999999958 &&
-          isDeleted(82502, peer: -1999999999958, namespace: 1), "Signed encrypted-chat IDs resolve consistently")
+          isDeleted(82502, peer: -1999999999958, namespace: 2), "Signed encrypted-chat IDs resolve consistently")
     let unresolvedPostbox = Postbox("account-invalid")
     let unresolved = Transaction(unresolvedPostbox)
-    check(revoke([cachedMessage(82503, peer: 42, peerNamespace: 3, namespace: 1)], transaction: unresolved) == 1 &&
-          !isDeleted(82503, peer: -2000000000042, namespace: 1), "Unknown accounts never borrow an active account")
-    _ = revoke([cachedMessage(82504, peer: 42, peerNamespace: 3, namespace: 1), cachedMessage(82505)])
-    check(!isDeleted(82504, peer: -2000000000042, namespace: 1), "Reject an unexpected host layout before writing a batch")
+    check(revoke([cachedMessage(82503, peer: 42, peerNamespace: 3, namespace: 2)], transaction: unresolved) == 1 &&
+          !isDeleted(82503, peer: -2000000000042, namespace: 2), "Unknown accounts never borrow an active account")
+    _ = revoke([cachedMessage(82504, peer: 42, peerNamespace: 3, namespace: 2), cachedMessage(82505)])
+    check(!isDeleted(82504, peer: -2000000000042, namespace: 2), "Reject an unexpected host layout before writing a batch")
+    _ = revoke([cachedMessage(82507, peer: 42, peerNamespace: 3, namespace: 2),
+                cachedMessage(82508, peer: 42, peerNamespace: 3, namespace: 3)])
+    check(!isDeleted(82507, peer: -2000000000042, namespace: 2) && !isDeleted(82508, peer: -2000000000042, namespace: 3),
+          "Unsupported secret message namespaces reject the batch without partial marks")
     check(revoke([]) == 1 && secretChatHandleDeletion(nil, nil) == 1, "Empty or unresolved batches retain protection")
     print("PASS secret-chat deletion callback, persisted badge identity, immediate refresh and account/chat isolation")
 }

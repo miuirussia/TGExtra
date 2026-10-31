@@ -16,7 +16,8 @@ extension TLParser {
             let peerId = element.load(fromByteOffset: 8, as: Int64.self)
             let namespace = element.load(fromByteOffset: 16, as: Int32.self)
             let id = element.load(fromByteOffset: 20, as: Int32.self)
-            guard peerNamespace == 3, namespace == 1, id != 0,
+            // Local (1) is used for sent messages, SecretIncoming (2) for received messages.
+            guard peerNamespace == 3, (namespace == 1 || namespace == 2), id != 0,
                   let peer = RenderedMessageReader.peerKey(namespace: 3, id: peerId) else { return }
             keys.append(MessageKey(account: account, peer: peer, id: id, namespace: namespace))
         }
@@ -30,12 +31,14 @@ extension TLParser {
         flushMarkers()
         processingLock.unlock()
 
-        let groups = Dictionary(grouping: keys, by: \.peer)
+        let groups = Dictionary(grouping: keys) {
+            MessageKey(account: $0.account, peer: $0.peer, id: 0, namespace: $0.namespace)
+        }
         DispatchQueue.main.async {
-            for (peer, messages) in groups {
+            for (scope, messages) in groups {
                 NotificationCenter.default.post(name: NSNotification.Name("TGExtraMessageDeletedRealtime"), object: nil,
                     userInfo: ["ids": messages.map { NSNumber(value: $0.id) }, "account": account,
-                               "peer": NSNumber(value: peer), "namespace": NSNumber(value: 1)])
+                               "peer": NSNumber(value: scope.peer), "namespace": NSNumber(value: scope.namespace)])
             }
         }
     }
