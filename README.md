@@ -67,8 +67,12 @@ needs on-device validation.
 **Message Data → Debug Log** includes the current schema, method availability,
 native decoder, observed Rust integration and UI hook installation status.
 Finding a UI interface does not validate the Swift stored fields used by that
-feature. Standalone TL `true` flags (such as `noforwards`, `silent` and `voice`)
-are absent from TLS1 and retain reviewed bit mappings. Unknown protected-forward
+feature. Swiftgram 13.1.1 stores the presentation-state copy-protection flag in
+Swift without an Objective-C getter, so the optional copy-protection UI hook is
+reported as skipped. Protocol copy-protection policies do not require this hook;
+their availability is reported separately. Standalone TL `true` flags (such as
+`noforwards`, `silent` and `voice`) are absent from TLS1 and retain reviewed bit
+mappings. Unknown protected-forward
 options are rejected. Changed Rust/native machine code still requires a reviewed
 profile; these checks are never relaxed automatically. A new client bundle ID
 must also be added to the injection filter and applicable patch profiles.

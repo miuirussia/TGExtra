@@ -12,6 +12,7 @@ extension TLParser {
         } else {
             lines.append("Host schema unavailable: protocol policies are inactive")
         }
+        lines.append("Copy protection protocol policies: " + (HostSchema.shared != nil ? "available (settings apply)" : "unavailable: host schema missing"))
         lines.append("Native TL decoder: " + (nativeTLAvailable() ? "active" : "unavailable; byte codec used when schema is available"))
         lines.append("Rust bridge: " + TGExtraRustCompatibilityStatus())
         let hooks = TGExtraInstalledHookStatuses() ?? [:]
@@ -23,12 +24,18 @@ extension TLParser {
             ("Double-tap reactions", ["Display.TapLongTapOrDoubleTapGestureRecognizer"], "touchesBegan:withEvent:"),
             ("Recording button", ["ChatTextInputMediaRecordingButton.ChatTextInputMediaRecordingButton", "TelegramUI.ChatTextInputMediaRecordingButton"], "micButtonInteractionBegan"),
             ("Voice preview", ["TGMediaPickerGalleryInterfaceView"], "itemFocused:itemView:"),
-            ("Private copy protection", ["TelegramUI.ChatPresentationInterfaceState", "ChatPresentationInterfaceState.ChatPresentationInterfaceState"], "copyProtectionEnabled"),
+            ("Copy protection UI", ["TelegramUI.ChatPresentationInterfaceState", "ChatPresentationInterfaceState.ChatPresentationInterfaceState"], "copyProtectionEnabled"),
             ("tlottie", ["TLottieAnimation"], "initWithData:fitzModifier:colorReplacements:"),
         ]
         for (name, classes, selector) in interfaces {
             let available = classes.contains { class_getInstanceMethod(NSClassFromString($0), NSSelectorFromString(selector)) != nil }
-            lines.append("\(name) interface: \(available ? "present" : "unavailable")")
+            let status: String
+            if name == "Copy protection UI", !available, classes.contains(where: { NSClassFromString($0) != nil }) {
+                status = "state present; no Objective-C getter (optional)"
+            } else {
+                status = available ? "present" : "unavailable"
+            }
+            lines.append("\(name) interface: \(status)")
         }
         lines.append("Private Swift fields still require client validation. Standalone true-flag bits are reviewed mappings; TLS1 does not describe them.")
         return lines.joined(separator: "\n")

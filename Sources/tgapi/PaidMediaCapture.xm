@@ -128,9 +128,11 @@ void TGExtraUpdatePaidMediaCapture(id node) {
     BOOL allow = [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] && unlocked;
     objc_setAssociatedObject(root, &paidCaptureRootKey, allow ? @YES : nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     if (allow || wasAllowed) updateCaptureLayers(root, allow);
+    NSString *reason = allow ? @"capture bypass enabled" :
+        (!unlocked ? @"inactive: item not recognized as unlocked paid media" : @"inactive: saving protected content is off");
     recordCaptureStatus(@"TGExtraPaidCaptureStatus", [NSString stringWithFormat:
-        @"%@ unlocked=%d allow=%d; cleared images=%lu videos=%lu", name, unlocked, allow,
-        (unsigned long)clearedImageLayers, (unsigned long)clearedVideoLayers]);
+        @"%@ unlocked=%d allow=%d; cleared images=%lu videos=%lu; %@", name, unlocked, allow,
+        (unsigned long)clearedImageLayers, (unsigned long)clearedVideoLayers, reason]);
 }
 
 %group TGExtraPaidGalleryViews
