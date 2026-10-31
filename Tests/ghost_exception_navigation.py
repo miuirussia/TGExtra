@@ -50,8 +50,12 @@ int main(void) {
         checkProfile(@{@"id": @7331000001LL, @"name": @"Test", @"customName": @"Friend"},
                      @"tg://user?id=7331000001");
         checkProfile(@{@"id": @42, @"username": @"test_user"},
-                     @"tg://resolve?domain=test_user&profile");
-        puts("PASS ghost exception profiles: ID only, empty username, 64-bit ID, username and dismissal order");
+                     @"tg://user?id=42");
+        checkProfile(@{@"id": @42, @"username": @"changed_username"},
+                     @"tg://user?id=42");
+        checkProfile(@{@"id": @43, @"username": @"test_user"},
+                     @"tg://user?id=43");
+        puts("PASS ghost exception profiles: ID only, empty/changed/reassigned username, 64-bit ID and dismissal order");
     }
     return 0;
 }

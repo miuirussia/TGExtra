@@ -79,13 +79,10 @@
 }
 
 - (void)openProfileForException:(NSDictionary *)entry {
-  NSString *username = entry[kTGExtraGhostExceptionUsername];
   NSNumber *peerId = entry[kTGExtraGhostExceptionId];
 
   NSString *urlString =
-      username.length
-          ? [NSString stringWithFormat:@"tg://resolve?domain=%@&profile", username]
-          : [NSString stringWithFormat:@"tg://user?id=%@", peerId];
+      [NSString stringWithFormat:@"tg://user?id=%@", peerId];
 
   NSURL *url = [NSURL URLWithString:urlString];
   if (!url) return;
