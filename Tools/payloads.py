@@ -14,7 +14,8 @@ import tempfile
 def compile_payload(source):
     with tempfile.TemporaryDirectory(prefix='tgextra-payload-') as directory:
         obj = Path(directory)/'payload.o'
-        subprocess.run(['clang', '-target', 'arm64-apple-macos14', '-O2', '-Werror',
+        subprocess.run(['xcrun', '--toolchain', 'default', 'clang',
+                        '-target', 'arm64-apple-macos14', '-O2', '-Werror',
                         '-fno-stack-protector', '-fno-unwind-tables',
                         '-c', str(source), '-o', str(obj)], check=True)
         return object_payload(obj.read_bytes())

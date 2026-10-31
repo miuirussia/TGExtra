@@ -14,6 +14,9 @@ if [[ -z "${DEVELOPER_DIR:-}" ]] && ! xcrun --sdk iphoneos --show-sdk-path >/dev
 fi
 xcrun --sdk iphoneos --show-sdk-path >/dev/null
 
+# Keep payloads and tests on the Xcode toolchain even with Swiftly in PATH.
+export PATH="$(dirname "$(xcrun --toolchain default --find clang)"):$PATH"
+
 make_command=make
 if command -v gmake >/dev/null 2>&1; then
     make_command=gmake
@@ -43,7 +46,7 @@ mkdir -p "$output"
 
 # The same checks and payload compilation as the workflow's checks job.
 python3 Tools/build_payloads.py
-bash Tests/run.sh
+SDKROOT="$(xcrun --sdk macosx --show-sdk-path)" bash Tests/run.sh
 
 for scheme in rootful rootless roothide; do
     scheme_arg=""

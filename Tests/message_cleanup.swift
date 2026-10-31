@@ -1,5 +1,6 @@
 import Foundation
 import Postbox
+import SwiftSignalKit
 import tgapiC
 
 @objc(TLParser) class TLParser: NSObject {
@@ -50,6 +51,8 @@ func makeId(_ namespace: UInt32, _ peer: Int64, _ messageNamespace: Int32 = 0, _
         defaults.set(false, forKey: "TGExtraAntiAutoDelete")
         defaults.removeObject(forKey: MessageDataCleanup.storageKey)
         require(TGExtraMessageCleanupAvailable(), "Resolve actual Swift exports")
+        require(MemoryLayout<Disposable>.size == 2 * MemoryLayout<UnsafeRawPointer>.size,
+                "Host Disposable uses the class-bound two-word ABI")
         let account = "account-99123"
         let other = "account-99124"
         let postbox = Postbox(account)
@@ -78,6 +81,7 @@ func makeId(_ namespace: UInt32, _ peer: Int64, _ messageNamespace: Int32 = 0, _
             (defaults.dictionary(forKey: MessageDataCleanup.storageKey) ?? [:]).count == 1
         })
         require(postbox.messages == [alive, channelAlive, scheduled], "Remove deleted messages and ranges, preserving live messages and namespaces")
+        require(DisposableProbe.liveTokens == 0, "Release the cleanup token without cancelling the transaction")
         require(otherPostbox.messages == [deleted, alive], "Inactive account is untouched until registered")
         MessageDataCleanup.register(from: Context(otherPostbox))
         waitFor("Commit inactive account after opening", { otherPostbox.commits == 1 })

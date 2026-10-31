@@ -178,15 +178,6 @@ func messageCleanupCompleted(_ context: UnsafeMutableRawPointer) {
     Unmanaged<MessageCleanupCallbacks>.fromOpaque(context).takeUnretainedValue().completed()
 }
 
-// A single-protocol opaque existential has the same layout as Disposable.
-// Only destroy the value through its dynamic metadata; never call its witness.
-private protocol MessageCleanupDisposable { func dispose() }
-
-@_cdecl("TGExtraMessageCleanupReleaseDisposable")
-func messageCleanupReleaseDisposable(_ disposable: UnsafeMutableRawPointer) {
-    disposable.assumingMemoryBound(to: MessageCleanupDisposable.self).deinitialize(count: 1)
-}
-
 extension TLParser {
     @objc static func registerMessageCleanupContext(_ context: Any) {
         MessageDataCleanup.register(from: context)

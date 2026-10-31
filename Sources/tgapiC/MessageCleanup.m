@@ -3,7 +3,8 @@
 
 // Use the exported Swift methods, preserving swiftself and Swift closure ABI.
 // No Telegram network deletion requests are issued by this bridge.
-typedef struct { void *buffer[3]; const void *metadata; const void *witness; } TGExtraDisposable;
+// Disposable: AnyObject is returned directly as an object and witness table.
+typedef struct { void *object; const void *witness; } TGExtraDisposable;
 typedef void * __attribute__((swiftcall)) (*TransactionFunction)(BOOL, BOOL, void *, void *, uintptr_t, uintptr_t, intptr_t, const void *, void * __attribute__((swift_context)));
 typedef TGExtraDisposable __attribute__((swiftcall)) (*StartFunction)(void *, void *, void *, void *, void *, void *, void * __attribute__((swift_context)));
 typedef void __attribute__((swiftcall)) (*DeleteFunction)(void *, void *, void *, void * __attribute__((swift_context)));
@@ -14,7 +15,6 @@ static void *hostMethod(const char *name) { return dlsym(RTLD_DEFAULT, name); }
 
 extern void TGExtraMessageCleanupBody(void *context, void *transaction);
 extern void TGExtraMessageCleanupCompleted(void *context);
-extern void TGExtraMessageCleanupReleaseDisposable(void *disposable);
 extern void TGExtraSecretChatClearedMessage(void *context, void *message);
 
 static bool __attribute__((swiftcall)) clearedMessage(void *message, void *context __attribute__((swift_context))) {
@@ -50,8 +50,9 @@ void TGExtraRunMessageCleanup(void *postbox, void *context, const void *voidMeta
     // An empty Swift String uses the small-string discriminator in its second word.
     void *signal = transaction(NO, NO, cleanupBody, context, 0, (uintptr_t)0xe000000000000000ULL, 0, voidMetadata, postbox);
     TGExtraDisposable disposable = start(NULL, NULL, NULL, NULL, cleanupCompleted, context, signal);
-    TGExtraMessageCleanupReleaseDisposable(&disposable);
     void (*release)(void *) = hostMethod("swift_release");
+    // Drop our owned reference without disposing/cancelling the transaction.
+    release(disposable.object);
     release(signal);
 }
 
