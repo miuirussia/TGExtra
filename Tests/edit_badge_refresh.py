@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-source = (ROOT / 'Sources/tgapi/UI/MessageBadges.xm').read_text()
+source = (ROOT / 'Sources/tgapi/UI/MessageBadges.x').read_text()
 updater = source[source.index('static NSHashTable *activeMessageNodes = nil;'):]
 updater = updater[:updater.index('void TGExtraStartMessageBadges(')]
 for group, method in [('TGExtraMessageViewLayout', 'layoutSubviews'), ('TGExtraMessageViewWindow', 'didMoveToWindow')]:

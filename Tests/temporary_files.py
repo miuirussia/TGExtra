@@ -202,15 +202,15 @@ int main(void) { @autoreleasepool {
 
 with tempfile.TemporaryDirectory(prefix='tgextra-temporary-files-') as directory:
     directory = Path(directory)
-    hook = directory / 'hooks.mm'
+    hook = directory / 'hooks.m'
     if logos.exists():
         with hook.open('w') as output:
             subprocess.run(['perl', str(logos), '-c', 'generator=internal',
-                            str(root / 'Sources/tgapi/TemporaryFileHooks.xm')], stdout=output, check=True)
+                            str(root / 'Sources/tgapi/TemporaryFileHooks.x')], stdout=output, check=True)
     else:
         # CI's checks job has no Theos. Install the same production hook bodies
         # with Objective-C runtime calls, as Logos's internal generator does.
-        hooks = (root / 'Sources/tgapi/TemporaryFileHooks.xm').read_text().split('%end')[0]
+        hooks = (root / 'Sources/tgapi/TemporaryFileHooks.x').read_text().split('%end')[0]
         hooks = hooks.replace('%hook NSFileManager', r'''
 #import <objc/runtime.h>
 static BOOL (*originalURL)(id, SEL, NSURL *, NSURL *, NSError **);
@@ -236,5 +236,5 @@ __attribute__((constructor)) static void installCopyHooks(void) {
     binary = directory / 'tests'
     subprocess.run(['clang', '-fobjc-arc', '-Werror', '-DTGEXTRA_TESTING',
                     '-I', str(root / 'Sources/tgapi'), '-framework', 'Foundation',
-                    str(test), str(hook), '-lc++', '-o', str(binary)], check=True)
+                    str(test), str(hook), '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=20)

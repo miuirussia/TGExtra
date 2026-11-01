@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-picker = (ROOT / 'Sources/tgapi/FilePickerFix.xm').read_text()
+picker = (ROOT / 'Sources/tgapi/FilePickerFix.x').read_text()
 helper = picker[picker.index('static NSURL *TGExtraRelocatePickedFile'):picker.index('%hook LegacyMediaPickerUIICloudFileController')]
 methods = picker[picker.index('- (void)documentPicker:'):picker.index('%hook NSURL')]
 methods = methods[:methods.index('%end')]

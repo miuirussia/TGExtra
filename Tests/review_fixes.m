@@ -9,6 +9,86 @@
 - (void)lieToDelegates;
 @end
 
+@interface ThreadedLocationDelegate : NSObject <CLLocationManagerDelegate>
+@property CLLocationManager *manager;
+@property NSRunLoop *runLoop;
+@property NSThread *creationThread;
+@property dispatch_semaphore_t ready;
+@property dispatch_semaphore_t resume;
+@property dispatch_semaphore_t delivered;
+@property dispatch_semaphore_t finished;
+@property NSUInteger callbacks;
+@property BOOL stopping;
+@end
+@implementation ThreadedLocationDelegate
+- (void)run {
+    @autoreleasepool {
+        self.creationThread = NSThread.currentThread;
+        self.runLoop = NSRunLoop.currentRunLoop;
+        self.manager = [CLLocationManager new];
+        self.manager.delegate = self;
+        [TGExtraFakeLocationManager.shared registerManager:self.manager];
+        NSPort *port = [NSMachPort port];
+        [self.runLoop addPort:port forMode:NSDefaultRunLoopMode];
+        dispatch_semaphore_signal(self.ready);
+        dispatch_semaphore_wait(self.resume, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC));
+        NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:5];
+        while (!self.stopping && deadline.timeIntervalSinceNow > 0) {
+            [self.runLoop runMode:NSDefaultRunLoopMode beforeDate:[NSDate dateWithTimeIntervalSinceNow:0.05]];
+        }
+        [self.runLoop removePort:port forMode:NSDefaultRunLoopMode];
+        [port invalidate];
+        dispatch_semaphore_signal(self.finished);
+    }
+}
+- (void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations {
+    NSCAssert(NSThread.currentThread == self.creationThread, @"Preserve the manager's creation thread");
+    NSCAssert(manager == self.manager && [locations.firstObject coordinate].latitude == 1,
+              @"Deliver the selected coordinate to the original manager");
+    self.callbacks++;
+    dispatch_semaphore_signal(self.delivered);
+}
+@end
+
+static void testLocationRunLoop(NSUserDefaults *defaults) {
+    ThreadedLocationDelegate *delegate = [ThreadedLocationDelegate new];
+    delegate.ready = dispatch_semaphore_create(0);
+    delegate.resume = dispatch_semaphore_create(0);
+    delegate.delivered = dispatch_semaphore_create(0);
+    delegate.finished = dispatch_semaphore_create(0);
+    NSThread *thread = [[NSThread alloc] initWithTarget:delegate selector:@selector(run) object:nil];
+    [thread start];
+    NSCAssert(dispatch_semaphore_wait(delegate.ready, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) == 0,
+              @"Create a manager with a background run loop");
+    TGExtraFakeLocationManager *registry = TGExtraFakeLocationManager.shared;
+    [registry registerManager:delegate.manager];
+    [registry lieToDelegates];
+    NSCAssert(delegate.callbacks == 0, @"Re-registration on main must not move callback delivery");
+
+    [defaults setBool:NO forKey:FAKE_LOCATION_ENABLED_KEY];
+    dispatch_semaphore_t drained = dispatch_semaphore_create(0);
+    CFRunLoopPerformBlock([delegate.runLoop getCFRunLoop], kCFRunLoopCommonModes, ^{
+        dispatch_semaphore_signal(drained);
+    });
+    dispatch_semaphore_signal(delegate.resume);
+    CFRunLoopWakeUp([delegate.runLoop getCFRunLoop]);
+    NSCAssert(dispatch_semaphore_wait(drained, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) == 0,
+              @"Drain queued deliveries on the background run loop");
+    NSCAssert(delegate.callbacks == 0, @"Disabling the setting cancels a queued synthetic update");
+
+    [defaults setBool:YES forKey:FAKE_LOCATION_ENABLED_KEY];
+    [registry lieToDelegates];
+    NSCAssert(dispatch_semaphore_wait(delegate.delivered, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) == 0,
+              @"Wake the manager's run loop and deliver the synthetic update");
+    NSCAssert(delegate.callbacks == 1, @"Deliver exactly once on the creation thread");
+    CFRunLoopPerformBlock([delegate.runLoop getCFRunLoop], kCFRunLoopCommonModes, ^{
+        delegate.stopping = YES;
+    });
+    CFRunLoopWakeUp([delegate.runLoop getCFRunLoop]);
+    NSCAssert(dispatch_semaphore_wait(delegate.finished, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) == 0,
+              @"Stop the background location run loop");
+}
+
 @interface RegisteringLocationDelegate : NSObject <CLLocationManagerDelegate>
 @property(nonatomic, strong) NSMutableArray<CLLocationManager *> *created;
 @property(nonatomic) NSUInteger callbacks;
@@ -47,6 +127,7 @@ static void testLocationRegistry(void) {
     });
     [registry lieToDelegates];
     NSCAssert(delegate.callbacks == 4, @"Concurrent registration preserves existing weak members");
+    testLocationRunLoop(defaults);
     [defaults removePersistentDomainForName:suite];
     method_setImplementation(method, previous);
 }
@@ -97,7 +178,7 @@ int main(void) {
         testLocationRegistry();
         testCellReset();
         testLog();
-        puts("PASS location callback reentrancy/concurrency, real UIKit cell reuse and shared log read/write/clear");
+        puts("PASS location callback run loops, queued cancellation, reentrancy/concurrency, real UIKit cell reuse and shared log read/write/clear");
     }
     return 0;
 }

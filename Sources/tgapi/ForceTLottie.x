@@ -9,10 +9,12 @@
           colorReplacements:(NSDictionary *)colorReplacements;
 @end
 
+@interface RLottieInstance : NSObject
+- (instancetype)initWithData:(NSData *)data fitzModifier:(int32_t)fitzModifier
+          colorReplacements:(NSDictionary *)colorReplacements cacheKey:(NSString *)cacheKey;
+@end
+
 static Class TGExtraTLottieClass;
-typedef id (*TGExtraLottieInitializer)(id __attribute__((ns_consumed)), SEL,
-    NSData *, int32_t, NSDictionary *, NSString *) __attribute__((ns_returns_retained));
-static TGExtraLottieInitializer TGExtraOriginalLottieInit;
 
 static BOOL TGExtraLottieMethodMatches(Class cls, SEL selector, const char *result,
                                       NSArray<NSString *> *arguments) {
@@ -38,17 +40,20 @@ static BOOL TGExtraLottieRendererMatches(Class cls, SEL initializer, NSArray<NSS
                             @(@encode(int32_t)), @(@encode(int32_t)), @(@encode(int32_t))]);
 }
 
-static id TGExtraLottieInit(id self __attribute__((ns_consumed)), SEL selector,
-    NSData *data, int32_t fitzModifier, NSDictionary *colorReplacements,
-    NSString *cacheKey) __attribute__((ns_returns_retained)) {
+%group TGExtraForceTLottie
+%hook RLottieInstance
+- (instancetype)initWithData:(NSData *)data fitzModifier:(int32_t)fitzModifier
+          colorReplacements:(NSDictionary *)colorReplacements cacheKey:(NSString *)cacheKey {
     if ([NSUserDefaults.standardUserDefaults boolForKey:kForceTLottie]) {
-        return [[TGExtraTLottieClass alloc] initWithData:data fitzModifier:fitzModifier
+        return (id)[[TGExtraTLottieClass alloc] initWithData:data fitzModifier:fitzModifier
                                      colorReplacements:colorReplacements];
     }
-    return TGExtraOriginalLottieInit(self, selector, data, fitzModifier, colorReplacements, cacheKey);
+    return %orig;
 }
+%end
+%end
 
-__attribute__((constructor)) static void TGExtraInstallForceTLottie(void) {
+%ctor {
     @autoreleasepool {
         Class rlottie = NSClassFromString(@"RLottieInstance");
         Class tlottie = NSClassFromString(@"TLottieAnimation");
@@ -57,9 +62,7 @@ __attribute__((constructor)) static void TGExtraInstallForceTLottie(void) {
                 [arguments arrayByAddingObject:@(@encode(id))]) &&
             TGExtraLottieRendererMatches(tlottie, @selector(initWithData:fitzModifier:colorReplacements:), arguments)) {
             TGExtraTLottieClass = tlottie;
-            Method initializer = class_getInstanceMethod(rlottie,
-                @selector(initWithData:fitzModifier:colorReplacements:cacheKey:));
-            TGExtraOriginalLottieInit = (TGExtraLottieInitializer)method_setImplementation(initializer, (IMP)TGExtraLottieInit);
+            %init(TGExtraForceTLottie, RLottieInstance = rlottie);
             TGExtraRecordHookStatus(@"tlottie", @"installed");
         } else {
             TGExtraRecordHookStatus(@"tlottie", @"unavailable: renderer ABI");

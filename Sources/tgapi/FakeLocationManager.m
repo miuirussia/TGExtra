@@ -3,7 +3,7 @@
 #import <UIKit/UIKit.h>
 
 @interface TGExtraFakeLocationManager ()
-@property(nonatomic, strong) NSHashTable<CLLocationManager *> *locationManagers;
+@property(nonatomic, strong) NSMapTable<CLLocationManager *, NSRunLoop *> *locationManagers;
 @property(nonatomic, strong) NSTimer *timer;
 @end
 
@@ -17,7 +17,7 @@
 
 - (instancetype)init {
     if ((self = [super init])) {
-        _locationManagers = [NSHashTable weakObjectsHashTable];
+        _locationManagers = [NSMapTable weakToStrongObjectsMapTable];
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(stopTimer)
             name:UIApplicationDidEnterBackgroundNotification object:nil];
         [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(startTimer)
@@ -29,7 +29,11 @@
 
 - (void)registerManager:(CLLocationManager *)manager {
     if (!manager) return;
-    @synchronized(self.locationManagers) { [self.locationManagers addObject:manager]; }
+    @synchronized(self.locationManagers) {
+        if (![self.locationManagers objectForKey:manager]) {
+            [self.locationManagers setObject:NSRunLoop.currentRunLoop forKey:manager];
+        }
+    }
 }
 
 - (void)startTimer {
@@ -45,21 +49,34 @@
     self.timer = nil;
 }
 
-- (void)lieToDelegates {
-    if (!NSThread.isMainThread) {
-        dispatch_async(dispatch_get_main_queue(), ^{ [self lieToDelegates]; });
-        return;
-    }
+- (void)deliverToManager:(CLLocationManager *)manager {
+    if (!manager) return;
     CLLocationCoordinate2D coordinate;
     if (![NSUserDefaults.standardUserDefaults boolForKey:FAKE_LOCATION_ENABLED_KEY] ||
         !TGExtraSavedCoordinate(NSUserDefaults.standardUserDefaults, &coordinate)) return;
     NSArray *locations = @[[[CLLocation alloc] initWithLatitude:coordinate.latitude longitude:coordinate.longitude]];
+    id<CLLocationManagerDelegate> delegate = manager.delegate;
+    if ([delegate respondsToSelector:@selector(locationManager:didUpdateLocations:)]) {
+        [delegate locationManager:manager didUpdateLocations:locations];
+    }
+}
+
+- (void)lieToDelegates {
+    if (![NSUserDefaults.standardUserDefaults boolForKey:FAKE_LOCATION_ENABLED_KEY]) return;
     NSArray<CLLocationManager *> *managers;
-    @synchronized(self.locationManagers) { managers = self.locationManagers.allObjects; }
+    @synchronized(self.locationManagers) { managers = self.locationManagers.keyEnumerator.allObjects; }
     for (CLLocationManager *manager in managers) {
-        id<CLLocationManagerDelegate> delegate = manager.delegate;
-        if ([delegate respondsToSelector:@selector(locationManager:didUpdateLocations:)]) {
-            [delegate locationManager:manager didUpdateLocations:locations];
+        NSRunLoop *runLoop;
+        @synchronized(self.locationManagers) { runLoop = [self.locationManagers objectForKey:manager]; }
+        if (!runLoop) continue;
+        if ([runLoop getCFRunLoop] == CFRunLoopGetCurrent()) {
+            [self deliverToManager:manager];
+        } else {
+            __weak CLLocationManager *weakManager = manager;
+            CFRunLoopPerformBlock([runLoop getCFRunLoop], kCFRunLoopCommonModes, ^{
+                [self deliverToManager:weakManager];
+            });
+            CFRunLoopWakeUp([runLoop getCFRunLoop]);
         }
     }
 }

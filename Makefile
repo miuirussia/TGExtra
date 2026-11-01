@@ -12,7 +12,7 @@ TGEXTRA_VERSION := $(shell sed -n 's/^Version:[[:space:]]*//p' layout/DEBIAN/con
 TGEXTRA_COMMIT := $(shell git rev-parse --short HEAD)
 Sources/tgapi/UI/TGExtra.m_CFLAGS = -DTGEXTRA_VERSION=\"$(TGEXTRA_VERSION)\" -DTGEXTRA_COMMIT=\"$(TGEXTRA_COMMIT)\"
 
-$(TWEAK_NAME)_FILES = $(shell find Sources \( -name '*.swift' -o -name '*.m' -o -name '*.xm' \))
+$(TWEAK_NAME)_FILES = $(shell find Sources \( -name '*.swift' -o -name '*.m' -o -name '*.x' -o -name '*.xm' \))
 $(TWEAK_NAME)_SWIFTFLAGS = -ISources/tgapiC/include
 $(TWEAK_NAME)_CFLAGS = -fobjc-arc -ISources/tgapiC/include -Wno-deprecated-declarations
 # Keep Swift and Objective-C class metadata signing consistent on arm64e.
@@ -20,9 +20,6 @@ ifeq ($(THEOS_CURRENT_ARCH),arm64e)
 $(TWEAK_NAME)_CFLAGS += -fptrauth-objc-class-ro
 $(TWEAK_NAME)_SWIFTFLAGS += -sign-class-ro
 endif
-# Global CCFLAGS also reach Swift's Objective-C importer; scope this to Photos users.
-Sources/tgapi/VideoToVoice.xm_CFLAGS = -std=c++11
-Sources/tgapi/StoryVideoSave.xm_CFLAGS = -std=c++11
 $(TWEAK_NAME)_FRAMEWORKS = CoreServices UIKit CoreLocation MapKit AVFoundation Photos Intents CryptoKit
 $(TWEAK_NAME)_LIBRARIES = z sqlite3
 $(TWEAK_NAME)_LOGOS_DEFAULT_GENERATOR = internal

@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 
 root = Path(__file__).resolve().parent.parent
-source = (root / 'Sources/tgapi/MediaCapture.xm').read_text()
+source = (root / 'Sources/tgapi/MediaCapture.x').read_text()
 helpers = source[source.index('static char paidCaptureRootKey'):source.index('%group TGExtraGalleryCaptureViews')]
 view_hook = source[source.index('%hook TGExtraGalleryCaptureView'):source.index('%end', source.index('%hook TGExtraGalleryCaptureView'))]
 view_hook = (view_hook.replace('%hook TGExtraGalleryCaptureView', '@implementation TestGalleryView')

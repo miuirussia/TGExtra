@@ -16,22 +16,27 @@ trap 'rm -rf "$test_build_dir"' EXIT
 # Parse every Logos source, including the shared UI helpers.
 while IFS= read -r source; do
     perl "$LOGOS_PL" -c generator=internal "$source" > "$test_build_dir/$(basename "$source").mm"
-done < <(find Sources -name '*.xm' -print)
+done < <(find Sources \( -name '*.x' -o -name '*.xm' \) -print)
 
 # Compile the actual hooks against UIKit. UIHooks includes roothide.h through
 # its shared header but uses none of its definitions; packaging provides the
 # real header. Linux can generate Mach-O objects but cannot run UIKit.
 printf '%s\n' '#define jbroot(path) (path)' > "$test_build_dir/roothide.h"
+tweak_version=$(sed -n 's/^Version:[[:space:]]*//p' layout/DEBIAN/control)
+tweak_commit=$(git rev-parse --short HEAD 2>/dev/null || printf '%s' unknown)
 for arch in arm64 arm64e; do
     flags=(-target "$arch-apple-ios14.0" -isysroot "$IOS_SDK" -fobjc-arc -Werror
+        "-DTGEXTRA_VERSION=\"$tweak_version\"" "-DTGEXTRA_COMMIT=\"$tweak_commit\""
         -Wno-deprecated-declarations -I "$test_build_dir" -I Sources/tgapiC/include
         -I Sources/tgapi -I Sources/tgapi/UI)
     while IFS= read -r source; do
         clang "${flags[@]}" -c "$source" -o "$test_build_dir/$(basename "$source")-$arch.o"
     done < <(find Sources -name '*.m' -print | sort)
     while IFS= read -r source; do
-        clang++ "${flags[@]}" -iquote "$(dirname "$source")" -std=c++11 -c "$test_build_dir/$(basename "$source").mm" \
+        compiler=(clang -x objective-c)
+        if [[ "$source" == *.xm ]]; then compiler=(clang++ -x objective-c++ -std=c++11); fi
+        "${compiler[@]}" "${flags[@]}" -iquote "$(dirname "$source")" -c "$test_build_dir/$(basename "$source").mm" \
             -o "$test_build_dir/$(basename "$source")-$arch.o"
-    done < <(find Sources -name '*.xm' -print | sort)
+    done < <(find Sources \( -name '*.x' -o -name '*.xm' \) -print | sort)
 done
 echo 'PASS all Objective-C sources and Logos hooks compile for arm64 and arm64e'

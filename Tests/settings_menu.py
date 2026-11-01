@@ -17,7 +17,7 @@ if not (frameworks / 'UIKit.framework/Headers/UIKit.h').exists():
     sys.exit(0)
 
 root = Path(__file__).resolve().parent.parent
-source = (root / 'Sources/tgapi/UI/SettingsMenu.xm').read_text()
+source = (root / 'Sources/tgapi/UI/SettingsMenu.x').read_text()
 button = (root / 'Sources/tgapi/UI/SettingsMenuButton.m').read_text()
 button = button.replace('#import "SettingsNavigation.h"', '''
 static NSUInteger opens;

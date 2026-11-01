@@ -5,10 +5,10 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-source = (ROOT / 'Sources/tgapi/VideoToVoice.xm').read_text()
+source = (ROOT / 'Sources/tgapi/VideoToVoice.x').read_text()
 selection = (ROOT / 'Sources/tgapi/VoiceSelection.m').read_text()
 helpers = selection[selection.index('BOOL tgextraVideoToVoiceEnabled('):]
-preview = (ROOT / 'Sources/tgapi/VideoConversionPreview.xm').read_text()
+preview = (ROOT / 'Sources/tgapi/VideoConversionPreview.x').read_text()
 toggle = preview[preview.index('@interface TGExtraVoiceToggleTarget'):preview.index('static UIView *tgextraFindSubviewByClassSubstring')]
 send = source[source.index('+ (NSArray *)resultSignalsForSelectionContext:'):source.index('%end')]
 send = send.replace('return %orig;', 'return testOriginal(descriptionGenerator);')
@@ -21,6 +21,7 @@ support = r'''
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import "Constants.h"
+#import "VoiceSelection.h"
 typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, NSString *);
 static const void *kTGExtraVoicePreviewItemKey = &kTGExtraVoicePreviewItemKey;
 static TGExtraDescriptionGenerator generator;

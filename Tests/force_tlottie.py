@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Run the production hook through Swift's RLottieInstance protocol witness."""
 from pathlib import Path
+import os
 import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
+LOGOS = Path(os.environ.get('LOGOS_PL', ROOT / '.build/theos/bin/logos.pl'))
 HEADER = r'''
 #import <Foundation/Foundation.h>
 #import <CoreGraphics/CoreGraphics.h>
@@ -185,9 +187,34 @@ with tempfile.TemporaryDirectory(prefix='tgextra-tlottie-') as tmp:
     (work / 'Host.h').write_text(HEADER)
     (work / 'Host.m').write_text(HOST)
     (work / 'main.swift').write_text(SWIFT)
+    source = work / 'ForceTLottie.m'
+    if LOGOS.exists():
+        source.write_bytes(subprocess.check_output([
+            'perl', str(LOGOS), '-c', 'generator=internal', str(ROOT / 'Sources/tgapi/ForceTLottie.x'),
+        ]))
+    else:
+        # The checks job has no Theos; exercise the same initializer with a local Logos-style shim.
+        hook_source = (ROOT / 'Sources/tgapi/ForceTLottie.x').read_text()
+        hook_source = hook_source.replace('%group TGExtraForceTLottie\n%hook RLottieInstance\n', '''
+typedef id (*TGExtraTestInitializer)(id __attribute__((ns_consumed)), SEL,
+    NSData *, int32_t, NSDictionary *, NSString *) __attribute__((ns_returns_retained));
+static TGExtraTestInitializer originalInitializer;
+''')
+        hook_source = hook_source.replace('''- (instancetype)initWithData:(NSData *)data fitzModifier:(int32_t)fitzModifier
+          colorReplacements:(NSDictionary *)colorReplacements cacheKey:(NSString *)cacheKey {''', '''
+static id replacementInitializer(id self __attribute__((ns_consumed)), SEL _cmd,
+    NSData *data, int32_t fitzModifier, NSDictionary *colorReplacements,
+    NSString *cacheKey) __attribute__((ns_returns_retained)) {''')
+        hook_source = hook_source.replace('%orig', 'originalInitializer(self, _cmd, data, fitzModifier, colorReplacements, cacheKey)')
+        hook_source = hook_source.replace('%end\n%end', '')
+        hook_source = hook_source.replace('%ctor', '__attribute__((constructor)) static void installTestHook(void)')
+        hook_source = hook_source.replace('%init(TGExtraForceTLottie, RLottieInstance = rlottie);', '''
+            Method initializer = class_getInstanceMethod(rlottie, @selector(initWithData:fitzModifier:colorReplacements:cacheKey:));
+            originalInitializer = (TGExtraTestInitializer)method_setImplementation(initializer, (IMP)replacementInitializer);''')
+        source.write_text(hook_source)
     hook = work / 'hook.o'
-    subprocess.run(['clang', '-fobjc-arc', '-Werror', '-c',
-                    str(ROOT / 'Sources/tgapi/ForceTLottie.m'), '-o', str(hook)], check=True)
+    subprocess.run(['clang', '-fobjc-arc', '-Werror', '-I' + str(ROOT / 'Sources/tgapi'),
+                    '-c', str(source), '-o', str(hook)], check=True)
     for mode, flags in [('supported', []), ('missing', ['-DMISSING_TLOTTIE']),
                         ('incompatible', ['-DINCOMPATIBLE_TLOTTIE'])]:
         host = work / 'host.o'

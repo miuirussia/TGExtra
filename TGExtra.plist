@@ -1,1 +1,18 @@
-{ Filter = { Bundles = ( "ph.telegra.Telegraph", "app.swiftgram.ios", "com.seastar.turrit", "app.nicegram", "com.olcorporation.olai", "app.intentchat" ); }; }
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Filter</key>
+	<dict>
+		<key>Bundles</key>
+		<array>
+			<string>ph.telegra.Telegraph</string>
+			<string>app.swiftgram.ios</string>
+			<string>com.seastar.turrit</string>
+			<string>app.nicegram</string>
+			<string>com.olcorporation.olai</string>
+			<string>app.intentchat</string>
+		</array>
+	</dict>
+</dict>
+</plist>

@@ -3,7 +3,6 @@
 #import "UI/Headers.h"
 #import "VoiceSelection.h"
 #import "VideoAudioExtractor.h"
-#import <objc/message.h>
 
 @interface TGMediaPickerGalleryInterfaceView : UIView
 @end
@@ -19,9 +18,8 @@ static BOOL tgextraItemIsVideo(id item) {
     if (!item) return NO;
     if ([NSStringFromClass([item class]) containsString:@"Video"]) return YES;
 
-    SEL backing = NSSelectorFromString(@"backingItem");
-    if ([item respondsToSelector:backing]) {
-        id inner = ((id (*)(id, SEL))objc_msgSend)(item, backing);
+    if ([item respondsToSelector:@selector(backingItem)]) {
+        id inner = [item backingItem];
         if (inner) return [NSStringFromClass([inner class]) containsString:@"Video"];
     }
     return NO;
@@ -143,7 +141,7 @@ static void tgextraUpdateVoiceButton(UIView *interfaceView) {
     UIButton *roundButton = (UIButton *)[interfaceView viewWithTag:kTGExtraRoundButtonTag];
 
     id item = objc_getAssociatedObject(interfaceView, kTGExtraVoicePreviewItemKey);
-    id context = tgextraVoiceProperty(item, @"editingContext");
+    id context = tgextraVoiceEditingContext(item);
     NSString *identifier = tgextraVoiceItemIdentifier(item);
     if ((!tgextraVideoToVoiceEnabled() && !tgextraVideoToRoundEnabled()) || !isVideo || !context || !identifier) {
         button.hidden = YES;

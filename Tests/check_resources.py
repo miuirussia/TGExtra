@@ -38,7 +38,7 @@ for path in (ROOT / 'TGExtra.bundle').glob('*.lproj/Localizable.strings'):
     assert english.keys() <= dict(entries).keys(), f'Missing translations in {path}'
 used = set()
 for path in (ROOT / 'Sources/tgapi').rglob('*'):
-    if path.suffix in ('.m', '.xm'):
+    if path.suffix in ('.m', '.x', '.xm'):
         used.update(re.findall(r'(?:TGLoc|TGExtraLoc|localizedStringForKey:)\(?@"([^"]+)"', path.read_text()))
         if path.name == 'SettingsRows.m':
             used.update(re.findall(r'(?:title|subtitle):@"([^"]+)"', path.read_text()))
@@ -50,7 +50,7 @@ assert not re.search(r'Int32\s*=\s*-?\d+', method_ids), 'Production method IDs m
 methods = set(re.findall(r'case \w+ = "([^"]+)"', method_ids))
 assert methods and methods <= {f['name'] for f in api['functions']}, 'Named methods must exist in the reference schema'
 for path in (ROOT / 'Sources').rglob('*'):
-    if path.suffix in ('.h', '.m', '.xm', '.swift'):
+    if path.suffix in ('.h', '.m', '.x', '.xm', '.swift'):
         if path.name != 'TLMethodID.swift':
             literals = set(re.findall(r'"(\w+\.\w+)"', path.read_text()))
             assert not literals & {f['name'] for f in api['functions']}, f'Method names must come from TLMethodID.swift: {path}'

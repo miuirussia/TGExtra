@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-source = (ROOT / 'Sources/tgapi/RecordingButton.xm').read_text()
+source = (ROOT / 'Sources/tgapi/RecordingButton.x').read_text()
 helpers = source[source.index('static void TGExtraRemoveRecordingControls'):source.index('%group TGExtraRecordingButton')]
 actions = source.split('%hook TGExtraRecordingActionButtonsNode\n', 1)[1].split('%end', 1)[0]
 actions = actions.replace('%orig;', '[super didEnterHierarchy];', 1).replace('%orig', '[super isAccessibilityElement]')

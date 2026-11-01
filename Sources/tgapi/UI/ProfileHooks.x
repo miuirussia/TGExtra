@@ -1,7 +1,11 @@
 #import "HostDisplayNode.h"
 #import "ProfileBridge.h"
 #import "../Logger/Logger.h"
-#import <objc/message.h>
+
+@interface NSObject (TGExtraProfilePeer)
+- (id)peer;
+@end
+
 static BOOL injectBadgeToNode(ASDisplayNode *textNode, ASDisplayNode *headerNode, long long peerId) {
     @try {
         if (!textNode.view || !headerNode.view) return NO;
@@ -119,11 +123,9 @@ static void tgextraDiagProfileNode(NSString *cls, long long peerId, ASDisplayNod
         long long peerId = 0;
         peerId = [[TGExtraProfileBridge getPeerIdFromNode:self] longLongValue];
 
-        SEL peerSel = NSSelectorFromString(@"peer");
         BOOL headerHasNoPeer = NO;
-        if ([self respondsToSelector:peerSel]) {
-            id (*getPeer)(id, SEL) = (id (*)(id, SEL))objc_msgSend;
-            headerHasNoPeer = (getPeer(self, peerSel) == nil);
+        if ([self respondsToSelector:@selector(peer)]) {
+            headerHasNoPeer = ([self peer] == nil);
         }
         if (peerId == 0 && headerHasNoPeer) {
             peerId = [[TGExtraProfileBridge getOwnUserIdFromNode:self] longLongValue];

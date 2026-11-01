@@ -1,12 +1,18 @@
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
+
+@interface NSObject (TGExtraVoiceMediaItem)
+- (id)editableMediaItem;
+- (NSString *)uniqueIdentifier;
+- (id)editingContext;
+- (id)backingItem;
+@end
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 BOOL tgextraVideoToVoiceEnabled(void);
 BOOL tgextraVideoToRoundEnabled(void);
-id tgextraVoiceProperty(id object, NSString *name);
+id tgextraVoiceEditingContext(id item);
 NSString *tgextraVoiceItemIdentifier(id item);
 NSSet<NSString *> *tgextraVoiceItems(id editingContext);
 BOOL tgextraToggleVoiceItem(id galleryItem);

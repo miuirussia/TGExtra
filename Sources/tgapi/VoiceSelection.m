@@ -2,7 +2,6 @@
 #import "Constants.h"
 #import "Headers.h"
 #import <objc/runtime.h>
-#import <objc/message.h>
 
 BOOL tgextraVideoToVoiceEnabled(void) {
     return [[NSUserDefaults standardUserDefaults] boolForKey:kVideoToVoice];
@@ -15,15 +14,13 @@ BOOL tgextraVideoToRoundEnabled(void) {
 static const void *kTGExtraVoiceItemsKey = &kTGExtraVoiceItemsKey;
 static const void *kTGExtraRoundItemsKey = &kTGExtraRoundItemsKey;
 
-id tgextraVoiceProperty(id object, NSString *name) {
-    SEL selector = NSSelectorFromString(name);
-    return [object respondsToSelector:selector]
-        ? ((id (*)(id, SEL))objc_msgSend)(object, selector) : nil;
+id tgextraVoiceEditingContext(id item) {
+    return [item respondsToSelector:@selector(editingContext)] ? [item editingContext] : nil;
 }
 
 NSString *tgextraVoiceItemIdentifier(id item) {
-    item = tgextraVoiceProperty(item, @"editableMediaItem") ?: item;
-    id identifier = tgextraVoiceProperty(item, @"uniqueIdentifier");
+    if ([item respondsToSelector:@selector(editableMediaItem)]) item = [item editableMediaItem] ?: item;
+    id identifier = [item respondsToSelector:@selector(uniqueIdentifier)] ? [item uniqueIdentifier] : nil;
     if ([identifier isKindOfClass:NSString.class] && [identifier length]) return identifier;
     if ([item isKindOfClass:NSURL.class]) return [item absoluteString];
     if ([item isKindOfClass:NSString.class] && [item length]) {
@@ -47,7 +44,7 @@ NSSet<NSString *> *tgextraRoundItems(id editingContext) {
 }
 
 static BOOL tgextraToggleConversionItem(id galleryItem, const void *key, const void *otherKey) {
-    id context = tgextraVoiceProperty(galleryItem, @"editingContext");
+    id context = tgextraVoiceEditingContext(galleryItem);
     NSString *identifier = tgextraVoiceItemIdentifier(galleryItem);
     if (!context || !identifier) return NO;
     @synchronized(context) {
