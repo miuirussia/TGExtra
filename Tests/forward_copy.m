@@ -151,13 +151,18 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
     __block NSUInteger count = 0;
     __block NSData *result;
     __block NSString *errorDescription;
+    __block NSUInteger originals = 0;
     request.completed = ^(id reply, MTRequestResponseInfo *info, MTRpcError *error) {
         count++; result = reply; errorDescription = error.errorDescription;
         dispatch_semaphore_signal(completed);
     };
-    TGExtraWrapForwardRequest(request, service);
-    NSString *initial = fixture[@"initialError"] ?: @"CHAT_FORWARDS_RESTRICTED";
-    request.completed(fixture[@"initialResult"], nil, initial.length ? [[MTRpcError alloc] initWithErrorCode:400 errorDescription:initial] : nil);
+    void (^forward)(void) = ^{
+        originals++;
+        TGExtraWrapForwardRequest(request, service);
+        NSString *initial = fixture[@"initialError"] ?: @"CHAT_FORWARDS_RESTRICTED";
+        request.completed(fixture[@"initialResult"], nil, initial.length ? [[MTRpcError alloc] initWithErrorCode:400 errorDescription:initial] : nil);
+    };
+    if (!TGExtraPrepareForwardRequest(request, service, forward)) forward();
     BOOL cancel = [fixture[@"cancel"] boolValue];
     if (cancel) {
         NSCAssert(dispatch_semaphore_wait(context.pending, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) == 0, @"Cancellation scenario reached its pending helper");
@@ -168,7 +173,7 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
     TGExtraDrainCopyTestQueue();
     @synchronized(context) {
         return @{@"result": result ?: NSData.data, @"error": errorDescription ?: @"", @"completions": @(count),
-            @"payloads": context.payloads.copy, @"cancellations": @(context.cancellations.count),
+            @"payloads": context.payloads.copy, @"cancellations": @(context.cancellations.count), @"originals": @(originals),
             @"maxFiles": @(context.maxFiles), @"overlap": @(context.overlap), @"fileOrder": context.fileOrder.copy};
     }
 }
@@ -179,7 +184,6 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
 @property TGERustEventCallback callback;
 @property dispatch_queue_t queue;
 @property dispatch_semaphore_t completed;
-@property dispatch_semaphore_t initialGate;
 @property NSMutableSet<NSNumber *> *held;
 @property NSMutableArray<NSString *> *sequence;
 @property uint64_t counter;
@@ -189,6 +193,7 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
 @property NSString *error;
 @property BOOL destroyed;
 @property NSUInteger activity;
+@property NSUInteger originals;
 @end
 @implementation CopyTestRustEngine
 @end
@@ -249,8 +254,8 @@ static void copyRustSend(void *pointer, uint64_t session, const TGERustRequest *
     uint64_t identifier = request->id;
     NSData *payload = [NSData dataWithBytes:request->body.data length:request->body.length];
     if (identifier == 8001) {
+        engine.originals++;
         dispatch_async(engine.queue, ^{
-            NSCAssert(dispatch_semaphore_wait(engine.initialGate, dispatch_time(DISPATCH_TIME_NOW, 5*NSEC_PER_SEC)) == 0, @"Original refusal gate released");
             NSString *initial = engine.fixture[@"initialError"] ?: @"CHAT_FORWARDS_RESTRICTED";
             copyRustDeliver(engine, session, identifier, initial.length ? initial : (engine.fixture[@"initialResult"] ?: NSData.data),
                 [engine.fixture[@"initialCode"] intValue] ?: 400);
@@ -310,7 +315,8 @@ static NSDictionary *runRustCopyScenario(NSDictionary *fixture, CopyTestContext 
     CopyTestRustEngine *engine = [CopyTestRustEngine new];
     [engines addObject:engine]; engine.context = context; engine.fixture = fixture;
     engine.queue = dispatch_queue_create("TGExtra.TestRustFFI", DISPATCH_QUEUE_SERIAL);
-    engine.completed = dispatch_semaphore_create(0); engine.initialGate = dispatch_semaphore_create(0);
+    dispatch_suspend(engine.queue);
+    engine.completed = dispatch_semaphore_create(0);
     engine.held = [NSMutableSet new]; engine.sequence = [NSMutableArray new]; engine.counter = 10000;
     [TGExtraRustBridge setBufferData:copyRustData length:copyRustLength];
     [TGExtraRustBridge setCopyRequestID:copyRustNext send:copyRustSend cancel:copyRustCancel free:copyRustFree];
@@ -348,7 +354,7 @@ static NSDictionary *runRustCopyScenario(NSDictionary *fixture, CopyTestContext 
         if ([fixture[@"cancelDependent"] boolValue])
             [TGExtraRustBridge cancel:native session:session request:9002 original:copyRustCancel];
     }
-    dispatch_semaphore_signal(engine.initialGate);
+    dispatch_resume(engine.queue);
     if ([fixture[@"destroyMedia"] boolValue]) {
         NSCAssert(dispatch_semaphore_wait(context.pending, dispatch_time(DISPATCH_TIME_NOW, 5*NSEC_PER_SEC)) == 0, @"Media session reached its pending download");
         [TGExtraRustBridge sessionDestroy:native session:mediaSession original:copyRustDestroy];
@@ -368,7 +374,7 @@ static NSDictionary *runRustCopyScenario(NSDictionary *fixture, CopyTestContext 
     TGExtraDrainCopyTestQueue();
     @synchronized(context) {
         return @{@"result": engine.result ?: NSData.data, @"error": engine.error ?: @"", @"completions": @(engine.completions),
-            @"payloads": context.payloads.copy, @"cancellations": @(context.cancellations.count), @"sequence": engine.sequence.copy, @"activity": @(engine.activity),
+            @"payloads": context.payloads.copy, @"cancellations": @(context.cancellations.count), @"sequence": engine.sequence.copy, @"activity": @(engine.activity), @"originals": @(engine.originals),
             @"maxFiles": @(context.maxFiles), @"overlap": @(context.overlap), @"fileOrder": context.fileOrder.copy};
     }
 }

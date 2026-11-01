@@ -13,8 +13,17 @@ private func copyPayload(_ ids: [Int32], flags: Int32 = 0, source: Api.InputPeer
         effect: nil, videoTimestamp: videoTimestamp, allowPaidStars: nil, suggestedPost: nil).1.makeData()
 }
 
-private func copyHistory(_ messages: [Api.Message]) -> Data {
-    serialized(Api.messages.Messages.messages(.init(messages: messages, topics: [], chats: [], users: []))) as Data
+private func copyHistory(_ messages: [Api.Message], protected: Bool = true, chats: [Api.Chat] = []) -> Data {
+    let previous = messages.map { $0.record["flags"] as? Int32 }
+    if protected {
+        for message in messages {
+            if case let .message(value) = message { value.flags |= 1 << 26 }
+        }
+    }
+    defer {
+        for (message, flags) in zip(messages, previous) { message.record["flags"] = flags }
+    }
+    return serialized(Api.messages.Messages.messages(.init(messages: messages, topics: [], chats: chats, users: []))) as Data
 }
 
 private func copySent(_ sourceIds: [Int32], serverBase: Int32 = 100) -> Data {
@@ -25,6 +34,26 @@ private func copySent(_ sourceIds: [Int32], serverBase: Int32 = 100) -> Data {
         updates.append(.updateNewMessage(.init(message: message(serverId, peer: .peerUser(.init(userId: 99))), pts: serverId, ptsCount: 1)))
     }
     return serialized(Api.Updates.updates(.init(updates: updates, users: [], chats: [], date: 1234, seq: 8))) as Data
+}
+
+private func copyChat(_ id: Int64, channel: Bool, flags: Int32) -> Api.Chat {
+    let record = TLRecord(type: "Chat", constructor: channel ? "channel" : "chat")
+    record["flags"] = flags; record["flags2"] = Int32(0); record["id"] = id
+    record["title"] = "Source"; record["date"] = Int32(1234)
+    record["photo"] = TLRecord(type: "ChatPhoto", constructor: "chatPhotoEmpty")
+    if !channel { record["participantsCount"] = Int32(2); record["version"] = Int32(1) }
+    return Api.Chat(record)!
+}
+
+private func copyPrivateUser(flags: Int32 = 0, id: Int64 = 42) -> Data {
+    let user = TLRecord(type: "UserFull", constructor: "userFull")
+    user["flags"] = Int32(0); user["flags2"] = flags; user["id"] = id
+    let settings = TLRecord(type: "PeerSettings", constructor: "peerSettings")
+    settings["flags"] = Int32(0)
+    let notifications = TLRecord(type: "PeerNotifySettings", constructor: "peerNotifySettings")
+    notifications["flags"] = Int32(0)
+    user["settings"] = settings; user["notifySettings"] = notifications; user["commonChatsCount"] = Int32(0)
+    return serialized(Api.users.UserFull.userFull(.init(fullUser: Api.UserFull(user)!, chats: [], users: []))) as Data
 }
 
 private func copyPhoto(id: Int64 = 12, reference: String = "ref") -> Api.MessageMedia {
@@ -140,6 +169,24 @@ func testForwardCopies(rust: Bool = false) {
     let channelPlan = ForwardCopyPlan(payload: copyPayload([1], source: sourceChannel))!
     check(copyConstructor(channelPlan.sourceRequest!) == -1383294429, "Channel source uses channels.getMessages")
     check(!channelPlan.prepare(response: history), "A message from another peer cannot satisfy source lookup")
+    let channelMessage = message(1, peer: .peerChannel(.init(channelId: 77)))
+    let channelHistory = copyHistory([channelMessage], protected: false,
+                                    chats: [copyChat(77, channel: true, flags: 1 << 27)])
+    check(channelPlan.forwardingProtection(response: channelHistory) == 1, "Chat-wide channel protection is detected even without a message flag")
+    let channelCopy = run(copyPayload([1], source: sourceChannel), ["-1383294429": [channelHistory], "-17526942": [copySent([1])]])
+    check(channelCopy["originals"] as! Int == 0 && channelCopy["error"] as! String == "", "Protected channel posts are copied before any forward request")
+    check(channelPlan.forwardingProtection(response: copyHistory([channelMessage], protected: false,
+        chats: [copyChat(77, channel: true, flags: 0)])) == 0, "An unprotected channel keeps ordinary forwarding")
+    check(channelPlan.forwardingProtection(response: copyHistory([channelMessage], protected: false)) == -1,
+          "Missing source chat metadata does not imply forwarding is allowed")
+    check(channelPlan.forwardingProtection(response: copyHistory([channelMessage], protected: false,
+        chats: [copyChat(77, channel: true, flags: 1 << 12)])) == 0, "The noforwards flag is authoritative on min channels too")
+    let groupSource = Api.InputPeer.inputPeerChat(.init(chatId: 88))
+    let groupHistory = copyHistory([message(1, peer: .peerChat(.init(chatId: 88)))], protected: false,
+                                  chats: [copyChat(88, channel: false, flags: 1 << 25)])
+    let groupCopy = run(copyPayload([1], source: groupSource), ["1673946374": [groupHistory], "-17526942": [copySent([1])]])
+    check(groupCopy["originals"] as! Int == 0 && groupCopy["error"] as! String == "", "Basic-group protection also skips forwardMessages")
+    check(plan.forwardingProtection(response: copyPacked(history)) == 1, "Preflight reads protection through gzip wrappers")
     check(plan.normalize(response: sent, confirmation: nil, batch: 0) != nil, "Real Updates complete the original random_id")
     check(plan.normalize(response: copySent([2]), confirmation: nil, batch: 0) == nil, "An unrelated random_id cannot report success")
     check(plan.normalize(response: serialized(Api.Updates.updatesTooLong) as Data, confirmation: nil, batch: 0) == nil, "No success without message confirmation")
@@ -150,19 +197,36 @@ func testForwardCopies(rust: Bool = false) {
     let confirmation = copyHistory([message(100, peer: .peerUser(.init(userId: 99)))])
     check(plan.normalize(response: compact, confirmation: confirmation, batch: 0) != nil, "Compact reply retains server ID and pts after confirmation")
 
-    let normal = run(payload, [:], initial: "")
-    check(calls(normal).isEmpty && normal["error"] as! String == "" && normal["completions"] as! Int == 1, "Successful ordinary forwarding is untouched")
-    let denied = run(payload, [:], initial: "CHAT_WRITE_FORBIDDEN")
-    check(calls(denied).isEmpty && denied["error"] as! String == "CHAT_WRITE_FORBIDDEN", "Only the exact forward restriction triggers a copy")
+    let ordinary = copyHistory([message(1)], protected: false)
+    let privateMethod = copyConstructor(plan.privateProtectionRequest!)
+    let privateKey = String(privateMethod)
+    let normal = run(payload, ["1673946374": [ordinary], privateKey: [copyPrivateUser()]], initial: "")
+    check(calls(normal) == [1673946374, privateMethod] && normal["originals"] as! Int == 1 && normal["error"] as! String == "" && normal["completions"] as! Int == 1, "Unprotected messages retain ordinary forwarding after preflight")
+    let denied = run(payload, ["1673946374": [ordinary], privateKey: [copyPrivateUser()]], initial: "CHAT_WRITE_FORBIDDEN")
+    check(calls(denied) == [1673946374, privateMethod] && denied["error"] as! String == "CHAT_WRITE_FORBIDDEN", "Other forward errors are preserved")
+    for bit in [23, 24] {
+        let privateCopy = run(payload, ["1673946374": [ordinary], privateKey: [copyPrivateUser(flags: 1 << bit)], "-17526942": [sent]])
+        check(privateCopy["originals"] as! Int == 0 && privateCopy["error"] as! String == "", "Private chat protection bit \(bit) skips forwardMessages without a message flag")
+    }
+    let wrongPrivatePeer = run(payload, ["1673946374": [ordinary], privateKey: [copyPrivateUser(id: 99)]])
+    check(wrongPrivatePeer["originals"] as! Int == 0 && wrongPrivatePeer["error"] as! String == "TGEXTRA_COPY_SOURCE_UNAVAILABLE", "Private protection lookup validates the source user")
     flags()
     let disabled = run(payload, [:])
     check(calls(disabled).isEmpty && disabled["error"] as! String == "CHAT_FORWARDS_RESTRICTED", "Disabled setting never starts a copy")
     flags("disableForwardRestriction")
     let unresolved = run(payload, [:], account: "unknown")
-    check(calls(unresolved).isEmpty && unresolved["error"] as! String == "CHAT_FORWARDS_RESTRICTED", "Unknown accounts cannot borrow a session")
+    check(calls(unresolved).isEmpty && unresolved["originals"] as! Int == 0 && unresolved["error"] as! String == "TGEXTRA_COPY_NETWORK_UNAVAILABLE", "Unknown accounts fail locally without sending a protected forward")
     let copied = run(payload, ["1673946374": [history], "-17526942": [sent]])
-    check(calls(copied) == [1673946374, -17526942] && copied["error"] as! String == "" && copied["completions"] as! Int == 1,
-          "Objective-C hook replaces the failed forward with a confirmed text send")
+    check(calls(copied) == [1673946374, -17526942] && copied["originals"] as! Int == 0 && copied["error"] as! String == "" && copied["completions"] as! Int == 1,
+          "Protected text is copied without sending forwardMessages or receiving a restriction error")
+    let lookupFailed = run(payload, ["1673946374": [["error": "NETWORK_FAILED"]]])
+    check(lookupFailed["originals"] as! Int == 0 && lookupFailed["error"] as! String == "NETWORK_FAILED", "Failed protection lookup never sends a speculative forward")
+    let missing = run(payload, ["1673946374": [copyHistory([])]])
+    check(missing["originals"] as! Int == 0 && missing["error"] as! String == "TGEXTRA_COPY_SOURCE_UNAVAILABLE", "Missing source messages fail before forwarding")
+    let unknownOptions = run(unknownFlags, [:])
+    check(unknownOptions["originals"] as! Int == 0 && unknownOptions["error"] as! String == "TGEXTRA_COPY_UNSUPPORTED", "Unknown forward options cannot bypass protection preflight")
+    let changedProtection = run(payload, ["1673946374": [ordinary, history], privateKey: [copyPrivateUser()], "-17526942": [sent]], initial: "CHAT_FORWARDS_RESTRICTED")
+    check(changedProtection["error"] as! String == "", "A protection change after preflight can still recover the refused request")
 
     if rust {
         func rustCase(_ options: [String: Any], _ replies: [String: [Any]]) -> [String: Any] {
@@ -171,7 +235,7 @@ func testForwardCopies(rust: Bool = false) {
             return TGExtraRunForwardCopyScenario(fixture, directory.appendingPathComponent(UUID().uuidString)) as! [String: Any]
         }
         let denied406 = rustCase(["initialCode": 406], ["1673946374": [history], "-17526942": [sent]])
-        check(denied406["error"] as! String == "" && calls(denied406) == [1673946374, -17526942], "Rust also recovers a 406 forward refusal")
+        check(denied406["error"] as! String == "" && denied406["originals"] as! Int == 0 && calls(denied406) == [1673946374, -17526942], "Rust bypasses the protected forward instead of waiting for a 406 refusal")
         let dependent = rustCase(["dependent": true], ["1673946374": [history], "-17526942": [sent]])
         check(dependent["sequence"] as! [String] == ["completed", "dependent"], "Rust dependents wait until the reconstructed forward completes")
         check((dependent["activity"] as! Int) >= 2, "Rust helpers keep the host's liveness bookkeeping current")
@@ -182,7 +246,7 @@ func testForwardCopies(rust: Bool = false) {
         let destroyed = rustCase(["destroy": true], ["1673946374": [["hold": true]]])
         check(destroyed["completions"] as! Int == 0 && destroyed["cancellations"] as! Int == 1, "Rust session destruction cancels recovery and its active helper")
         let noContext = rustCase(["noContext": true], [:])
-        check(noContext["error"] as! String == "CHAT_FORWARDS_RESTRICTED" && calls(noContext).isEmpty, "Rust recovery cannot borrow a missing account context")
+        check(noContext["error"] as! String == "TGEXTRA_COPY_NETWORK_UNAVAILABLE" && noContext["originals"] as! Int == 0 && calls(noContext).isEmpty, "Rust without an account context fails locally before forwarding")
     }
 
     // A compact ACK is durable even if the following getMessages fails. Retry
@@ -196,6 +260,11 @@ func testForwardCopies(rust: Bool = false) {
 
     let two = copyPayload([1, 2])
     let twoHistory = copyHistory([message(1), message(2)])
+    let mixedProtected = message(2)
+    messageData(mixedProtected).flags |= 1 << 26
+    let mixed = run(two, ["1673946374": [copyHistory([message(1), mixedProtected], protected: false)],
+                          "-17526942": [sent, copySent([2], serverBase: 101)]])
+    check(mixed["originals"] as! Int == 0 && mixed["error"] as! String == "", "A mixed selection is copied without forwarding its protected member")
     let partial = run(two, ["1673946374": [twoHistory], "-17526942": [sent, ["error": "CHAT_WRITE_FORBIDDEN"]]], subdirectory: "partial")
     check(partial["error"] as! String == "CHAT_WRITE_FORBIDDEN", "A partial selection preserves the actual error")
     let resumed = run(two, ["-17526942": [copySent([2], serverBase: 101)]], subdirectory: "partial")

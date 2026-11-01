@@ -28,6 +28,7 @@ typedef uint64_t (*TGENextRequestID)(void *);
 @property NSData *fakeResponse;
 @property NSData *wire;
 @property TGERustRequest request;
+@property TGESend send;
 @property BOOL guardsDependency;
 @property BOOL deferred;
 @property BOOL recovering;
@@ -135,6 +136,8 @@ id TGExtraRustRequestServiceForDatacenter(id service, NSInteger datacenter) {
     return nil;
 }
 
+static void sendPending(TGERustEngine *engine, TGERustSession *session, TGERustPending *pending);
+
 static void flushDependents(TGERustEngine *engine, TGERustSession *session, uint64_t completed) {
     @synchronized(bridgeLock) {
         if (engine.sessions[@(session.handle)] != session) return;
@@ -143,7 +146,8 @@ static void flushDependents(TGERustEngine *engine, TGERustSession *session, uint
             pending.deferred = NO;
             TGERustRequest request = pending.request;
             request.invokeAfter = 0; // the prerequisite has already completed
-            engine.send(engine.pointer, session.handle, &request);
+            pending.request = request;
+            sendPending(engine, session, pending);
         }
     }
 }
@@ -266,6 +270,41 @@ static void completeRecovery(TGERustEngine *engine, TGERustSession *session, TGE
     }
     engine.callback(engine.context, session.handle, &event);
     flushDependents(engine, session, event.requestId);
+}
+
+static void sendPending(TGERustEngine *engine, TGERustSession *session, TGERustPending *pending) {
+    if (!pending.guardsDependency) {
+        TGERustRequest request = pending.request;
+        pending.send(engine.pointer, session.handle, &request);
+        return;
+    }
+    if (!session.service) {
+        MTRpcError *error = [[NSClassFromString(@"MTRpcError") alloc] initWithErrorCode:400
+            errorDescription:@"TGEXTRA_COPY_NETWORK_UNAVAILABLE"];
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+            completeRecovery(engine, session, pending, nil, nil, error, 0, 0);
+        });
+        return;
+    }
+    __weak TGERustPending *weakPending = pending;
+    pending.recovery = TGExtraPreflightForwardRequest(pending.payload, (id)session.service,
+        ^(id result, MTRequestResponseInfo *info, MTRpcError *error) {
+            TGERustPending *current = weakPending;
+            if (current) completeRecovery(engine, session, current, result, info, error, 0, 0);
+        }, ^{
+            @synchronized(bridgeLock) {
+                TGERustPending *current = weakPending;
+                if (!current || engine.sessions[@(session.handle)] != session ||
+                    session.requests[@(current.request.id)] != current) return;
+                current.recovery = nil;
+                TGERustRequest request = current.request;
+                current.send(engine.pointer, session.handle, &request);
+            }
+        });
+    if (!pending.recovery) {
+        TGERustRequest request = pending.request;
+        pending.send(engine.pointer, session.handle, &request);
+    }
 }
 
 static BOOL beginRecovery(TGERustEngine *engine, TGERustSession *session,
@@ -489,12 +528,13 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         }
         NSData *payload = [NSData dataWithBytes:request->body.data length:request->body.length];
         TGERustPending *pending = [TGERustPending new];
+        pending.send = original;
         pending.payload = TGExtraRewriteRequestPayload(payload);
         pending.fakeResponse = TGExtraFakeResponseForPayload(pending.payload);
         NSDictionary *contentPolicy = [TLParser readMessageContentsPolicy:pending.payload account:state.account];
         if (contentPolicy[@"payload"]) pending.payload = contentPolicy[@"payload"];
         if (contentPolicy[@"response"]) pending.fakeResponse = contentPolicy[@"response"];
-        pending.guardsDependency = [TLParser isForwardRequest:pending.payload] && state.service &&
+        pending.guardsDependency = [TLParser isForwardRequest:pending.payload] &&
             [NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction];
         NSData *replacement = pending.fakeResponse ? [TLParser privacyReplacementRequest] : nil;
         if (pending.fakeResponse && !replacement) pending.fakeResponse = nil;
@@ -504,10 +544,10 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         pending.request = rewritten;
         state.requests[@(request->id)] = pending;
         TGERustPending *dependency = state.requests[@(request->invokeAfter)];
-        if (dependency.guardsDependency || dependency.deferred) {
+        if (dependency.guardsDependency || dependency.deferred || (pending.guardsDependency && dependency)) {
             pending.deferred = YES;
         } else {
-            original(engine, session, &rewritten);
+            sendPending(owner, state, pending);
         }
     }
 }

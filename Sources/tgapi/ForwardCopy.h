@@ -8,6 +8,10 @@
 @property(nonatomic, readonly) NSArray<NSDictionary *> *requests;
 + (NSString *)operationKeyForAccount:(NSString *)account payload:(NSData *)payload;
 - (BOOL)prepareWithResponse:(NSData *)response;
+- (NSInteger)forwardingProtectionWithResponse:(NSData *)response;
+@property(nonatomic, readonly) BOOL requiresPrivateProtectionLookup;
+@property(nonatomic, readonly) NSData *privateProtectionRequest;
+- (NSInteger)privateProtectionWithResponse:(NSData *)response;
 - (NSData *)downloadRequestForIndex:(NSInteger)index offset:(int64_t)offset;
 - (BOOL)refreshDownloadWithResponse:(NSData *)response index:(NSInteger)index;
 + (NSData *)fileBytesFromResponse:(NSData *)response;
@@ -26,6 +30,9 @@
 extern "C" {
 #endif
 BOOL TGExtraIsInternalCopyRequest(MTRequest *request);
+BOOL TGExtraPrepareForwardRequest(MTRequest *request, MTRequestMessageService *service, void (^forward)(void));
+MTRequest *TGExtraPreflightForwardRequest(NSData *payload, MTRequestMessageService *service,
+    void (^completion)(id result, MTRequestResponseInfo *info, MTRpcError *error), void (^forward)(void));
 void TGExtraWrapForwardRequest(MTRequest *request, MTRequestMessageService *service);
 void TGExtraCancelForwardRequest(id internalId, MTRequestMessageService *service);
 MTRequest *TGExtraRecoverForwardRequest(NSData *payload, MTRequestMessageService *service,

@@ -47,6 +47,10 @@
     }
     TGExtraSetHistoryRequestService(request, self);
     TGExtraPrepareReadContentsRequest(request, TGExtraHistoryAccountForRequest(request));
+    if (TGExtraPrepareForwardRequest(request, self, ^{
+        TGExtraWrapForwardRequest(request, self);
+        %orig;
+    })) return;
     TGExtraWrapForwardRequest(request, self);
     if (request.fakeData && request.completed && request.responseParser) {
         MTRequestResponseInfo *info = [[%c(MTRequestResponseInfo) alloc]

@@ -11,6 +11,7 @@ enum Api {
         enum channels {}
         enum messages {}
         enum upload {}
+        enum users {}
     }
 }
 
@@ -5629,6 +5630,17 @@ extension Api.functions.upload {
         let buffer = Buffer()
         record.serialize(buffer, true)
         return (FunctionDescription(name: TLMethodID.uploadSaveFilePart.rawValue, parameters: []), buffer)
+    }
+}
+
+extension Api.functions.users {
+    static func getFullUser(`id`: Api.InputUser) -> (FunctionDescription, Buffer) {
+        let record = TLRecord(function: .usersGetFullUser)
+        record.set("id", `id`)
+        record.normalizeOptionalFlags(sourcePresenceMasks: [:])
+        let buffer = Buffer()
+        record.serialize(buffer, true)
+        return (FunctionDescription(name: TLMethodID.usersGetFullUser.rawValue, parameters: []), buffer)
     }
 }
 

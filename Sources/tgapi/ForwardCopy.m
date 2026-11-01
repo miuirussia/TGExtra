@@ -20,6 +20,7 @@
 
 static const void *internalCopyKey = &internalCopyKey;
 static const void *wrappedCopyKey = &wrappedCopyKey;
+static const void *preparingCopyKey = &preparingCopyKey;
 static const NSUInteger copyChunkSize = 512 * 1024;
 static const NSUInteger copyTransferWindow = 4;
 
@@ -132,6 +133,8 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
 @property(nonatomic) CC_MD5_CTX md5;
 @property(nonatomic, copy) NSString *checksum;
 @property(nonatomic, copy) NSString *stage;
+@property(nonatomic, copy) void (^forward)(void);
+- (void)prepareForward;
 - (void)receiveOriginal:(id)result info:(MTRequestResponseInfo *)info error:(MTRpcError *)error;
 - (void)cancel;
 @end
@@ -153,6 +156,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
 }
 
 - (void)cleanup {
+    objc_setAssociatedObject(self.original, preparingCopyKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [self cancelRPCs];
     [self closeFile];
     for (NSNumber *dc in self.workers) {
@@ -175,6 +179,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
     [self cleanup];
     void (^completion)(id, MTRequestResponseInfo *, MTRpcError *) = self.completion;
     self.completion = nil;
+    self.forward = nil;
     if (completion) completion(result, info, error);
     self.original = nil; self.master = nil;
 }
@@ -188,6 +193,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
     self.done = YES;
     [self cleanup];
     self.completion = nil; self.original = nil; self.master = nil;
+    self.forward = nil;
 }
 
 - (void)rpc:(NSData *)payload service:(MTRequestMessageService *)service
@@ -319,6 +325,45 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
         if (!bytes || ![self.plan prepareWithResponse:bytes]) { [self fail:self.plan.errorDescription]; return; }
         [self nextDownload];
     }];
+}
+
+- (void)prepareForward {
+    if (self.done) return;
+    self.started = YES;
+    self.stage = @"protection lookup";
+    NSString *account = TGExtraHistoryAccountForRequestService(self.service);
+    self.master = copyValue(self.service, @"mtProto");
+    if (!account || !self.master) { [self fail:@"TGEXTRA_COPY_NETWORK_UNAVAILABLE"]; return; }
+    if (!self.plan || !self.plan.sourceRequest) { [self fail:@"TGEXTRA_COPY_UNSUPPORTED"]; return; }
+    self.workers = [NSMutableDictionary new]; self.workerServices = [NSMutableDictionary new];
+    if (![self openJournalForAccount:account]) { [self fail:@"TGEXTRA_COPY_JOURNAL_UNAVAILABLE"]; return; }
+    if (self.journal[@"requests"]) { [self sendBatch:0]; return; }
+    [self rpc:self.plan.sourceRequest service:self.service completion:^(NSData *bytes, MTRpcError *error) {
+        if (error) { [self complete:nil info:self.info error:error]; return; }
+        NSInteger protection = bytes ? [self.plan forwardingProtectionWithResponse:bytes] : -1;
+        if (protection == 0 && self.plan.requiresPrivateProtectionLookup) {
+            [self rpc:self.plan.privateProtectionRequest service:self.service completion:^(NSData *user, MTRpcError *error) {
+                if (error) { [self complete:nil info:self.info error:error]; return; }
+                [self applyProtection:user ? [self.plan privateProtectionWithResponse:user] : -1 response:bytes];
+            }];
+        } else {
+            [self applyProtection:protection response:bytes];
+        }
+    }];
+}
+
+- (void)applyProtection:(NSInteger)protection response:(NSData *)bytes {
+    if (protection < 0) { [self fail:@"TGEXTRA_COPY_SOURCE_UNAVAILABLE"]; return; }
+    if (protection == 0) {
+        void (^forward)(void) = self.forward;
+        self.done = YES;
+        [self cleanup];
+        self.completion = nil; self.forward = nil; self.original = nil; self.master = nil;
+        if (forward) forward();
+        return;
+    }
+    if (![self.plan prepareWithResponse:bytes]) { [self fail:self.plan.errorDescription]; return; }
+    [self nextDownload];
 }
 
 - (void)nextDownload {
@@ -512,6 +557,39 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
     }];
 }
 @end
+
+BOOL TGExtraPrepareForwardRequest(MTRequest *request, MTRequestMessageService *service, void (^forward)(void)) {
+    if (objc_getAssociatedObject(request, preparingCopyKey)) return YES;
+    if (!request.completed || !request.internalId ||
+        ![NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction] ||
+        ![TLParser isForwardRequest:request.payload]) return NO;
+    TGExtraForwardOperation *operation = [TGExtraForwardOperation new];
+    operation.original = request; operation.service = service;
+    operation.plan = [[TGExtraForwardCopyPlan alloc] initWithPayload:request.payload];
+    operation.completion = request.completed;
+    operation.forward = forward;
+    objc_setAssociatedObject(request, preparingCopyKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    dispatch_async(copyQueue(), ^{
+        NSMapTable *operations = [copyOperations() objectForKey:service];
+        if (!operations) {
+            operations = [NSMapTable strongToStrongObjectsMapTable];
+            [copyOperations() setObject:operations forKey:service];
+        }
+        [operations setObject:operation forKey:request.internalId];
+        [operation prepareForward];
+    });
+    return YES;
+}
+
+MTRequest *TGExtraPreflightForwardRequest(NSData *payload, MTRequestMessageService *service,
+    void (^completion)(id, MTRequestResponseInfo *, MTRpcError *), void (^forward)(void)) {
+    MTRequest *request = [NSClassFromString(@"MTRequest") new];
+    objc_setAssociatedObject(request, internalCopyKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [request setPayload:payload metadata:nil shortMetadata:@"TGExtra.copy.preflight"
+         responseParser:^id(NSData *bytes) { return bytes; }];
+    request.completed = completion;
+    return TGExtraPrepareForwardRequest(request, service, forward) ? request : nil;
+}
 
 void TGExtraWrapForwardRequest(MTRequest *request, MTRequestMessageService *service) {
     if (TGExtraIsInternalCopyRequest(request) || objc_getAssociatedObject(request, wrappedCopyKey) ||

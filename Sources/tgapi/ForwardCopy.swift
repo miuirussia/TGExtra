@@ -151,6 +151,66 @@ final class ForwardCopyPlan: NSObject {
         }
     }
 
+    // Inspect the unmodified helper response, before host copy-protection patches.
+    // -1 means that forwarding cannot safely be classified.
+    @objc(forwardingProtectionWithResponse:)
+    func forwardingProtection(response: Data) -> Int {
+        guard let result = Self.messages(response) else { return -1 }
+        var found = Set<Int32>()
+        var protected = false
+        for message in result.messages {
+            guard case let .message(value) = message, ids.contains(value.id),
+                  Self.matches(value.peerId, input: source) else { continue }
+            guard found.insert(value.id).inserted,
+                  let location = TLFlag.noForwards.location(in: value.record),
+                  let flags = value.record[location.field] as? Int32 else { return -1 }
+            protected = protected || flags & location.mask != 0
+        }
+        guard found.count == ids.count else { return -1 }
+        if protected { return 1 }
+        switch source {
+        case .inputPeerChannel, .inputPeerChat:
+            let chat = result.chats.first { chat in
+                switch (chat, source) {
+                case let (.channel(c), .inputPeerChannel(p)): return c.id == p.channelId
+                case let (.chat(c), .inputPeerChat(p)): return c.id == p.chatId
+                default: return false
+                }
+            }
+            guard let chat = chat, let location = TLFlag.noForwards.location(in: chat.record),
+                  let flags = chat.record[location.field] as? Int32 else { return -1 }
+            protected = protected || flags & location.mask != 0
+        default: break
+        }
+        return protected ? 1 : 0
+    }
+
+    @objc var requiresPrivateProtectionLookup: Bool {
+        if case .inputPeerUser = source { return true }
+        return false
+    }
+
+    @objc var privateProtectionRequest: Data? {
+        guard case let .inputPeerUser(peer) = source else { return nil }
+        return Api.functions.users.getFullUser(id: .inputUser(.init(userId: peer.userId,
+            accessHash: peer.accessHash))).1.makeValidData()
+    }
+
+    @objc(privateProtectionWithResponse:)
+    func privateProtection(response: Data) -> Int {
+        guard case let .inputPeerUser(peer) = source,
+              let result = Self.boxed(response, as: Api.users.UserFull.self),
+              case let .userFull(value) = result, case let .userFull(user) = value.fullUser,
+              user.id == peer.userId else { return -1 }
+        var protected = false
+        for flag in [TLFlag.noForwardsMyEnabled, .noForwardsPeerEnabled] {
+            guard let location = flag.location(in: user.record),
+                  let flags = user.record[location.field] as? Int32 else { return -1 }
+            protected = protected || flags & location.mask != 0
+        }
+        return protected ? 1 : 0
+    }
+
     @objc(prepareWithResponse:)
     func prepare(response: Data) -> Bool {
         items.removeAll(); downloads.removeAll(); requests.removeAll(); batches.removeAll()

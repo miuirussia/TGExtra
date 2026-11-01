@@ -96,8 +96,14 @@ replaces suppressed requests with `help.getNearestDc`.
 ### Saving and forwarding
 
 Protected forwarding downloads and uploads a copy without the original author
-header. You need access to the source, permission to send in the destination and
-temporary disk space. Polls, stickers, custom emoji media, paid or disappearing
+header. With the setting enabled, TGExtra checks the source before forwarding
+and copies protected messages directly, without first sending a forward request
+that Telegram would reject with `CHAT_FORWARDS_RESTRICTED`. Unprotected messages
+use ordinary forwarding after this check, including a full-user lookup for
+private chats. If protection cannot be determined,
+the operation fails locally instead of attempting a forward. You need access to
+the source, permission to send in the destination and temporary disk space.
+Polls, stickers, custom emoji media, paid or disappearing
 media, rich-message bodies and some forwarding options are unsupported.
 
 To save purchased or secret-chat media, enable **Save Protected Content** and tap
