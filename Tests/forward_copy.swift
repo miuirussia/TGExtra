@@ -5,11 +5,12 @@ private let copySource = Api.InputPeer.inputPeerUser(.init(userId: 42, accessHas
 private let copyDestination = Api.InputPeer.inputPeerUser(.init(userId: 99, accessHash: 456))
 
 private func copyPayload(_ ids: [Int32], flags: Int32 = 0, source: Api.InputPeer = copySource,
-                         top: Int32? = nil, schedule: Int32? = nil, sendAs: Api.InputPeer? = nil) -> Data {
+                         top: Int32? = nil, schedule: Int32? = nil, sendAs: Api.InputPeer? = nil,
+                         videoTimestamp: Int32? = nil) -> Data {
     Api.functions.messages.forwardMessages(flags: flags, fromPeer: source, id: ids,
         randomId: ids.map { 9000 + Int64($0) }, toPeer: copyDestination, topMsgId: top, replyTo: nil,
         scheduleDate: schedule, scheduleRepeatPeriod: nil, sendAs: sendAs, quickReplyShortcut: nil,
-        effect: nil, videoTimestamp: nil, allowPaidStars: nil, suggestedPost: nil).1.makeData()
+        effect: nil, videoTimestamp: videoTimestamp, allowPaidStars: nil, suggestedPost: nil).1.makeData()
 }
 
 private func copyHistory(_ messages: [Api.Message]) -> Data {
@@ -32,9 +33,10 @@ private func copyPhoto(id: Int64 = 12, reference: String = "ref") -> Api.Message
         sizes: [.photoSize(.init(type: "x", w: 100, h: 100, size: 3))], videoSizes: nil, dcId: 2)), ttlSeconds: nil, video: nil))
 }
 
-private func copyDocument(size: Int64, id: Int64 = 50, attributes: [Api.DocumentAttribute]? = nil) -> Api.MessageMedia {
+private func copyDocument(size: Int64, id: Int64 = 50, attributes: [Api.DocumentAttribute]? = nil,
+                          mime: String = "audio/ogg") -> Api.MessageMedia {
     .messageMediaDocument(.init(flags: 1, document: .document(.init(flags: 0, id: id, accessHash: 51,
-        fileReference: Buffer(data: Data("docref".utf8)), date: 1234, mimeType: "audio/ogg", size: size,
+        fileReference: Buffer(data: Data("docref".utf8)), date: 1234, mimeType: mime, size: size,
         thumbs: nil, videoThumbs: nil, dcId: 2, attributes: attributes ?? [
             .documentAttributeFilename(.init(fileName: "voice.ogg")),
             .documentAttributeAudio(.init(flags: (1 << 10) | (1 << 2), duration: 3, title: nil, performer: nil, waveform: Buffer(data: Data([1, 2, 3]))))
@@ -209,6 +211,46 @@ func testForwardCopies(rust: Bool = false) {
     check(!photoPlan.refreshDownload(response: copyHistory([message(1, media: copyPhoto(id: 99))]), index: 0), "A replaced attachment cannot splice into an in-progress download")
     let uploadedPhoto = serialized(copyPhoto(id: 120)) as Data
     let trueReply = serialized(Api.Bool.boolTrue) as Data
+    if rust {
+        for options: [String: Any] in [["masterDC": 2], ["mediaSession": true],
+                                     ["mediaSession": true, "mediaAccount": "account-2"],
+                                     ["mediaSession": true, "destroyMedia": true]] {
+            var fixture = options
+            fixture["rust"] = true; fixture["legacyMediaUnavailable"] = true; fixture["payload"] = payload
+            let files: [Any] = options["destroyMedia"] == nil ? [copyFile(Data([1, 2, 3]))] : [["hold": true]]
+            fixture["replies"] = ["1673946374": [copyHistory([photoMessage])],
+                "-1101843010": files, "-1291540959": [trueReply],
+                "345405816": [uploadedPhoto], "53536639": [sent]]
+            let nativeMedia = TGExtraRunForwardCopyScenario(fixture, directory.appendingPathComponent(UUID().uuidString)) as! [String: Any]
+            let expectedError = options["destroyMedia"] != nil ? "ENGINE_SWITCHED" :
+                (options["mediaAccount"] == nil ? "" : "TEST_LEGACY_MEDIA_UNAVAILABLE")
+            check(nativeMedia["error"] as! String == expectedError,
+                  "Rust photo copies use the authorized native session for the file DC even without legacy media transport")
+        }
+    }
+    let videoAttributes: [Api.DocumentAttribute] = [
+        .documentAttributeFilename(.init(fileName: "video.mp4")),
+        .documentAttributeVideo(.init(flags: 1 << 1, duration: 120, w: 1920, h: 1080,
+            preloadPrefixSize: nil, videoStartTs: nil, videoCodec: nil))
+    ]
+    let video = copyDocument(size: 3, attributes: videoAttributes, mime: "video/mp4")
+    let timestampPayload = copyPayload([1], source: sourceChannel, videoTimestamp: 42)
+    check(ForwardCopyPlan(payload: timestampPayload) != nil, "A video playback timestamp does not disable protected copying")
+    let videoCopy = run(timestampPayload, ["-1383294429": [copyHistory([
+        message(1, peer: .peerChannel(.init(channelId: 77)), media: video)
+    ])], "-1101843010": [copyFile(Data([1, 2, 3]))], "-1291540959": [trueReply],
+        "345405816": [serialized(copyDocument(size: 3, id: 150, attributes: videoAttributes, mime: "video/mp4")) as Data],
+        "53536639": [sent]])
+    check(videoCopy["error"] as! String == "" && calls(videoCopy).last == 53536639,
+          "A protected group video with a playback timestamp is downloaded, uploaded and sent")
+    let videoSend = HostSchema.shared!.request((videoCopy["payloads"] as! [Data]).last!)!
+    guard case let .inputMediaDocument(sentVideo) = Api.InputMedia(videoSend["media"] as! TLRecord)! else {
+        fatalError("Expected video document")
+    }
+    check(sentVideo.videoTimestamp == 42 && sentVideo.flags & (1 << 4) != 0,
+          "The new video retains its playback timestamp with the input-media flag")
+    guard case let .inputDocument(newVideo) = sentVideo.id else { fatalError("Expected new document") }
+    check(newVideo.id == 150, "Send the newly uploaded video rather than the protected source document")
     let photoCopy = run(payload, ["1673946374": [copyHistory([photoMessage])],
         "-1101843010": [copyFile(Data([1, 2, 3]))], "-1291540959": [trueReply],
         "345405816": [uploadedPhoto], "53536639": [sent]])
@@ -220,6 +262,10 @@ func testForwardCopies(rust: Bool = false) {
     guard case let .inputMediaUploadedPhoto(uploaded) = Api.parse(uploadReader, signature: uploadReader.readInt32()!) as! Api.InputMedia,
           case let .inputFile(file) = uploaded.file else { fatalError("Expected fresh uploaded photo") }
     check(file.md5Checksum == "5289df737df57326fcdd22597afb1fac" && file.parts == 1, "Small uploads use the checksum of the downloaded bytes")
+    let photoSend = HostSchema.shared!.request(photoPayloads.last!)!
+    guard case let .inputMediaPhoto(sentPhoto) = Api.InputMedia(photoSend["media"] as! TLRecord)!,
+          case let .inputPhoto(newPhoto) = sentPhoto.id else { fatalError("Expected new photo") }
+    check(newPhoto.id == 120, "Send the newly uploaded photo rather than forwarding the protected original")
 
     let refreshed = run(payload, ["1673946374": [copyHistory([photoMessage]), copyHistory([message(1, media: copyPhoto(reference: "fresh"))])],
         "-1101843010": [["error": "FILE_REFERENCE_EXPIRED"], copyFile(Data([1, 2, 3]))], "-1291540959": [trueReply],

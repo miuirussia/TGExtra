@@ -27,6 +27,14 @@ typedef void *(*TGERustCreate)(uint32_t, void *, void *, void *);
 typedef const uint8_t *(*TGERustBufferData)(const void *);
 typedef size_t (*TGERustBufferLength)(const void *);
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+id TGExtraRustRequestServiceForDatacenter(id service, NSInteger datacenter);
+#ifdef __cplusplus
+}
+#endif
+
 @interface TGExtraRustBridge : NSObject
 + (void *)engineCreate:(uint32_t)threads context:(void *)context event:(void *)event log:(void *)log original:(void *)original;
 + (uint64_t)sessionCreate:(void *)engine setup:(const void *)setup original:(void *)original;

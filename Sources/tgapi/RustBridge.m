@@ -104,12 +104,36 @@ static void initializeBridge(void) {
 NSString *TGExtraRustCompatibilityStatus(void) {
     initializeBridge();
     @synchronized(bridgeLock) {
-        if (engines.count) return [NSString stringWithFormat:@"active, %lu engine(s)", (unsigned long)engines.count];
+        if (engines.count) {
+            NSUInteger copySessions = 0;
+            for (TGERustEngine *engine in engines.allValues)
+                for (TGERustSession *session in engine.sessions.allValues)
+                    if (session.service) copySessions++;
+            return [NSString stringWithFormat:@"active, %lu engine(s); protected-copy sessions: %lu",
+                (unsigned long)engines.count, (unsigned long)copySessions];
+        }
     }
     NSString *path = [NSBundle.mainBundle pathForResource:@"TGExtraRustBridge" ofType:@"plist"];
     return path ? @"profile metadata present; no active engine observed" : @"no profile metadata or active engine; required for Rust transport";
 }
 static NSValue *pointerKey(const void *pointer) { return [NSValue valueWithPointer:pointer]; }
+
+id TGExtraRustRequestServiceForDatacenter(id service, NSInteger datacenter) {
+    if (![service isKindOfClass:TGERustRequestService.class]) return nil;
+    TGERustRequestService *source = service;
+    @synchronized(bridgeLock) {
+        TGERustEngine *engine = source.engine;
+        if (!source.session || engine.sessions[@(source.session.handle)] != source.session) return nil;
+        if (source.mtProto.datacenterId == datacenter) return source;
+        for (TGERustSession *session in engine.sessions.allValues) {
+            TGERustRequestService *candidate = session.service;
+            if (candidate.mtProto.datacenterId == datacenter &&
+                candidate.mtProto.context == source.mtProto.context &&
+                [session.account isEqual:source.session.account]) return candidate;
+        }
+    }
+    return nil;
+}
 
 static void flushDependents(TGERustEngine *engine, TGERustSession *session, uint64_t completed) {
     @synchronized(bridgeLock) {
@@ -410,12 +434,22 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         TGERustSession *state = [TGERustSession new]; state.account = account; state.handle = handle;
         @synchronized(bridgeLock) {
             TGERustEngine *owner = engines[pointerKey(engine)];
+            id usage = scope[@"usage"];
+            if (!usage && scope[@"context"]) {
+                for (TGERustSession *existing in owner.sessions.allValues) {
+                    if (existing.service.mtProto.context != scope[@"context"]) continue;
+                    account = existing.account;
+                    usage = existing.service.mtProto.usageCalculationInfo;
+                    break;
+                }
+                state.account = account;
+            }
             if (account && scope[@"context"] && [scope[@"dc"] integerValue] > 0 &&
                 owner.send && owner.cancel && owner.nextRequestID && owner.freeBuffer) {
                 TGERustRequestService *service = [TGERustRequestService new];
                 service.engine = owner; service.session = state;
                 TGERustConnection *connection = [TGERustConnection new];
-                connection.context = scope[@"context"]; connection.usageCalculationInfo = scope[@"usage"];
+                connection.context = scope[@"context"]; connection.usageCalculationInfo = usage;
                 connection.datacenterId = [scope[@"dc"] integerValue]; service.mtProto = connection;
                 state.service = service;
             }
@@ -433,9 +467,14 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         for (TGERustPending *pending in state.requests.allValues) {
             if (pending.recovery) TGExtraCancelForwardRequest(pending.recovery.internalId, (id)state.service);
         }
+        NSArray<MTRequest *> *helpers = state.service.helpers.allValues;
         [owner.sessions removeObjectForKey:@(session)];
         [state.requests removeAllObjects];
         [state.service.helpers removeAllObjects]; [state.service.identifiers removeAllObjects];
+        for (MTRequest *request in helpers) {
+            if (request.completed) request.completed(nil, nil,
+                [[NSClassFromString(@"MTRpcError") alloc] initWithErrorCode:500 errorDescription:@"ENGINE_SWITCHED"]);
+        }
         original(engine, session);
     }
 }

@@ -1,4 +1,5 @@
 #import "ForwardCopy.h"
+#import "RustBridge.h"
 #import <CommonCrypto/CommonDigest.h>
 #import <objc/runtime.h>
 
@@ -130,6 +131,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
 @property(nonatomic) BOOL done;
 @property(nonatomic) CC_MD5_CTX md5;
 @property(nonatomic, copy) NSString *checksum;
+@property(nonatomic, copy) NSString *stage;
 - (void)receiveOriginal:(id)result info:(MTRequestResponseInfo *)info error:(MTRpcError *)error;
 - (void)cancel;
 @end
@@ -167,6 +169,8 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
 
 - (void)complete:(id)result info:(MTRequestResponseInfo *)info error:(MTRpcError *)error {
     if (self.done) return;
+    if (self.started && error) customLog(@"Protected forwarding failed during %@ (%d): %@",
+        self.stage ?: @"setup", error.errorCode, error.errorDescription);
     self.done = YES;
     [self cleanup];
     void (^completion)(id, MTRequestResponseInfo *, MTRpcError *) = self.completion;
@@ -221,9 +225,12 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
 
 - (MTRequestMessageService *)downloadService:(NSNumber *)dc {
     if (self.workerServices[dc]) return self.workerServices[dc];
+    id native = TGExtraRustRequestServiceForDatacenter(self.service, dc.integerValue);
+    if (native) return native;
     id context = copyValue(self.master, @"context");
     NSInteger masterId = [copyValue(self.master, @"datacenterId") integerValue];
     if (!context || masterId <= 0) return nil;
+    if (dc.integerValue == masterId) return self.service;
     SEL initializer = @selector(initWithContext:datacenterId:usageCalculationInfo:requiredAuthToken:authTokenMasterDatacenterId:);
     Class networkClass = NSClassFromString(@"MTProto"), serviceClass = NSClassFromString(@"MTRequestMessageService");
     if (![networkClass instancesRespondToSelector:initializer] ||
@@ -300,6 +307,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
         return;
     }
     self.started = YES;
+    self.stage = @"source lookup";
     NSString *account = TGExtraHistoryAccountForRequestService(self.service);
     self.master = copyValue(self.service, @"mtProto");
     if (!account || !self.master) { [self complete:result info:info error:error]; return; }
@@ -339,6 +347,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
     self.file = [NSFileHandle fileHandleForUpdatingAtPath:self.fileURL.path];
     if (!self.file) { [self fail:@"TGEXTRA_COPY_DISK_ERROR"]; return; }
     self.offset = 0; self.nextOffset = 0; self.refreshed = NO;
+    self.stage = @"media transfer";
     self.downloadInFlight = 0; self.uploadInFlight = 0;
     self.uploadedParts = 0; self.part = 0; self.finishingMedia = NO;
     self.receivedParts = [NSMutableDictionary new];
@@ -412,6 +421,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
     BOOL big = size > 10 * 1024 * 1024;
     if (self.uploadedParts == self.parts && self.offset == size) {
         self.finishingMedia = YES;
+        self.stage = @"media registration";
         [self rpc:[self.plan mediaUploadRequestForIndex:index fileId:self.fileId parts:self.parts md5:self.checksum]
             service:self.service completion:^(NSData *response, MTRpcError *error) {
             if (error) { [self complete:nil info:self.info error:error]; return; }
@@ -446,6 +456,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
 }
 
 - (void)normalizeBatch:(NSUInteger)batch response:(NSData *)response {
+    self.stage = @"send confirmation";
     NSData *confirmation = [self.plan confirmationRequestForResponse:response];
     void (^finish)(NSData *, MTRpcError *) = ^(NSData *messages, MTRpcError *error) {
         if (error) { [self complete:nil info:self.info error:error]; return; }
@@ -483,6 +494,7 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
     NSDictionary *entry = self.journal[@"results"][@(batch).stringValue];
     if ([entry[@"normalized"] isKindOfClass:NSData.class]) { [self sendBatch:batch + 1]; return; }
     if ([entry[@"raw"] isKindOfClass:NSData.class]) { [self normalizeBatch:batch response:entry[@"raw"]]; return; }
+    self.stage = @"send";
     [self rpc:self.plan.requests[batch][@"payload"] service:self.service completion:^(NSData *response, MTRpcError *error) {
         if (error) { [self complete:nil info:self.info error:error]; return; }
         if (!response) { [self fail:@"TGEXTRA_COPY_RESPONSE_INVALID"]; return; }
@@ -498,7 +510,10 @@ void TGExtraWrapForwardRequest(MTRequest *request, MTRequestMessageService *serv
         !request.completed || !request.internalId ||
         ![NSUserDefaults.standardUserDefaults boolForKey:kDisableForwardRestriction]) return;
     TGExtraForwardCopyPlan *plan = [[TGExtraForwardCopyPlan alloc] initWithPayload:request.payload];
-    if (!plan || !plan.sourceRequest) return;
+    if (!plan || !plan.sourceRequest) {
+        if ([TLParser isForwardRequest:request.payload]) customLog(@"Protected forwarding unavailable: unsupported forward options or source");
+        return;
+    }
     TGExtraForwardOperation *operation = [TGExtraForwardOperation new];
     operation.original = request; operation.service = service; operation.plan = plan;
     operation.completion = request.completed;
@@ -525,7 +540,10 @@ MTRequest *TGExtraRecoverForwardRequest(NSData *payload, MTRequestMessageService
         (error.errorCode != 400 && error.errorCode != 406) ||
         ![error.errorDescription isEqualToString:@"CHAT_FORWARDS_RESTRICTED"]) return nil;
     TGExtraForwardCopyPlan *plan = [[TGExtraForwardCopyPlan alloc] initWithPayload:payload];
-    if (!plan.sourceRequest) return nil;
+    if (!plan.sourceRequest) {
+        customLog(@"Protected forwarding recovery unavailable: unsupported forward options or source");
+        return nil;
+    }
     MTRequest *request = [NSClassFromString(@"MTRequest") new];
     objc_setAssociatedObject(request, internalCopyKey, @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     [request setPayload:payload metadata:nil shortMetadata:@"TGExtra.copy.recovery"

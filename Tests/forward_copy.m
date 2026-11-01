@@ -25,6 +25,8 @@ extern void TGExtraDrainCopyTestQueue(void);
 @property NSUInteger activeFiles, maxFiles, issuedFiles, completedFiles, totalFiles;
 @property BOOL overlap;
 @property NSMutableArray<NSNumber *> *fileOrder;
+@property NSInteger masterDC;
+@property BOOL legacyMediaUnavailable;
 @end
 @implementation CopyTestContext
 @end
@@ -69,7 +71,8 @@ static void scheduleCopyTestReply(CopyTestContext *context, int32_t constructor,
 - (instancetype)initWithContext:(id)context datacenterId:(NSInteger)dc usageCalculationInfo:(id)usage requiredAuthToken:(id)token authTokenMasterDatacenterId:(NSInteger)master {
     if ((self = [super init])) {
         _context = context; _datacenterId = dc; _usageCalculationInfo = usage;
-        NSCAssert(dc == 1 || ([token isEqual:@(dc)] && master == 1), @"Media DC uses the account's master authorization");
+        NSInteger masterDC = [(CopyTestContext *)context masterDC];
+        NSCAssert(dc == masterDC || ([token isEqual:@(dc)] && master == masterDC), @"Media DC uses the account's master authorization");
     }
     return self;
 }
@@ -104,6 +107,8 @@ static void scheduleCopyTestReply(CopyTestContext *context, int32_t constructor,
     if (![reply isKindOfClass:NSData.class]) {
         error = [[MTRpcError alloc] initWithErrorCode:400 errorDescription:reply[@"error"] ?: @"TEST_UNEXPECTED_REQUEST"];
     }
+    if (constructor == -1101843010 && self.testContext.legacyMediaUnavailable)
+        error = [[MTRpcError alloc] initWithErrorCode:400 errorDescription:@"TEST_LEGACY_MEDIA_UNAVAILABLE"];
     MTRequestResponseInfo *info = [[MTRequestResponseInfo alloc] initWithNetworkType:1 timestamp:1234 duration:0.1];
     void (^completed)(id, MTRequestResponseInfo *, MTRpcError *) = request.completed;
     scheduleCopyTestReply(self.testContext, constructor, ^{
@@ -124,6 +129,8 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
     context.payloads = [NSMutableArray new]; context.cancellations = [NSMutableArray new];
     context.pending = dispatch_semaphore_create(0); context.replies = [NSMutableDictionary new];
     context.parallel = [fixture[@"parallel"] boolValue];
+    context.masterDC = [fixture[@"masterDC"] integerValue] ?: 1;
+    context.legacyMediaUnavailable = [fixture[@"legacyMediaUnavailable"] boolValue];
     context.totalFiles = [fixture[@"replies"][@"-1101843010"] count];
     context.fileOrder = [NSMutableArray new];
     [fixture[@"replies"] enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSArray *replies, BOOL *stop) {
@@ -133,7 +140,7 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
     // usageCalculationInfo.filePath is the same account attribution path used
     // by the injected hook. Dictionaries support these KVC keys in the mock.
     NSString *account = fixture[@"account"] ?: @"account-1";
-    MTProto *network = [[MTProto alloc] initWithContext:context datacenterId:1
+    MTProto *network = [[MTProto alloc] initWithContext:context datacenterId:context.masterDC
         usageCalculationInfo:@{@"filePath": [NSString stringWithFormat:@"/accounts/%@/network-stats", account]}
         requiredAuthToken:nil authTokenMasterDatacenterId:0];
     MTRequestMessageService *service = [[MTRequestMessageService alloc] initWithContext:context];
@@ -176,6 +183,7 @@ NSDictionary *TGExtraRunForwardCopyScenario(NSDictionary *fixture, NSURL *journa
 @property NSMutableSet<NSNumber *> *held;
 @property NSMutableArray<NSString *> *sequence;
 @property uint64_t counter;
+@property uint64_t sessionCounter;
 @property NSUInteger completions;
 @property NSData *result;
 @property NSString *error;
@@ -189,7 +197,7 @@ static const uint8_t *copyRustData(const void *buffer) { return [(__bridge NSDat
 static size_t copyRustLength(const void *buffer) { return [(__bridge NSData *)buffer length]; }
 static void copyRustFree(void *buffer) { id data = CFBridgingRelease(buffer); (void)data; }
 
-static void copyRustDeliver(CopyTestRustEngine *engine, uint64_t identifier, id reply, int32_t code) {
+static void copyRustDeliver(CopyTestRustEngine *engine, uint64_t session, uint64_t identifier, id reply, int32_t code) {
     NSData *bytes = [reply isKindOfClass:NSData.class] ? reply : nil;
     NSString *error = [reply isKindOfClass:NSString.class] ? reply : nil;
     NSData *text = [error dataUsingEncoding:NSUTF8StringEncoding];
@@ -198,7 +206,7 @@ static void copyRustDeliver(CopyTestRustEngine *engine, uint64_t identifier, id 
     event.text = (TGERustString){text.bytes, text.length};
     event.value1 = 1234; event.value2 = 0.1;
     if (bytes) event.payload = (__bridge_retained void *)bytes;
-    engine.callback((__bridge void *)engine, 1, &event);
+    engine.callback((__bridge void *)engine, session, &event);
 }
 
 static void copyRustHostEvent(void *context, uint64_t session, const TGERustEvent *event) {
@@ -229,7 +237,7 @@ static void *copyRustCreate(uint32_t threads, void *context, void *callback, voi
     engine.callback = (TGERustEventCallback)callback;
     return context;
 }
-static uint64_t copyRustSession(void *engine, const void *setup) { return 1; }
+static uint64_t copyRustSession(void *engine, const void *setup) { return ++((__bridge CopyTestRustEngine *)engine).sessionCounter; }
 static void *copyRustUsage(void *receiver, void *selector, void *info) { return receiver; }
 static void *copyRustAuth(void *receiver, void *selector, NSInteger dc, NSInteger authSelector) { return NULL; }
 static uint64_t copyRustNext(void *pointer) {
@@ -244,7 +252,7 @@ static void copyRustSend(void *pointer, uint64_t session, const TGERustRequest *
         dispatch_async(engine.queue, ^{
             NSCAssert(dispatch_semaphore_wait(engine.initialGate, dispatch_time(DISPATCH_TIME_NOW, 5*NSEC_PER_SEC)) == 0, @"Original refusal gate released");
             NSString *initial = engine.fixture[@"initialError"] ?: @"CHAT_FORWARDS_RESTRICTED";
-            copyRustDeliver(engine, identifier, initial.length ? initial : (engine.fixture[@"initialResult"] ?: NSData.data),
+            copyRustDeliver(engine, session, identifier, initial.length ? initial : (engine.fixture[@"initialResult"] ?: NSData.data),
                 [engine.fixture[@"initialCode"] intValue] ?: 400);
         });
         return;
@@ -252,7 +260,7 @@ static void copyRustSend(void *pointer, uint64_t session, const TGERustRequest *
     if (identifier == 9002 || identifier == 9003) {
         @synchronized(engine.context) { [engine.sequence addObject:identifier == 9002 ? @"dependent" : @"grandchild"]; }
         NSCAssert(request->invokeAfter == 0, @"Recovered forward dependency already completed");
-        dispatch_async(engine.queue, ^{ copyRustDeliver(engine, identifier, NSData.data, 0); });
+        dispatch_async(engine.queue, ^{ copyRustDeliver(engine, session, identifier, NSData.data, 0); });
         return;
     }
     NSCAssert(!(request->flags & 128) && request->invokeAfter == 0, @"Copy RPCs do not delegate retries or depend on the failed forward");
@@ -271,7 +279,7 @@ static void copyRustSend(void *pointer, uint64_t session, const TGERustRequest *
     }
     scheduleCopyTestReply(engine.context, constructor, ^{
         dispatch_async(engine.queue, ^{
-            copyRustDeliver(engine, identifier, [reply isKindOfClass:NSData.class] ? reply : (reply[@"error"] ?: @"TEST_UNEXPECTED_REQUEST"), 400);
+            copyRustDeliver(engine, session, identifier, [reply isKindOfClass:NSData.class] ? reply : (reply[@"error"] ?: @"TEST_UNEXPECTED_REQUEST"), 400);
         });
     });
 }
@@ -288,7 +296,8 @@ static void copyRustDestroy(void *pointer, uint64_t session) {
     CopyTestRustEngine *engine = (__bridge id)pointer;
     @synchronized(engine.context) {
         [engine.context.cancellations addObjectsFromArray:engine.held.allObjects];
-        [engine.held removeAllObjects]; engine.destroyed = YES;
+        [engine.held removeAllObjects];
+        if (session == 1) engine.destroyed = YES;
     }
 }
 
@@ -310,8 +319,19 @@ static NSDictionary *runRustCopyScenario(NSDictionary *fixture, CopyTestContext 
     NSDictionary *usage = @{@"filePath": [NSString stringWithFormat:@"/accounts/%@/network-stats", account]};
     [TGExtraRustBridge usageManager:NULL selector:NULL info:(__bridge void *)usage original:copyRustUsage];
     if (![fixture[@"noContext"] boolValue])
-        [TGExtraRustBridge authInfo:(__bridge void *)context selector:NULL datacenter:1 authSelector:0 original:copyRustAuth];
+        [TGExtraRustBridge authInfo:(__bridge void *)context selector:NULL datacenter:context.masterDC authSelector:0 original:copyRustAuth];
     uint64_t session = [TGExtraRustBridge sessionCreate:native setup:NULL original:copyRustSession];
+    uint64_t mediaSession = 0;
+    if ([fixture[@"mediaSession"] boolValue]) {
+        // Native media workers may omit usageCalculationInfo. Their MTContext
+        // still identifies the account whose authorization they use.
+        if (fixture[@"mediaAccount"]) {
+            NSDictionary *mediaUsage = @{@"filePath": [NSString stringWithFormat:@"/accounts/%@/network-stats", fixture[@"mediaAccount"]]};
+            [TGExtraRustBridge usageManager:NULL selector:NULL info:(__bridge void *)mediaUsage original:copyRustUsage];
+        }
+        [TGExtraRustBridge authInfo:(__bridge void *)context selector:NULL datacenter:2 authSelector:0 original:copyRustAuth];
+        mediaSession = [TGExtraRustBridge sessionCreate:native setup:NULL original:copyRustSession];
+    }
     NSData *payload = fixture[@"payload"];
     TGERustRequest request = {8001, {payload.bytes, payload.length}, 0, 0, 0};
     [TGExtraRustBridge send:native session:session request:&request original:copyRustSend];
@@ -329,6 +349,11 @@ static NSDictionary *runRustCopyScenario(NSDictionary *fixture, CopyTestContext 
             [TGExtraRustBridge cancel:native session:session request:9002 original:copyRustCancel];
     }
     dispatch_semaphore_signal(engine.initialGate);
+    if ([fixture[@"destroyMedia"] boolValue]) {
+        NSCAssert(dispatch_semaphore_wait(context.pending, dispatch_time(DISPATCH_TIME_NOW, 5*NSEC_PER_SEC)) == 0, @"Media session reached its pending download");
+        [TGExtraRustBridge sessionDestroy:native session:mediaSession original:copyRustDestroy];
+        mediaSession = 0;
+    }
     if ([fixture[@"cancel"] boolValue] || [fixture[@"destroy"] boolValue]) {
         NSCAssert(dispatch_semaphore_wait(context.pending, dispatch_time(DISPATCH_TIME_NOW, 5*NSEC_PER_SEC)) == 0, @"Rust copy reached a pending helper");
         if ([fixture[@"destroy"] boolValue]) [TGExtraRustBridge sessionDestroy:native session:session original:copyRustDestroy];
@@ -339,6 +364,7 @@ static NSDictionary *runRustCopyScenario(NSDictionary *fixture, CopyTestContext 
     TGExtraDrainCopyTestQueue();
     dispatch_sync(engine.queue, ^{});
     if (!engine.destroyed) [TGExtraRustBridge sessionDestroy:native session:session original:copyRustDestroy];
+    if (mediaSession) [TGExtraRustBridge sessionDestroy:native session:mediaSession original:copyRustDestroy];
     TGExtraDrainCopyTestQueue();
     @synchronized(context) {
         return @{@"result": engine.result ?: NSData.data, @"error": engine.error ?: @"", @"completions": @(engine.completions),

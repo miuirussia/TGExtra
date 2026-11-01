@@ -13,6 +13,7 @@ final class ForwardCopyPlan: NSObject {
     private let schedule: Int32?
     private let sendAs: Api.InputPeer?
     private let paidStars: Int64?
+    private let videoTimestamp: Int32?
     private let originalPayload: Data
     private var items = [Item]()
     private var batches = [[Int64]]()
@@ -56,7 +57,7 @@ final class ForwardCopyPlan: NSObject {
               let randomIds = record["randomId"] as? [Int64], randomIds.count == ids.count,
               randomIds.allSatisfy({ $0 != 0 }), Set(ids).count == ids.count,
               Set(randomIds).count == randomIds.count else { return nil }
-        let optionalBits = [("topMsgId", 9), ("replyTo", 22), ("scheduleDate", 10), ("sendAs", 13), ("allowPaidStars", 21)]
+        let optionalBits = [("topMsgId", 9), ("replyTo", 22), ("scheduleDate", 10), ("sendAs", 13), ("allowPaidStars", 21), ("videoTimestamp", 20)]
         let knownFields = Set(["flags", "fromPeer", "toPeer", "id", "randomId"] + optionalBits.map { $0.0 })
         guard descriptor.fields.allSatisfy({ knownFields.contains($0.name) || record[$0.name] == nil }) else { return nil }
         // Standalone true flags are absent from TLS1. Keep their reviewed meanings,
@@ -73,7 +74,8 @@ final class ForwardCopyPlan: NSObject {
         guard rawFlags & ~supported == 0 else { return nil }
         guard record.canRead("topMsgId", as: Int32?.self), record.canRead("replyTo", as: Api.InputReplyTo?.self),
               record.canRead("scheduleDate", as: Int32?.self), record.canRead("sendAs", as: Api.InputPeer?.self),
-              record.canRead("allowPaidStars", as: Int64?.self) else { return nil }
+              record.canRead("allowPaidStars", as: Int64?.self),
+              record.canRead("videoTimestamp", as: Int32?.self) else { return nil }
         let topId = record["topMsgId"] as? Int32
         var reply = (record["replyTo"] as? TLRecord).flatMap(Api.InputReplyTo.init)
         if let topId = topId {
@@ -92,6 +94,7 @@ final class ForwardCopyPlan: NSObject {
         self.flags = flags; self.source = source; self.destination = destination
         self.ids = ids; self.randomIds = randomIds; self.topId = topId
         self.reply = reply; self.schedule = schedule; self.sendAs = sendAs; self.paidStars = paid
+        self.videoTimestamp = record["videoTimestamp"] as? Int32
         self.originalPayload = payload
         super.init()
     }
@@ -287,9 +290,9 @@ final class ForwardCopyPlan: NSObject {
                 id: .inputPhoto(.init(id: photo.id, accessHash: photo.accessHash, fileReference: photo.fileReference)), ttlSeconds: nil, video: nil))
         case let .messageMediaDocument(value):
             guard !items[index].photo, case let .document(document)? = value.document else { return false }
-            items[index].media = .inputMediaDocument(.init(flags: spoiler ? 4 : 0,
+            items[index].media = .inputMediaDocument(.init(flags: (spoiler ? 4 : 0) | (videoTimestamp != nil ? 16 : 0),
                 id: .inputDocument(.init(id: document.id, accessHash: document.accessHash, fileReference: document.fileReference)),
-                videoCover: nil, videoTimestamp: nil, ttlSeconds: nil, query: nil))
+                videoCover: nil, videoTimestamp: videoTimestamp, ttlSeconds: nil, query: nil))
         default: return false
         }
         return true
