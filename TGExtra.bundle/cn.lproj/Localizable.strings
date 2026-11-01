@@ -6,9 +6,6 @@
 
 /* GHOST_MODE Section */
 "GHOST_MODE_SECTION_HEADER" = "隐身模式";
-"READ_RECEIPT_SECTION_HEADER" = "阅读回执";
-"MISC_SECTION_HEADER" = "其他";
-"FILE_FIXER_SECTION_HEADER" = "文件选择器修复";
 "FAKE_LOCATION_SECTION_HEADER" = "虚拟位置";
 "LANGUAGE_SECTION_HEADER" = "语言";
 "CREDITS_SECTION_HEADER" = "致谢";
@@ -67,7 +64,6 @@
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "隐藏你用表情回应消息时的状态。";
 
 /* READ_RECEIPTS Section */
-"READ_RECEIPTS" = "已读回执";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "关闭消息已读回执";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "防止他人知道你已阅读消息。";
@@ -81,7 +77,6 @@
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "防止他人知道你已查看故事。";
 
 /* MISC Section */
-"MISC" = "其他";
 
 "DISABLE_ALL_ADS_TITLE" = "关闭所有广告";
 "DISABLE_ALL_ADS_SUBTITLE" = "移除应用中的广告和推广内容。";
@@ -127,7 +122,6 @@
 
 "ANTI_EDIT_TITLE" = "保存被编辑消息的原文";
 "ANTI_EDIT_SUBTITLE" = "保留他人编辑过的每一个版本。聊天中仍显示最新内容；点击气泡上的铅笔即可查看之前写了什么。";
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "此 Telegram 版本不可用 —— 在 API 层更新之前无法读取编辑更新。";
 "CLOSE" = "关闭";
 "DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "上传圆形视频消息时隐藏提示。";
 "DISCLAIMER" = "免责声明";
@@ -174,7 +168,6 @@
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "允许在限制分享的私聊中复制内容。更改此选项后，请重新打开对方的个人资料。";
 
 /* Message data */
-"MESSAGE_DATA_SECTION_HEADER" = "消息数据";
 "MESSAGE_DATA_CLEAR_TITLE" = "清空消息数据库";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "所有账号的编辑历史、原始文本和删除/定时器标记。";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "清除所有账号的 TGExtra 编辑历史、原始文本及删除/计时器标记（包括旧存档）？删除后保留的消息也将从此设备移除。此操作无法撤销。其他 Telegram 消息和插件设置将保留。";

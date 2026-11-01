@@ -232,9 +232,4 @@ final class PaidMediaFile: NSObject {
     static func currentFooterNode(container: AnyObject) -> AnyObject? {
         field(container, "currentFooterContentNode") as AnyObject?
     }
-
-    @objc(footerNodeFromItem:)
-    static func footerNode(item: AnyObject) -> AnyObject? {
-        field(item, "footerContentNode") as AnyObject?
-    }
 }

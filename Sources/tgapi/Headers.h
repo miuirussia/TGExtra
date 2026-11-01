@@ -12,8 +12,6 @@
 + (void)registerMessageCleanupContext:(id)context;
 + (void)registerVideoConversionChat:(id)controller;
 + (BOOL)roundVideoChatSupported;
-+ (NSNumber *)getMessageId:(id)item;
-+ (NSNumber *)getMessageIdFromNode:(id)node;
 + (BOOL)isDeleted:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSData *)stripAntiSelfDestruct:(NSData *)data account:(NSString *)account;
 + (void)registerVoiceUploadWithFileName:(NSString *)fileName
@@ -31,9 +29,6 @@
 + (NSDictionary<NSString *, NSData *> *)readMessageContentsPolicy:(NSData *)payload account:(NSString *)account;
 + (NSArray<NSString *> *)editHistoryForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSArray<NSDictionary *> *)editRevisionDetailsForId:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
-+ (NSNumber *)getMessagePeerKeyFromNode:(id)node;
-+ (NSString *)getHistoryAccountFromNode:(id)node;
-+ (NSNumber *)getMessageNamespaceFromNode:(id)node;
 + (NSDictionary<NSString *, id> *)messageStateFromNode:(id)node observe:(BOOL)observe;
 + (BOOL)hasAdMessageFromNode:(id)node;
 @end

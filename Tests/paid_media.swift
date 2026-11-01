@@ -101,8 +101,6 @@ func testPaidMedia() {
     check(!first.video && first.size == 524291 && first.datacenterId == 4 && first.masterDatacenterId == 2,
           "Paid file keeps its source DC, master DC and byte size")
     check(first.context === footer.context.account.network.context, "Paid download uses the footer account's MTContext")
-    check(PaidMediaFile.footerNode(item: M.Item(footer: footer)) === footer,
-          "Capture policy resolves the gallery item's own footer")
     let earlyImage = M.Item(footer: M.Footer(path: ""))
     earlyImage.message = footer.currentMessage
     check(PaidMediaFile.isUnlockedPaidItem(earlyImage),

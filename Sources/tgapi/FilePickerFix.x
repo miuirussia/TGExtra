@@ -31,13 +31,13 @@ static NSURL *TGExtraRelocatePickedFile(NSURL *url) {
     NSURL *directory = [root URLByAppendingPathComponent:NSUUID.UUID.UUIDString isDirectory:YES];
     NSError *error = nil;
     if (![manager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:&error]) {
-        customLog2(@"[TGExtra] Cannot create picker cache: %@", error);
+        customLog(@"[TGExtra] Cannot create picker cache: %@", error);
         return url;
     }
     NSURL *destination = [directory URLByAppendingPathComponent:url.lastPathComponent];
     if ([manager moveItemAtURL:url toURL:destination error:&error]) return destination;
     [manager removeItemAtURL:directory error:NULL];
-    customLog2(@"[TGExtra] Cannot relocate picked file: %@", error);
+    customLog(@"[TGExtra] Cannot relocate picked file: %@", error);
     return url;
 }
 
@@ -119,7 +119,7 @@ static void initFileHooks() {
 				LegacyMediaPickerUIICloudFileController = LegacyICloudFileController
 			);
 		} else {
-			customLog2(@"Failed to find required classes.");
+			customLog(@"Failed to find required classes.");
 		}
 	});
 }

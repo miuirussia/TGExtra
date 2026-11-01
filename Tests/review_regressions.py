@@ -22,7 +22,7 @@ support = r'''
 #import <objc/runtime.h>
 #import "Location.h"
 #import "SettingsRows.h"
-#define customLog2(...) do {} while (0)
+#define customLog(...) do {} while (0)
 static BOOL enabled = YES;
 static BOOL shouldFixFilePicker(void) { return enabled; }
 @interface Picker : NSObject

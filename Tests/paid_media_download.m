@@ -28,7 +28,6 @@ static NSURL *downloadURL;
 + (BOOL)isUnlockedPaidItem:(id)item { return NO; }
 + (void)bindGalleryItem:(id)item {}
 + (id)currentFooterNodeFromGalleryFooter:(id)container { return nil; }
-+ (id)footerNodeFromItem:(id)item { return nil; }
 - (NSData *)downloadRequestAtOffset:(int64_t)offset { return [NSData dataWithBytes:&offset length:8]; }
 - (BOOL)beginNativeDownload {
     dispatch_assert_queue(dispatch_get_main_queue());

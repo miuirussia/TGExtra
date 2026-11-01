@@ -6,9 +6,6 @@
 
 /* Sections */
 "GHOST_MODE_SECTION_HEADER" = "Chế độ ma";
-"READ_RECEIPT_SECTION_HEADER" = "Trạng thái đã đọc";
-"MISC_SECTION_HEADER" = "Khác";
-"FILE_FIXER_SECTION_HEADER" = "Sửa lỗi chọn tệp";
 "FAKE_LOCATION_SECTION_HEADER" = "Vị trí giả";
 "LANGUAGE_SECTION_HEADER" = "Ngôn ngữ";
 "CREDITS_SECTION_HEADER" = "Ghi công";
@@ -67,7 +64,6 @@
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "Ẩn khi bạn dùng emoji phản ứng tin nhắn.";
 
 /* READ_RECEIPTS Section */
-"READ_RECEIPTS" = "Trạng thái đã đọc";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Tắt trạng thái đã đọc tin nhắn";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Ngăn người khác thấy bạn đã đọc tin nhắn của họ.";
@@ -81,7 +77,6 @@
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Ngăn người khác thấy bạn đã xem story của họ.";
 
 /* MISC Section */
-"MISC" = "Khác";
 
 "DISABLE_ALL_ADS_TITLE" = "Chặn tất cả quảng cáo";
 "DISABLE_ALL_ADS_SUBTITLE" = "Loại bỏ nội dung quảng cáo khỏi ứng dụng.";
@@ -126,7 +121,6 @@
 "AUTHOR_MESSAGE" = "Bản chỉnh sửa Telegram này chỉ dành cho mục đích cá nhân và giáo dục. Chúng tôi không liên kết với Telegram. Mọi nhãn hiệu, bao gồm tên và logo Telegram, thuộc về chủ sở hữu tương ứng. Không sử dụng để vi phạm quy tắc, hành vi mờ ám hoặc điều khoản Telegram - chúng tôi không chịu trách nhiệm nếu có vấn đề phát sinh. Tự chịu rủi ro khi sử dụng.\n\nPhát triển bởi KDevLab\nÝ tưởng gốc của Chocolatefluffy";
 "ANTI_EDIT_TITLE" = "Lưu tin nhắn gốc đã bị sửa";
 "ANTI_EDIT_SUBTITLE" = "Giữ lại mọi phiên bản của tin nhắn bị người khác sửa. Khung chat vẫn hiện nội dung mới nhất; chạm vào bút chì trên bong bóng để đọc nội dung trước đó.";
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Không dùng được trên phiên bản Telegram này — không đọc được cập nhật sửa tin cho tới khi lớp API được làm mới.";
 "CLOSE" = "Đóng";
 "DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "Ẩn chỉ báo khi đang tải lên video tròn.";
 "EDIT_HISTORY_TITLE" = "Lịch sử chỉnh sửa";
@@ -172,7 +166,6 @@
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Cho phép sao chép trong trò chuyện riêng có hạn chế chia sẻ. Mở lại hồ sơ của người đó sau khi thay đổi tùy chọn này.";
 
 /* Message data */
-"MESSAGE_DATA_SECTION_HEADER" = "Dữ liệu tin nhắn";
 "MESSAGE_DATA_CLEAR_TITLE" = "Xóa cơ sở dữ liệu tin nhắn";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "Lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của tất cả tài khoản.";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Xóa lịch sử chỉnh sửa, văn bản gốc và dấu xóa/hẹn giờ của TGExtra cho mọi tài khoản, bao gồm kho lưu trữ cũ? Các tin nhắn được giữ lại sau khi bị xóa cũng sẽ bị gỡ khỏi thiết bị này. Không thể hoàn tác. Các tin nhắn Telegram khác và cài đặt tweak sẽ được giữ nguyên.";

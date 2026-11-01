@@ -8,9 +8,6 @@
 
 /* Sections */
 "GHOST_MODE_SECTION_HEADER" = "Modalità Fantasma";
-"READ_RECEIPT_SECTION_HEADER" = "Conferme di lettura";
-"MISC_SECTION_HEADER" = "Varie";
-"FILE_FIXER_SECTION_HEADER" = "Correzione selezione file";
 "FAKE_LOCATION_SECTION_HEADER" = "Posizione falsa";
 "LANGUAGE_SECTION_HEADER" = "Lingua";
 "CREDITS_SECTION_HEADER" = "Crediti";
@@ -69,7 +66,6 @@
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "Nascondi quando reagisci con un'emoji a un messaggio.";
 
 /* READ_RECEIPT Section */
-"READ_RECEIPTS" = "Conferme di lettura";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Disattiva conferme di lettura messaggi";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Impedisci agli altri di vedere che hai letto i loro messaggi.";
@@ -83,7 +79,6 @@
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Impedisci agli altri di vedere che hai visualizzato le loro storie.";
 
 /* MISC Section */
-"MISC" = "Varie";
 
 "DISABLE_ALL_ADS_TITLE" = "Disattiva tutti gli annunci";
 "DISABLE_ALL_ADS_SUBTITLE" = "Rimuove contenuti promozionali e annunci dall'app.";
@@ -128,7 +123,6 @@
 "AUTHOR_MESSAGE" = "Questa modifica per Telegram è solo per uso personale ed educativo. Non siamo in alcun modo affiliati con Telegram. Tutti i marchi, incluso il nome e il logo di Telegram, appartengono ai rispettivi proprietari. Non usare questo tweak per infrangere le regole, fare i furbi o violare i termini di Telegram — non siamo responsabili se qualcosa va storto. Usalo a tuo rischio e pericolo.\n\nSviluppato da KDevLab\nIdea originale di Chocolatefluffy";
 "ANTI_EDIT_TITLE" = "Salva l'originale dei messaggi modificati";
 "ANTI_EDIT_SUBTITLE" = "Conserva ogni versione di un messaggio che qualcuno modifica. La chat continua a mostrare il testo più recente; tocca la matita sul fumetto per leggere com'era prima.";
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Non disponibile su questa versione di Telegram: gli aggiornamenti di modifica non sono leggibili finché il livello API non viene aggiornato.";
 "CLOSE" = "Chiudi";
 "DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "Nasconde l'indicatore durante l'invio di un videomessaggio circolare.";
 "EDIT_HISTORY_TITLE" = "Cronologia delle modifiche";
@@ -174,7 +168,6 @@
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Consenti la copia nelle chat private con restrizioni di condivisione. Riapri il profilo della persona dopo aver modificato questa opzione.";
 
 /* Message data */
-"MESSAGE_DATA_SECTION_HEADER" = "Dati dei messaggi";
 "MESSAGE_DATA_CLEAR_TITLE" = "Svuota il database dei messaggi";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "Cronologia delle modifiche, testi originali e indicatori di eliminazione/timer per tutti gli account.";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Cancellare la cronologia delle modifiche, i testi originali e gli indicatori di eliminazione/timer di TGExtra per tutti gli account, inclusi i vecchi archivi? Anche i messaggi conservati dopo la loro eliminazione verranno rimossi da questo dispositivo. Non è possibile annullare. Gli altri messaggi Telegram e le impostazioni del tweak verranno mantenuti.";

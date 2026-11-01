@@ -12,7 +12,6 @@
 + (BOOL)isUnlockedPaidItem:(id)item;
 + (void)bindGalleryItem:(id)item;
 + (id)currentFooterNodeFromGalleryFooter:(id)container;
-+ (id)footerNodeFromItem:(id)item;
 - (NSData *)downloadRequestAtOffset:(int64_t)offset;
 - (BOOL)beginNativeDownload;
 @property(nonatomic, readonly) NSNumber *nativeDownloadProgress;

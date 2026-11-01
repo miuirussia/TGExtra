@@ -6,9 +6,6 @@
 
 /* GHOST_MODE Section */
 "GHOST_MODE_SECTION_HEADER" = "وضع الشبح";
-"READ_RECEIPT_SECTION_HEADER" = "إيصالات القراءة";
-"MISC_SECTION_HEADER" = "متنوع";
-"FILE_FIXER_SECTION_HEADER" = "إصلاح منتقي الملفات";
 "FAKE_LOCATION_SECTION_HEADER" = "موقع وهمي";
 "LANGUAGE_SECTION_HEADER" = "اللغة";
 "CREDITS_SECTION_HEADER" = "الاعتمادات";
@@ -67,7 +64,6 @@
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "عدم عرض أنك قمت بإقرار الإيموجي.";
 
 /* READ_RECEIPTS Section */
-"READ_RECEIPTS" = "إيصالات القراءة";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "تعطيل إيصالات قراءة الرسائل";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "عدم إظهار أنك قرأت الرسالة.";
@@ -81,7 +77,6 @@
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "عدم إظهار أنك شاهدت القصة.";
 
 /* MISC Section */
-"MISC" = "متفرقات";
 
 "DISABLE_ALL_ADS_TITLE" = "تعطيل جميع الإعلانات";
 "DISABLE_ALL_ADS_SUBTITLE" = "إزالة الإعلانات والمحتوى الترويجي من التطبيق.";
@@ -124,7 +119,6 @@
 "AUTHOR_MESSAGE" = "هذا التعديل على تيليجرام مخصص للاستخدام الشخصي والتعليمي فقط. نحن لسنا تابعين لتيليجرام بأي شكل من الأشكال. جميع العلامات التجارية، بما في ذلك اسم تيليجرام وشعاره، تعود لأصحابها. لا تستخدم هذا التعديل لكسر القوانين أو القيام بأي شيء مريب أو مخالف لشروط استخدام تيليجرام — نحن غير مسؤولين إذا حدث أي شيء غير متوقع. استخدمه على مسؤوليتك الخاصة.\n\nالتطوير بواسطة KDevLab\nالفكرة الأصلية من Chocolatefluffy";
 "ANTI_EDIT_TITLE" = "حفظ النص الأصلي للرسائل المعدَّلة";
 "ANTI_EDIT_SUBTITLE" = "يحتفظ بكل نسخة من الرسالة التي يعدّلها أحدهم. تبقى المحادثة تعرض آخر نص؛ اضغط على القلم في الفقاعة لقراءة ما كان مكتوبًا سابقًا.";
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "غير متاح في هذه النسخة من تيليجرام — لا يمكن قراءة تحديثات التعديل حتى يجري تحديث طبقة الـ API.";
 "CLOSE" = "إغلاق";
 "DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "إخفاء المؤشر عند رفع رسالة فيديو دائرية.";
 "DISCLAIMER" = "إخلاء مسؤولية";
@@ -171,7 +165,6 @@
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "السماح بالنسخ في المحادثات الخاصة التي تقيّد المشاركة. أعد فتح ملف الشخص بعد تغيير هذا الخيار.";
 
 /* Message data */
-"MESSAGE_DATA_SECTION_HEADER" = "بيانات الرسائل";
 "MESSAGE_DATA_CLEAR_TITLE" = "مسح قاعدة بيانات الرسائل";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "سجل التعديلات والنصوص الأصلية وعلامات الحذف والمؤقتات لجميع الحسابات.";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "هل تريد مسح سجل التعديلات والنصوص الأصلية وعلامات الحذف والمؤقتات في TGExtra لجميع الحسابات، بما في ذلك الأرشيفات القديمة؟ ستُحذف أيضًا من هذا الجهاز الرسائل المحفوظة بعد حذفها. لا يمكن التراجع عن ذلك. ستبقى رسائل Telegram الأخرى وإعدادات الإضافة.";

@@ -6,9 +6,6 @@
 
 /* GHOST_MODE Section */
 "GHOST_MODE_SECTION_HEADER" = "Режим призрака";
-"READ_RECEIPT_SECTION_HEADER" = "Отчёты о прочтении";
-"MISC_SECTION_HEADER" = "Приватность и функции";
-"FILE_FIXER_SECTION_HEADER" = "Исправление выбора файлов";
 "FAKE_LOCATION_SECTION_HEADER" = "Фейковая геолокация";
 "LANGUAGE_SECTION_HEADER" = "Язык";
 "CREDITS_SECTION_HEADER" = "Благодарности";
@@ -68,7 +65,6 @@
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "Не сообщать об открытии анимации эмодзи.";
 
 /* READ_RECEIPTS Section */
-"READ_RECEIPTS" = "Отчёты о прочтении";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Отключить отчёты о прочтении сообщений";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Не отмечать сообщения прочитанными у собеседника.";
@@ -82,7 +78,6 @@
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Не добавлять вас в список зрителей истории.";
 
 /* MISC Section */
-"MISC" = "Разное";
 
 "DISABLE_ALL_ADS_TITLE" = "Отключить всю рекламу";
 "DISABLE_ALL_ADS_SUBTITLE" = "Скрывать рекламные сообщения в чатах и каналах.";
@@ -129,7 +124,6 @@
 
 "AUTHOR_MESSAGE" = "Этот твик для Telegram предназначен только для личного и образовательного использования. Мы никоим образом не связаны с Telegram. Все торговые марки, включая название и логотип Telegram, принадлежат их владельцам. Не используйте это для нарушения правил, сомнительных действий или нарушений условий использования Telegram — мы не несем ответственности, если что-то пойдет не так. Используйте на свой страх и риск.\n\nРазработано KDevLab\nОригинальная идея — Chocolatefluffy";
 
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Эта версия Telegram пока не поддерживает сохранение правок.";
 "CLOSE" = "Закрыть";
 "DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "Не сообщать собеседнику об отправке кружка.";
 "EDIT_HISTORY_TITLE" = "История изменений";
@@ -175,7 +169,6 @@
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Разрешать копирование в личных чатах с запретом пересылки. После изменения заново откройте профиль собеседника.";
 
 /* Message data */
-"MESSAGE_DATA_SECTION_HEADER" = "Данные сообщений";
 "MESSAGE_DATA_CLEAR_TITLE" = "Очистить базу сообщений";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "Удалить сохранённые сообщения, историю правок и отметки удаления для всех аккаунтов.";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Удалить историю правок, исходные тексты и отметки удалений/таймеров TGExtra для всех аккаунтов, включая старые архивы? Сообщения, сохранённые после удаления, также исчезнут с этого устройства. Отменить очистку нельзя. Остальные сообщения Telegram и настройки твика сохранятся.";

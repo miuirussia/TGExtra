@@ -50,7 +50,6 @@ NSUInteger TGExtraTestPreferenceWriteCount(NSString *key) {
 }
 @end
 void customLog(NSString *format, ...) {}
-void customLog2(NSString *format, ...) {}
 extern void TGExtraMigrateDefaults(NSUserDefaults *defaults);
 
 static NSData *typingPayload(int64_t user, int32_t action) {

@@ -6,9 +6,6 @@
 
 /* Sections */
 "GHOST_MODE_SECTION_HEADER" = "ゴーストモード";
-"READ_RECEIPT_SECTION_HEADER" = "既読通知";
-"MISC_SECTION_HEADER" = "その他";
-"FILE_FIXER_SECTION_HEADER" = "ファイル選択の修正";
 "FAKE_LOCATION_SECTION_HEADER" = "位置情報の偽装";
 "LANGUAGE_SECTION_HEADER" = "言語";
 "CREDITS_SECTION_HEADER" = "クレジット";
@@ -67,7 +64,6 @@
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "メッセージに絵文字でリアクションしたことを隠します。";
 
 /* READ_RECEIPTS Section */
-"READ_RECEIPTS" = "既読通知";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "メッセージ既読通知を無効化";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "メッセージを読んだことを相手に通知しません。";
@@ -81,7 +77,6 @@
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "ストーリーを見たことを相手に通知しません。";
 
 /* MISC Section */
-"MISC" = "その他";
 
 "DISABLE_ALL_ADS_TITLE" = "全ての広告を無効化";
 "DISABLE_ALL_ADS_SUBTITLE" = "アプリからプロモーションコンテンツと広告を削除します。";
@@ -126,7 +121,6 @@
 "AUTHOR_MESSAGE" = "このTweakは個人的かつ教育目的のみで提供されており、Telegram とは一切関係がありません。Telegram の名称やロゴなどの商標はそれぞれの所有者に帰属します。違反行為や規約違反に使わないでください。何か問題が発生しても開発者は責任を負いません。すべて自己責任でご使用ください。\n\n開発：KDevLab\nオリジナルアイデア：Chocolatefluffy";
 "ANTI_EDIT_TITLE" = "編集されたメッセージの原文を保存";
 "ANTI_EDIT_SUBTITLE" = "相手が編集したメッセージのすべてのバージョンを保存します。チャットには最新の内容が表示されたままです。吹き出しの鉛筆をタップすると、以前の内容を読めます。";
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "この Telegram のバージョンでは利用できません — API レイヤーが更新されるまで編集の更新を読み取れません。";
 "CLOSE" = "閉じる";
 "DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "ビデオメッセージのアップロード中の表示を隠します。";
 "EDIT_HISTORY_TITLE" = "編集履歴";
@@ -172,7 +166,6 @@
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "共有が制限された個人チャットでコピーを許可します。この設定を変更した後、相手のプロフィールを開き直してください。";
 
 /* Message data */
-"MESSAGE_DATA_SECTION_HEADER" = "メッセージデータ";
 "MESSAGE_DATA_CLEAR_TITLE" = "メッセージデータベースを消去";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "全アカウントの編集履歴、元のテキスト、削除・タイマーの記録。";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "旧アーカイブを含め、すべてのアカウントの TGExtra 編集履歴、元のテキスト、削除・タイマーマーカーを消去しますか？削除後に保持されたメッセージもこの端末から削除されます。この操作は取り消せません。その他の Telegram メッセージと tweak の設定は保持されます。";

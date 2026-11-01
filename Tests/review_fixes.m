@@ -159,16 +159,16 @@ static void testLog(void) {
     setenv("TGEXTRA_TEST_LOG_PATH", path.UTF8String, 1);
     dispatch_apply(100, dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^(size_t index) {
         customLog(@"first-%zu", index);
-        customLog2(@"second-%zu", index);
+        customLog(@"second-%zu", index);
     });
     NSString *text = TGExtraReadLog();
     for (NSUInteger i = 0; i < 100; i++) {
-        NSCAssert(([text containsString:[NSString stringWithFormat:@"first-%lu\n", (unsigned long)i]]), @"First logger writes complete lines");
-        NSCAssert(([text containsString:[NSString stringWithFormat:@"second-%lu\n", (unsigned long)i]]), @"Second logger shares the same file and queue");
+        NSCAssert(([text containsString:[NSString stringWithFormat:@"first-%lu\n", (unsigned long)i]]), @"Logger writes complete lines");
+        NSCAssert(([text containsString:[NSString stringWithFormat:@"second-%lu\n", (unsigned long)i]]), @"Repeated writes share the same file and queue");
     }
     TGExtraClearLog();
-    NSCAssert(TGExtraReadLog().length == 0 && [NSData dataWithContentsOfFile:path].length == 0, @"Clear affects the exact file used by both writers");
-    customLog2(@"after clear");
+    NSCAssert(TGExtraReadLog().length == 0 && [NSData dataWithContentsOfFile:path].length == 0, @"Clear affects the exact file used by the logger");
+    customLog(@"after clear");
     NSCAssert([TGExtraReadLog() containsString:@"after clear"], @"Logging resumes after clear");
     [NSFileManager.defaultManager removeItemAtPath:directory error:NULL];
 }

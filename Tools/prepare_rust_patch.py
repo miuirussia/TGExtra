@@ -15,7 +15,7 @@ import tempfile
 import subprocess
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'RustBridge'))
-from macho import MachO, signed
+from macho import MachO
 from package_ipatch import write_archive, sources, package_source, document
 
 PATCH_NAME = 'Rust MTProto Bridge'

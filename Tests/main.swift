@@ -481,9 +481,9 @@ struct HistoryItem { let context: HistoryContext }
 class HistoryNode { let item: HistoryItem?; init(_ path: String) { item = HistoryItem(context: HistoryContext(account: HistoryAccount(basePath: path))) } }
 final class HistoryNodeSubclass: HistoryNode {}
 let historyNode = HistoryNodeSubclass("/container/accounts/account-2")
-check(TLParser.getHistoryAccountFromNode(historyNode) == "account-2", "UI lookup follows optional items and inherited node fields")
-check(TLParser.getHistoryAccountFromNode(HistoryNode("/container/accounts/account-1")) == testAccount, "Each node resolves its own account")
-check(TLParser.getHistoryAccountFromNode(NSObject()) == nil, "An unknown UI node has no account fallback")
+check(HostAccountReader.account(in: historyNode, depth: 0) == "account-2", "UI lookup follows optional items and inherited node fields")
+check(HostAccountReader.account(in: HistoryNode("/container/accounts/account-1"), depth: 0) == testAccount, "Each node resolves its own account")
+check(HostAccountReader.account(in: NSObject(), depth: 0) == nil, "An unknown UI node has no account fallback")
 print("PASS delayed edits, ordering metadata and isolation of network/UI account histories")
 
 let historyState = Api.updates.State.state(.init(pts: 50, qts: 0, date: 1234, seq: 8, unreadCount: 0))
@@ -711,7 +711,6 @@ testProtocolPortability()
 testHostSchemaCodec()
 testExplicitDataPatches()
 testMessagePatchSettings()
-testBufferAppends()
 testMarkerBatchPersistence()
 
 testOptimizedWirePaths()

@@ -6,9 +6,6 @@
 
 /* Sections */
 "GHOST_MODE_SECTION_HEADER" = "隱身模式";
-"READ_RECEIPT_SECTION_HEADER" = "已讀通知";
-"MISC_SECTION_HEADER" = "其它";
-"FILE_FIXER_SECTION_HEADER" = "檔案選擇器修復";
 "FAKE_LOCATION_SECTION_HEADER" = "虛擬定位";
 "LANGUAGE_SECTION_HEADER" = "語言";
 "CREDITS_SECTION_HEADER" = "鳴謝";
@@ -67,7 +64,6 @@
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "隱藏你使用表情符號回應訊息的狀態";
 
 /* READ_RECEIPTS Section */
-"READ_RECEIPTS" = "已讀通知";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "停用訊息已讀通知";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "防止他人看到你已閱讀他們的訊息";
@@ -81,7 +77,6 @@
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "防止他人看到你已查看他們的動態";
 
 /* MISC Section */
-"MISC" = "其它";
 
 "DISABLE_ALL_ADS_TITLE" = "停用所有廣告";
 "DISABLE_ALL_ADS_SUBTITLE" = "移除應用程式中的廣告及促銷內容";
@@ -126,7 +121,6 @@
 "AUTHOR_MESSAGE" = "本Telegram調整工具僅限於個人及教育用途。我們與Telegram無任何關聯。所有商標，包括Telegram名稱及標誌，皆屬其各自所有者所有。請勿使用本工具違反規則、進行不當行為或違反Telegram的服務條款。若因使用本工具而產生任何問題，我們概不負責，使用者須自行承擔風險。\n\n由 KDevLab 開發\n原創構想來自 Chocolatefluffy";
 "ANTI_EDIT_TITLE" = "保存被編輯訊息的原文";
 "ANTI_EDIT_SUBTITLE" = "保留他人編輯過的每一個版本。聊天中仍顯示最新內容；點一下泡泡上的鉛筆即可查看先前寫了什麼。";
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "此 Telegram 版本無法使用 —— 在 API 層更新之前讀不到編輯更新。";
 "CLOSE" = "關閉";
 "DISABLE_UPLOADING_ROUND_VIDEO_STATUS_SUBTITLE" = "上傳圓形影片訊息時隱藏提示。";
 "EDIT_HISTORY_TITLE" = "編輯紀錄";
@@ -172,7 +166,6 @@
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "允許在限制分享的私聊中複製內容。變更此選項後，請重新開啟對方的個人資料。";
 
 /* Message data */
-"MESSAGE_DATA_SECTION_HEADER" = "訊息資料";
 "MESSAGE_DATA_CLEAR_TITLE" = "清空訊息資料庫";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "所有帳號的編輯歷史、原始文字和刪除/計時器標記。";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "清除所有帳號的 TGExtra 編輯歷史、原始文字及刪除/計時器標記（包括舊封存）？刪除後保留的訊息也將從此裝置移除。此操作無法復原。其他 Telegram 訊息和外掛設定將保留。";

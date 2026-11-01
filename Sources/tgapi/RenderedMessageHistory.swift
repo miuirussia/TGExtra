@@ -3,22 +3,6 @@ import Foundation
 extension TLParser {
     typealias RenderedMessage = RenderedMessageReader.RenderedMessage
 
-    @objc static func getMessageId(from item: Any) -> NSNumber? {
-        return RenderedMessageReader.renderedMessages(from: item).first.map { NSNumber(value: $0.id) }
-    }
-
-    @objc static func getMessageIdFromNode(_ node: Any) -> NSNumber? {
-        return RenderedMessageReader.renderedMessagesFromNode(node).first.map { NSNumber(value: $0.id) }
-    }
-
-    @objc static func getMessagePeerKeyFromNode(_ node: Any) -> NSNumber? {
-        return RenderedMessageReader.renderedMessagesFromNode(node).first.map { NSNumber(value: $0.peer) }
-    }
-
-    @objc static func getMessageNamespaceFromNode(_ node: Any) -> NSNumber? {
-        return RenderedMessageReader.renderedMessagesFromNode(node).first.map { NSNumber(value: $0.namespace) }
-    }
-
     private final class RenderedItemState {
         let messages: [RenderedMessage]
         let account: String
@@ -179,9 +163,5 @@ extension TLParser {
         if editHistoryStore.record(text, key: key, editDate: editDate, content: content, localSnapshot: true) {
             notifyMessageEdited(key)
         }
-    }
-
-    @objc static func getHistoryAccountFromNode(_ node: Any) -> String? {
-        return HostAccountReader.account(in: node, depth: 0)
     }
 }

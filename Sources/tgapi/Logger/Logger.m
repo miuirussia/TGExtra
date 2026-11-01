@@ -45,14 +45,6 @@ void customLog(NSString *format, ...) {
     appendLog(message);
 }
 
-void customLog2(NSString *format, ...) {
-    va_list args;
-    va_start(args, format);
-    NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
-    va_end(args);
-    appendLog(message);
-}
-
 NSString *TGExtraReadLog(void) {
     __block NSString *text;
     dispatch_sync(logQueue(), ^{

@@ -14,9 +14,9 @@ func testMessageProtection() {
     } }
     final class InheritedNode: Node {}
     for namespace: Int32 in [0, 3, 5, 7, 8, 9] {
-        check(TLParser.getMessageNamespaceFromNode(InheritedNode(namespace))?.int32Value == namespace, "UI resolves MessageId.namespace through optional inherited items")
+        check(RenderedMessageReader.renderedMessagesFromNode(InheritedNode(namespace)).first?.namespace == namespace, "UI resolves MessageId.namespace through optional inherited items")
     }
-    check(TLParser.getMessageNamespaceFromNode(NSObject()) == nil, "Unknown UI objects cannot borrow the cloud namespace")
+    check(RenderedMessageReader.renderedMessagesFromNode(NSObject()).isEmpty, "Unknown UI objects cannot borrow the cloud namespace")
     TLParser.clearMessageData()
     flags("TGExtraAntiAutoDelete")
     _ = strip(serialized(message(81001, ttl: 60)), account: "account-1")

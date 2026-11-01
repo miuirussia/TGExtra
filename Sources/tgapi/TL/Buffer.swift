@@ -1,15 +1,5 @@
 import Foundation
 
-struct Int128 {
-    var _0: Int64
-    var _1: Int64
-
-    init(_0: Int64, _1: Int64) {
-        self._0 = _0
-        self._1 = _1
-    }
-}
-
 struct Int256: Equatable, CustomStringConvertible {
     var _0: Int64
     var _1: Int64
@@ -45,27 +35,6 @@ struct Int256: Equatable, CustomStringConvertible {
 
         return hexString as String
     }
-}
-
-func serializeInt32(_ value: Int32, buffer: Buffer, boxed: Bool) {
-    if boxed {
-        buffer.appendInt32(-1471112230)
-    }
-    buffer.appendInt32(value)
-}
-
-func serializeInt64(_ value: Int64, buffer: Buffer, boxed: Bool) {
-    if boxed {
-        buffer.appendInt32(570911930)
-    }
-    buffer.appendInt64(value)
-}
-
-func serializeDouble(_ value: Double, buffer: Buffer, boxed: Bool) {
-    if boxed {
-        buffer.appendInt32(571523412)
-    }
-    buffer.appendDouble(value)
 }
 
 func serializeString(_ value: String, buffer: Buffer, boxed: Bool) {
@@ -111,15 +80,6 @@ func serializeBytes(_ value: Buffer, buffer: Buffer, boxed: Bool) {
         }
 }
 
-func serializeInt128(_ value: Int128, buffer: Buffer, boxed: Bool) {
-    if boxed {
-        buffer.appendInt32(1270167083)
-    }
-
-    buffer.appendInt64(value._0)
-    buffer.appendInt64(value._1)
-}
-
 func serializeInt256(_ value: Int256, buffer: Buffer, boxed: Bool) {
     if boxed {
         buffer.appendInt32(153731887)
@@ -129,15 +89,6 @@ func serializeInt256(_ value: Int256, buffer: Buffer, boxed: Bool) {
     buffer.appendInt64(value._1)
     buffer.appendInt64(value._2)
     buffer.appendInt64(value._3)
-}
-
-func parseInt128(_ reader: BufferReader) -> Int128? {
-    let _0 = reader.readInt64()
-    let _1 = reader.readInt64()
-    if _0 != nil && _1 != nil {
-        return Int128(_0: _0!, _1: _1!)
-    }
-    return nil
 }
 
 func parseInt256(_ reader: BufferReader) -> Int256? {
@@ -289,19 +240,6 @@ class Buffer: CustomStringConvertible {
 
         memcpy(self.data?.advanced(by: Int(self._size)), bytes, Int(length))
         self._size += length
-    }
-
-    func appendBuffer(_ buffer: Buffer) {
-        if buffer === self {
-            let bytes = buffer.makeData()
-            bytes.withUnsafeBytes { raw in
-                if let base = raw.baseAddress { appendBytes(base, length: UInt(raw.count)) }
-            }
-            return
-        }
-        if buffer._size > 0, let bytes = buffer.data {
-            appendBytes(bytes, length: buffer._size)
-        }
     }
 
     func appendInt32(_ value: Int32) {

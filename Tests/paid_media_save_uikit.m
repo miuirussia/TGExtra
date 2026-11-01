@@ -37,7 +37,6 @@ static TGExtraPaidMediaFile *testFile;
     return testFile;
 }
 + (id)currentFooterNodeFromGalleryFooter:(SaveTestNode *)container { return container.currentFooterContentNode; }
-+ (id)footerNodeFromItem:(id)item { return nil; }
 + (BOOL)isUnlockedPaidItem:(id)item { return NO; }
 + (void)bindGalleryItem:(id)item {}
 - (NSObject *)context { return nil; }

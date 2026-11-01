@@ -387,22 +387,6 @@ func testOptimizedWirePaths() {
     print("PASS schema-validated views, nested byte-copy invalidation, mutable buffers and settings snapshots")
 }
 
-func testBufferAppends() {
-    let left = Buffer(data: Data([1, 2]))
-    let right = Buffer(data: Data([3, 4]))
-    left.appendBuffer(right)
-    check(left.makeData() == Data([1, 2, 3, 4]) && left.size == 4, "Buffer append retains all bytes and updates size")
-    left.appendBuffer(Buffer())
-    left.appendInt32(5)
-    check(left.makeData().prefix(4) == Data([1, 2, 3, 4]) && left.size == 8, "A following write does not overwrite appended bytes")
-    let growing = Buffer(data: Data(repeating: 42, count: 1024))
-    growing.appendBuffer(growing)
-    check(growing.makeData() == Data(repeating: 42, count: 2048), "Self-append survives realloc")
-    let empty = Buffer()
-    empty.appendBuffer(empty)
-    check(empty.size == 0, "Empty self-append")
-}
-
 func testMarkerBatchPersistence() {
     flags("TGExtraAntiAutoDelete", "TGExtraAntiRevoke")
     let archive = MessageHistoryArchive.shared

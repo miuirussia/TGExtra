@@ -13,7 +13,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'Tools'))
-from prepare_secret_chats import PROFILE, REVIEWED, MachO, generate_variant, identify, payload_template
+from prepare_secret_chats import PROFILE, MachO, generate_variant, identify, payload_template
 from package_ipatch import write_archive
 
 

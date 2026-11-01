@@ -178,13 +178,11 @@ static void detach(CALayer *layer) {
 + (BOOL)isSecretGalleryItem:(TestNode *)node { return node.secret; }
 @end
 @interface TGExtraPaidMediaFile : NSObject
-+ (id)footerNodeFromItem:(TestNode *)node;
 + (instancetype)fileFromFooterNode:(TestNode *)node;
 + (BOOL)isUnlockedPaidItem:(TestNode *)node;
 + (void)bindGalleryItem:(TestNode *)node;
 @end
 @implementation TGExtraPaidMediaFile
-+ (id)footerNodeFromItem:(TestNode *)node { return node.footer; }
 + (instancetype)fileFromFooterNode:(TestNode *)node { return node.unlocked ? (id)node : nil; }
 + (BOOL)isUnlockedPaidItem:(TestNode *)node { return ((TestNode *)node.footer).unlocked; }
 + (void)bindGalleryItem:(TestNode *)node {}

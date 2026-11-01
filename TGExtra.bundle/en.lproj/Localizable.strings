@@ -6,9 +6,6 @@
 
 /* Sections */
 "GHOST_MODE_SECTION_HEADER" = "Ghost Mode";
-"READ_RECEIPT_SECTION_HEADER" = "Read Receipts";
-"MISC_SECTION_HEADER" = "Privacy & Extras";
-"FILE_FIXER_SECTION_HEADER" = "File Picker Fix";
 "FAKE_LOCATION_SECTION_HEADER" = "Fake Location";
 "LANGUAGE_SECTION_HEADER" = "Language";
 "CREDITS_SECTION_HEADER" = "Credits";
@@ -68,7 +65,6 @@
 "DISABLE_EMOJI_ACKNOWLEDGEMENT_STATUS_SUBTITLE" = "Do not report when you view an emoji animation.";
 
 /* READ_RECEIPTS Section */
-"READ_RECEIPTS" = "Read Receipts";
 
 "DISABLE_MESSAGE_READ_RECEIPT_TITLE" = "Disable Message Read Receipts";
 "DISABLE_MESSAGE_READ_RECEIPT_SUBTITLE" = "Others won't see that you've read their messages.";
@@ -82,7 +78,6 @@
 "DISABLE_STORY_READ_RECEIPT_SUBTITLE" = "Others won't see that you've viewed their stories.";
 
 /* MISC / Privacy & Extras Section */
-"MISC" = "Privacy & Extras";
 
 "DISABLE_ALL_ADS_TITLE" = "Disable All Ads";
 "DISABLE_ALL_ADS_SUBTITLE" = "Hide sponsored messages in chats and channels.";
@@ -128,7 +123,6 @@
 "DISCLAIMER" = "Disclaimer";
 
 "AUTHOR_MESSAGE" = "This Telegram tweak is for personal and educational use only. We are not affiliated with Telegram in any way. All trademarks, including the Telegram name and logo, belong to their respective owners. Don't use this to break rules or violate Telegram's terms — we're not responsible if things go sideways. Use at your own risk.\n\nDeveloped by KDevLab\nOriginal idea by Chocolatefluffy";
-"ANTI_EDIT_UNAVAILABLE_SUBTITLE" = "Saving edits is not yet supported in this Telegram version.";
 "CLOSE" = "Close";
 "EDIT_HISTORY_TITLE" = "Edit History";
 "EDIT_HISTORY_ORIGINAL" = "Original:";
@@ -173,7 +167,6 @@
 "IGNORE_PRIVATE_COPY_PROTECTION_SUBTITLE" = "Allow copying in private chats that restrict forwarding. Reopen the person’s profile after changing this.";
 
 /* Message data */
-"MESSAGE_DATA_SECTION_HEADER" = "Message Data";
 "MESSAGE_DATA_CLEAR_TITLE" = "Clear Message Database";
 "MESSAGE_DATA_CLEAR_SUBTITLE" = "Delete saved messages, edit history and deletion markers for all accounts.";
 "MESSAGE_DATA_CLEAR_CONFIRM" = "Clear TGExtra edit histories, original texts and deletion/timer markers for all accounts, including legacy archives? Messages retained after deletion will also be removed from this device. This cannot be undone. Other Telegram messages and tweak settings will be kept.";

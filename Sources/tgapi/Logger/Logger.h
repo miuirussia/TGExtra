@@ -4,7 +4,6 @@
 extern "C" {
 #endif
 void customLog(NSString *format, ...);
-void customLog2(NSString *format, ...);
 NSString *TGExtraReadLog(void);
 void TGExtraClearLog(void);
 #ifdef __cplusplus

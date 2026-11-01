@@ -82,9 +82,10 @@ func testRenderedMessages() {
     testSecretChatDeletionBadges()
     flags("TGExtraAntiEdit")
     let node = cachedNode(cachedMessage(82000))
-    check(TLParser.getMessageId(from: node.item as Any) == 82000, "Unwrap inherited optional item and named enum tuple")
-    check(TLParser.getMessageIdFromNode(node) == 82000 && TLParser.getMessagePeerKeyFromNode(node) == 42 &&
-          TLParser.getMessageNamespaceFromNode(node) == 0, "Extract all identity fields from the same stored MessageId")
+    check(RenderedMessageReader.renderedMessages(from: node.item as Any).first?.id == 82000, "Unwrap inherited optional item and named enum tuple")
+    let identity = TLParser.messageState(from: node, observe: false)
+    check(identity?["id"] as? NSNumber == 82000 && identity?["peer"] as? NSNumber == 42 &&
+          identity?["namespace"] as? NSNumber == 0, "Extract all identity fields from the same stored MessageId")
     check(TLParser.messageState(from: node, observe: true)?["account"] as? String == testAccount, "Resolve the item's own account")
     let sponsored = cachedMessage(82012)
     let ad = CachedMessage(id: sponsored.id, text: sponsored.text, attributes: [AdMessageAttribute()], media: [])
@@ -147,12 +148,12 @@ func testRenderedMessages() {
     check(history(forId: 82007, peer: -1000000000077, namespace: 3) == nil &&
           history(forId: 82007, peer: -1000000000077, account: "account-2") == nil, "Cache recording isolates accounts and namespaces")
     check(TLParser.messageState(from: cachedNode(cachedMessage(82008), account: "account-invalid"), observe: true) == nil, "Do not guess an unresolved account")
-    check(TLParser.getMessageIdFromNode(CachedNode(nil)) == nil, "An empty optional item has no identity")
+    check(TLParser.messageState(from: CachedNode(nil), observe: false) == nil, "An empty optional item has no identity")
     struct MisleadingItem: CustomStringConvertible {
         let messageId: Int32 = 82009
         var description: String { fatalError("No string fallback") }
     }
-    check(TLParser.getMessageId(from: MisleadingItem()) == nil, "Unrecognized structures are skipped without string parsing")
+    check(RenderedMessageReader.renderedMessages(from: MisleadingItem()).isEmpty, "Unrecognized structures are skipped without string parsing")
     node.item = cachedNode(cachedMessage(82010, peer: 43, namespace: 5), account: "account-2").item
     let reused = TLParser.messageState(from: node, observe: false)!
     check(reused["id"] as? NSNumber == 82010 && reused["peer"] as? NSNumber == 43 &&
@@ -256,7 +257,7 @@ private func testSecretChatDeletionBadges() {
                                                                id: 82506, namespace: 2)] == TLParser.deletedMarker,
           "Both secret message namespaces persist independently")
     let negative = cachedMessage(82502, peer: -42, peerNamespace: 3, namespace: 2)
-    check(revoke([negative]) == 1 && TLParser.getMessagePeerKeyFromNode(cachedNode(negative)) == -1999999999958 &&
+    check(revoke([negative]) == 1 && TLParser.messageState(from: cachedNode(negative), observe: false)?["peer"] as? NSNumber == -1999999999958 &&
           isDeleted(82502, peer: -1999999999958, namespace: 2), "Signed encrypted-chat IDs resolve consistently")
     let unresolvedPostbox = Postbox("account-invalid")
     let unresolved = Transaction(unresolvedPostbox)
