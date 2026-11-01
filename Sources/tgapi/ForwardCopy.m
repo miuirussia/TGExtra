@@ -388,7 +388,15 @@ __attribute__((constructor)) static void cleanupCompletedCopyJournals(void) {
                 return;
             }
             NSData *bytes = response ? [TGExtraForwardCopyPlan fileBytesFromResponse:response] : nil;
-            if (!bytes || bytes.length != MIN((int64_t)copyChunkSize, size - offset)) { [self fail:@"TGEXTRA_COPY_FILE_INVALID"]; return; }
+            int64_t expected = MIN((int64_t)copyChunkSize, size - offset);
+            if (!bytes || bytes.length != expected) {
+                uint32_t constructor = 0;
+                if (response.length >= sizeof(constructor)) [response getBytes:&constructor length:sizeof(constructor)];
+                customLog(@"Protected copy file response invalid: dc=%@ index=%ld offset=%lld size=%lld expected=%lld received=%@; TL=0x%08x responseBytes=%lu",
+                    item[@"dc"], (long)index, (long long)offset, (long long)size, (long long)expected,
+                    bytes ? @(bytes.length).stringValue : @"unparsed", constructor, (unsigned long)response.length);
+                [self fail:@"TGEXTRA_COPY_FILE_INVALID"]; return;
+            }
             self.receivedParts[@(offset)] = bytes;
             NSData *ready;
             while ((ready = self.receivedParts[@(self.offset)])) {

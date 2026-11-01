@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import tgapiC
 
 @objc(TGExtraForwardCopyPlan)
 final class ForwardCopyPlan: NSObject {
@@ -35,10 +36,21 @@ final class ForwardCopyPlan: NSObject {
     }
 
     private static func boxed<T>(_ bytes: Data, as type: T.Type) -> T? {
-        let reader = BufferReader(Buffer(data: bytes))
-        guard let signature = reader.readInt32(), let value = Api.parse(reader, signature: signature) as? T,
-              reader.offset == UInt(bytes.count) else { return nil }
-        return value
+        var data = bytes
+        for _ in 0..<16 {
+            let reader = BufferReader(Buffer(data: data))
+            guard let signature = reader.readInt32() else { return nil }
+            if signature == 0x3072cfa1 { // gzip_packed
+                guard let compressed = parseBytes(reader), reader.offset == UInt(data.count),
+                      let unpacked = decompressGzip(compressed.data, Int(compressed.size)) else { return nil }
+                data = unpacked
+                continue
+            }
+            guard let value = Api.parse(reader, signature: signature) as? T,
+                  reader.offset == UInt(data.count) else { return nil }
+            return value
+        }
+        return nil
     }
 
     private static func bytes(_ value: TypeConstructorDescription) -> Data {

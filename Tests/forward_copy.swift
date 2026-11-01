@@ -47,6 +47,13 @@ private func copyFile(_ bytes: Data) -> Data {
     serialized(Api.upload.File.file(.init(type: .fileUnknown, mtime: 1234, bytes: Buffer(data: bytes)))) as Data
 }
 
+private func copyPacked(_ bytes: Data) -> Data {
+    let buffer = Buffer()
+    buffer.appendInt32(0x3072cfa1)
+    serializeBytes(Buffer(data: gzip(bytes)), buffer: buffer, boxed: false)
+    return buffer.makeData()
+}
+
 private func copyConstructor(_ bytes: Data) -> Int32 { BufferReader(Buffer(data: bytes)).readInt32()! }
 
 func testForwardCopies(rust: Bool = false) {
@@ -251,6 +258,35 @@ func testForwardCopies(rust: Bool = false) {
           "The new video retains its playback timestamp with the input-media flag")
     guard case let .inputDocument(newVideo) = sentVideo.id else { fatalError("Expected new document") }
     check(newVideo.id == 150, "Send the newly uploaded video rather than the protected source document")
+    let videoBytes = Data(repeating: 7, count: 524288)
+    let videoFile = serialized(Api.upload.File.file(.init(
+        type: .fileMp4, mtime: 1234,
+        bytes: Buffer(data: videoBytes)))) as Data
+    let compressedVideo = run(payload, [
+        "1673946374": [copyHistory([message(1, media: copyDocument(size: 524291,
+            attributes: videoAttributes, mime: "video/mp4"))])],
+        "-1101843010": [copyPacked(videoFile), copyPacked(copyFile(Data([8, 9, 10])))],
+        "-1291540959": [copyPacked(trueReply), copyPacked(trueReply)],
+        "345405816": [copyPacked(serialized(copyDocument(size: 524291, id: 150,
+            attributes: videoAttributes, mime: "video/mp4")) as Data)],
+        "53536639": [copyPacked(sent)]
+    ])
+    check(compressedVideo["error"] as! String == "" && calls(compressedVideo).last == 53536639,
+          "An uncached video can be copied with gzip-packed file parts, upload ACKs and send confirmation")
+    check(ForwardCopyPlan(payload: payload)!.prepare(response: copyPacked(history)),
+          "Source lookup accepts gzip-packed replies")
+    let compressedUploads = (compressedVideo["payloads"] as! [Data]).filter { copyConstructor($0) == -1291540959 }
+    let compressedReader = BufferReader(Buffer(data: compressedUploads[0]))
+    _ = compressedReader.readInt32(); _ = compressedReader.readInt64(); _ = compressedReader.readInt32()
+    check(parseBytes(compressedReader)?.makeData() == videoBytes,
+          "Compressed file replies are unpacked before uploading the original video bytes")
+    check(ForwardCopyPlan.fileBytes(response: copyPacked(copyPacked(videoFile))) == videoBytes,
+          "Nested gzip wrappers preserve file bytes")
+    check(ForwardCopyPlan.fileBytes(response: Data(copyPacked(videoFile).dropLast(4))) == nil &&
+          ForwardCopyPlan.fileBytes(response: copyPacked(videoFile) + Data([0, 0, 0, 0])) == nil,
+          "Truncated and trailing gzip envelopes are rejected")
+    let deeplyPacked = (0..<16).reduce(videoFile) { bytes, _ in copyPacked(bytes) }
+    check(ForwardCopyPlan.fileBytes(response: deeplyPacked) == nil, "Gzip nesting is bounded")
     let photoCopy = run(payload, ["1673946374": [copyHistory([photoMessage])],
         "-1101843010": [copyFile(Data([1, 2, 3]))], "-1291540959": [trueReply],
         "345405816": [uploadedPhoto], "53536639": [sent]])
