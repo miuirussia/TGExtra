@@ -29,6 +29,7 @@ python3 Tests/recording_input_layout.py
 python3 Tests/force_tlottie.py
 python3 Tests/swiftgram_pro_ipatch.py
 python3 Tests/edit_badge_refresh.py
+python3 Tests/profile_badge.py
 python3 Tests/message_cleanup.py
 python3 Tests/edit_history_diff.py
 python3 Tests/paid_media_download.py

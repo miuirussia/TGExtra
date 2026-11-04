@@ -6,9 +6,51 @@
 - (id)peer;
 @end
 
-static BOOL injectBadgeToNode(ASDisplayNode *textNode, ASDisplayNode *headerNode, long long peerId) {
+static CGFloat visibleProfileViewAlpha(UIView *view, UIView *headerView) {
+    CGFloat alpha = 1.0;
+    for (UIView *current = view; current; current = current.superview) {
+        if (current.hidden) return 0.0;
+        if (current == headerView) return alpha;
+        alpha *= current.alpha;
+    }
+    return 0.0;
+}
+
+static ASDisplayNode *visibleProfileTitleNode(ASDisplayNode *node, UIView *headerView) {
+    if (!node || visibleProfileViewAlpha(node.view, headerView) < 0.01) return nil;
+    ASDisplayNode *result = nil;
+    NSString *name = NSStringFromClass([node class]);
+    if ([name containsString:@"TextNode"] && ![name containsString:@"MultiScale"] &&
+        !CGRectIsEmpty(node.view.bounds)) {
+        result = node;
+    }
+    for (ASDisplayNode *child in node.subnodes) {
+        ASDisplayNode *candidate = visibleProfileTitleNode(child, headerView);
+        if (candidate && (!result || visibleProfileViewAlpha(candidate.view, headerView) >
+                                    visibleProfileViewAlpha(result.view, headerView))) {
+            result = candidate;
+        }
+    }
+    return result;
+}
+
+static BOOL profileBadgeIntersectsControl(UIView *view, UIView *headerView, CGRect frame) {
+    if (view.hidden || view.alpha < 0.01) return NO;
+    ASDisplayNode *node = [view respondsToSelector:@selector(asyncdisplaykit_node)] ? [view asyncdisplaykit_node] : nil;
+    if ([view isKindOfClass:[UIControl class]] || [NSStringFromClass([node class]) containsString:@"Button"]) {
+        CGRect controlFrame = [view convertRect:view.bounds toView:headerView];
+        if (CGRectIntersectsRect(frame, CGRectInset(controlFrame, -6, -6))) return YES;
+    }
+    for (UIView *child in view.subviews) {
+        if (profileBadgeIntersectsControl(child, headerView, frame)) return YES;
+    }
+    return NO;
+}
+
+static void updateProfileBadge(ASDisplayNode *headerNode, long long peerId) {
     @try {
-        if (!textNode.view || !headerNode.view) return NO;
+        UIView *headerView = headerNode.view;
+        if (!headerView) return;
 
         NSString *prefix = nil;
         UIColor *badgeColor = [UIColor colorWithRed:0.0 green:0.5 blue:1.0 alpha:1.0]; // TGExtra Blue
@@ -24,12 +66,17 @@ static BOOL injectBadgeToNode(ASDisplayNode *textNode, ASDisplayNode *headerNode
         }
 
         if (!prefix) {
-            UIView *oldBadge = [headerNode.view viewWithTag:9988];
+            UIView *oldBadge = [headerView viewWithTag:9988];
             if (oldBadge) [oldBadge removeFromSuperview];
-            return NO;
+            return;
         }
 
-        UILabel *badge = (UILabel *)[headerNode.view viewWithTag:9988];
+        UILabel *badge = (UILabel *)[headerView viewWithTag:9988];
+        badge.hidden = YES;
+        ASDisplayNode *title = [TGExtraProfileBridge getTitleNodeFromNode:headerNode];
+        ASDisplayNode *textNode = visibleProfileTitleNode(title, headerView);
+        if (!textNode) return;
+
         if (!badge) {
             badge = [[UILabel alloc] init];
             badge.tag = 9988;
@@ -37,48 +84,39 @@ static BOOL injectBadgeToNode(ASDisplayNode *textNode, ASDisplayNode *headerNode
             badge.textColor = [UIColor whiteColor];
             badge.layer.cornerRadius = 4;
             badge.layer.masksToBounds = YES;
-            badge.layer.zPosition = 9999;
-            [headerNode.view addSubview:badge];
         }
+        // Inherit the title's movement, scale and fades during native header animations.
+        if (badge.superview != textNode.view) [textNode.view addSubview:badge];
 
         badge.backgroundColor = badgeColor;
         badge.text = [NSString stringWithFormat:@" %@ ", prefix];
         [badge sizeToFit];
 
-        CGRect textFrame = [textNode.view convertRect:textNode.view.bounds toView:headerNode.view];
-        if (textFrame.size.width > 0) {
-            badge.frame = CGRectMake(textFrame.origin.x + textFrame.size.width + 6,
-                                     textFrame.origin.y + (textFrame.size.height - badge.frame.size.height) / 2.0,
-                                     badge.frame.size.width, badge.frame.size.height);
-        } else {
-            badge.frame = CGRectMake(headerNode.view.frame.size.width - badge.frame.size.width - 15, 45, badge.frame.size.width, badge.frame.size.height);
+        CGRect textFrame = [textNode.view convertRect:textNode.view.bounds toView:headerView];
+        // Telegram puts premium, verification and emoji status views outside the text bounds.
+        for (UIView *icon in textNode.view.subviews) {
+            if (icon != badge && !icon.hidden && icon.alpha >= 0.01 && !CGRectIsEmpty(icon.bounds)) {
+                textFrame = CGRectUnion(textFrame, [icon convertRect:icon.bounds toView:headerView]);
+            }
         }
-        if (!CGRectContainsRect(headerNode.view.bounds, CGRectInset(badge.frame, -1, -1))) {
-            badge.hidden = YES;
-            return NO;
+        CGRect availableBounds = UIEdgeInsetsInsetRect(headerView.bounds, headerView.safeAreaInsets);
+        availableBounds = CGRectInset(availableBounds, 8, 1);
+        CGSize size = [textNode.view convertRect:badge.bounds toView:headerView].size;
+        CGFloat y = CGRectGetMidY(textFrame) - size.height / 2.0;
+        CGRect candidates[] = {
+            CGRectMake(CGRectGetMaxX(textFrame) + 6, y, size.width, size.height),
+            CGRectMake(CGRectGetMinX(textFrame) - 6 - size.width, y, size.width, size.height)
+        };
+        for (NSUInteger i = 0; i < 2; i++) {
+            CGRect frame = candidates[i];
+            if (!CGRectContainsRect(availableBounds, frame) || profileBadgeIntersectsControl(headerView, headerView, frame)) continue;
+            badge.frame = [headerView convertRect:frame toView:textNode.view];
+            badge.hidden = NO;
+            [textNode.view bringSubviewToFront:badge];
+            return;
         }
-
-        badge.hidden = NO;
-        [headerNode.view bringSubviewToFront:badge];
-        return YES;
+        badge.hidden = YES;
     } @catch (NSException *e) {}
-    return NO;
-}
-
-static BOOL recursiveSearchAndInject(ASDisplayNode *node, ASDisplayNode *header, long long peerId) {
-    if (!node) return NO;
-    NSString *cls = NSStringFromClass([node class]);
-
-    if ([cls containsString:@"TextNode"] && ![cls containsString:@"Accessibility"] && ![cls containsString:@"Button"]) {
-        if (injectBadgeToNode(node, header, peerId)) return YES;
-    }
-    @try {
-        NSArray *subs = node.subnodes;
-        for (ASDisplayNode *sub in subs) {
-            if (recursiveSearchAndInject(sub, header, peerId)) return YES;
-        }
-    } @catch (NSException *e) {}
-    return NO;
 }
 
 static void tgextraDiagProfileNode(NSString *cls, long long peerId, ASDisplayNode *node) {
@@ -111,33 +149,44 @@ static void tgextraDiagProfileNode(NSString *cls, long long peerId, ASDisplayNod
 #endif
 }
 
-%hook ASDisplayNode
-- (void)layout {
+%group TGExtraProfileViewLayout
+%hook _ASDisplayView
+- (void)layoutSubviews {
     %orig;
 
-    NSString *cls = NSStringFromClass([self class]);
+    ASDisplayNode *node = [(UIView *)self asyncdisplaykit_node];
+    NSString *cls = NSStringFromClass([node class]);
 
     BOOL isProfileHeader = [cls containsString:@"PeerInfoHeaderNode"];
 
     if (isProfileHeader) {
         long long peerId = 0;
-        peerId = [[TGExtraProfileBridge getPeerIdFromNode:self] longLongValue];
+        peerId = [[TGExtraProfileBridge getPeerIdFromNode:node] longLongValue];
 
         BOOL headerHasNoPeer = NO;
-        if ([self respondsToSelector:@selector(peer)]) {
-            headerHasNoPeer = ([self peer] == nil);
+        if ([node respondsToSelector:@selector(peer)]) {
+            headerHasNoPeer = ([node peer] == nil);
         }
         if (peerId == 0 && headerHasNoPeer) {
-            peerId = [[TGExtraProfileBridge getOwnUserIdFromNode:self] longLongValue];
+            peerId = [[TGExtraProfileBridge getOwnUserIdFromNode:node] longLongValue];
         }
-        recursiveSearchAndInject(self, self, peerId);
+        updateProfileBadge(node, peerId);
 
-        tgextraDiagProfileNode(cls, peerId, self);
+        tgextraDiagProfileNode(cls, peerId, node);
 
-        TGExtraUpdateGhostExceptionButton(self, peerId);
+        TGExtraUpdateGhostExceptionButton(node, peerId);
     }
 
 }
 %end
+%end
 
-%ctor { dispatch_async(dispatch_get_main_queue(), ^{ %init; }); }
+%ctor {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        Class view = NSClassFromString(@"_ASDisplayView");
+        if ([view instancesRespondToSelector:@selector(asyncdisplaykit_node)] &&
+            [view instancesRespondToSelector:@selector(layoutSubviews)]) {
+            %init(TGExtraProfileViewLayout, _ASDisplayView = view);
+        }
+    });
+}

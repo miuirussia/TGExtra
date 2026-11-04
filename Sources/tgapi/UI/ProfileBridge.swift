@@ -4,6 +4,11 @@ import Foundation
 final class ProfileBridge: NSObject {
     @objc static weak var sharedContext: AnyObject?
 
+    @objc static func getTitleNodeFromNode(_ node: Any) -> NSObject? {
+        guard let title = HostValueReader.storedField("titleNode", in: node) else { return nil }
+        return HostValueReader.unwrapOptional(title) as? NSObject
+    }
+
     @objc static func debugPeerCandidates(_ node: Any) -> NSString {
         var out = [String]()
 

@@ -32,6 +32,7 @@ private struct ProfilePeer {
 private enum ProfileEnginePeer { case user(ProfilePeer), group(ProfilePeer), channel(ProfilePeer) }
 private class PeerHeader {
     var peer: ProfileEnginePeer? = .user(ProfilePeer())
+    let titleNode = NSObject()
 }
 private final class PeerHeaderSubclass: PeerHeader {}
 private final class KVCProfileNode: NSObject {
@@ -59,6 +60,8 @@ private func testProfileBridge() {
     unknownHeader.peer = .user(unknownPeer)
     check(ProfileBridge.getPeerIdFromNode(unknownHeader) == nil, "Unknown peer namespaces cannot become user exceptions")
     let header = PeerHeaderSubclass()
+    check(ProfileBridge.getTitleNodeFromNode(header) === header.titleNode, "Find the profile title through inherited Swift fields")
+    check(ProfileBridge.getTitleNodeFromNode(NSObject()) == nil, "An unknown header cannot anchor a badge to unrelated text")
     check(ProfileBridge.getPeerIdFromNode(header) == 7331, "Read peer ids through inherited fields, optionals and enum payloads")
     check(ProfileBridge.getPeerDisplayInfoFromNode(PeerHeader()) ==
           ["name": "Анна Иванова", "username": "anna"], "Read optional profile names and username")

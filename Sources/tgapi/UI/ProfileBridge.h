@@ -3,6 +3,7 @@
 @interface TGExtraProfileBridge : NSObject
 @property(class, nonatomic, weak) id sharedContext;
 + (NSNumber *)getPeerIdFromNode:(id)node;
++ (id)getTitleNodeFromNode:(id)node;
 + (NSNumber *)getCurrentUserId;
 + (NSNumber *)getOwnUserIdFromNode:(id)node;
 + (NSDictionary<NSString *, NSString *> *)getPeerDisplayInfoFromNode:(id)node;
