@@ -5,11 +5,6 @@ permissions:
 
 on:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Existing tag to build and release"
-        required: true
-        type: string
   push:
     branches:
       - main
@@ -17,12 +12,12 @@ on:
       - '**'
 
 concurrency:
-  group: release-${{ inputs.tag || (github.ref == 'refs/heads/main' && 'prerelease') || github.ref_name }}
+  group: release-${{ (github.ref == 'refs/heads/main' && 'prerelease') || github.ref_name }}
   cancel-in-progress: true
 
 env:
-  RELEASE_TAG: ${{ inputs.tag || (github.ref == 'refs/heads/main' && 'prerelease') || github.ref_name }}
-  BUILD_REF: ${{ inputs.tag || github.sha }}
+  RELEASE_TAG: ${{ (github.ref == 'refs/heads/main' && 'prerelease') || github.ref_name }}
+  BUILD_REF: ${{ github.sha }}
 
 jobs:
   checks:
@@ -257,7 +252,7 @@ jobs:
           done
 
       - name: Update prerelease tag
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: git push --force origin "$GITHUB_SHA:refs/tags/prerelease"
 
       - name: Create GitHub Release
