@@ -116,6 +116,12 @@ jobs:
           path: theos/sdks
           persist-credentials: false
 
+      - name: Fix Theos plist signature check
+        shell: bash
+        run: |
+          # Read only the bplist signature to avoid od writing into head's closed pipe.
+          sed -i '' 's/od -c "$i" | head/od -An -N6 -c "$i"/' "$THEOS/bin/convert_xml_plist.sh"
+
       - name: Cache compiler outputs and modules
         uses: actions/cache@v5
         with:

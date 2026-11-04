@@ -30,6 +30,8 @@ export THEOS="${THEOS:-$PWD/.build/theos}"
 if [[ ! -d "$THEOS" ]]; then
     git clone --branch main --recurse-submodules https://github.com/waruhachi/theos.git "$THEOS"
 fi
+# Read only the bplist signature; piping an entire file into head makes od report EPIPE.
+sed -i '' 's/od -c "$i" | head/od -An -N6 -c "$i"/' "$THEOS/bin/convert_xml_plist.sh"
 if [[ ! -d "$THEOS/sdks/iPhoneOS16.5.sdk" ]]; then
     # Theos includes a placeholder sdks directory; clone alongside it.
     if [[ ! -d "$PWD/.build/sdks" ]]; then
