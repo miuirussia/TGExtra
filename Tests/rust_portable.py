@@ -33,8 +33,19 @@ def fingerprint_image(words, offset=0x1000):
 
 
 class PortableRustTests(unittest.TestCase):
+    def test_retired_swiftgram_runtime_is_rejected(self):
+        ipa = ROOT/'packages/Swiftgram_v13.1.1.ipa'
+        if not ipa.is_file():
+            self.skipTest('retired reference IPA is not present')
+        reviewed = json.loads((ROOT/'Tools/RustBridge/abi5.json').read_text())
+        with zipfile.ZipFile(ipa) as archive:
+            entry = next(n for n in archive.namelist()
+                         if n.endswith('/TelegramUIFramework.framework/TelegramUIFramework'))
+            with self.assertRaisesRegex(ValueError, 'Rust engine_create'):
+                inspect_runtime(archive.read(entry), reviewed)
+
     def test_reviewed_reference_clients_match_committed_profiles(self):
-        references = ('Telegram_v13.1.2.ipa', 'Swiftgram_v13.1.1.ipa')
+        references = ('Telegram_v13.1.2.ipa', 'Swiftgram_v13.1.3.ipa')
         images = [ROOT/'packages'/name for name in references if (ROOT/'packages'/name).is_file()]
         if not images:
             self.skipTest('reference IPAs are not present')

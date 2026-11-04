@@ -18,11 +18,11 @@ bundle IDs still constrain selection. Use `--patch-set-dir Patches` to include
 a profile in future GitHub releases. See [Patches/README.md](../../Patches/README.md)
 for engine requirements, validation and offline application.
 
-The reviewed references are Telegram 13.1.2 (35638) and Swiftgram 13.1.1 (343/344,
+The reviewed references are Telegram 13.1.2 (35638) and Swiftgram 13.1.3 (349,
 `app.swiftgram.ios`). Their 4640-byte `engineCreate` bodies have four link-time
 differences retained by the review fingerprint: stores at body offsets
 `0x11c4`, `0x11e0`, `0x11e8` and `0x11f0` use the relocated global's page offset
-`0xa18` (Telegram) or `0xcb8` (Swiftgram).
+`0xa18` (Telegram) or `0xe70` (Swiftgram).
 Disassembly confirms that each store uses the same global as its preceding
 ADRP/load pair across a conditional branch. All other normalized instructions
 and reviewed Rust function fingerprints match between the clients.

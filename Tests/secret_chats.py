@@ -62,7 +62,7 @@ class SecretChatTests(unittest.TestCase):
                 self.assertEqual(len(code), block['size'])
 
     def test_reviewed_clients_and_changed_abi(self):
-        for client, filename in [('telegram', 'Telegram_v13.1.2.ipa'), ('swiftgram', 'Swiftgram_v13.1.1.ipa')]:
+        for client, filename in [('telegram', 'Telegram_v13.1.2.ipa'), ('swiftgram', 'Swiftgram_v13.1.3.ipa')]:
             ipa = ROOT/'packages'/filename
             if not ipa.exists(): continue
             with self.subTest(client=client):
@@ -81,6 +81,13 @@ class SecretChatTests(unittest.TestCase):
                 data[position] ^= 4
                 with self.assertRaises(ValueError): identify(MachO(bytes(data)), client)
 
+    def test_retired_swiftgram_profile_is_rejected(self):
+        ipa = ROOT/'packages/Swiftgram_v13.1.1.ipa'
+        if not ipa.is_file():
+            self.skipTest('retired reference IPA is not present')
+        with self.assertRaisesRegex(ValueError, 'swiftgram secret-chat incoming'):
+            generate_variant(ipa, 'swiftgram')
+
     @unittest.skipUnless(os.environ.get('IPATCH_ENGINE_CLI'), 'requires iPatch v4 CLI')
     def test_engine_plans(self):
         document = json.loads((PROFILE/'patch.json').read_text())
@@ -89,7 +96,7 @@ class SecretChatTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='tgextra-secret-plan-') as directory:
             package = Path(directory)/'secret.ipatch'
             write_archive(package, document, files)
-            for filename in ('Telegram_v13.1.2.ipa', 'Swiftgram_v13.1.1.ipa'):
+            for filename in ('Telegram_v13.1.2.ipa', 'Swiftgram_v13.1.3.ipa'):
                 ipa = ROOT/'packages'/filename
                 if not ipa.exists(): continue
                 result = subprocess.run([os.environ['IPATCH_ENGINE_CLI'], '-dry-run', '-ipa', str(ipa), '-package', str(package)],
