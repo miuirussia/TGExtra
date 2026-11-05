@@ -2,6 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 python3 Tools/build_payloads.py
+python3 Tests/update_patches.py
 python3 Tests/check_resources.py
 python3 Tests/check_api_schema.py
 python3 Tests/host_schema.py

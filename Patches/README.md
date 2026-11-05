@@ -181,6 +181,37 @@ by purchasing Pro officially.
 
 ## Generating a profile
 
+To attempt all supported updates from decrypted Telegram and Swiftgram IPAs:
+
+~~~sh
+python3 Tools/update_patches.py
+python3 Tools/update_patches.py --telegram packages/Telegram_new.ipa --swiftgram packages/Swiftgram_new.ipa
+python3 Tools/update_patches.py --check --engine /path/to/ipatch
+~~~
+
+By default, the script discovers `Telegram*.ipa` and `Swiftgram*.ipa` in
+`packages/` (case-insensitive client prefix). If several versions are present,
+select one explicitly. It requires macOS with Xcode command-line tools.
+Native TL is regenerated against all supplied clients; Secret Chats needs both
+clients. Rust profiles are generated per client, retaining older profiles.
+Clients without Rust are reported and skipped.
+
+Each attempt runs in a temporary copy. Only successful results are copied back,
+including the Native TL runtime matcher. A failure keeps that profile unchanged
+and does not stop independent attempts; the final exit status is 1 if any attempt
+fails, 0 otherwise. `--check` compares generated source files without writing to
+the checkout; ignored `.bin` files need not already exist. Invalid arguments or
+ambiguous IPA discovery return 2.
+
+With `--engine` (or `IPATCH_ENGINE_CLI`), every generated profile must also pass
+the engine's dry-run planner before it is copied back. This additionally checks
+the existing Swiftgram Pro profile with its optional component enabled; there is
+no automatic generator for changed Pro code. Without the CLI, engine validation
+and Pro checks are explicitly skipped. Skipped checks do not affect the exit
+status. Unknown code, fingerprints or ABI still require manual review; the
+script does not relax the generators' compatibility checks. Input IPAs are
+never modified. Review the diff and run the profile tests before release.
+
 ~~~sh
 python3 Tools/prepare_rust_patch.py Client.ipa Client.ipatch --patch-set-dir Patches
 ~~~

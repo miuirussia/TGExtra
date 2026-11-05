@@ -188,6 +188,12 @@ This preserves SDKs and Theos in `.build/`, research drafts, and everything in
 `Tools/build_payloads.py` or `Tests/run.sh`. Run cleanup after builds and tests
 have finished.
 
+To attempt client patch updates from decrypted IPAs in `packages/`, run
+`python3 Tools/update_patches.py`. Add `--check` to compare without writing and
+`--engine /path/to/ipatch` to validate through the engine. See
+[Patches/README.md](Patches/README.md#generating-a-profile) for client selection
+and compatibility limits.
+
 After editing translations, regenerate the embedded fallbacks:
 
 ```sh
