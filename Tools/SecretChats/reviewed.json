@@ -66,14 +66,14 @@
       "fingerprint": {
         "algorithm": "arm64-reloc-v1",
         "size": 7648,
-        "sha256": "73d280cde2c85a2c370b878dc0215fe9db5f710123df81a980b9b2adefc4f04c"
+        "sha256": "fc7ef7751c40d84d72dd5762e2e710a3bc7854f7b4da85e30bcd456f617fd399"
       }
     },
     "timer": {
       "fingerprint": {
         "algorithm": "arm64-reloc-v1",
         "size": 836,
-        "sha256": "eeed1314f8c034e5906e6b6c2007c94df61e3b8e8768f0b74bd55f086913816c"
+        "sha256": "57a9c57d6c0565df6109c3da9bc8462ff410f5125416349a9c486eb997d3097a"
       }
     },
     "screenshotThunk": {
@@ -87,14 +87,14 @@
       "fingerprint": {
         "algorithm": "arm64-reloc-v1",
         "size": 608,
-        "sha256": "829230dbd5a180f3335cb778ff96de3730bd67c4389f698a1d63f7ffdfbb068d"
+        "sha256": "4c097b4aa43536a20d46e091121c4577c5dd0f21199c5cdf594097d82eabee30"
       }
     },
     "consume": {
       "fingerprint": {
         "algorithm": "arm64-reloc-v1",
         "size": 2600,
-        "sha256": "ad4d343c5e1025553c72203c29bd10ae6bc354ba10f36861e9a79663d3ba9992"
+        "sha256": "4767eb8a3cc920cd90ce677eab5c0cbeeba394da81b08fd1eef37d23ea582efe"
       }
     },
     "consumeLookup": {

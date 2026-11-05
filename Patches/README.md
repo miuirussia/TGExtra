@@ -66,7 +66,7 @@ artifact, including its generated sizes, relocations and Rust profile identities
 ## Native TL decoder
 
 `native-tl-v1` accelerates the MtProtoKit response path on the reviewed Telegram
-13.1.2 (35638) and Swiftgram 13.1.3 (349) generic arm64 engines. The profile checks
+13.1.2 (35638) and Swiftgram 13.1.3 (352) generic arm64 engines. The profile checks
 the constructor parser, its object-body parser, the function-result parser and
 the Swift top-level wrapper. Exactly one constructor call in that wrapper and
 one function-result call are redirected. Recursive native calls stay unchanged.
@@ -102,7 +102,7 @@ replace device testing. Native arm64e binary profiles are not currently provided
 
 ## Secret-chat protection
 
-`secret-chats-v1` supports Telegram 13.1.2 (35638) and Swiftgram 13.1.3 (349),
+`secret-chats-v1` supports Telegram 13.1.2 (35638) and Swiftgram 13.1.3 (352),
 generic arm64, through the required TGExtra component. It works with both MTProto
 transports and requires rebuilding the IPA; a DEB alone does not install it.
 
@@ -169,7 +169,7 @@ Swift witness's registers and stack, so an ordinary C function is unsuitable. Th
 native test checks the compiled adapter against the shipped bytes and exercises
 both success and error paths.
 
-The reviewed reference is Swiftgram 13.1.3 (349, `app.swiftgram.ios`), generic
+The reviewed reference is Swiftgram 13.1.3 (352, `app.swiftgram.ios`), generic
 arm64. V4 engine planning has been checked against that decrypted IPA. The type
 and code checks permit relinking that preserves those constraints; changed code,
 metadata or architecture needs another reviewed profile. No arm64e compatibility
@@ -198,15 +198,18 @@ fingerprint can require a separate profile even if the Rust ABI is unchanged.
 Bundle IDs remain explicit; the generator adds the input client's ID and retains
 previously authorized IDs when exporting the same profile again.
 The committed portable profiles have been checked on Telegram 13.1.2 (35638) and
-Swiftgram 13.1.3 (349, app.swiftgram.ios), including engine planning and application
+Swiftgram 13.1.3 (352, app.swiftgram.ios), including engine planning and application
 to extracted copies of both clients. Swiftgram needs its own profile because its
 engine constructor and session initializer have different conservative
 fingerprints. These checks do not replace on-device validation.
 
 Telegram 13.1.2 uses `rust-abi5-76a4cab831e61d6d` with ABI 5. The four reviewed
 global stores in `engineCreate` use page offset `0xa18`. The shared native TL
-parser profile and Swiftgram `rust-abi5-fcec6a3ee5b3e894` profile remain included.
-The previous Swiftgram Rust profile and secret-chat fingerprints have been removed.
+parser profile remains included. Swiftgram 13.1.3 (352) uses
+`rust-abi5-39edec9996448203`; its constructor, session creation and send functions
+have new conservative fingerprints. The Swiftgram 349 Rust profile and secret-chat
+fingerprints have been replaced; the secret-chat call offsets and bridge ABIs
+remain unchanged.
 
 The bridge targets C ABI 5 of TelegramMessenger/mtproto-engine, pinned by
 Telegram-iOS 1dd3e7f4ed to da4b2170210aab0430c4ff18c032991f3030cf45.

@@ -18,7 +18,7 @@ bundle IDs still constrain selection. Use `--patch-set-dir Patches` to include
 a profile in future GitHub releases. See [Patches/README.md](../../Patches/README.md)
 for engine requirements, validation and offline application.
 
-The reviewed references are Telegram 13.1.2 (35638) and Swiftgram 13.1.3 (349,
+The reviewed references are Telegram 13.1.2 (35638) and Swiftgram 13.1.3 (352,
 `app.swiftgram.ios`). Their 4640-byte `engineCreate` bodies have four link-time
 differences retained by the review fingerprint: stores at body offsets
 `0x11c4`, `0x11e0`, `0x11e8` and `0x11f0` use the relocated global's page offset
@@ -29,6 +29,9 @@ and reviewed Rust function fingerprints match between the clients.
 `abi5.json` lists Swiftgram's constructor hash as an explicit reviewed variant; unknown
 hashes and multiple matching constructors remain rejected. Portable engine
 fingerprints stay conservative, so each client has a separate generated profile.
+Swiftgram uses `rust-abi5-39edec9996448203`; it replaces the build 349 profile
+with updated `engineCreate`, `sessionCreate` and `send` fingerprints. The reviewed
+ABI, call counts and payload bytes are unchanged.
 
 Protected-forward recovery shares ForwardCopy's journal/transfer state machine.
 A request-service adapter sends its helpers through the active Rust session with
