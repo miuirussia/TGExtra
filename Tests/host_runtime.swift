@@ -253,7 +253,13 @@ func testMissingHostSchema() {
 func testHostSchemaCodec() {
     flags()
     let schema = HostSchema.shared!
-    check(schema.constructors.count == 1716 && schema.functions.count == 849, "Read the original host table")
+    let image = TGExtraHostTLSchema()!
+    let counts = image.withUnsafeBytes { bytes in
+        (constructors: Int(UInt32(littleEndian: bytes.loadUnaligned(fromByteOffset: 24, as: UInt32.self))),
+         functions: Int(UInt32(littleEndian: bytes.loadUnaligned(fromByteOffset: 28, as: UInt32.self))))
+    }
+    check(schema.constructors.count == counts.constructors && schema.functions.count == counts.functions,
+          "Read every constructor and function declared in the original host table")
     check(Api.isKnownConstructor(-1471112230), "A primitive in a peer vector is malformed, not an unknown peer")
 
     // This type has no generated view. Its wire order comes entirely from the host.
@@ -317,7 +323,6 @@ func testHostSchemaCodec() {
     check(invalidBuffer.makeValidData() == nil && invalidBuffer.makeData().isEmpty,
           "Never emit a partly serialized request")
 
-    let image = TGExtraHostTLSchema()!
     check(HostSchema(image: image) != nil, "Accept the original schema")
     check(HostSchema(image: image.prefix(71)) == nil, "Reject a truncated schema header")
     var corrupted = image

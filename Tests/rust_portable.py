@@ -45,7 +45,7 @@ class PortableRustTests(unittest.TestCase):
                 inspect_runtime(archive.read(entry), reviewed)
 
     def test_reviewed_reference_clients_match_committed_profiles(self):
-        references = ('Telegram_v13.1.2.ipa', 'Swiftgram_v13.1.3.ipa')
+        references = ('Telegram-v13.2.ipa', 'Swiftgram_v13.1.3.ipa')
         images = [ROOT/'packages'/name for name in references if (ROOT/'packages'/name).is_file()]
         if not images:
             self.skipTest('reference IPAs are not present')

@@ -51,7 +51,7 @@ Releases include rootful, rootless and roothide DEBs and matching `.ipatch` file
 Install the DEB or build an IPA with iOSPatchingEngine v4. Rust MTProto clients
 need a matching compatibility profile.
 
-Reference builds: Telegram 13.1.2 (35638) and Swiftgram 13.1.3
+Reference builds: Telegram 13.2 (36535) and Swiftgram 13.1.3
 (352, `app.swiftgram.ios`). Newer builds may need updated profiles or UI hooks.
 Privacy and message protection require the app's TLS1 v3 schema.
 
@@ -197,7 +197,7 @@ python3 generate_langs.py
 To update the typed policy views and test fixture from an original decrypted IPA:
 
 ```sh
-python3 Tools/update_telegram_api.py packages/Telegram_v13.1.2.ipa
+python3 Tools/update_telegram_api.py packages/Telegram-v13.2.ipa
 ```
 
 The fixture schema is stored in `Tests/Fixtures`; the tweak reads the installed
