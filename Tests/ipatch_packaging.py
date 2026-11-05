@@ -50,6 +50,30 @@ def portable_variant(name='portable'):
 
 
 class IpatchPackagingTests(unittest.TestCase):
+    def test_retired_profile_directories_do_not_enter_the_package(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            patches = root/'Patches'
+            active = patches/'current'
+            active.mkdir(parents=True)
+            item, files = portable_variant('current')
+            (active/'patch.json').write_text(json.dumps(document('Client patches', [item])))
+            for source, data in files.items():
+                path = active/source
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+            retired = patches/'rust-abi5-retired'/'payloads'
+            retired.mkdir(parents=True)
+            (retired/'send.bin').write_bytes(b'retired payload')
+            (patches/'rust-abi5-empty').mkdir()
+            deb, output = root/'TGExtra.deb', root/'TGExtra.ipatch'
+            deb.write_bytes(b'!<arch>\n')
+            package(output, deb=deb, patches=patches)
+            entries = read_archive(output)
+            value = json.loads(entries['manifest.json'])
+            self.assertEqual([item['id'] for item in variants(value)], ['current'])
+            self.assertFalse(any('retired' in name or 'empty' in name for name in entries))
+
     def test_each_deb_has_a_self_contained_package_with_all_clients(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

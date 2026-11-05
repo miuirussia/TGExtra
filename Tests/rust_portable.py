@@ -45,7 +45,7 @@ class PortableRustTests(unittest.TestCase):
                 inspect_runtime(archive.read(entry), reviewed)
 
     def test_reviewed_reference_clients_match_committed_profiles(self):
-        references = ('Telegram-v13.2.ipa', 'Swiftgram_v13.1.3.ipa')
+        references = ('Telegram_v13.2.ipa', 'Swiftgram_v13.1.3.ipa')
         images = [ROOT/'packages'/name for name in references if (ROOT/'packages'/name).is_file()]
         if not images:
             self.skipTest('reference IPAs are not present')
@@ -97,7 +97,7 @@ class PortableRustTests(unittest.TestCase):
                             self.assertNotEqual(patched_branches[pc], original_target)
 
     def test_rebuild_uses_adjacent_c_and_preserves_host_checks(self):
-        original = next((Path(__file__).resolve().parents[1]/'Patches').glob('rust-abi5-*'))
+        original = next((Path(__file__).resolve().parents[1]/'Patches').glob('rust-abi5-*/patch.json')).parent
         with tempfile.TemporaryDirectory(prefix='tgextra-c-rebuild-') as directory:
             patches = Path(directory)
             profile = patches/original.name
@@ -130,7 +130,9 @@ class PortableRustTests(unittest.TestCase):
                 self.assertEqual(code, (path.parent/block['source']).read_bytes(), (path.parent.name, name))
                 self.assertEqual(relocations, block['relocations'])
                 self.assertEqual(len(code), block['size'])
-        self.assertTrue(all(path.with_suffix('.c').is_file() for path in profiles.rglob('*.bin')))
+        self.assertTrue(all(path.with_suffix('.c').is_file()
+                            for manifest in profiles.glob('*/patch.json')
+                            for path in manifest.parent.rglob('*.bin')))
 
     def test_fingerprints_keep_local_control_flow_and_semantic_constants(self):
         image, start, end = fingerprint_image([0x14000001, 0x91000421, 0xD65F03C0])

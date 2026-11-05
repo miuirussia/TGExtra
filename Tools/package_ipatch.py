@@ -105,7 +105,11 @@ def repository_components(patches):
             continue
         if directory.is_symlink():
             raise ValueError(f'patch resources cannot be symlinks: {directory}')
-        value = json.loads((directory/'patch.json').read_text())
+        manifest_path = directory/'patch.json'
+        # Git leaves ignored payloads behind when a profile is retired or renamed.
+        if not manifest_path.is_file():
+            continue
+        value = json.loads(manifest_path.read_text())
         validate_components(value)
         for component in value['components']:
             for item in component['variants']:

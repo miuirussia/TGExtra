@@ -91,7 +91,7 @@ Only successful complete root decodes can publish policy state.
 Regenerate or verify the profile and runtime matcher from a reviewed reference:
 
 ~~~sh
-python3 Tools/prepare_native_tl.py packages/Telegram-v13.2.ipa
+python3 Tools/prepare_native_tl.py packages/Telegram_v13.2.ipa
 python3 Tools/prepare_native_tl.py packages/Swiftgram_v13.1.3.ipa --check
 IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/native_tl_profile.py
 ~~~
@@ -132,7 +132,7 @@ files wait for Telegram's fetcher; encrypted containers are never exported.
 Regenerate and test:
 
 ~~~sh
-python3 Tools/prepare_secret_chats.py --telegram packages/Telegram-v13.2.ipa --swiftgram packages/Swiftgram_v13.1.3.ipa
+python3 Tools/prepare_secret_chats.py --telegram packages/Telegram_v13.2.ipa --swiftgram packages/Swiftgram_v13.1.3.ipa
 python3 Tools/build_payloads.py --check
 IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/secret_chats.py
 ~~~

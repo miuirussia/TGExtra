@@ -197,7 +197,7 @@ python3 generate_langs.py
 To update the typed policy views and test fixture from an original decrypted IPA:
 
 ```sh
-python3 Tools/update_telegram_api.py packages/Telegram-v13.2.ipa
+python3 Tools/update_telegram_api.py packages/Telegram_v13.2.ipa
 ```
 
 The fixture schema is stored in `Tests/Fixtures`; the tweak reads the installed
