@@ -32,7 +32,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 4640,
-                        "sha256": "f86dfe3fd61f7afe67c9363b4ef5128659f0add66299f559a8e3cb67a53f9243"
+                        "sha256": "211c78d1144b123a8fa9aaae63c96c832a4b4ff91c93d0ccaf77de426534833f"
                       }
                     }
                   }
@@ -80,7 +80,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 2120,
-                        "sha256": "53b450e9958134911be3ad2ae6b671f5741c1d9b8fe85f6ea609f46544bc0840"
+                        "sha256": "0328e03672650f7817c0b9648de84150bf104bfac244f2ce53808671fc86011a"
                       }
                     }
                   }
@@ -137,7 +137,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 3532,
-                        "sha256": "403f9d5757342a22ea57d0a30de61d050bd627e8ddbbe4996439593c73492c08"
+                        "sha256": "31e7b02f685c29f9e5b23e09ae3df7f9514dd25b218f66b8b885ed563d1e642c"
                       }
                     }
                   }
@@ -1340,7 +1340,7 @@
               ]
             }
           ],
-          "id": "rust-abi5-39edec9996448203",
+          "id": "rust-abi5-ff2dd839af4e4d0b",
           "description": "Rust MTProto Bridge"
         }
       ]

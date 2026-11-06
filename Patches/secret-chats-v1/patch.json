@@ -659,7 +659,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 7648,
-                        "sha256": "fc7ef7751c40d84d72dd5762e2e710a3bc7854f7b4da85e30bcd456f617fd399"
+                        "sha256": "268eb66c62ce8f2ee7d3766da1458f3e01bc57c9050e939cfb5f17617eec1034"
                       }
                     }
                   }
@@ -671,7 +671,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 836,
-                        "sha256": "57a9c57d6c0565df6109c3da9bc8462ff410f5125416349a9c486eb997d3097a"
+                        "sha256": "3a568f630694c8dad2cb068c1101093f73bdab6f9b0dbc421a67e1093ff5a399"
                       }
                     }
                   }
@@ -683,7 +683,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 608,
-                        "sha256": "4c097b4aa43536a20d46e091121c4577c5dd0f21199c5cdf594097d82eabee30"
+                        "sha256": "1ad3cf4b7cdda9e366a10f06977d80a26b9c5401511b30e6dd58f9296a7b7cd7"
                       }
                     }
                   }
@@ -695,7 +695,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 2600,
-                        "sha256": "4767eb8a3cc920cd90ce677eab5c0cbeeba394da81b08fd1eef37d23ea582efe"
+                        "sha256": "ab740f069f227296d3d8cb23ef8658875200961d07837331000606bd8a1d2d58"
                       }
                     }
                   }
@@ -948,7 +948,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 608,
-                        "sha256": "4c097b4aa43536a20d46e091121c4577c5dd0f21199c5cdf594097d82eabee30"
+                        "sha256": "1ad3cf4b7cdda9e366a10f06977d80a26b9c5401511b30e6dd58f9296a7b7cd7"
                       }
                     }
                   }
@@ -992,7 +992,7 @@
                     "anchor": "call.clear"
                   },
                   "expect": {
-                    "bytes": "8fe41794"
+                    "bytes": "d4e41794"
                   },
                   "replace": {
                     "bytes": "00000094",
@@ -1011,7 +1011,7 @@
                     "anchor": "call.timer"
                   },
                   "expect": {
-                    "bytes": "877e1a94"
+                    "bytes": "cc7e1a94"
                   },
                   "replace": {
                     "bytes": "00000094",
