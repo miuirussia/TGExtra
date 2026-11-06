@@ -38,7 +38,10 @@ static BOOL TGExtraShouldDisableDoubleTap(UIGestureRecognizer *recognizer) {
         objc_setAssociatedObject(self, &kTGExtraMessageTouchesBegan, previous, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
 }
+%end
 
+// Telegram 13.2 completes double taps through super.setState, bypassing its override.
+%hook UIGestureRecognizer
 - (void)setState:(UIGestureRecognizerState)state {
     if (state == UIGestureRecognizerStateEnded &&
         [objc_getAssociatedObject(self, &kTGExtraMessageTouchesBegan) boolValue]) {
@@ -53,7 +56,7 @@ __attribute__((constructor)) static void TGExtraInstallDoubleTapReactions(void) 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, NSEC_PER_SEC / 2), dispatch_get_main_queue(), ^{
         Class recognizer = NSClassFromString(@"Display.TapLongTapOrDoubleTapGestureRecognizer");
         Method began = class_getInstanceMethod(recognizer, @selector(touchesBegan:withEvent:));
-        Method state = class_getInstanceMethod(recognizer, @selector(setState:));
+        Method state = class_getInstanceMethod(UIGestureRecognizer.class, @selector(setState:));
         if (began && method_getNumberOfArguments(began) == 4 &&
             state && method_getNumberOfArguments(state) == 3) {
             %init(TGExtraDoubleTapReactions, TGExtraReactionTapRecognizer = recognizer);
