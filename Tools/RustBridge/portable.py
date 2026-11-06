@@ -1,21 +1,34 @@
 """Build declarative ipatch v4 binaries from legacy-reviewed Rust machine code."""
+import hashlib
 import json
 
 from payloads import ipatch_payload
 
+ADAPTERS = {
+    'engineCreate': ('engineCreate:context:event:log:original:', ('threads', 'context', 'event', 'log')),
+    'sessionCreate': ('sessionCreate:setup:original:', ('engine', 'setup')),
+    'sessionDestroy': ('sessionDestroy:session:original:', ('engine', 'session')),
+    'send': ('send:session:request:original:', ('engine', 'session', 'request')),
+    'cancel': ('cancel:session:request:original:', ('engine', 'session', 'request')),
+    'bufferData': ('bufferData:original:', ('buffer',)),
+    'bufferLength': ('bufferLength:original:', ('buffer',)),
+    'bufferFree': ('bufferFree:original:', ('buffer',)),
+    'usageManager': ('usageManager:selector:info:original:', ('receiver', 'selector', 'info')),
+    'authInfo': ('authInfo:selector:datacenter:authSelector:original:', ('receiver', 'selector', 'datacenter', 'authSelector')),
+}
+SELECTORS = {name: (selector, len(parameters)) for name, (selector, parameters) in ADAPTERS.items()}
+
+
+def profile_identifier(patch, files):
+    identity = {'patch': patch, 'payloads': {source: hashlib.sha256(data).hexdigest()
+                                           for source, data in files.items() if source.endswith('.bin')}}
+    digest = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()[:16]
+    return 'rust-abi5-'+digest
+
 
 def payload_source(selector, arguments, name):
     """Emit a standalone, readable C source beside each exported binary."""
-    names = {
-        'engineCreate': ('threads', 'context', 'event', 'log'),
-        'sessionCreate': ('engine', 'setup'),
-        'sessionDestroy': ('engine', 'session'),
-        'send': ('engine', 'session', 'request'),
-        'cancel': ('engine', 'session', 'request'),
-        'bufferData': ('buffer',), 'bufferLength': ('buffer',), 'bufferFree': ('buffer',),
-        'usageManager': ('receiver', 'selector', 'info'),
-        'authInfo': ('receiver', 'selector', 'datacenter', 'authSelector'),
-    }.get(name, ('a', 'b', 'c', 'd')[:arguments])
+    _, names = ADAPTERS.get(name, (selector, ('a', 'b', 'c', 'd')[:arguments]))
     if len(names) != arguments or not 1 <= arguments <= 4:
         raise ValueError('unsupported Rust bridge argument count')
     parameters = ', '.join('uintptr_t '+arg for arg in names)

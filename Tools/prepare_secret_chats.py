@@ -16,11 +16,27 @@ from macho import MachO, signed
 
 PROFILE = ROOT / 'Patches/secret-chats-v1'
 REVIEWED = json.loads((ROOT / 'Tools/SecretChats/reviewed.json').read_text())
+GATES = {
+    'screenshot': ('TGExtraSecretChatShouldBlock', ('mov w0, #0', 'mov w1, #0')),
+    'deletion': ('TGExtraSecretChatHandleDeletion', ('ldr x0, [sp]', 'ldr x1, [sp, #16]')),
+    'clear': ('TGExtraSecretChatHandleClear', ('ldr x0, [sp, #72]', 'ldr w1, [sp]', 'ldr x2, [sp, #8]')),
+    'timer': ('TGExtraSecretChatHandleExpiry', ('ldr x0, [sp, #72]', 'ldr w1, [sp]', 'ldr x2, [sp, #8]',
+                                            'ldr w3, [sp, #16]', 'ldr w4, [sp, #20]')),
+    'consume': ('TGExtraSecretChatShouldBlock', ('mov w0, #3', 'ldr w1, [sp, #8]')),
+}
+
+
+def payload_source(name):
+    callback, arguments = GATES[name]
+    template = (ROOT / 'Tools/SecretChats/gate.c.in').read_text()
+    comment = '// The reviewed deletion call passes Transaction in x0 and [MessageId] in x2.\n' if name == 'deletion' else ''
+    instructions = ''.join('        '+json.dumps(instruction+'\n')+'\n' for instruction in arguments)
+    return template.replace('@CALLBACK@', callback).replace('@ARGUMENTS@', instructions).replace('@COMMENT@', comment)
 
 
 def payload_template(name, block, original, source=None):
-    return ipatch_payload(source or PROFILE / f'payloads/{name}.c', block,
-                          {'_Original': original, '_dlsym': 'import.dlsym'})
+    return ipatch_payload(source if source is not None else payload_source(name), block,
+                          {'_Original': original, '_dlsym': 'import.dlsym'}, source_text=source is None)
 
 
 def identify(image, client):
@@ -62,9 +78,11 @@ def generate_variant(ipa, client):
     ]
     checks.append({'id': 'verify.screenshotThunk', 'at': {'anchor': 'screenshotThunk'},
                    'assert': {'function': {'fingerprint': REVIEWED[client]['screenshotThunk']['fingerprint']}}})
-    sites['screenshot'] = {'within': 'screenshotThunk', 'offset': screen_pc-screen_start}
+    sites['screenshot'] = {'within': 'screenshotThunk', 'offset': screen_pc-screen_start,
+                           'original': {'function': REVIEWED[client]['screenshotBody']}}
     functions['screenshotThunk'] = (screen_start, screen_end)
     values = {'ABI': {'type': 'uint', 'integer': 1}, 'UUID': {'type': 'uuid'}}
+    files = {}
     for name, site in sites.items():
         pc = functions[site['within']][0]+site['offset']
         word = image.u32(image.offset(pc))
@@ -81,14 +99,14 @@ def generate_variant(ipa, client):
             a, b = image.function(target)
             if a != target:
                 raise ValueError('original must be a function entry')
-            if name == 'consume' and image.portable_fingerprint(a, b) != REVIEWED[client]['consumeLookup']['fingerprint']:
-                raise ValueError('content-consumption namespace ABI changed')
             assertion = {'function': {'fingerprint': image.portable_fingerprint(a, b)}}
         else:
             # Imported Postbox stubs retain their exact reviewed slot, including
             # ADRP/LDR bytes. Relinks changing these need another profile review.
             offset = image.offset(target)
             assertion = {'bytes': {'expected': image.data[offset:offset+12].hex()}}
+        if assertion != site['original']:
+            raise ValueError(f'unrecognized {client} secret-chat {name} original target')
         checks += [
             {'id': 'verify.original.'+name, 'at': {'anchor': original}, 'assert': assertion},
             {'id': 'verify.call.'+name, 'at': {'anchor': at},
@@ -96,7 +114,8 @@ def generate_variant(ipa, client):
         ]
         payload = 'deletion' if name == 'delete' else name
         code, relocations = payload_template(payload, block, original)
-        (PROFILE / f'payloads/{payload}.bin').write_bytes(code)
+        files[f'payloads/{payload}.bin'] = code
+        files[f'payloads/{payload}.c'] = payload_source(payload).encode()
         patch['payloads'].append({'id': block, 'source': f'payloads/{payload}.bin', 'size': len(code),
                                   'alignment': 4, 'permissions': 'rx', 'near': at,
                                   'max_distance': 134217724, 'relocations': relocations})
@@ -107,6 +126,8 @@ def generate_variant(ipa, client):
         values[name+'Call'] = {'type': 'image_offset', 'anchor': at}
         values[name+'Bridge'] = {'type': 'image_offset', 'anchor': block}
     patch['generated_resources'] = [{'destination': 'TGExtraSecretChats.plist', 'arch': 'arm64', 'values': values}]
+    for source, data in files.items():
+        (PROFILE / source).write_bytes(data)
     return {'id': 'secret-chats-'+client+'-v1', 'description': 'Secret Chat Protection',
             'bundle_ids': ['ph.telegra.Telegraph' if client == 'telegram' else 'app.swiftgram.ios'], 'binaries': [patch]}
 

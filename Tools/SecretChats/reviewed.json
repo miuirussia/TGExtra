@@ -35,29 +35,50 @@
         "sha256": "131842385dec5273a6aa12ace890dde26dd3e59dbb532c1b558c63832600f9b6"
       }
     },
-    "consumeLookup": {
-      "fingerprint": {
-        "algorithm": "arm64-reloc-v1",
-        "size": 16,
-        "sha256": "118c40bc0981767a3e65c64a7cc9dc692708168f8b52293dbb89de29b28268d9"
-      }
-    },
     "sites": {
       "delete": {
         "within": "incoming",
-        "offset": 5876
+        "offset": 5876,
+        "original": {
+          "function": {
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 508,
+              "sha256": "bbc84e2f0228859d61b682fb45fea5257c80cc4e42e0dabf8faf92436ef2205d"
+            }
+          }
+        }
       },
       "clear": {
         "within": "incoming",
-        "offset": 6096
+        "offset": 6096,
+        "original": {
+          "bytes": {
+            "expected": "701800f010b644f900021fd6"
+          }
+        }
       },
       "timer": {
         "within": "timer",
-        "offset": 168
+        "offset": 168,
+        "original": {
+          "bytes": {
+            "expected": "701800f0109e44f900021fd6"
+          }
+        }
       },
       "consume": {
         "within": "consume",
-        "offset": 52
+        "offset": 52,
+        "original": {
+          "function": {
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 16,
+              "sha256": "118c40bc0981767a3e65c64a7cc9dc692708168f8b52293dbb89de29b28268d9"
+            }
+          }
+        }
       }
     }
   },
@@ -97,29 +118,50 @@
         "sha256": "ab740f069f227296d3d8cb23ef8658875200961d07837331000606bd8a1d2d58"
       }
     },
-    "consumeLookup": {
-      "fingerprint": {
-        "algorithm": "arm64-reloc-v1",
-        "size": 16,
-        "sha256": "118c40bc0981767a3e65c64a7cc9dc692708168f8b52293dbb89de29b28268d9"
-      }
-    },
     "sites": {
       "delete": {
         "within": "incoming",
-        "offset": 5880
+        "offset": 5880,
+        "original": {
+          "function": {
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 496,
+              "sha256": "4390ff4a5334a8f3063f9429e3af23771faca6364e3c517ea2383d387ba3daf3"
+            }
+          }
+        }
       },
       "clear": {
         "within": "incoming",
-        "offset": 6100
+        "offset": 6100,
+        "original": {
+          "bytes": {
+            "expected": "501800b0104240f900021fd6"
+          }
+        }
       },
       "timer": {
         "within": "timer",
-        "offset": 168
+        "offset": 168,
+        "original": {
+          "bytes": {
+            "expected": "501800b0102e40f900021fd6"
+          }
+        }
       },
       "consume": {
         "within": "consume",
-        "offset": 52
+        "offset": 52,
+        "original": {
+          "function": {
+            "fingerprint": {
+              "algorithm": "arm64-reloc-v1",
+              "size": 16,
+              "sha256": "118c40bc0981767a3e65c64a7cc9dc692708168f8b52293dbb89de29b28268d9"
+            }
+          }
+        }
       }
     }
   }

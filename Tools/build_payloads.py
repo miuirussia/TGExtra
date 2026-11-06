@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """Rebuild existing reviewed profiles' C payloads without reference IPAs (macOS/Clang)."""
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 from payloads import compile_payload
 from prepare_native_tl import payload_template as native_payload
 from prepare_rust_patch import PATCH_NAME, SELECTORS
-from portable import payload_template as rust_payload
-from prepare_secret_chats import payload_template as secret_payload
+from portable import payload_template as rust_payload, profile_identifier
+from prepare_secret_chats import GATES, payload_source as secret_source, payload_template as secret_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,6 +25,8 @@ def rebuild(patches, check=False):
         item = json.loads(path.read_text())
         identifier = path.parent.name
         if identifier == 'secret-chats-v1':
+            for name in GATES:
+                write(path.parent/f'payloads/{name}.c', secret_source(name).encode())
             for variant in item['components'][0]['variants']:
                 for patch in variant['binaries']:
                     for block in patch['payloads']:
@@ -63,12 +64,10 @@ def rebuild(patches, check=False):
             files[block['source']] = code
         destination = path.parent
         if identifier.startswith('rust-abi5-'):
-            identity = {'patch': patch, 'payloads': {source: hashlib.sha256(data).hexdigest()
-                                                   for source, data in files.items()}}
-            digest = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()[:16]
-            destination = patches/('rust-abi5-'+digest)
+            new_identifier = profile_identifier(patch, files)
+            destination = patches/new_identifier
             item['name'] = PATCH_NAME
-            variant.update(id='rust-abi5-'+digest, description=item['name'])
+            variant.update(id=new_identifier, description=item['name'])
             if check and destination != path.parent:
                 raise ValueError(f'stale Rust profile identity: {path.parent}')
             if not check and destination != path.parent and destination.exists():

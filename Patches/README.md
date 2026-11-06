@@ -37,6 +37,11 @@ method. If the class is missing, they call the original host implementation.
 The register-sized parameters transport the reviewed generic arm64 ABI; the
 request types and ownership contract are in `Sources/tgapi/RustBridge.h`.
 
+Secret-chat adapter sources are generated from `Tools/SecretChats/gate.c.in`
+and the callback/argument table in `Tools/prepare_secret_chats.py`. Edit those
+inputs, then run `Tools/build_payloads.py` to refresh the standalone `.c` files
+and their binaries. `--check` also verifies that these generated sources are current.
+
 On macOS with Apple Clang:
 
 ~~~sh
@@ -124,6 +129,10 @@ also let Clear Message Database remove the retained messages later.
 Checks cover caller fingerprints, adapter ABIs, original targets and call bytes.
 Postbox stubs require exact bytes. Payloads preserve x0–x8, x20, x21 and stack
 arguments; without the TGExtra callback, they call the original function.
+Original-target fingerprints and stub bytes are pinned in
+`Tools/SecretChats/reviewed.json`; regeneration rejects changed targets even
+when the caller fingerprint still matches. Updating these proofs requires a
+new review of the target code and ABI.
 
 `MediaCapture.x` handles screenshots. Saving copies the account's completed
 decrypted `SecretFileMediaResource` cache entry after checking its length. Missing

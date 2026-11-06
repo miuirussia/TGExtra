@@ -17,21 +17,9 @@ import subprocess
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'RustBridge'))
 from macho import MachO
 from package_ipatch import write_archive, sources, package_source, document
+from portable import SELECTORS, profile_identifier
 
 PATCH_NAME = 'Rust MTProto Bridge'
-
-SELECTORS = {
-    'engineCreate': ('engineCreate:context:event:log:original:', 4),
-    'sessionCreate': ('sessionCreate:setup:original:', 2),
-    'sessionDestroy': ('sessionDestroy:session:original:', 2),
-    'send': ('send:session:request:original:', 3),
-    'cancel': ('cancel:session:request:original:', 3),
-    'bufferData': ('bufferData:original:', 1),
-    'bufferLength': ('bufferLength:original:', 1),
-    'bufferFree': ('bufferFree:original:', 1),
-    'usageManager': ('usageManager:selector:info:original:', 3),
-    'authInfo': ('authInfo:selector:datacenter:authSelector:original:', 4),
-}
 
 
 def branch(pc, target, link=False):
@@ -290,10 +278,7 @@ def prepare(ipa, output, export=None, apply_app=None, paths_file=None, allow_no_
         identifier = 'rust-'+patch['sha256'][:16]
         item['resources'] = [{'source': 'resources/TGExtraRustBridge.plist', 'destination': 'TGExtraRustBridge.plist'}]
     else:
-        identity = {'patch': patch, 'payloads': {source: hashlib.sha256(data).hexdigest()
-                                               for source, data in files.items() if source.endswith('.bin')}}
-        digest = hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-        identifier = 'rust-abi5-'+digest[:16]
+        identifier = profile_identifier(patch, files)
     item.update(id=identifier, description=name)
     if export:
         previous_path = export/identifier/'patch.json'

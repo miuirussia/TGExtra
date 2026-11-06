@@ -9,11 +9,13 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'Tools'))
 from prepare_secret_chats import PROFILE, MachO, generate_variant, identify, payload_template
+import prepare_secret_chats as secret
 from package_ipatch import write_archive
 
 
@@ -87,6 +89,42 @@ class SecretChatTests(unittest.TestCase):
             self.skipTest('retired reference IPA is not present')
         with self.assertRaisesRegex(ValueError, 'swiftgram secret-chat incoming'):
             generate_variant(ipa, 'swiftgram')
+
+    def test_changed_original_targets_are_rejected_with_unchanged_callers(self):
+        references = [(client, ROOT/'packages'/filename) for client, filename in
+                      [('telegram', 'Telegram_v13.2.ipa'), ('swiftgram', 'Swiftgram_v13.1.3.ipa')]
+                      if (ROOT/'packages'/filename).is_file()]
+        if not references:
+            self.skipTest('reference IPAs are not present')
+        with tempfile.TemporaryDirectory(prefix='tgextra-secret-originals-') as directory:
+            root = Path(directory)
+            profile = root/'profile'
+            (profile/'payloads').mkdir(parents=True)
+            for client, ipa in references:
+                with zipfile.ZipFile(ipa) as archive:
+                    path = next(n for n in archive.namelist()
+                                if n.endswith('/TelegramCoreFramework.framework/TelegramCoreFramework'))
+                    original = archive.read(path)
+                image = MachO(original)
+                functions = identify(image, client)
+                branches = dict(image.branches())
+                for name in ('delete', 'clear', 'timer', 'consume'):
+                    with self.subTest(client=client, target=name):
+                        site = secret.REVIEWED[client]['sites'][name]
+                        target = branches[functions[site['within']][0]+site['offset']]
+                        changed = bytearray(original)
+                        changed[image.offset(target)] ^= 1
+                        self.assertEqual(identify(MachO(changed), client), functions,
+                                         'The reviewed caller alone must not validate its target')
+                        changed_ipa = root/'changed.ipa'
+                        with zipfile.ZipFile(changed_ipa, 'w') as archive:
+                            archive.writestr(path, changed)
+                        with patch.object(secret, 'PROFILE', profile), \
+                                patch.object(secret, 'payload_template', return_value=(b'', [])):
+                            with self.assertRaises(ValueError):
+                                generate_variant(changed_ipa, client)
+                        self.assertEqual(list((profile/'payloads').iterdir()), [],
+                                         'Rejected inputs must not publish partial payloads')
 
     @unittest.skipUnless(os.environ.get('IPATCH_ENGINE_CLI'), 'requires iPatch v4 CLI')
     def test_engine_plans(self):
