@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Execute secret-chat policies, native bridges, and reviewed iPatch plans."""
 import json
+import base64
 import ctypes
 import os
 from pathlib import Path
@@ -19,6 +20,7 @@ sys.path.insert(0, str(ROOT / 'Tools'))
 from prepare_secret_chats import PROFILE, MachO, generate_variant, identify, payload_template
 import prepare_secret_chats as secret
 from package_ipatch import write_archive
+from payloads import link_payload
 from macho import page_address
 
 
@@ -233,6 +235,32 @@ class SecretChatTests(unittest.TestCase):
                 patch, = value['plan']['patches']
                 self.assertEqual(patch['path'], 'Frameworks/TelegramCoreFramework.framework/TelegramCoreFramework')
                 self.assertIn('TGExtraSecretChats.plist', value['plan']['generated_resources'])
+                with zipfile.ZipFile(ipa) as archive:
+                    path = next(n for n in archive.namelist() if n.endswith('/'+patch['path']))
+                    original = archive.read(path)
+                image = MachO(original)
+                patched = bytearray(original)
+                for edit in patch['edits']:
+                    offset = edit['offset']
+                    expected = bytes.fromhex(edit['expected'])
+                    replacement = bytes.fromhex(edit['replacement'])
+                    self.assertEqual(patched[offset:offset+len(expected)], expected)
+                    self.assertEqual(len(expected), len(replacement))
+                    patched[offset:offset+len(expected)] = replacement
+                linked = value['plan']['profiles'][0]['plan']
+                addresses = {key: values[0]['va'] for key, values in linked['anchors'].items()}
+                variant = document['components'][0]['variants'][0 if filename.startswith('Telegram') else 1]
+                for block in variant['binaries'][0]['payloads']:
+                    address = linked['anchors'][block['id']][0]
+                    expected = link_payload(files[block['source']], block['relocations'], address['va'], addresses)
+                    self.assertEqual(patched[address['file_offset']:address['file_offset']+block['size']], expected)
+                metadata = plistlib.loads(base64.b64decode(value['plan']['generated_resources']['TGExtraSecretChats.plist']))
+                self.assertEqual(metadata['ABI'], 1)
+                self.assertEqual(metadata['UUID'], image.uuid)
+                base = next(vm for name, vm, _, _ in image.segments if name == '__TEXT')
+                branches = dict(MachO(patched).branches())
+                for name in ('delete', 'clear', 'timer', 'consume', 'screenshot'):
+                    self.assertEqual(branches[base+metadata[name+'Call']], base+metadata[name+'Bridge'])
 
 
 if __name__ == '__main__': unittest.main()

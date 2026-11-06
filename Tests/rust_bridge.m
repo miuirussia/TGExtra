@@ -9,6 +9,7 @@ static NSData *sent, *received;
 static uint64_t sentId, sentAfter, nextSession;
 static uint32_t sentFlags, sentExpected;
 static NSUInteger freeCount, callbackCount, cancelCount, destroyCount;
+static NSData *bufferProbe, *expectedProbe;
 
 static const uint8_t *rawData(const void *buffer) { return [(__bridge NSData *)buffer bytes]; }
 static size_t rawLength(const void *buffer) { return [(__bridge NSData *)buffer length]; }
@@ -35,6 +36,20 @@ static void sendRequest(void *engine, uint64_t session, const TGERustRequest *re
     sentExpected = request->expectedResponseSize; sentAfter = request->invokeAfter;
 }
 static void cancelRequest(void *engine, uint64_t session, uint64_t request) { cancelCount++; }
+static void readWhileBridgeLocked(void *engine, uint64_t session, const TGERustRequest *request) {
+    dispatch_semaphore_t done = dispatch_semaphore_create(0);
+    NSData *buffer = bufferProbe, *expected = expectedProbe;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^{
+        @autoreleasepool {
+            size_t length = [TGExtraRustBridge bufferLength:(__bridge void *)buffer original:rawLength];
+            const uint8_t *bytes = [TGExtraRustBridge bufferData:(__bridge void *)buffer original:rawData];
+            NSCAssert([[NSData dataWithBytes:bytes length:length] isEqual:expected], @"Read replacements while the request lock is held elsewhere");
+            dispatch_semaphore_signal(done);
+        }
+    });
+    NSCAssert(dispatch_semaphore_wait(done, dispatch_time(DISPATCH_TIME_NOW, 5 * NSEC_PER_SEC)) == 0,
+        @"Buffer reads must not wait for the request/session lock");
+}
 static void *usageManager(void *receiver, void *selector, void *info) { return receiver; }
 static void emit(uint64_t session, uint32_t kind, uint64_t request, NSData *data) {
     TGERustEvent event = {0};
@@ -72,6 +87,12 @@ NSDictionary *TGExtraTestRustReadContentsRequest(NSData *payload, NSString *acco
 }
 
 void TGExtraTestRustBridge(void) {
+    NSData *untracked = [NSData dataWithBytes:"untracked" length:9];
+    NSCAssert([TGExtraRustBridge bufferData:(__bridge void *)untracked original:rawData] == untracked.bytes &&
+        [TGExtraRustBridge bufferLength:(__bridge void *)untracked original:rawLength] == untracked.length,
+        @"Buffer access before engine initialization calls the original getters");
+    NSCAssert([TGExtraRustBridge bufferData:NULL original:rawData] == NULL &&
+        [TGExtraRustBridge bufferLength:NULL original:rawLength] == 0, @"Null buffers retain native getter semantics");
     NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
     NSDictionary *saved = defaults.dictionaryRepresentation;
     [defaults setBool:YES forKey:kGhostModeEnabled];
@@ -97,6 +118,19 @@ void TGExtraTestRustBridge(void) {
     [received getBytes:&function length:4];
     NSCAssert(received.length == 4 && function == 0x997275b5, @"A successful harmless RPC supplies the expected synthetic response");
     NSCAssert([TGExtraRustBridge bufferLength:(__bridge void *)response original:rawLength] == 4, @"Replacement bytes survive the callback for Swift's no-copy Data");
+    bufferProbe = response; expectedProbe = received;
+    [TGExtraRustBridge send:(void *)0xdead session:0 request:NULL original:readWhileBridgeLocked];
+    bufferProbe = nil; expectedProbe = nil;
+    NSMutableData *equalResponse = [response mutableCopy];
+    dispatch_apply(64, dispatch_get_global_queue(QOS_CLASS_DEFAULT, 0), ^(size_t index) {
+        @autoreleasepool {
+            NSCAssert([TGExtraRustBridge bufferLength:(__bridge void *)response original:rawLength] == 4,
+                @"Concurrent readers retain replacement buffers");
+            NSCAssert([TGExtraRustBridge bufferData:(__bridge void *)equalResponse original:rawData] == equalResponse.bytes &&
+                [TGExtraRustBridge bufferLength:(__bridge void *)equalResponse original:rawLength] == equalResponse.length,
+                @"Equal native contents at another address do not share a replacement");
+        }
+    });
     [TGExtraRustBridge bufferFree:(__bridge void *)response original:rawFree];
     NSCAssert(freeCount == 1 && [TGExtraRustBridge bufferLength:(__bridge void *)response original:rawLength] == response.length, @"Free the Rust buffer once and release the replacement");
 

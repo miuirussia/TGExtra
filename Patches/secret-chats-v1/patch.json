@@ -442,7 +442,7 @@
                 {
                   "id": "bridge.delete",
                   "source": "payloads/deletion.bin",
-                  "size": 164,
+                  "size": 156,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.delete",
@@ -452,7 +452,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.delete",
-                      "addend": 132
+                      "addend": 124
                     },
                     {
                       "type": "bl",
@@ -461,7 +461,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 112,
                       "anchor": "original.delete"
                     }
                   ]
@@ -469,7 +469,7 @@
                 {
                   "id": "bridge.clear",
                   "source": "payloads/clear.bin",
-                  "size": 168,
+                  "size": 160,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.clear",
@@ -479,6 +479,33 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.clear",
+                      "addend": 128
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 116,
+                      "anchor": "original.clear"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.timer",
+                  "source": "payloads/timer.bin",
+                  "size": 168,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.timer",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.timer",
                       "addend": 136
                     },
                     {
@@ -489,33 +516,6 @@
                     {
                       "type": "b",
                       "offset": 124,
-                      "anchor": "original.clear"
-                    }
-                  ]
-                },
-                {
-                  "id": "bridge.timer",
-                  "source": "payloads/timer.bin",
-                  "size": 176,
-                  "alignment": 4,
-                  "permissions": "rx",
-                  "near": "call.timer",
-                  "max_distance": 134217724,
-                  "relocations": [
-                    {
-                      "type": "adrp_add",
-                      "offset": 40,
-                      "anchor": "bridge.timer",
-                      "addend": 144
-                    },
-                    {
-                      "type": "bl",
-                      "offset": 48,
-                      "anchor": "import.dlsym"
-                    },
-                    {
-                      "type": "b",
-                      "offset": 132,
                       "anchor": "original.timer"
                     }
                   ]
@@ -523,7 +523,7 @@
                 {
                   "id": "bridge.consume",
                   "source": "payloads/consume.bin",
-                  "size": 164,
+                  "size": 156,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.consume",
@@ -533,7 +533,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.consume",
-                      "addend": 132
+                      "addend": 124
                     },
                     {
                       "type": "bl",
@@ -542,7 +542,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 112,
                       "anchor": "original.consume"
                     }
                   ]
@@ -550,7 +550,7 @@
                 {
                   "id": "bridge.screenshot",
                   "source": "payloads/screenshot.bin",
-                  "size": 164,
+                  "size": 156,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.screenshot",
@@ -560,7 +560,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.screenshot",
-                      "addend": 132
+                      "addend": 124
                     },
                     {
                       "type": "bl",
@@ -569,7 +569,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 112,
                       "anchor": "original.screenshot"
                     }
                   ]
@@ -1067,7 +1067,7 @@
                 {
                   "id": "bridge.delete",
                   "source": "payloads/deletion.bin",
-                  "size": 164,
+                  "size": 156,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.delete",
@@ -1077,7 +1077,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.delete",
-                      "addend": 132
+                      "addend": 124
                     },
                     {
                       "type": "bl",
@@ -1086,7 +1086,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 112,
                       "anchor": "original.delete"
                     }
                   ]
@@ -1094,7 +1094,7 @@
                 {
                   "id": "bridge.clear",
                   "source": "payloads/clear.bin",
-                  "size": 168,
+                  "size": 160,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.clear",
@@ -1104,6 +1104,33 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.clear",
+                      "addend": 128
+                    },
+                    {
+                      "type": "bl",
+                      "offset": 48,
+                      "anchor": "import.dlsym"
+                    },
+                    {
+                      "type": "b",
+                      "offset": 116,
+                      "anchor": "original.clear"
+                    }
+                  ]
+                },
+                {
+                  "id": "bridge.timer",
+                  "source": "payloads/timer.bin",
+                  "size": 168,
+                  "alignment": 4,
+                  "permissions": "rx",
+                  "near": "call.timer",
+                  "max_distance": 134217724,
+                  "relocations": [
+                    {
+                      "type": "adrp_add",
+                      "offset": 40,
+                      "anchor": "bridge.timer",
                       "addend": 136
                     },
                     {
@@ -1114,33 +1141,6 @@
                     {
                       "type": "b",
                       "offset": 124,
-                      "anchor": "original.clear"
-                    }
-                  ]
-                },
-                {
-                  "id": "bridge.timer",
-                  "source": "payloads/timer.bin",
-                  "size": 176,
-                  "alignment": 4,
-                  "permissions": "rx",
-                  "near": "call.timer",
-                  "max_distance": 134217724,
-                  "relocations": [
-                    {
-                      "type": "adrp_add",
-                      "offset": 40,
-                      "anchor": "bridge.timer",
-                      "addend": 144
-                    },
-                    {
-                      "type": "bl",
-                      "offset": 48,
-                      "anchor": "import.dlsym"
-                    },
-                    {
-                      "type": "b",
-                      "offset": 132,
                       "anchor": "original.timer"
                     }
                   ]
@@ -1148,7 +1148,7 @@
                 {
                   "id": "bridge.consume",
                   "source": "payloads/consume.bin",
-                  "size": 164,
+                  "size": 156,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.consume",
@@ -1158,7 +1158,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.consume",
-                      "addend": 132
+                      "addend": 124
                     },
                     {
                       "type": "bl",
@@ -1167,7 +1167,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 112,
                       "anchor": "original.consume"
                     }
                   ]
@@ -1175,7 +1175,7 @@
                 {
                   "id": "bridge.screenshot",
                   "source": "payloads/screenshot.bin",
-                  "size": 164,
+                  "size": 156,
                   "alignment": 4,
                   "permissions": "rx",
                   "near": "call.screenshot",
@@ -1185,7 +1185,7 @@
                       "type": "adrp_add",
                       "offset": 40,
                       "anchor": "bridge.screenshot",
-                      "addend": 132
+                      "addend": 124
                     },
                     {
                       "type": "bl",
@@ -1194,7 +1194,7 @@
                     },
                     {
                       "type": "b",
-                      "offset": 120,
+                      "offset": 112,
                       "anchor": "original.screenshot"
                     }
                   ]

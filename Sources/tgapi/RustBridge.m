@@ -3,6 +3,7 @@
 #import "ForwardCopy.h"
 #import <dlfcn.h>
 #import <mach-o/loader.h>
+#import <os/lock.h>
 #if __has_feature(ptrauth_calls)
 #import <ptrauth.h>
 #define TGE_IMPORT(pointer, type) ((type)ptrauth_sign_unauthenticated((pointer), ptrauth_key_function_pointer, 0))
@@ -71,6 +72,13 @@ typedef uint64_t (*TGENextRequestID)(void *);
 @implementation TGERustConnection
 @end
 
+@interface TGERustBuffer : NSObject
+@property(nonatomic) NSData *data;
+@property(nonatomic) BOOL synthetic;
+@end
+@implementation TGERustBuffer
+@end
+
 @interface TGERustRequestService : NSObject
 @property TGERustConnection *mtProto;
 @property(weak) TGERustEngine *engine;
@@ -84,8 +92,8 @@ typedef uint64_t (*TGENextRequestID)(void *);
 
 static NSObject *bridgeLock;
 static NSMutableDictionary<NSValue *, TGERustEngine *> *engines, *contexts;
-static NSMutableDictionary<NSValue *, NSData *> *buffers;
-static NSMutableSet<NSValue *> *syntheticBuffers;
+static os_unfair_lock bufferLock = OS_UNFAIR_LOCK_INIT;
+static CFMutableDictionaryRef buffers;
 static TGERustBufferData testData;
 static TGERustBufferLength testLength;
 static TGEBufferFree testFree;
@@ -98,8 +106,7 @@ static void initializeBridge(void) {
     static dispatch_once_t once;
     dispatch_once(&once, ^{
         bridgeLock = [NSObject new]; engines = [NSMutableDictionary new];
-        contexts = [NSMutableDictionary new]; buffers = [NSMutableDictionary new];
-        syntheticBuffers = [NSMutableSet new];
+        contexts = [NSMutableDictionary new];
     });
 }
 NSString *TGExtraRustCompatibilityStatus(void) {
@@ -118,6 +125,29 @@ NSString *TGExtraRustCompatibilityStatus(void) {
     return path ? @"profile metadata present; no active engine observed" : @"no profile metadata or active engine; required for Rust transport";
 }
 static NSValue *pointerKey(const void *pointer) { return [NSValue valueWithPointer:pointer]; }
+
+static void storeBuffer(const void *buffer, NSData *data, BOOL synthetic) {
+    TGERustBuffer *entry = [TGERustBuffer new];
+    entry.data = data; entry.synthetic = synthetic;
+    // Release an overwritten NSData after unlocking; its deallocator may reenter.
+    __attribute__((objc_precise_lifetime)) TGERustBuffer *previous;
+    os_unfair_lock_lock(&bufferLock);
+    if (!buffers) buffers = CFDictionaryCreateMutable(NULL, 0, NULL, &kCFTypeDictionaryValueCallBacks);
+    previous = (__bridge TGERustBuffer *)CFDictionaryGetValue(buffers, buffer);
+    if (previous.synthetic) entry.synthetic = YES;
+    CFDictionarySetValue(buffers, buffer, (__bridge const void *)entry);
+    os_unfair_lock_unlock(&bufferLock);
+    (void)previous;
+}
+
+static TGERustBuffer *bufferEntry(const void *buffer, BOOL remove) {
+    if (!buffer) return nil;
+    os_unfair_lock_lock(&bufferLock);
+    TGERustBuffer *entry = buffers ? (__bridge TGERustBuffer *)CFDictionaryGetValue(buffers, buffer) : nil;
+    if (entry && remove) CFDictionaryRemoveValue(buffers, buffer);
+    os_unfair_lock_unlock(&bufferLock);
+    return entry;
+}
 
 id TGExtraRustRequestServiceForDatacenter(id service, NSInteger datacenter) {
     if (![service isKindOfClass:TGERustRequestService.class]) return nil;
@@ -254,9 +284,7 @@ static void completeRecovery(TGERustEngine *engine, TGERustSession *session, TGE
             event.kind = 1;
             event.payload = malloc(1);
             if (event.payload) {
-                NSValue *key = pointerKey(event.payload);
-                buffers[key] = result;
-                [syntheticBuffers addObject:key];
+                storeBuffer(event.payload, result, YES);
             } else {
                 error = [[NSClassFromString(@"MTRpcError") alloc] initWithErrorCode:500 errorDescription:@"TGEXTRA_COPY_MEMORY_ERROR"];
             }
@@ -365,7 +393,7 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
                     patched = [TLParser handleResponse:data functionID:@(function) account:session.account requestPayload:pending.payload];
                 }
                 if (patched) {
-                    @synchronized(bridgeLock) { buffers[pointerKey(event->payload)] = patched; }
+                    storeBuffer(event->payload, patched, NO);
                 }
             }
         }
@@ -568,25 +596,18 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
 
 + (const uint8_t *)bufferData:(const void *)buffer original:(void *)rawOriginal {
     TGERustBufferData original = TGE_IMPORT(rawOriginal, TGERustBufferData);
-    NSData *data;
-    @synchronized(bridgeLock) { data = buffers[pointerKey(buffer)]; }
+    NSData *data = bufferEntry(buffer, NO).data;
     return data ? data.bytes : original(buffer);
 }
 + (size_t)bufferLength:(const void *)buffer original:(void *)rawOriginal {
     TGERustBufferLength original = TGE_IMPORT(rawOriginal, TGERustBufferLength);
-    NSData *data;
-    @synchronized(bridgeLock) { data = buffers[pointerKey(buffer)]; }
+    NSData *data = bufferEntry(buffer, NO).data;
     return data ? data.length : original(buffer);
 }
 + (void)bufferFree:(void *)buffer original:(void *)rawOriginal {
     TGEBufferFree original = TGE_IMPORT(rawOriginal, TGEBufferFree);
-    BOOL synthetic;
-    @synchronized(bridgeLock) {
-        NSValue *key = pointerKey(buffer);
-        synthetic = [syntheticBuffers containsObject:key];
-        [buffers removeObjectForKey:key]; [syntheticBuffers removeObject:key];
-    }
-    if (synthetic) free(buffer);
+    TGERustBuffer *entry = bufferEntry(buffer, YES);
+    if (entry.synthetic) free(buffer);
     else original(buffer);
 }
 #ifdef TGEXTRA_TESTING

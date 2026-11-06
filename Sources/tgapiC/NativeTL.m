@@ -204,9 +204,11 @@ static BOOL matches(TGENativePacket *packet, TGEReader *reader) {
 static void *parseNative(TGEReader *reader, int32_t signature, uint16_t expected, const void *functionInfo) {
     if (suppressCallbacks || !enabled) return functionInfo ? originalResult(reader, functionInfo) : originalConstructor(reader, signature, expected);
     TGENativePacket *packet = nil;
+    NSMutableDictionary *thread = nil;
     BOOL root = parseDepth == 0;
     if (root) {
-        packet = NSThread.currentThread.threadDictionary[packetKey];
+        thread = NSThread.currentThread.threadDictionary;
+        packet = thread[packetKey];
         if (!matches(packet, reader)) packet = nil;
     }
     parseDepth++;
@@ -215,12 +217,9 @@ static void *parseNative(TGEReader *reader, int32_t signature, uint16_t expected
         value = functionInfo ? originalResult(reader, functionInfo) : originalConstructor(reader, signature, expected);
     } @finally {
         parseDepth--;
-        if (root) {
-            if (packet) [NSThread.currentThread.threadDictionary removeObjectForKey:packetKey];
-        }
+        if (packet) [thread removeObjectForKey:packetKey];
     }
     if (!root || !packet) return value;
-    [NSThread.currentThread.threadDictionary removeObjectForKey:packetKey];
     if (!value || reader->offset != reader->length) return value;
     id owning = (__bridge_transfer id)value;
     id result = processPacket(owning, packet.data, packet.account, packet.function, packet.request);
