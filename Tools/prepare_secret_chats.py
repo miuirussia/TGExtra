@@ -105,6 +105,13 @@ def generate_variant(ipa, client):
             # ADRP/LDR bytes. Relinks changing these need another profile review.
             offset = image.offset(target)
             assertion = {'bytes': {'expected': image.data[offset:offset+12].hex()}}
+            try:
+                binding = image.chained_import_stub(target)
+            except ValueError as error:
+                raise ValueError(f'unrecognized {client} secret-chat {name} import binding: {error}') from error
+            if binding != site.get('binding'):
+                raise ValueError(f'unrecognized {client} secret-chat {name} import binding')
+            anchors[-1]['find'] = {'import_stub': binding}
         if assertion != site['original']:
             raise ValueError(f'unrecognized {client} secret-chat {name} original target')
         checks += [

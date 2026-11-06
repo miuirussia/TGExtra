@@ -254,6 +254,111 @@ class MachO:
             return False
         return self.data[off:off+len(selector)+1] == selector.encode()+b'\0'
 
+    def chained_import_stub(self, address):
+        """Resolve a reviewed ADRP/LDR/BR stub through a real chained bind."""
+        section = self.sections.get('__stubs')
+        if not section or not section[0] <= address <= section[0]+section[2]-12 or (address-section[0]) % 12:
+            raise ValueError('original target is not an arm64 import stub')
+        offset = self.offset(address)
+        adrp, load, branch = struct.unpack_from('<III', self.data, offset)
+        if adrp & 0x9f00001f != 0x90000010 or load & 0xffc003ff != 0xf9400210 or branch != 0xd61f0200:
+            raise ValueError('unsupported chained import stub')
+        slot = page_address(address, adrp) + (load >> 10 & 4095)*8
+        commands, fixups = [], None
+        position = 32
+        for _ in range(self.u32(16)):
+            command, size = struct.unpack_from('<II', self.data, position)
+            raw = self.data[position:position+size]
+            commands.append((command, raw))
+            if command == 0x80000034:
+                if fixups is not None:
+                    raise ValueError('duplicate chained fixups')
+                if len(raw) < 16:
+                    raise ValueError('truncated chained fixups command')
+                start, length = struct.unpack_from('<II', raw, 8)
+                if start+length > len(self.data):
+                    raise ValueError('invalid chained fixups bounds')
+                fixups = self.data[start:start+length]
+            position += size
+        if fixups is None or len(fixups) < 28:
+            raise ValueError('missing chained fixups')
+        version, starts, imports, symbols, count, import_format, symbols_format = struct.unpack_from('<7I', fixups)
+        if version or symbols_format or starts+4 > len(fixups):
+            raise ValueError('unsupported chained fixups header')
+        segment_count, = struct.unpack_from('<I', fixups, starts)
+        if segment_count != len(self.segments) or starts+4+segment_count*4 > len(fixups):
+            raise ValueError('invalid chained segment table')
+        base = next(vm for name, vm, _, _ in self.segments if name == '__TEXT')
+        word = None
+        for index, (_, vm, _, _) in enumerate(self.segments):
+            relative, = struct.unpack_from('<I', fixups, starts+4+index*4)
+            if not relative:
+                continue
+            at = starts+relative
+            if at+22 > len(fixups):
+                raise ValueError('invalid chained segment starts')
+            size, page_size, pointer_format, segment_offset, _, pages = struct.unpack_from('<IHHQIH', fixups, at)
+            if size < 22+pages*2 or at+size > len(fixups) or page_size not in (4096, 16384):
+                raise ValueError('invalid chained page table')
+            if base+segment_offset != vm or pages > (self.vm_segments[index][1]+page_size-1)//page_size:
+                raise ValueError('invalid chained segment mapping')
+            if not vm <= slot < vm+pages*page_size:
+                continue
+            if pointer_format not in (2, 6):
+                raise ValueError('unsupported chained pointer format')
+            page = (slot-vm)//page_size
+            first, = struct.unpack_from('<H', fixups, at+22+page*2)
+            if first == 0xffff or first & 0x8000:
+                raise ValueError('missing or unsupported chained page start')
+            page_base = vm+page*page_size
+            cursor = page_base+first
+            while cursor <= slot:
+                if cursor % 4 or not page_base <= cursor <= page_base+page_size-8:
+                    raise ValueError('chained pointer leaves page')
+                off = self.offset(cursor)
+                if self.offset(cursor+7) != off+7:
+                    raise ValueError('invalid chained pointer mapping')
+                current, = struct.unpack_from('<Q', self.data, off)
+                if cursor == slot:
+                    word = current
+                    break
+                step = (current >> 51 & 4095)*4
+                if not step:
+                    break
+                cursor += step
+            break
+        if word is None or word >> 63 != 1 or word >> 24 & 0x7ffffff:
+            raise ValueError('stub does not reference a supported chained bind')
+        ordinal = word & 0xffffff
+        stride = {1: 4, 2: 8, 3: 16}.get(import_format)
+        if stride is None or ordinal >= count or count > 1 << 20 or imports+count*stride > len(fixups):
+            raise ValueError('invalid chained imports')
+        record = imports+ordinal*stride
+        entry, = struct.unpack_from('<I', fixups, record)
+        library, name_offset = signed(entry & 255, 8), entry >> 9
+        if import_format == 2 and struct.unpack_from('<i', fixups, record+4)[0]:
+            raise ValueError('unsupported chained import addend')
+        if import_format == 3:
+            entry, addend = struct.unpack_from('<Qq', fixups, record)
+            if addend or entry >> 17 & 0x7fff:
+                raise ValueError('unsupported chained import record')
+            library, name_offset = signed(entry & 65535, 16), entry >> 32
+        start = symbols+name_offset
+        if start >= len(fixups):
+            raise ValueError('invalid chained import name offset')
+        end = fixups.find(b'\0', start, start+4097)
+        if end <= start:
+            raise ValueError('invalid chained import name')
+        dylibs = [raw for command, raw in commands if command in (0xc, 0x80000018, 0x8000001f, 0x80000023, 0x20)]
+        if not 0 < library <= len(dylibs):
+            raise ValueError('import has no explicit dylib')
+        command = dylibs[library-1]
+        name_at, = struct.unpack_from('<I', command, 8)
+        name_end = command.find(b'\0', name_at, name_at+4097)
+        if name_at < 24 or name_end <= name_at:
+            raise ValueError('invalid import dylib name')
+        return {'import': fixups[start:end].decode(), 'dylib': command[name_at:name_end].decode()}
+
     def imports(self):
         pos, symtab, indirect = 32, None, None
         for _ in range(self.u32(16)):

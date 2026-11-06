@@ -23,6 +23,25 @@ REFERENCE_IPAS = ('Telegram_v13.2.ipa', 'Swiftgram_v13.1.3.ipa')
 
 
 class NativeTLProfileTests(unittest.TestCase):
+    def test_runtime_matcher_uses_metadata_and_keeps_unique_fallback(self):
+        with tempfile.TemporaryDirectory(prefix='tgextra-native-matcher-') as directory:
+            root = Path(directory)
+            binary = root/'matcher'
+            subprocess.run(['clang', '-O2', '-Wall', '-Wextra', '-Werror',
+                            str(ROOT/'Tests/native_tl_matcher.c'), '-o', str(binary)], check=True)
+            subprocess.run([str(binary)], check=True)
+            for filename in REFERENCE_IPAS:
+                ipa = ROOT/'packages'/filename
+                if not ipa.is_file(): continue
+                with zipfile.ZipFile(ipa) as archive:
+                    path = next(n for n in archive.namelist()
+                                if n.endswith('/TelegramCoreFramework.framework/TelegramCoreFramework'))
+                    image = MachO(archive.read(path))
+                functions = identify(image)
+                text = root/'text.bin'
+                text.write_bytes(image.data[image.textoff:image.textoff+image.textsize])
+                subprocess.run([str(binary), str(text), str(functions['constructor'][0]-image.text)], check=True)
+
     def test_compiled_c_matches_shipped_payload(self):
         profile = json.loads((PROFILE/'patch.json').read_text())['components'][0]['variants'][0]['binaries'][0]
         for name in ('constructor', 'result'):

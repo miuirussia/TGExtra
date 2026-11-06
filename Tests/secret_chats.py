@@ -5,6 +5,8 @@ import ctypes
 import os
 from pathlib import Path
 import platform
+import plistlib
+import struct
 import subprocess
 import sys
 import tempfile
@@ -17,6 +19,7 @@ sys.path.insert(0, str(ROOT / 'Tools'))
 from prepare_secret_chats import PROFILE, MachO, generate_variant, identify, payload_template
 import prepare_secret_chats as secret
 from package_ipatch import write_archive
+from macho import page_address
 
 
 class SecretChatTests(unittest.TestCase):
@@ -125,6 +128,92 @@ class SecretChatTests(unittest.TestCase):
                                 generate_variant(changed_ipa, client)
                         self.assertEqual(list((profile/'payloads').iterdir()), [],
                                          'Rejected inputs must not publish partial payloads')
+
+    def test_changed_import_bindings_are_rejected_by_generator_and_engine(self):
+        references = [(client, ROOT/'packages'/filename) for client, filename in
+                      [('telegram', 'Telegram_v13.2.ipa'), ('swiftgram', 'Swiftgram_v13.1.3.ipa')]
+                      if (ROOT/'packages'/filename).is_file()]
+        if not references:
+            self.skipTest('reference IPAs are not present')
+        with tempfile.TemporaryDirectory(prefix='tgextra-secret-bindings-') as directory:
+            root = Path(directory)
+            profile = root/'profile'
+            (profile/'payloads').mkdir(parents=True)
+            value = json.loads((PROFILE/'patch.json').read_text())
+            files = {b['source']: (PROFILE/b['source']).read_bytes() for v in value['components'][0]['variants']
+                     for p in v['binaries'] for b in p['payloads']}
+            package = root/'secret.ipatch'
+            write_archive(package, value, files)
+            for client, ipa in references:
+                with zipfile.ZipFile(ipa) as archive:
+                    path = next(n for n in archive.namelist()
+                                if n.endswith('/TelegramCoreFramework.framework/TelegramCoreFramework'))
+                    original = archive.read(path)
+                    app = path.split('/Frameworks/')[0]
+                    info = archive.read(app+'/Info.plist')
+                    main_path = app+'/'+plistlib.loads(info)['CFBundleExecutable']
+                    main = archive.read(main_path)
+                image = MachO(original)
+                functions = identify(image, client)
+                branches = dict(image.branches())
+                engine = os.environ.get('IPATCH_ENGINE_CLI')
+                if engine:
+                    baseline = root/'baseline.ipa'
+                    with zipfile.ZipFile(baseline, 'w') as archive:
+                        archive.writestr(path, original)
+                        archive.writestr(app+'/Info.plist', info)
+                        archive.writestr(main_path, main)
+                    result = subprocess.run([engine, '-dry-run', '-ipa', str(baseline), '-package', str(package)],
+                                            capture_output=True, text=True, timeout=180)
+                    self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
+                    self.assertEqual(len(json.loads(result.stdout)['plan']['patches']), 1)
+                position = 32
+                for _ in range(image.u32(16)):
+                    command, size = struct.unpack_from('<II', original, position)
+                    if command == 0x80000034:
+                        fixups = image.u32(position+8)
+                    position += size
+                self.assertEqual(image.u32(fixups+20), 1, 'Reviewed fixtures use compact import records')
+                imports, symbols = image.u32(fixups+8), image.u32(fixups+12)
+                slots, stubs = {}, {}
+                for name in ('clear', 'timer'):
+                    site = secret.REVIEWED[client]['sites'][name]
+                    stubs[name] = branches[functions[site['within']][0]+site['offset']]
+                    adrp, load = struct.unpack_from('<II', original, image.offset(stubs[name]))
+                    slots[name] = image.offset(page_address(stubs[name], adrp)+(load >> 10 & 4095)*8)
+                for name, slot in slots.items():
+                    pointer, = struct.unpack_from('<Q', original, slot)
+                    record = fixups+imports+(pointer & 0xffffff)*4
+                    symbol = fixups+symbols+(image.u32(record) >> 9)
+                    for mutation in ('pointer ordinal', 'dylib ordinal', 'symbol name'):
+                        with self.subTest(client=client, target=name, mutation=mutation):
+                            changed = bytearray(original)
+                            if mutation == 'pointer ordinal':
+                                other = slots['timer' if name == 'clear' else 'clear']
+                                other_pointer, = struct.unpack_from('<Q', original, other)
+                                struct.pack_into('<Q', changed, slot, pointer & ~0xffffff | other_pointer & 0xffffff)
+                            elif mutation == 'dylib ordinal':
+                                changed[record] = 1  # MtProtoKit, preserving the symbol and stub bytes.
+                            else:
+                                changed[symbol+1] ^= 1
+                            at = image.offset(stubs[name])
+                            self.assertEqual(changed[at:at+12], original[at:at+12])
+                            self.assertEqual(identify(MachO(changed), client), functions)
+                            changed_ipa = root/'changed.ipa'
+                            with zipfile.ZipFile(changed_ipa, 'w') as archive:
+                                archive.writestr(path, changed)
+                                archive.writestr(app+'/Info.plist', info)
+                                archive.writestr(main_path, main)
+                            with patch.object(secret, 'PROFILE', profile), \
+                                    patch.object(secret, 'payload_template', return_value=(b'', [])):
+                                with self.assertRaisesRegex(ValueError, 'import binding'):
+                                    generate_variant(changed_ipa, client)
+                            self.assertEqual(list((profile/'payloads').iterdir()), [])
+                            if engine and name == 'clear':
+                                result = subprocess.run([engine, '-dry-run', '-ipa', str(changed_ipa),
+                                                         '-package', str(package)], capture_output=True, text=True, timeout=180)
+                                self.assertNotEqual(result.returncode, 0, result.stdout+result.stderr)
+                                self.assertTrue(json.loads(result.stdout).get('error'), result.stdout)
 
     @unittest.skipUnless(os.environ.get('IPATCH_ENGINE_CLI'), 'requires iPatch v4 CLI')
     def test_engine_plans(self):

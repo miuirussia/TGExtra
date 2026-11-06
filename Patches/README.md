@@ -88,6 +88,11 @@ matcher and `MSHookFunction`; unavailable native integration falls back to the
 byte codec. Rust responses retain that fallback because their asynchronous
 queue boundary needs a separate account-aware integration.
 
+Matching iPatch metadata selects the parser addresses directly after UUID,
+bounds and code-mask checks. Missing or stale metadata retains the unique
+full-text search used by DEB installs. Matching metadata with invalid addresses
+or code is rejected without attempting another installation path.
+
 Rules stay in `Sources/tgapi/TL/MessagePatches.swift`; `nativeRules` compiles the
 simple named flags into field-index operations. Stateful rules run through lazy
 native-backed views and preflight their writes before touching the host objects.
@@ -133,6 +138,11 @@ Original-target fingerprints and stub bytes are pinned in
 `Tools/SecretChats/reviewed.json`; regeneration rejects changed targets even
 when the caller fingerprint still matches. Updating these proofs requires a
 new review of the target code and ABI.
+Postbox stub bindings additionally pin the exact imported symbol and dylib
+install name. Both generation and engine planning follow the real chained bind;
+changing a GOT ordinal, symbol name or library cannot reuse the profile.
+This requires an engine supporting the `dylib` field on v4 `import_stub` anchors.
+Older engines reject the updated profiles and must be updated first.
 
 `MediaCapture.x` handles screenshots. Saving copies the account's completed
 decrypted `SecretFileMediaResource` cache entry after checking its length. Missing

@@ -250,10 +250,14 @@ id TGExtraNativeCreate(NSData *wire) {
     return reader.offset == reader.length ? owning : nil;
 }
 
-#import "NativeTLProfile.inc"
+#import "NativeTLMatcher.h"
+
+static BOOL configIdentityMatches(NSDictionary *config, NSData *uuid) {
+    return uuid && [config[@"ABI"] integerValue] == 1 && [config[@"UUID"] isEqual:uuid];
+}
 
 static BOOL configMatches(NSDictionary *config, NSData *uuid, uintptr_t constructor, uintptr_t result) {
-    return [config[@"ABI"] integerValue] == 1 && [config[@"UUID"] isEqual:uuid] &&
+    return configIdentityMatches(config, uuid) &&
         [config[@"constructor"] unsignedLongLongValue] == constructor &&
         [config[@"result"] unsignedLongLongValue] == result;
 }
@@ -271,10 +275,6 @@ void TGExtraNativeTestInstall(void *constructor, void *result, TGExtraNativeProc
 }
 #endif
 
-static BOOL codeMatches(const uint32_t *code, const uint32_t pattern[][2], size_t count) {
-    for (size_t i = 0; i < count; i++) if ((code[i] & pattern[i][1]) != pattern[i][0]) return NO;
-    return YES;
-}
 static void *constructorHook(TGEReader *reader, int32_t signature, uint16_t expected) { return parseNative(reader, signature, expected, NULL); }
 static void *resultHook(TGEReader *reader, const void *info) { return parseNative(reader, 0, 0, info); }
 
@@ -312,34 +312,28 @@ BOOL TGExtraNativeInstall(NSData *ids, NSData *types, TGExtraNativeProcessor pro
         }
         command += load->cmdsize;
     }
-    if (!text || textLength < 1816 || textLength > 256 * 1024 * 1024) return NO;
-    const uint8_t *constructor = NULL, *result = NULL;
-    for (size_t offset = 0; offset + 1816 <= textLength; offset += 4) {
-        const uint32_t *candidate = (const void *)(text + offset);
-        if (candidate[0] != native_constructor[0][0] ||
-            !codeMatches(candidate, native_constructor, sizeof(native_constructor)/sizeof(*native_constructor))) continue;
-        if (!codeMatches((const void *)(text+offset+1704), native_result, sizeof(native_result)/sizeof(*native_result))) continue;
-        if (!codeMatches((const void *)(text+offset+524), native_body, sizeof(native_body)/sizeof(*native_body))) continue;
-        if (constructor) return NO;
-        constructor = text + offset; result = constructor + 1704;
-    }
-    if (!constructor) return NO;
+    if (!text || textLength < nativeParserSpan || textLength > 256 * 1024 * 1024) return NO;
     NSDictionary *config = [NSDictionary dictionaryWithContentsOfFile:[NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"TGExtraNativeTL.plist"]];
-    BOOL patched = configMatches(config, uuid, (uintptr_t)constructor - (uintptr_t)image.dli_fbase,
-        (uintptr_t)result - (uintptr_t)image.dli_fbase);
+    BOOL patched = configIdentityMatches(config, uuid);
+    uint64_t constructorOffset = [config[@"constructor"] unsignedLongLongValue];
+    uintptr_t textOffset = (uintptr_t)text - (uintptr_t)image.dli_fbase;
+    if (patched && constructorOffset < textOffset) return NO;
+    const uint8_t *constructor = nativeFindConstructor(text, textLength, patched,
+        patched ? constructorOffset - textOffset : 0);
+    if (!constructor) return NO;
+    const uint8_t *result = constructor + nativeResultOffset;
     if (patched) {
+        if (!configMatches(config, uuid, (uintptr_t)constructor - (uintptr_t)image.dli_fbase,
+            (uintptr_t)result - (uintptr_t)image.dli_fbase)) return NO;
         if (!dlsym(RTLD_DEFAULT, "TGExtraNativeConstructorBridge") || !dlsym(RTLD_DEFAULT, "TGExtraNativeResultBridge")) return NO;
         for (NSString *name in @[@"constructor", @"result"]) {
-            NSUInteger count = 1;
             uintptr_t target = (uintptr_t)image.dli_fbase + [config[[@"bridge." stringByAppendingString:name]] unsignedLongLongValue];
-            for (NSUInteger i = 0; i < count; i++) {
-                NSNumber *at = config[[name stringByAppendingFormat:@"Call%lu", (unsigned long)i]];
-                uintptr_t pc = (uintptr_t)image.dli_fbase + at.unsignedLongLongValue;
-                if (!at || pc < (uintptr_t)text || pc + 4 > (uintptr_t)text + textLength) return NO;
-                uint32_t word; memcpy(&word, (void *)pc, 4);
-                int64_t delta = ((int64_t)(word & 0x3ffffff) << 38) >> 36;
-                if ((word & 0x7c000000) != 0x14000000 || pc + delta != target) return NO;
-            }
+            NSNumber *at = config[[name stringByAppendingString:@"Call0"]];
+            uintptr_t pc = (uintptr_t)image.dli_fbase + at.unsignedLongLongValue;
+            if (!at || pc < (uintptr_t)text || pc > (uintptr_t)text + textLength - 4) return NO;
+            uint32_t word; memcpy(&word, (void *)pc, 4);
+            int64_t delta = ((int64_t)(word & 0x3ffffff) << 38) >> 36;
+            if ((word & 0x7c000000) != 0x14000000 || pc + delta != target) return NO;
         }
         originalConstructor = TGE_FUNCTION((void *)constructor, TGEParseConstructor);
         originalResult = TGE_FUNCTION((void *)result, TGEParseResult);

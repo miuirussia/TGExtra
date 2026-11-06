@@ -56,6 +56,10 @@
           "bytes": {
             "expected": "701800f010b644f900021fd6"
           }
+        },
+        "binding": {
+          "import": "_$s7Postbox11TransactionC12clearHistory_8threadId12minTimestamp03maxH010namespaces12forEachMediayAA04PeerF0V_s5Int64VSgs5Int32VSgAqA07MessageF10NamespacesOyAA0M0_pcSgtF",
+          "dylib": "@rpath/PostboxFramework.framework/PostboxFramework"
         }
       },
       "timer": {
@@ -65,6 +69,10 @@
           "bytes": {
             "expected": "701800f0109e44f900021fd6"
           }
+        },
+        "binding": {
+          "import": "_$s7Postbox11TransactionC10getMessageyAA0D0CSgAA0D2IdVF",
+          "dylib": "@rpath/PostboxFramework.framework/PostboxFramework"
         }
       },
       "consume": {
@@ -139,6 +147,10 @@
           "bytes": {
             "expected": "501800b0104240f900021fd6"
           }
+        },
+        "binding": {
+          "import": "_$s7Postbox11TransactionC12clearHistory_8threadId12minTimestamp03maxH010namespaces12forEachMediayAA04PeerF0V_s5Int64VSgs5Int32VSgAqA07MessageF10NamespacesOyAA0M0_pcSgtF",
+          "dylib": "@rpath/PostboxFramework.framework/PostboxFramework"
         }
       },
       "timer": {
@@ -148,6 +160,10 @@
           "bytes": {
             "expected": "501800b0102e40f900021fd6"
           }
+        },
+        "binding": {
+          "import": "_$s7Postbox11TransactionC10getMessageyAA0D0CSgAA0D2IdVF",
+          "dylib": "@rpath/PostboxFramework.framework/PostboxFramework"
         }
       },
       "consume": {
