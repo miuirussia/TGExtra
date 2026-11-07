@@ -42,7 +42,7 @@ private final class KVCProfileNode: NSObject {
     @objc let context = NSObject()
 }
 
-private enum ProfileSection { case peerInfo, peerSettings }
+private enum ProfileSection { case peerInfo, peerInfoTrailing, peerSettings }
 private struct ProfileInfoScreen {
     struct State { var isEditing = false }
     struct Insets { var bottom: CGFloat = 34 }
@@ -91,6 +91,12 @@ private func testProfileBridge() {
     var screen = ProfileInfoScreen(regularSections: [ProfileSection.peerInfo: infoSection,
                                                      ProfileSection.peerSettings: NSObject()])
     check(ProfileBridge.getInfoSectionFromNode(screen) === infoSection, "Find the native information section by its enum key")
+    let trailingSection = NSObject()
+    screen.regularSections[ProfileSection.peerInfoTrailing] = trailingSection
+    check(ProfileBridge.getInfoSectionFromNode(screen) === infoSection, "Keep primary profile details ahead of the optional trailing section")
+    screen.regularSections.removeValue(forKey: ProfileSection.peerInfo)
+    check(ProfileBridge.getInfoSectionFromNode(screen) === trailingSection, "Handle a trailing information section without primary profile details")
+    screen.regularSections[ProfileSection.peerInfo] = infoSection
     check(ProfileBridge.shouldShowProfileInfoFromNode(screen), "Show the ID on a regular profile")
     check(ProfileBridge.getPaneOriginFromNode(screen, contentHeight: 500) == 448,
           "Derive the empty media pane's new origin before the host assigns its frame")

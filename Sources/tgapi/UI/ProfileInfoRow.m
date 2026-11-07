@@ -13,13 +13,16 @@ static id field(id node, NSString *name) {
 @property (nonatomic, strong) UILabel *caption;
 @property (nonatomic, strong) UILabel *value;
 @property (nonatomic, strong) UIView *separator;
+@property (nonatomic, strong) UIView *bottomSeparator;
 @property (nonatomic, strong) UIView *corners;
 @property (nonatomic, strong) CALayer *nativeCorners;
 @property (nonatomic, strong) CALayer *originalMask;
 @property (nonatomic, strong) CALayer *joinedMask;
 @property (nonatomic, copy) NSArray<ASDisplayNode *> *shiftedNodes;
+@property (nonatomic, copy) NSArray<ASDisplayNode *> *extendedNodes;
 @property (nonatomic, weak) UIView *paneHeader;
 @property (nonatomic) CGFloat paneHeaderOffset;
+@property (nonatomic) BOOL cornersAtTop;
 @end
 
 @implementation TGExtraProfileInfoRow
@@ -28,8 +31,9 @@ static id field(id node, NSString *name) {
         self.caption = [UILabel new];
         self.value = [UILabel new];
         self.separator = [UIView new];
+        self.bottomSeparator = [UIView new];
         self.corners = [UIView new];
-        for (UIView *view in @[self.caption, self.value, self.separator, self.corners]) {
+        for (UIView *view in @[self.caption, self.value, self.separator, self.bottomSeparator, self.corners]) {
             view.userInteractionEnabled = NO;
             [self addSubview:view];
         }
@@ -68,6 +72,8 @@ static id field(id node, NSString *name) {
     self.paneHeaderOffset = 0;
     for (ASDisplayNode *node in self.shiftedNodes) TGExtraSetSettingsOffset(node, 0);
     self.shiftedNodes = nil;
+    for (ASDisplayNode *node in self.extendedNodes) TGExtraSetSettingsHeightExtension(node, 0);
+    self.extendedNodes = nil;
     self.hidden = YES;
 }
 - (void)layoutSubviews {
@@ -80,21 +86,27 @@ static id field(id node, NSString *name) {
     self.value.frame = CGRectMake(16, 10 + captionHeight, MAX(0, width - 32), valueHeight);
     self.caption.textAlignment = self.value.textAlignment = rtl ? NSTextAlignmentRight : NSTextAlignmentLeft;
     self.separator.frame = CGRectMake(rtl ? 0 : 16, 0, MAX(0, width - 16), 1.0 / UIScreen.mainScreen.scale);
+    self.bottomSeparator.frame = CGRectOffset(self.separator.frame, 0, self.bounds.size.height - self.separator.frame.size.height);
     self.corners.frame = self.bounds;
-    self.corners.layer.mask.frame = CGRectMake(0, self.bounds.size.height / 2, width, self.bounds.size.height / 2);
+    self.corners.layer.mask.frame = CGRectMake(0, self.cornersAtTop ? 0 : self.bounds.size.height / 2, width, self.bounds.size.height / 2);
 }
 @end
 
 static char profileInfoRowKey;
 
-static ASDisplayNode *lastLabeledRow(ASDisplayNode *node) {
-    ASDisplayNode *result = nil;
-    if ([NSStringFromClass(node.class) containsString:@"PeerInfoScreenLabeledValueItemNode"]) return node;
-    for (ASDisplayNode *child in node.subnodes) {
-        ASDisplayNode *candidate = lastLabeledRow(child);
-        if (candidate && (!result || CGRectGetMaxY(candidate.frame) > CGRectGetMaxY(result.frame))) result = candidate;
-    }
-    return result;
+static NSArray<ASDisplayNode *> *profileInfoItems(ASDisplayNode *section) {
+    // itemNodes contains the current items; subnodes can also contain rows fading out.
+    NSDictionary *items = field(section, @"itemNodes");
+    if ([items isKindOfClass:NSDictionary.class]) return items.allValues;
+    ASDisplayNode *container = field(section, @"itemContainerNode");
+    return (container ?: section).subnodes ?: @[];
+}
+
+static BOOL isProfileInformationItem(ASDisplayNode *node) {
+    NSString *name = NSStringFromClass(node.class);
+    return [name containsString:@"PeerInfoScreenLabeledValueItemNode"] ||
+        [name containsString:@"PeerInfoScreenBusinessHoursItemNode"] ||
+        [name containsString:@"PeerInfoScreenAddressItemNode"];
 }
 
 CGSize TGExtraProfileInfoContentSize(UIScrollView *scrollView, ASDisplayNode *scrollNode, CGSize hostSize) {
@@ -107,13 +119,27 @@ CGSize TGExtraProfileInfoContentSize(UIScrollView *scrollView, ASDisplayNode *sc
     if (!peerId || peerId.longLongValue == 0) return hostSize;
 
     ASDisplayNode *section = [TGExtraProfileBridge getInfoSectionFromNode:screen];
-    ASDisplayNode *reference = lastLabeledRow(section);
+    NSArray<ASDisplayNode *> *items = profileInfoItems(section);
+    ASDisplayNode *reference = nil;
+    for (ASDisplayNode *item in items) {
+        if (isProfileInformationItem(item) && (!reference || CGRectGetMaxY(item.frame) > CGRectGetMaxY(reference.frame))) reference = item;
+    }
+    CGFloat localY = reference ? CGRectGetMaxY(reference.frame) : 0;
+    ASDisplayNode *following = nil;
+    for (ASDisplayNode *item in items) {
+        if (item == reference || CGRectGetMinY(item.frame) < localY) continue;
+        if (!following || CGRectGetMinY(item.frame) < CGRectGetMinY(following.frame)) following = item;
+    }
     ASDisplayNode *pane = field(screen, @"paneContainerNode");
     ASDisplayNode *anchor = section ?: pane;
     if (!anchor) return hostSize;
     CGRect sectionFrame = anchor.frame;
-    BOOL joined = reference != nil && sectionFrame.size.height > 0;
+    BOOL joined = items.count > 0 && sectionFrame.size.height > 0;
     CGFloat insertionY = section ? CGRectGetMaxY(sectionFrame) : CGRectGetMinY(sectionFrame);
+    if (section && items.count > 0) {
+        ASDisplayNode *container = field(section, @"itemContainerNode") ?: section;
+        insertionY = [container.view convertPoint:CGPointMake(0, localY) toView:scrollView].y;
+    }
     if (!section) {
         NSNumber *paneOrigin = [TGExtraProfileBridge getPaneOriginFromNode:screen contentHeight:hostSize.height];
         if (paneOrigin) insertionY = paneOrigin.doubleValue + 18;
@@ -132,6 +158,7 @@ CGSize TGExtraProfileInfoContentSize(UIScrollView *scrollView, ASDisplayNode *sc
     UIColor *primary = field(list, @"itemPrimaryTextColor") ?: UIColor.labelColor;
     row.backgroundColor = field(list, @"itemBlocksBackgroundColor") ?: UIColor.secondarySystemGroupedBackgroundColor;
     row.separator.backgroundColor = field(list, @"itemBlocksSeparatorColor") ?: UIColor.separatorColor;
+    row.bottomSeparator.backgroundColor = row.separator.backgroundColor;
     row.caption.textColor = primary;
     row.value.textColor = primary;
     row.caption.font = [UIFontMetrics.defaultMetrics scaledFontForFont:[UIFont systemFontOfSize:14]];
@@ -142,19 +169,24 @@ CGSize TGExtraProfileInfoContentSize(UIScrollView *scrollView, ASDisplayNode *sc
     row.accessibilityValue = row.value.text;
     row.accessibilityHint = [TGExtraLocalization localizedStringForKey:@"PROFILE_ID_COPY_HINT"];
     CGFloat height = MAX(60, 18 + row.caption.font.lineHeight + row.value.font.lineHeight);
-    row.separator.hidden = !joined;
-    row.layer.cornerRadius = inset > 0 ? 11 : 0;
-    row.layer.maskedCorners = joined ? kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner : 15;
+    BOOL atTop = reference == nil;
+    BOOL atBottom = !following || [NSStringFromClass(following.class) containsString:@"PeerInfoScreenCommentItemNode"];
+    row.cornersAtTop = atTop;
+    row.separator.hidden = !joined || atTop;
+    row.bottomSeparator.hidden = atBottom;
+    row.layer.cornerRadius = (atBottom || atTop) && inset > 0 ? 11 : 0;
+    row.layer.maskedCorners = (atTop ? kCALayerMinXMinYCorner | kCALayerMaxXMinYCorner : 0) |
+        (atBottom ? kCALayerMinXMaxYCorner | kCALayerMaxXMaxYCorner : 0);
 
-    // Move the native bottom corner cutouts to the appended row, preserving custom themes.
-    ASDisplayNode *mask = field(reference, @"maskNode");
+    // Transfer only the outer corners when ID becomes the first or last row.
+    ASDisplayNode *mask = field(atTop ? following : reference, @"maskNode");
     CALayer *native = mask.layer;
-    if (joined && native.contents && CFGetTypeID((__bridge CFTypeRef)native.contents) == CGImageGetTypeID()) {
+    if ((atBottom || atTop) && joined && native.contents && CFGetTypeID((__bridge CFTypeRef)native.contents) == CGImageGetTypeID()) {
         row.nativeCorners = native;
         row.originalMask = native.mask;
         row.joinedMask = [CALayer layer];
         row.joinedMask.backgroundColor = UIColor.blackColor.CGColor;
-        row.joinedMask.frame = CGRectMake(0, 0, mask.frame.size.width, mask.frame.size.height / 2);
+        row.joinedMask.frame = CGRectMake(0, atTop ? mask.frame.size.height / 2 : 0, mask.frame.size.width, mask.frame.size.height / 2);
         native.mask = row.joinedMask;
         CALayer *corners = row.corners.layer;
         corners.contents = native.contents;
@@ -166,6 +198,25 @@ CGSize TGExtraProfileInfoContentSize(UIScrollView *scrollView, ASDisplayNode *sc
     }
     CGFloat offset = height + (joined ? 0 : 24);
     NSMutableArray *shifted = [NSMutableArray array];
+    if (following) {
+        for (ASDisplayNode *item in items) {
+            if (CGRectGetMinY(item.frame) < localY) continue;
+            TGExtraSetSettingsOffset(item, height);
+            [shifted addObject:item];
+        }
+        NSMutableArray *extended = [NSMutableArray arrayWithObject:section];
+        for (NSString *name in @[@"itemContainerNode", @"backgroundNode"]) {
+            ASDisplayNode *node = field(section, name);
+            if (node) [extended addObject:node];
+        }
+        for (ASDisplayNode *node in extended) TGExtraSetSettingsHeightExtension(node, height);
+        row.extendedNodes = extended;
+        ASDisplayNode *bottom = field(section, @"bottomSeparatorNode");
+        if (bottom) {
+            TGExtraSetSettingsOffset(bottom, height);
+            [shifted addObject:bottom];
+        }
+    }
     for (ASDisplayNode *node in scrollNode.subnodes) {
         if (node == section || (node != pane && CGRectGetMinY(node.frame) < insertionY)) continue;
         TGExtraSetSettingsOffset(node, offset);

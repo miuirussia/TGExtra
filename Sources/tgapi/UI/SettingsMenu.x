@@ -65,6 +65,7 @@ static ASDisplayNode *TGExtraSettingsAnchor(ASDisplayNode *scrollNode, ASDisplay
 // Keep the host's layout coordinates intact while reserving space for our row.
 @interface TGExtraSettingsOffset : NSObject
 @property (nonatomic) CGFloat offset;
+@property (nonatomic) CGFloat heightExtension;
 @property (nonatomic) BOOL accessingGeometry;
 @end
 @implementation TGExtraSettingsOffset
@@ -72,17 +73,28 @@ static ASDisplayNode *TGExtraSettingsAnchor(ASDisplayNode *scrollNode, ASDisplay
 
 static char TGExtraSettingsOffsetKey;
 
-void TGExtraSetSettingsOffset(ASDisplayNode *node, CGFloat offset) {
+static void TGExtraSetSettingsGeometry(ASDisplayNode *node, CGFloat offset, CGFloat height) {
     CGRect frame = node.frame;
     TGExtraSettingsOffset *state = objc_getAssociatedObject(node, &TGExtraSettingsOffsetKey);
-    if (!state && offset == 0.0) return;
+    if (!state && offset == 0.0 && height == 0.0) return;
     if (!state) {
         state = [TGExtraSettingsOffset new];
         objc_setAssociatedObject(node, &TGExtraSettingsOffsetKey, state, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     state.offset = offset;
+    state.heightExtension = height;
     node.frame = frame;
-    if (offset == 0.0) objc_setAssociatedObject(node, &TGExtraSettingsOffsetKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    if (offset == 0.0 && height == 0.0) objc_setAssociatedObject(node, &TGExtraSettingsOffsetKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+void TGExtraSetSettingsOffset(ASDisplayNode *node, CGFloat offset) {
+    TGExtraSettingsOffset *state = objc_getAssociatedObject(node, &TGExtraSettingsOffsetKey);
+    TGExtraSetSettingsGeometry(node, offset, state.heightExtension);
+}
+
+void TGExtraSetSettingsHeightExtension(ASDisplayNode *node, CGFloat height) {
+    TGExtraSettingsOffset *state = objc_getAssociatedObject(node, &TGExtraSettingsOffsetKey);
+    TGExtraSetSettingsGeometry(node, state.offset, height);
 }
 
 static char TGExtraSettingsButtonKey;
@@ -150,6 +162,7 @@ static NSArray *TGExtraSettingsAccessibilityElements(ASScrollView *scrollView, N
     CGRect frame = %orig;
     state.accessingGeometry = NO;
     frame.origin.y -= state.offset;
+    frame.size.height -= state.heightExtension;
     return frame;
 }
 - (void)setFrame:(CGRect)frame {
@@ -159,6 +172,7 @@ static NSArray *TGExtraSettingsAccessibilityElements(ASScrollView *scrollView, N
         return;
     }
     frame.origin.y += state.offset;
+    frame.size.height += state.heightExtension;
     state.accessingGeometry = YES;
     %orig(frame);
     state.accessingGeometry = NO;
@@ -169,7 +183,7 @@ static NSArray *TGExtraSettingsAccessibilityElements(ASScrollView *scrollView, N
     state.accessingGeometry = YES;
     CGPoint position = %orig;
     state.accessingGeometry = NO;
-    position.y -= state.offset;
+    position.y -= state.offset + state.heightExtension / 2;
     return position;
 }
 - (void)setPosition:(CGPoint)position {
@@ -178,7 +192,7 @@ static NSArray *TGExtraSettingsAccessibilityElements(ASScrollView *scrollView, N
         %orig(position);
         return;
     }
-    position.y += state.offset;
+    position.y += state.offset + state.heightExtension / 2;
     state.accessingGeometry = YES;
     %orig(position);
     state.accessingGeometry = NO;

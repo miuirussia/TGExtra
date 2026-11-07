@@ -55,13 +55,17 @@ final class ProfileBridge: NSObject {
 
     @objc static func getInfoSectionFromNode(_ node: Any) -> NSObject? {
         guard let sections = HostValueReader.storedField("regularSections", in: node) else { return nil }
+        var trailing: NSObject?
         for entry in Mirror(reflecting: sections).children {
             let pair = Array(Mirror(reflecting: entry.value).children)
-            guard pair.count == 2, let key = pair[0].value as? AnyHashable,
-                  String(describing: key.base) == "peerInfo" else { continue }
-            return pair[1].value as? NSObject
+            guard pair.count == 2, let key = pair[0].value as? AnyHashable else { continue }
+            switch String(describing: key.base) {
+            case "peerInfo": return pair[1].value as? NSObject
+            case "peerInfoTrailing": trailing = pair[1].value as? NSObject
+            default: break
+            }
         }
-        return nil
+        return trailing
     }
 
     @objc static func getTitleNodeFromNode(_ node: Any) -> NSObject? {

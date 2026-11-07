@@ -340,11 +340,97 @@ int main(void) { @autoreleasepool {
               @"Tapping copies the ID with confirmation");
     NSArray *profileElements = TGExtraProfileInfoAccessibilityElements(scroll, @[]);
     NSCAssert([profileElements containsObject:idRow] && idRow.accessibilityValue.length, @"Expose the ID and copy action to VoiceOver");
+    ASDisplayNode *items = node(@"ProfileItemContainerNode", CGRectMake(0, 0, 358, 208));
+    items.view.clipsToBounds = YES;
+    ASDisplayNode *infoBackground = node(@"ProfileBackgroundNode", CGRectMake(0, 0, 358, 208));
+    ASDisplayNode *infoBottom = node(@"ProfileBottomSeparatorNode", CGRectMake(0, 208, 358, 1));
+    ASDisplayNode *addContact = node(@"TelegramUI.PeerInfoScreenActionItemNode", CGRectMake(0, 120, 358, 44));
+    ASDisplayNode *blockUser = node(@"TelegramUI.PeerInfoScreenActionItemNode", CGRectMake(0, 164, 358, 44));
+    children(items, @[labeled, addContact, blockUser]);
+    children(info, @[infoBackground, items, infoBottom]);
+    info.fields = @{@"itemContainerNode": items, @"backgroundNode": infoBackground, @"bottomSeparatorNode": infoBottom};
+    info.frame = CGRectMake(16, 300, 358, 208);
+    standard.frame = CGRectMake(16, 532, 358, 200);
+    size = TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1188));
+    NSCAssert(idRow.frame.origin.y == 420 && addContact.view.frame.origin.y == 120 + idRow.frame.size.height &&
+              blockUser.view.frame.origin.y == 164 + idRow.frame.size.height, @"Insert ID before Add to Contacts and Block User inside the information section");
+    NSCAssert(info.frame.size.height == 208 && info.view.frame.size.height == 208 + idRow.frame.size.height &&
+              items.view.bounds.size.height == 208 + idRow.frame.size.height && infoBackground.view.frame.size.height == 208 + idRow.frame.size.height,
+              @"Extend native backgrounds and clipping containers while preserving host geometry");
+    NSCAssert(idRow.layer.cornerRadius == 0 && !idRow.bottomSeparator.hidden && infoMask.layer.mask == nil,
+              @"An ID between details and actions has separators and straight sides, preserving the native final corners");
+    info.frame = CGRectMake(16, 300, 358, 208);
+    addContact.frame = CGRectMake(0, 120, 358, 44);
+    size = TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1188));
+    NSCAssert(idRow.frame.origin.y == 420 && addContact.frame.origin.y == 120 &&
+              addContact.view.frame.origin.y == 120 + idRow.frame.size.height &&
+              info.view.frame.size.height == 208 + idRow.frame.size.height, @"Native relayout cannot accumulate action offsets or section height");
     showProfileInfo = NO;
     size = TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
-    NSCAssert(idRow.hidden && size.height == 1100 && standard.view.frame.origin.y == 444 && !infoMask.layer.mask,
+    NSCAssert(idRow.hidden && size.height == 1100 && standard.view.frame.origin.y == 532 && !infoMask.layer.mask &&
+              addContact.view.frame.origin.y == 120 && info.view.frame.size.height == 208 && items.view.bounds.size.height == 208,
               @"Editing restores host geometry and original corner masks");
     showProfileInfo = YES;
+    ASDisplayNode *hours = node(@"TelegramUI.PeerInfoScreenBusinessHoursItemNode", CGRectMake(0, 120, 358, 44));
+    ASDisplayNode *address = node(@"TelegramUI.PeerInfoScreenAddressItemNode", CGRectMake(0, 164, 358, 44));
+    ASDisplayNode *encryptionKey = node(@"TelegramUI.PeerInfoScreenDisclosureEncryptionKeyItemNode", CGRectMake(0, 208, 358, 44));
+    ASDisplayNode *footer = node(@"TelegramUI.PeerInfoScreenCommentItemNode", CGRectMake(0, 252, 358, 24));
+    // The native section keeps disappearing views until their fade completes.
+    blockUser.frame = CGRectMake(0, 90, 358, 44);
+    children(items, @[labeled, hours, address, encryptionKey, footer, blockUser]);
+    info.fields = @{@"itemContainerNode": items, @"backgroundNode": infoBackground, @"bottomSeparatorNode": infoBottom,
+                    @"itemNodes": @{@1: labeled, @2: hours, @3: address, @4: encryptionKey, @5: footer}};
+    info.frame = CGRectMake(16, 300, 358, 276);
+    items.frame = CGRectMake(0, 0, 358, 276);
+    infoBackground.frame = CGRectMake(0, 0, 358, 252);
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1256));
+    NSCAssert(idRow.frame.origin.y == 508 && encryptionKey.view.frame.origin.y == 208 + idRow.frame.size.height &&
+              footer.view.frame.origin.y == 252 + idRow.frame.size.height && blockUser.view.frame.origin.y == 90,
+              @"Place ID after business details and before a secret-chat key, without relying on contact buttons or fading views");
+    ASImageNode *addressMask = [ASImageNode new];
+    addressMask.frame = CGRectMake(0, 0, 358, 44);
+    addressMask.testImage = cornerImage(NO, YES, UIColor.whiteColor);
+    address.fields = @{@"maskNode": addressMask};
+    info.fields = @{@"itemContainerNode": items, @"backgroundNode": infoBackground, @"bottomSeparatorNode": infoBottom,
+                    @"itemNodes": @{@1: labeled, @2: hours, @3: address, @5: footer}};
+    footer.frame = CGRectMake(0, 208, 358, 24);
+    info.frame = CGRectMake(16, 300, 358, 232);
+    infoBackground.frame = CGRectMake(0, 0, 358, 208);
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1212));
+    NSCAssert(idRow.frame.origin.y == 508 && idRow.bottomSeparator.hidden && addressMask.layer.mask != nil &&
+              footer.view.frame.origin.y == 208 + idRow.frame.size.height,
+              @"A bot footer stays after ID even when no action buttons are present, with corners at the end of the information card");
+    info.fields = @{@"itemContainerNode": items, @"backgroundNode": infoBackground, @"bottomSeparatorNode": infoBottom,
+                    @"itemNodes": @{@1: labeled, @2: hours, @3: address}};
+    info.frame = CGRectMake(16, 300, 358, 208);
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1188));
+    NSCAssert(idRow.frame.origin.y == 508 && !idRow.hidden && idRow.bottomSeparator.hidden,
+              @"Contacts, own profiles, groups and channels with information but no buttons still show ID after their details");
+    showProfileInfo = NO;
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert(addressMask.layer.mask == nil, @"Restore corners when optional profile rows change");
+    showProfileInfo = YES;
+    info.fields = @{@"itemContainerNode": items, @"backgroundNode": infoBackground, @"bottomSeparatorNode": infoBottom};
+    children(items, @[addContact, blockUser]);
+    addContact.frame = CGRectMake(0, 0, 358, 44);
+    blockUser.frame = CGRectMake(0, 44, 358, 44);
+    items.frame = infoBackground.frame = CGRectMake(0, 0, 358, 88);
+    info.frame = CGRectMake(16, 300, 358, 88);
+    ASImageNode *actionMask = [ASImageNode new];
+    actionMask.frame = CGRectMake(0, 0, 358, 44);
+    actionMask.testImage = cornerImage(YES, NO, UIColor.whiteColor);
+    addContact.fields = @{@"maskNode": actionMask};
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    [idRow layoutIfNeeded];
+    NSCAssert(idRow.frame.origin.y == 300 && idRow.cornersAtTop && idRow.separator.hidden &&
+              actionMask.layer.mask != nil && idRow.corners.layer.contents != nil &&
+              addContact.view.frame.origin.y == idRow.frame.size.height,
+              @"Profiles containing only action buttons get ID first with the native top corners");
+    showProfileInfo = NO;
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert(actionMask.layer.mask == nil && items.view.frame.size.height == 88, @"Restore first-row masks and clipping after insertion");
+    showProfileInfo = YES;
+    standard.frame = CGRectMake(16, 444, 358, 200);
     profileScreen.fields = @{@"peerId": @43, @"paneContainerNode": standard};
     UIView *tabs = [[UIView alloc] initWithFrame:CGRectMake(0, 444, 390, 200)];
     [scroll addSubview:tabs];
