@@ -227,3 +227,8 @@
 "LOCATION_MAP" = "地図";
 "LOCATION_SATELLITE" = "航空写真";
 "LOCATION_HYBRID" = "ハイブリッド";
+
+"PROFILE_ID" = "プロフィールID";
+"PROFILE_MUTUAL_CONTACT" = "相互連絡先";
+"PROFILE_ID_COPY_HINT" = "タップしてプロフィールIDをコピー";
+"PROFILE_ID_COPIED" = "プロフィールIDをコピーしました";

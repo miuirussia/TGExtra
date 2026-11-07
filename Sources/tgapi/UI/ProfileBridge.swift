@@ -4,6 +4,66 @@ import Foundation
 final class ProfileBridge: NSObject {
     @objc static weak var sharedContext: AnyObject?
 
+    @objc static func getStoredField(_ field: String, fromNode node: Any) -> Any? {
+        HostValueReader.storedField(field, in: node).map(HostValueReader.unwrapOptional)
+    }
+
+    @objc static func isMutualContactFromNode(_ node: Any) -> Bool {
+        guard let peer = HostValueReader.storedField("peer", in: node) else { return false }
+        return mutualContact(in: peer, depth: 0)
+    }
+
+    private static func mutualContact(in wrapped: Any, depth: Int) -> Bool {
+        guard depth < 4 else { return false }
+        let value = HostValueReader.unwrapOptional(wrapped)
+        if let id = HostValueReader.storedField("id", in: value),
+           let ns = HostValueReader.storedField("namespace", in: id),
+           HostValueReader.rawNumber(ns) == 0,
+           let flags = HostValueReader.storedField("flags", in: value),
+           let raw = HostValueReader.rawNumber(flags) {
+            // TelegramCore.UserInfoFlags.mutualContact (not the wire User flags).
+            return raw & (1 << 7) != 0
+        }
+        let mirror = Mirror(reflecting: value)
+        guard mirror.displayStyle == .enum else { return false }
+        return mirror.children.contains { mutualContact(in: $0.value, depth: depth + 1) }
+    }
+
+    @objc static func shouldShowProfileInfoFromNode(_ node: Any) -> Bool {
+        if HostValueReader.storedField("isSettings", in: node) as? Bool == true { return false }
+        if HostValueReader.storedField("isMediaOnly", in: node) as? Bool == true { return false }
+        if let state = HostValueReader.storedField("state", in: node),
+           HostValueReader.storedField("isEditing", in: state) as? Bool == true { return false }
+        return true
+    }
+
+    @objc static func getPaneOriginFromNode(_ node: Any, contentHeight height: Double) -> NSNumber? {
+        // The host assigns contentSize before updating the media pane's frame.
+        guard let validLayout = HostValueReader.storedField("validLayout", in: node),
+              let layout = HostValueReader.storedField(".0", in: validLayout),
+              let navigationHeight = HostValueReader.storedField(".1", in: validLayout) as? CGFloat,
+              let size = HostValueReader.storedField("size", in: layout) as? CGSize,
+              let data = HostValueReader.storedField("data", in: node),
+              let panes = HostValueReader.storedField("availablePanes", in: data) else { return nil }
+        if !Mirror(reflecting: panes).children.isEmpty {
+            return NSNumber(value: height - Double(size.height - navigationHeight))
+        }
+        guard let insets = HostValueReader.storedField("intrinsicInsets", in: layout),
+              let bottom = HostValueReader.storedField("bottom", in: insets) as? CGFloat else { return nil }
+        return NSNumber(value: height - Double(bottom) - 18)
+    }
+
+    @objc static func getInfoSectionFromNode(_ node: Any) -> NSObject? {
+        guard let sections = HostValueReader.storedField("regularSections", in: node) else { return nil }
+        for entry in Mirror(reflecting: sections).children {
+            let pair = Array(Mirror(reflecting: entry.value).children)
+            guard pair.count == 2, let key = pair[0].value as? AnyHashable,
+                  String(describing: key.base) == "peerInfo" else { continue }
+            return pair[1].value as? NSObject
+        }
+        return nil
+    }
+
     @objc static func getTitleNodeFromNode(_ node: Any) -> NSObject? {
         guard let title = HostValueReader.storedField("titleNode", in: node) else { return nil }
         return HostValueReader.unwrapOptional(title) as? NSObject

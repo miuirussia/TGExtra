@@ -28,6 +28,8 @@ private struct ProfilePeer {
     let firstName: String? = "Анна"
     let lastName: String? = "Иванова"
     let username: String? = "anna"
+    struct Flags { var rawValue: Int32 = 0 }
+    var flags = Flags()
 }
 private enum ProfileEnginePeer { case user(ProfilePeer), group(ProfilePeer), channel(ProfilePeer) }
 private class PeerHeader {
@@ -38,6 +40,20 @@ private final class PeerHeaderSubclass: PeerHeader {}
 private final class KVCProfileNode: NSObject {
     @objc let peerId: NSNumber = 7332
     @objc let context = NSObject()
+}
+
+private enum ProfileSection { case peerInfo, peerSettings }
+private struct ProfileInfoScreen {
+    struct State { var isEditing = false }
+    struct Insets { var bottom: CGFloat = 34 }
+    struct Layout { var size = CGSize(width: 390, height: 844); var intrinsicInsets = Insets() }
+    struct Data { var availablePanes: [Int] = [] }
+    var state = State()
+    var isSettings = false
+    var isMediaOnly = false
+    var validLayout: (Layout, CGFloat)? = (Layout(), 88)
+    var data: Data? = Data()
+    var regularSections: [AnyHashable: NSObject] = [:]
 }
 
 private func testProfileBridge() {
@@ -60,6 +76,35 @@ private func testProfileBridge() {
     unknownHeader.peer = .user(unknownPeer)
     check(ProfileBridge.getPeerIdFromNode(unknownHeader) == nil, "Unknown peer namespaces cannot become user exceptions")
     let header = PeerHeaderSubclass()
+    check(!ProfileBridge.isMutualContactFromNode(header), "Ordinary peers have no mutual-contact icon")
+    var mutualPeer = ProfilePeer()
+    mutualPeer.flags.rawValue = 1 << 7
+    header.peer = .user(mutualPeer)
+    check(ProfileBridge.isMutualContactFromNode(header), "Read mutual contact from the displayed peer's native flags")
+    mutualPeer.id.namespace = 2
+    header.peer = .channel(mutualPeer)
+    check(!ProfileBridge.isMutualContactFromNode(header), "Channel flags cannot be interpreted as user-contact flags")
+    header.peer = nil
+    check(!ProfileBridge.isMutualContactFromNode(header), "Missing peers remove a stale mutual icon")
+    header.peer = .user(ProfilePeer())
+    let infoSection = NSObject()
+    var screen = ProfileInfoScreen(regularSections: [ProfileSection.peerInfo: infoSection,
+                                                     ProfileSection.peerSettings: NSObject()])
+    check(ProfileBridge.getInfoSectionFromNode(screen) === infoSection, "Find the native information section by its enum key")
+    check(ProfileBridge.shouldShowProfileInfoFromNode(screen), "Show the ID on a regular profile")
+    check(ProfileBridge.getPaneOriginFromNode(screen, contentHeight: 500) == 448,
+          "Derive the empty media pane's new origin before the host assigns its frame")
+    screen.data = .init(availablePanes: [1])
+    check(ProfileBridge.getPaneOriginFromNode(screen, contentHeight: 1200) == 444,
+          "Derive the media pane origin from the current layout, not the previous frame")
+    screen.isMediaOnly = true
+    check(!ProfileBridge.shouldShowProfileInfoFromNode(screen), "Do not insert profile details in the Saved Messages media screen")
+    screen.isMediaOnly = false
+    screen.state.isEditing = true
+    check(!ProfileBridge.shouldShowProfileInfoFromNode(screen), "Hide the ID while editing a profile")
+    screen.state.isEditing = false
+    screen.isSettings = true
+    check(!ProfileBridge.shouldShowProfileInfoFromNode(screen), "Do not insert profile details in settings")
     check(ProfileBridge.getTitleNodeFromNode(header) === header.titleNode, "Find the profile title through inherited Swift fields")
     check(ProfileBridge.getTitleNodeFromNode(NSObject()) == nil, "An unknown header cannot anchor a badge to unrelated text")
     check(ProfileBridge.getPeerIdFromNode(header) == 7331, "Read peer ids through inherited fields, optionals and enum payloads")

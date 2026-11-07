@@ -227,3 +227,8 @@
 "LOCATION_MAP" = "地圖";
 "LOCATION_SATELLITE" = "衛星";
 "LOCATION_HYBRID" = "混合";
+
+"PROFILE_ID" = "個人資料 ID";
+"PROFILE_MUTUAL_CONTACT" = "雙向聯絡人";
+"PROFILE_ID_COPY_HINT" = "點一下以複製個人資料 ID";
+"PROFILE_ID_COPIED" = "已複製個人資料 ID";

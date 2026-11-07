@@ -227,3 +227,8 @@
 "LOCATION_MAP" = "Carte";
 "LOCATION_SATELLITE" = "Satellite";
 "LOCATION_HYBRID" = "Mixte";
+
+"PROFILE_ID" = "ID du profil";
+"PROFILE_MUTUAL_CONTACT" = "Contact mutuel";
+"PROFILE_ID_COPY_HINT" = "Touchez pour copier l’ID du profil";
+"PROFILE_ID_COPIED" = "ID du profil copié";

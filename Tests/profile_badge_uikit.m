@@ -1,5 +1,6 @@
 #import "HostDisplayNode.h"
 #import "ProfileBridge.h"
+#import "TGExtraLocalization.h"
 #include <math.h>
 
 @interface _ASDisplayView : UIView
@@ -39,6 +40,7 @@
 @interface PeerInfoHeaderNode : ASDisplayNode
 @property ASDisplayNode *titleNode;
 @property NSNumber *peer;
+@property BOOL mutual;
 @end
 @implementation PeerInfoHeaderNode @end
 
@@ -49,10 +51,21 @@ void TGExtraUpdateGhostExceptionButton(ASDisplayNode *node, long long peerId) { 
 + (void)setSharedContext:(id)context {}
 + (NSNumber *)getPeerIdFromNode:(PeerInfoHeaderNode *)node { return node.peer; }
 + (id)getTitleNodeFromNode:(PeerInfoHeaderNode *)node { return node.titleNode; }
++ (BOOL)isMutualContactFromNode:(PeerInfoHeaderNode *)node { return node.mutual; }
++ (BOOL)shouldShowProfileInfoFromNode:(id)node { return YES; }
++ (NSNumber *)getPaneOriginFromNode:(id)node contentHeight:(double)height { return nil; }
++ (id)getInfoSectionFromNode:(id)node { return nil; }
++ (id)getStoredField:(NSString *)field fromNode:(id)node { return nil; }
 + (NSNumber *)getOwnUserIdFromNode:(id)node { return @42; }
 + (NSNumber *)getCurrentUserId { return @42; }
 + (NSDictionary *)getPeerDisplayInfoFromNode:(id)node { return @{}; }
 + (NSString *)debugPeerCandidates:(id)node { return @""; }
+@end
+
+@implementation TGExtraLocalization
+@dynamic localization, languageCode;
++ (instancetype)shared { return nil; }
++ (NSString *)localizedStringForKey:(NSString *)key { return key; }
 @end
 
 static void addNode(ASDisplayNode *parent, ASDisplayNode *child, CGRect frame) {
@@ -149,6 +162,29 @@ int main(void) {
         header.peer = @43;
         [header.view layoutSubviews];
         NSCAssert(![header.view viewWithTag:9988], @"Remove the badge when the header is reused for another peer");
+        header.mutual = YES;
+        [header.view layoutSubviews];
+        UIImageView *mutual = (UIImageView *)[header.view viewWithTag:9989];
+        NSCAssert(mutual && !mutual.hidden && mutual.isAccessibilityElement && mutual.accessibilityLabel.length,
+                  @"Mutual contacts receive an accessible icon");
+        CGRect mutualFrame = [mutual convertRect:mutual.bounds toView:header.view];
+        NSCAssert(CGRectGetMinX(mutualFrame) > CGRectGetMaxX([status convertRect:status.bounds toView:header.view]),
+                  @"The mutual icon clears native status icons");
+        header.peer = @5576711589;
+        [header.view layoutSubviews];
+        badge = (UILabel *)[header.view viewWithTag:9988];
+        NSCAssert(!mutual.hidden && !badge.hidden && !CGRectIntersectsRect(badgeFrame(badge, header),
+                  [mutual convertRect:mutual.bounds toView:header.view]), @"Owner and mutual badges coexist");
+        CGRect stableFrame = mutual.frame;
+        [header.view layoutSubviews];
+        NSCAssert(CGRectEqualToRect(stableFrame, mutual.frame), @"Repeated layouts do not move accessories");
+        header.titleNode.view.hidden = YES;
+        [header.view layoutSubviews];
+        NSCAssert(mutual.hidden, @"A hidden title also hides the mutual icon");
+        header.titleNode.view.hidden = NO;
+        header.mutual = NO;
+        [header.view layoutSubviews];
+        NSCAssert(![header.view viewWithTag:9989], @"Contact changes remove a stale mutual icon");
         puts("PASS profile badge: title selection, native icons, resizing, controls, scroll, expansion and reuse");
     }
     return 0;

@@ -5,6 +5,7 @@
 #import <MapKit/MapKit.h>
 #import <roothide.h>
 #import "../Constants.h"
+#import "TGExtraLocalization.h"
 
 @interface TGExtra : UIViewController <UITableViewDataSource, UITableViewDelegate>
 @property(nonatomic, strong) id profileSourceNode;
@@ -13,13 +14,6 @@
 @interface TGLocalization : NSObject
 - (NSString *)get:(NSString *)queryString;
 - (id)initWithVersion:(int)a code:(id)b dict:(id)c isActive:(BOOL)d;
-@end
-
-@interface TGExtraLocalization  : NSObject
-@property (nonatomic, strong ) TGLocalization *localization;
-@property (nonatomic, copy, readonly) NSString *languageCode;
-+ (instancetype)shared;
-+ (NSString *)localizedStringForKey:(NSString *)key;
 @end
 
 NSString *TGExtraBundlePath(void);

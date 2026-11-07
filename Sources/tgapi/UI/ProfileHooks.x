@@ -1,5 +1,6 @@
 #import "HostDisplayNode.h"
 #import "ProfileBridge.h"
+#import "TGExtraLocalization.h"
 #import "../Logger/Logger.h"
 
 @interface NSObject (TGExtraProfilePeer)
@@ -95,7 +96,7 @@ static void updateProfileBadge(ASDisplayNode *headerNode, long long peerId) {
         CGRect textFrame = [textNode.view convertRect:textNode.view.bounds toView:headerView];
         // Telegram puts premium, verification and emoji status views outside the text bounds.
         for (UIView *icon in textNode.view.subviews) {
-            if (icon != badge && !icon.hidden && icon.alpha >= 0.01 && !CGRectIsEmpty(icon.bounds)) {
+            if (icon != badge && icon.tag != 9989 && !icon.hidden && icon.alpha >= 0.01 && !CGRectIsEmpty(icon.bounds)) {
                 textFrame = CGRectUnion(textFrame, [icon convertRect:icon.bounds toView:headerView]);
             }
         }
@@ -117,6 +118,47 @@ static void updateProfileBadge(ASDisplayNode *headerNode, long long peerId) {
         }
         badge.hidden = YES;
     } @catch (NSException *e) {}
+}
+
+static void updateMutualContactIcon(ASDisplayNode *headerNode) {
+    UIView *headerView = headerNode.view;
+    UIImageView *icon = (UIImageView *)[headerView viewWithTag:9989];
+    icon.hidden = YES;
+    if (![TGExtraProfileBridge isMutualContactFromNode:headerNode]) {
+        [icon removeFromSuperview];
+        return;
+    }
+    ASDisplayNode *title = visibleProfileTitleNode([TGExtraProfileBridge getTitleNodeFromNode:headerNode], headerView);
+    if (!title) return;
+    if (!icon) {
+        UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];
+        icon = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"person.2.fill" withConfiguration:configuration]];
+        icon.tag = 9989;
+        icon.tintColor = UIColor.systemBlueColor;
+        icon.contentMode = UIViewContentModeScaleAspectFit;
+        icon.isAccessibilityElement = YES;
+        icon.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"PROFILE_MUTUAL_CONTACT"];
+    }
+    if (icon.superview != title.view) [title.view addSubview:icon];
+    CGRect occupied = [title.view convertRect:title.view.bounds toView:headerView];
+    for (UIView *child in title.view.subviews) {
+        if (child != icon && !child.hidden && child.alpha >= 0.01 && !CGRectIsEmpty(child.bounds)) {
+            occupied = CGRectUnion(occupied, [child convertRect:child.bounds toView:headerView]);
+        }
+    }
+    CGRect available = CGRectInset(UIEdgeInsetsInsetRect(headerView.bounds, headerView.safeAreaInsets), 8, 1);
+    CGSize size = [title.view convertRect:CGRectMake(0, 0, 20, 20) toView:headerView].size;
+    CGFloat y = CGRectGetMidY(occupied) - size.height / 2;
+    CGRect candidates[] = {
+        CGRectMake(CGRectGetMaxX(occupied) + 6, y, size.width, size.height),
+        CGRectMake(CGRectGetMinX(occupied) - 6 - size.width, y, size.width, size.height)
+    };
+    for (NSUInteger i = 0; i < 2; i++) {
+        if (!CGRectContainsRect(available, candidates[i]) || profileBadgeIntersectsControl(headerView, headerView, candidates[i])) continue;
+        icon.frame = [headerView convertRect:candidates[i] toView:title.view];
+        icon.hidden = NO;
+        break;
+    }
 }
 
 static void tgextraDiagProfileNode(NSString *cls, long long peerId, ASDisplayNode *node) {
@@ -171,6 +213,7 @@ static void tgextraDiagProfileNode(NSString *cls, long long peerId, ASDisplayNod
             peerId = [[TGExtraProfileBridge getOwnUserIdFromNode:node] longLongValue];
         }
         updateProfileBadge(node, peerId);
+        updateMutualContactIcon(node);
 
         tgextraDiagProfileNode(cls, peerId, node);
 

@@ -226,3 +226,8 @@
 "LOCATION_MAP" = "خريطة";
 "LOCATION_SATELLITE" = "قمر صناعي";
 "LOCATION_HYBRID" = "مختلط";
+
+"PROFILE_ID" = "معرّف الملف الشخصي";
+"PROFILE_MUTUAL_CONTACT" = "جهة اتصال متبادلة";
+"PROFILE_ID_COPY_HINT" = "اضغط لنسخ معرّف الملف الشخصي";
+"PROFILE_ID_COPIED" = "تم نسخ معرّف الملف الشخصي";

@@ -230,3 +230,8 @@
 "LOCATION_MAP" = "Карта";
 "LOCATION_SATELLITE" = "Спутник";
 "LOCATION_HYBRID" = "Гибрид";
+
+"PROFILE_ID" = "ID профиля";
+"PROFILE_MUTUAL_CONTACT" = "Взаимный контакт";
+"PROFILE_ID_COPY_HINT" = "Нажмите, чтобы скопировать ID профиля";
+"PROFILE_ID_COPIED" = "ID профиля скопирован";

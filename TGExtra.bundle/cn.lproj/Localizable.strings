@@ -229,3 +229,8 @@
 "LOCATION_MAP" = "地图";
 "LOCATION_SATELLITE" = "卫星";
 "LOCATION_HYBRID" = "混合";
+
+"PROFILE_ID" = "个人资料 ID";
+"PROFILE_MUTUAL_CONTACT" = "双向联系人";
+"PROFILE_ID_COPY_HINT" = "轻点以复制个人资料 ID";
+"PROFILE_ID_COPIED" = "已复制个人资料 ID";

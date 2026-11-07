@@ -1,5 +1,6 @@
 #import "HostDisplayNode.h"
 #import "SettingsMenuButton.h"
+#import "ProfileInfoRow.h"
 #import <objc/runtime.h>
 
 BOOL TGExtraIsTelegramSupportLabel(NSString *label);
@@ -71,7 +72,7 @@ static ASDisplayNode *TGExtraSettingsAnchor(ASDisplayNode *scrollNode, ASDisplay
 
 static char TGExtraSettingsOffsetKey;
 
-static void TGExtraSetSettingsOffset(ASDisplayNode *node, CGFloat offset) {
+void TGExtraSetSettingsOffset(ASDisplayNode *node, CGFloat offset) {
     CGRect frame = node.frame;
     TGExtraSettingsOffset *state = objc_getAssociatedObject(node, &TGExtraSettingsOffsetKey);
     if (!state && offset == 0.0) return;
@@ -186,11 +187,12 @@ static NSArray *TGExtraSettingsAccessibilityElements(ASScrollView *scrollView, N
 
 %hook ASScrollView
 - (void)setContentSize:(CGSize)size {
-    %orig(TGExtraSettingsContentSize(self, size));
+    CGSize settingsSize = TGExtraSettingsContentSize(self, size);
+    %orig(TGExtraProfileInfoContentSize(self, [self scrollNode], settingsSize));
 }
 - (NSArray *)accessibilityElements {
     NSArray *elements = %orig;
-    return TGExtraSettingsAccessibilityElements(self, elements);
+    return TGExtraProfileInfoAccessibilityElements(self, TGExtraSettingsAccessibilityElements(self, elements));
 }
 %end
 %end

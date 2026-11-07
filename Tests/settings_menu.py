@@ -30,6 +30,11 @@ host_header = (root / 'Sources/tgapi/UI/HostDisplayNode.h').read_text().split('@
 button_header = (root / 'Sources/tgapi/UI/SettingsMenuButton.h').read_text()
 helpers = host_header + button_header + button + source[:source.index('%group TGExtraSettingsMenu')]
 helpers = helpers.replace('#import "HostDisplayNode.h"', '').replace('#import "SettingsMenuButton.h"', '')
+profile = (root / 'Sources/tgapi/UI/ProfileInfoRow.m').read_text()
+helpers = helpers.replace('#import "ProfileInfoRow.h"', '')
+profile = profile.replace('#import "ProfileInfoRow.h"', '')
+profile = profile.replace('#import "ProfileBridge.h"', (root / 'Sources/tgapi/UI/ProfileBridge.h').read_text())
+profile = profile.replace('#import "TGExtraLocalization.h"', (root / 'Sources/tgapi/UI/TGExtraLocalization.h').read_text())
 geometry = source[source.index('%hook ASDisplayNode'):source.index('%hook ASScrollView')]
 geometry = geometry.replace('%hook ASDisplayNode', '@interface LayoutNode : ASDisplayNode @end\n@implementation LayoutNode')
 geometry = geometry.replace('%end', '@end')
@@ -44,6 +49,7 @@ mocks = r'''
 @property (nonatomic, weak) ASDisplayNode *parentNode;
 @property (nonatomic, copy) NSArray<ASDisplayNode *> *children;
 @property (nonatomic, copy) NSString *label;
+@property (nonatomic, copy) NSDictionary *fields;
 @end
 @implementation ASDisplayNode
 - (UIView *)view { if (!_backingView) _backingView = [UIView new]; return _backingView; }
@@ -107,6 +113,32 @@ mocks = r'''
 @implementation ASScrollView
 - (ASDisplayNode *)scrollNode { return self.node; }
 @end
+'''
+
+profile_mocks = r'''
+static BOOL showProfileInfo = YES;
+@implementation TGExtraProfileBridge
++ (id)sharedContext { return nil; }
++ (void)setSharedContext:(id)context {}
++ (NSNumber *)getPeerIdFromNode:(ASDisplayNode *)node { return node.fields[@"peerId"]; }
++ (id)getTitleNodeFromNode:(id)node { return nil; }
++ (BOOL)isMutualContactFromNode:(id)node { return NO; }
++ (BOOL)shouldShowProfileInfoFromNode:(id)node { return showProfileInfo; }
++ (NSNumber *)getPaneOriginFromNode:(ASDisplayNode *)node contentHeight:(double)height { return node.fields[@"paneOrigin"]; }
++ (id)getInfoSectionFromNode:(ASDisplayNode *)node { return node.fields[@"infoSection"]; }
++ (id)getStoredField:(NSString *)field fromNode:(ASDisplayNode *)node { return node.fields[field]; }
++ (NSNumber *)getOwnUserIdFromNode:(id)node { return @42; }
++ (NSNumber *)getCurrentUserId { return @42; }
++ (NSDictionary *)getPeerDisplayInfoFromNode:(id)node { return @{}; }
++ (NSString *)debugPeerCandidates:(id)node { return @""; }
+@end
+@implementation TGExtraLocalization
+@dynamic localization, languageCode;
++ (instancetype)shared { return nil; }
++ (NSString *)localizedStringForKey:(NSString *)key { return key; }
+@end
+static NSString *lastToast;
+void TGExtraShowToast(NSString *text) { lastToast = text; }
 '''
 
 tests = r'''
@@ -280,13 +312,72 @@ int main(void) { @autoreleasepool {
     root.parentNode = nil;
     size = TGExtraSettingsContentSize(scroll, CGSizeMake(390, 1100));
     NSCAssert(button.hidden && size.height == 1100 && support.view.frame.origin.y == 900, @"Unrelated screens restore layout and have no tweak entry");
-    puts("PASS UIKit settings placement, Swift image layers, joined corners in both themes, repeated layout, resizing, edit mode, VoiceOver and opening");
+    ASDisplayNode *profileScreen = node(@"TelegramUI.PeerInfoScreenNode", CGRectMake(0, 0, 390, 1100));
+    children(profileScreen, @[root]);
+    ASDisplayNode *info = node(@"TelegramUI.PeerInfoScreenItemSectionContainerNode", CGRectMake(16, 300, 358, 120));
+    ASDisplayNode *labeled = node(@"TelegramUI.PeerInfoScreenLabeledValueItemNode", CGRectMake(0, 60, 358, 60));
+    ASImageNode *infoMask = [ASImageNode new];
+    infoMask.frame = labeled.frame;
+    infoMask.testImage = cornerImage(NO, YES, UIColor.whiteColor);
+    labeled.fields = @{@"maskNode": infoMask};
+    children(info, @[labeled]);
+    children(root, @[info, standard]);
+    standard.frame = CGRectMake(16, 444, 358, 200);
+    profileScreen.fields = @{@"peerId": @7331000001, @"infoSection": info};
+    size = TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    TGExtraProfileInfoRow *idRow = objc_getAssociatedObject(scroll, &profileInfoRowKey);
+    [idRow layoutIfNeeded];
+    NSCAssert(size.height >= 1160 && idRow.frame.origin.y == 420 && [idRow.value.text isEqualToString:@"7331000001"],
+              @"Append the full 64-bit profile ID to the information group");
+    NSCAssert(standard.frame.origin.y == 444 && standard.view.frame.origin.y == 444 + idRow.frame.size.height,
+              @"Reserve room without changing the host's layout coordinates");
+    NSCAssert(infoMask.layer.mask != nil && idRow.corners.layer.contents != nil, @"Move native bottom corners to the appended row");
+    CGSize repeated = TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert(CGSizeEqualToSize(size, repeated), @"Repeated layout cannot accumulate inserted height");
+    NSCAssert([[idRow actionsForTarget:idRow forControlEvent:UIControlEventTouchUpInside] containsObject:@"copyId"], @"Wire the copy action to taps");
+    [idRow copyId];
+    NSCAssert([UIPasteboard.generalPasteboard.string isEqualToString:@"7331000001"] && lastToast.length,
+              @"Tapping copies the ID with confirmation");
+    NSArray *profileElements = TGExtraProfileInfoAccessibilityElements(scroll, @[]);
+    NSCAssert([profileElements containsObject:idRow] && idRow.accessibilityValue.length, @"Expose the ID and copy action to VoiceOver");
+    showProfileInfo = NO;
+    size = TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert(idRow.hidden && size.height == 1100 && standard.view.frame.origin.y == 444 && !infoMask.layer.mask,
+              @"Editing restores host geometry and original corner masks");
+    showProfileInfo = YES;
+    profileScreen.fields = @{@"peerId": @43, @"paneContainerNode": standard};
+    UIView *tabs = [[UIView alloc] initWithFrame:CGRectMake(0, 444, 390, 200)];
+    [scroll addSubview:tabs];
+    UIView *tabButton = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 44, 44)];
+    [tabs addSubview:tabButton];
+    standard.fields = @{@"headerContainer": tabs};
+    standard.view.alpha = 0;
+    size = TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert(!idRow.hidden && idRow.alpha == 1 && [idRow.value.text isEqualToString:@"43"] && idRow.frame.origin.y == 444,
+              @"A profile without public information or media still gets a visible ID row");
+    tabs.frame = CGRectMake(0, 444, 390, 200);
+    NSCAssert(CGRectGetMinY([tabButton convertRect:tabButton.bounds toView:tabs.superview]) == 444 + idRow.frame.size.height + 24,
+              @"Media tabs and their hit targets move together, including after the host updates their frame");
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert(tabs.bounds.origin.y == -idRow.frame.size.height - 24, @"Tab offsets cannot accumulate");
+    profileScreen.fields = @{@"peerId": @43, @"paneContainerNode": standard, @"paneOrigin": @500};
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert(idRow.frame.origin.y == 518, @"Use the new native layout when the old pane frame is stale");
+    standard.view.alpha = 1;
+    profileScreen.fields = @{@"peerId": @(-1000000007331), @"infoSection": info};
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert([idRow.value.text isEqualToString:@"-1000000007331"], @"Keep group/channel IDs distinct from user IDs");
+    profileScreen.fields = @{};
+    TGExtraProfileInfoContentSize(scroll, root, CGSizeMake(390, 1100));
+    NSCAssert(idRow.hidden && standard.view.frame.origin.y == 444 && tabs.bounds.origin.y == 0,
+              @"Reused screens restore media tabs and cannot retain another peer's ID");
+    puts("PASS UIKit settings and profile ID placement, native corners, repeated layout, editing, VoiceOver and copying");
 } }
 '''
 
 with tempfile.TemporaryDirectory(prefix='tgextra-settings-menu-') as tmp:
     harness = Path(tmp) / 'menu.m'
-    harness.write_text(helpers + mocks + geometry + tests)
+    harness.write_text(helpers + mocks + geometry + profile + profile_mocks + tests)
     binary = Path(tmp) / 'menu'
     subprocess.run([
         'xcrun', 'clang', '-target', f'{platform.machine()}-apple-ios15.0-macabi',

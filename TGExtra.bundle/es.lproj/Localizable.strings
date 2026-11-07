@@ -230,3 +230,8 @@
 "LOCATION_MAP" = "Mapa";
 "LOCATION_SATELLITE" = "Satélite";
 "LOCATION_HYBRID" = "Híbrido";
+
+"PROFILE_ID" = "ID del perfil";
+"PROFILE_MUTUAL_CONTACT" = "Contacto mutuo";
+"PROFILE_ID_COPY_HINT" = "Toca para copiar el ID del perfil";
+"PROFILE_ID_COPIED" = "ID del perfil copiado";

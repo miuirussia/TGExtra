@@ -172,6 +172,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"خريطة",
             @"LOCATION_SATELLITE": @"قمر صناعي",
             @"LOCATION_HYBRID": @"مختلط",
+            @"PROFILE_ID": @"معرّف الملف الشخصي",
+            @"PROFILE_MUTUAL_CONTACT": @"جهة اتصال متبادلة",
+            @"PROFILE_ID_COPY_HINT": @"اضغط لنسخ معرّف الملف الشخصي",
+            @"PROFILE_ID_COPIED": @"تم نسخ معرّف الملف الشخصي",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -345,6 +349,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"地图",
             @"LOCATION_SATELLITE": @"卫星",
             @"LOCATION_HYBRID": @"混合",
+            @"PROFILE_ID": @"个人资料 ID",
+            @"PROFILE_MUTUAL_CONTACT": @"双向联系人",
+            @"PROFILE_ID_COPY_HINT": @"轻点以复制个人资料 ID",
+            @"PROFILE_ID_COPIED": @"已复制个人资料 ID",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -518,6 +526,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"Map",
             @"LOCATION_SATELLITE": @"Satellite",
             @"LOCATION_HYBRID": @"Hybrid",
+            @"PROFILE_ID": @"Profile ID",
+            @"PROFILE_MUTUAL_CONTACT": @"Mutual contact",
+            @"PROFILE_ID_COPY_HINT": @"Tap to copy the profile ID",
+            @"PROFILE_ID_COPIED": @"Profile ID copied",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -691,6 +703,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"Mapa",
             @"LOCATION_SATELLITE": @"Satélite",
             @"LOCATION_HYBRID": @"Híbrido",
+            @"PROFILE_ID": @"ID del perfil",
+            @"PROFILE_MUTUAL_CONTACT": @"Contacto mutuo",
+            @"PROFILE_ID_COPY_HINT": @"Toca para copiar el ID del perfil",
+            @"PROFILE_ID_COPIED": @"ID del perfil copiado",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -864,6 +880,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"Carte",
             @"LOCATION_SATELLITE": @"Satellite",
             @"LOCATION_HYBRID": @"Mixte",
+            @"PROFILE_ID": @"ID du profil",
+            @"PROFILE_MUTUAL_CONTACT": @"Contact mutuel",
+            @"PROFILE_ID_COPY_HINT": @"Touchez pour copier l’ID du profil",
+            @"PROFILE_ID_COPIED": @"ID du profil copié",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -1037,6 +1057,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"Mappa",
             @"LOCATION_SATELLITE": @"Satellite",
             @"LOCATION_HYBRID": @"Ibrida",
+            @"PROFILE_ID": @"ID profilo",
+            @"PROFILE_MUTUAL_CONTACT": @"Contatto reciproco",
+            @"PROFILE_ID_COPY_HINT": @"Tocca per copiare l’ID del profilo",
+            @"PROFILE_ID_COPIED": @"ID profilo copiato",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -1210,6 +1234,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"地図",
             @"LOCATION_SATELLITE": @"航空写真",
             @"LOCATION_HYBRID": @"ハイブリッド",
+            @"PROFILE_ID": @"プロフィールID",
+            @"PROFILE_MUTUAL_CONTACT": @"相互連絡先",
+            @"PROFILE_ID_COPY_HINT": @"タップしてプロフィールIDをコピー",
+            @"PROFILE_ID_COPIED": @"プロフィールIDをコピーしました",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1383,6 +1411,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"Карта",
             @"LOCATION_SATELLITE": @"Спутник",
             @"LOCATION_HYBRID": @"Гибрид",
+            @"PROFILE_ID": @"ID профиля",
+            @"PROFILE_MUTUAL_CONTACT": @"Взаимный контакт",
+            @"PROFILE_ID_COPY_HINT": @"Нажмите, чтобы скопировать ID профиля",
+            @"PROFILE_ID_COPIED": @"ID профиля скопирован",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1556,6 +1588,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"地圖",
             @"LOCATION_SATELLITE": @"衛星",
             @"LOCATION_HYBRID": @"混合",
+            @"PROFILE_ID": @"個人資料 ID",
+            @"PROFILE_MUTUAL_CONTACT": @"雙向聯絡人",
+            @"PROFILE_ID_COPY_HINT": @"點一下以複製個人資料 ID",
+            @"PROFILE_ID_COPIED": @"已複製個人資料 ID",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1729,6 +1765,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"LOCATION_MAP": @"Bản đồ",
             @"LOCATION_SATELLITE": @"Vệ tinh",
             @"LOCATION_HYBRID": @"Kết hợp",
+            @"PROFILE_ID": @"ID hồ sơ",
+            @"PROFILE_MUTUAL_CONTACT": @"Liên hệ hai chiều",
+            @"PROFILE_ID_COPY_HINT": @"Nhấn để sao chép ID hồ sơ",
+            @"PROFILE_ID_COPIED": @"Đã sao chép ID hồ sơ",
         };
     }
     return nil;

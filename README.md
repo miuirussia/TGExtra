@@ -37,6 +37,8 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
 - Set a fake location on the map, by searching for an address, or by entering coordinates.
 - Choose from ten interface languages.
 - Disable double-tap reactions.
+- Show a mutual-contact icon beside profile names and a copyable profile ID in
+  the information block.
 - Hide the voice/round-video recording button under **Interface and gestures**.
   Requires a relaunch.
 - Use tlottie instead of rlottie on clients with a compatible renderer. Restart
