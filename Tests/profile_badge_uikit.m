@@ -31,7 +31,9 @@
 - (void)setNeedsLayout { [self.view setNeedsLayout]; }
 - (void)layoutIfNeeded { [self.view layoutIfNeeded]; }
 @end
-@interface ImmediateTextNode : ASDisplayNode @end
+@interface ImmediateTextNode : ASDisplayNode
+@property NSAttributedString *attributedText;
+@end
 @implementation ImmediateTextNode @end
 @interface MultiScaleTextNode : ASDisplayNode @end
 @implementation MultiScaleTextNode @end
@@ -55,7 +57,9 @@ void TGExtraUpdateGhostExceptionButton(ASDisplayNode *node, long long peerId) { 
 + (BOOL)shouldShowProfileInfoFromNode:(id)node { return YES; }
 + (NSNumber *)getPaneOriginFromNode:(id)node contentHeight:(double)height { return nil; }
 + (id)getInfoSectionFromNode:(id)node { return nil; }
-+ (id)getStoredField:(NSString *)field fromNode:(id)node { return nil; }
++ (id)getStoredField:(NSString *)field fromNode:(id)node {
+    return [field isEqualToString:@"attributedText"] && [node isKindOfClass:ImmediateTextNode.class] ? [node attributedText] : nil;
+}
 + (NSNumber *)getOwnUserIdFromNode:(id)node { return @42; }
 + (NSNumber *)getCurrentUserId { return @42; }
 + (NSDictionary *)getPeerDisplayInfoFromNode:(id)node { return @{}; }
@@ -184,6 +188,32 @@ int main(void) {
         CGRect stableFrame = mutual.frame;
         [header.view layoutSubviews];
         NSCAssert(CGRectEqualToRect(stableFrame, mutual.frame), @"Repeated layouts do not move accessories");
+        header.peer = @43;
+        status.hidden = YES;
+        header.titleNode.view.center = CGPointMake(196.5, 140);
+        UIFont *nameFont = [UIFont systemFontOfSize:28 weight:UIFontWeightMedium];
+        text.attributedText = [[NSAttributedString alloc] initWithString:@"Мама" attributes:@{NSFontAttributeName: nameFont}];
+        text.view.frame = CGRectMake(-40, 0, 80, nameFont.lineHeight);
+        [header.view layoutSubviews];
+        CGRect nameFrame = [text.view convertRect:text.view.bounds toView:header.view];
+        CGRect alignedIcon = [mutual convertRect:mutual.bounds toView:header.view];
+        NSCAssert(fabs(CGRectGetMidX(CGRectUnion(nameFrame, alignedIcon)) - CGRectGetMidX(header.view.bounds)) < 0.01,
+                  @"Center the name and mutual icon as one group");
+        CGFloat textBaseline = floor(nameFont.ascender * UIScreen.mainScreen.scale) / UIScreen.mainScreen.scale;
+        CGFloat iconBaseline = CGRectGetMaxY(mutual.frame) - mutual.image.baselineOffsetFromBottom;
+        NSCAssert(fabs(textBaseline - iconBaseline) < 0.01, @"Use the name font and symbol baseline instead of a fixed square");
+        NSCAssert(mutual.image.size.width == mutual.bounds.size.width && mutual.image.size.height == mutual.bounds.size.height,
+                  @"Preserve the symbol's natural proportions");
+        CATransform3D centeredTransform = header.titleNode.view.layer.sublayerTransform;
+        [header.view layoutSubviews];
+        NSCAssert(CATransform3DEqualToTransform(centeredTransform, header.titleNode.view.layer.sublayerTransform),
+                  @"Repeated layouts cannot accumulate title centering");
+        header.titleNode.view.transform = CGAffineTransformMakeScale(0.75, 0.75);
+        [header.view layoutSubviews];
+        CGPoint scaledTextBaseline = [text.view convertPoint:CGPointMake(0, textBaseline) toView:header.view];
+        CGPoint scaledIconBaseline = [mutual convertPoint:CGPointMake(0, mutual.bounds.size.height - mutual.image.baselineOffsetFromBottom) toView:header.view];
+        NSCAssert(fabs(scaledTextBaseline.y - scaledIconBaseline.y) < 0.01, @"Keep baselines aligned during native header scaling");
+        header.titleNode.view.transform = CGAffineTransformIdentity;
         header.titleNode.view.hidden = YES;
         [header.view layoutSubviews];
         NSCAssert(mutual.hidden, @"A hidden title also hides the mutual icon");
@@ -191,6 +221,7 @@ int main(void) {
         header.mutual = NO;
         [header.view layoutSubviews];
         NSCAssert(![header.view viewWithTag:9989], @"Contact changes remove a stale mutual icon");
+        NSCAssert(CATransform3DIsIdentity(header.titleNode.view.layer.sublayerTransform), @"Restore native name alignment when the icon disappears");
         puts("PASS profile badge: initial placement, title selection, native icons, resizing, controls, scroll, expansion and reuse");
     }
     return 0;

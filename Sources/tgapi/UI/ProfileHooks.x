@@ -2,10 +2,23 @@
 #import "ProfileBridge.h"
 #import "TGExtraLocalization.h"
 #import "../Logger/Logger.h"
+#import <objc/runtime.h>
+#include <math.h>
 
 @interface NSObject (TGExtraProfilePeer)
 - (id)peer;
 @end
+
+static char profileTitleTransformKey;
+
+static void restoreProfileTitleAlignment(ASDisplayNode *title) {
+    NSValue *original = objc_getAssociatedObject(title.view, &profileTitleTransformKey);
+    if (!original) return;
+    [UIView performWithoutAnimation:^{
+        title.view.layer.sublayerTransform = original.CATransform3DValue;
+    }];
+    objc_setAssociatedObject(title.view, &profileTitleTransformKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
 
 static CGFloat visibleProfileViewAlpha(UIView *view, UIView *headerView) {
     CGFloat alpha = 1.0;
@@ -128,11 +141,11 @@ static void updateMutualContactIcon(ASDisplayNode *headerNode) {
         [icon removeFromSuperview];
         return;
     }
-    ASDisplayNode *title = visibleProfileTitleNode([TGExtraProfileBridge getTitleNodeFromNode:headerNode], headerView);
+    ASDisplayNode *titleRoot = [TGExtraProfileBridge getTitleNodeFromNode:headerNode];
+    ASDisplayNode *title = visibleProfileTitleNode(titleRoot, headerView);
     if (!title) return;
     if (!icon) {
-        UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];
-        icon = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"person.2.fill" withConfiguration:configuration]];
+        icon = [UIImageView new];
         icon.hidden = YES;
         icon.tag = 9989;
         icon.tintColor = UIColor.systemBlueColor;
@@ -140,6 +153,11 @@ static void updateMutualContactIcon(ASDisplayNode *headerNode) {
         icon.isAccessibilityElement = YES;
         icon.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"PROFILE_MUTUAL_CONTACT"];
     }
+    NSAttributedString *text = [TGExtraProfileBridge getStoredField:@"attributedText" fromNode:title];
+    UIFont *font = text.length ? [text attribute:NSFontAttributeName atIndex:0 effectiveRange:NULL] : nil;
+    if (!font) font = [UIFont systemFontOfSize:title.view.bounds.size.height * 0.85 weight:UIFontWeightMedium];
+    UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithFont:font scale:UIImageSymbolScaleSmall];
+    icon.image = [UIImage systemImageNamed:@"person.2.fill" withConfiguration:configuration];
     CGRect occupied = [title.view convertRect:title.view.bounds toView:headerView];
     for (UIView *child in title.view.subviews) {
         if (child != icon && !child.hidden && child.alpha >= 0.01 && !CGRectIsEmpty(child.bounds)) {
@@ -147,18 +165,36 @@ static void updateMutualContactIcon(ASDisplayNode *headerNode) {
         }
     }
     CGRect available = CGRectInset(UIEdgeInsetsInsetRect(headerView.bounds, headerView.safeAreaInsets), 8, 1);
-    CGSize size = [title.view convertRect:CGRectMake(0, 0, 20, 20) toView:headerView].size;
-    CGFloat y = CGRectGetMidY(occupied) - size.height / 2;
+    CGFloat scale = UIScreen.mainScreen.scale;
+    CGFloat baseline = CGRectGetMinY(title.view.bounds) + floor(font.ascender * scale) / scale;
+    CGFloat localY = baseline - (icon.image.size.height - icon.image.baselineOffsetFromBottom);
+    CGRect imageFrame = [title.view convertRect:(CGRect){CGPointMake(0, localY), icon.image.size} toView:headerView];
+    CGSize size = imageFrame.size;
+    CGFloat y = imageFrame.origin.y;
     CGRect candidates[] = {
         CGRectMake(CGRectGetMaxX(occupied) + 6, y, size.width, size.height),
         CGRectMake(CGRectGetMinX(occupied) - 6 - size.width, y, size.width, size.height)
     };
     for (NSUInteger i = 0; i < 2; i++) {
-        if (!CGRectContainsRect(available, candidates[i]) || profileBadgeIntersectsControl(headerView, headerView, candidates[i])) continue;
+        // Match Telegram's centering of a name together with its native status icons.
+        CGFloat offset = fabs(CGRectGetMidX(occupied) - CGRectGetMidX(available)) <= 1.0
+            ? (i == 0 ? -(size.width + 6) / 2 : (size.width + 6) / 2) : 0;
+        CGRect group = CGRectOffset(CGRectUnion(occupied, candidates[i]), offset, 0);
+        CGRect displayedIcon = CGRectOffset(candidates[i], offset, 0);
+        if (!CGRectContainsRect(available, group) || profileBadgeIntersectsControl(headerView, headerView, displayedIcon)) continue;
         CGRect frame = [headerView convertRect:candidates[i] toView:title.view];
         [UIView performWithoutAnimation:^{
             icon.frame = frame;
             if (icon.superview != title.view) [title.view addSubview:icon];
+            if (offset != 0) {
+                CALayer *layer = titleRoot.view.layer;
+                CATransform3D original = layer.sublayerTransform;
+                objc_setAssociatedObject(titleRoot.view, &profileTitleTransformKey,
+                    [NSValue valueWithCATransform3D:original], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                CGFloat localOffset = [titleRoot.view convertPoint:CGPointMake(offset, 0) fromView:headerView].x -
+                    [titleRoot.view convertPoint:CGPointZero fromView:headerView].x;
+                layer.sublayerTransform = CATransform3DTranslate(original, localOffset, 0, 0);
+            }
             icon.hidden = NO;
         }];
         break;
@@ -206,6 +242,7 @@ static void tgextraDiagProfileNode(NSString *cls, long long peerId, ASDisplayNod
     BOOL isProfileHeader = [cls containsString:@"PeerInfoHeaderNode"];
 
     if (isProfileHeader) {
+        restoreProfileTitleAlignment([TGExtraProfileBridge getTitleNodeFromNode:node]);
         long long peerId = 0;
         peerId = [[TGExtraProfileBridge getPeerIdFromNode:node] longLongValue];
 
