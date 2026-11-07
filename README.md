@@ -50,8 +50,8 @@ New features default to off. Updates preserve existing preferences.
 ## Installation and compatibility
 
 Releases include rootful, rootless and roothide DEBs and matching `.ipatch` files.
-Install the DEB or build an IPA with iOSPatchingEngine v4. Rust MTProto clients
-need a matching compatibility profile.
+Install the DEB or build an IPA with `ipatch` as described below.
+Rust MTProto clients need a matching compatibility profile.
 
 Reference builds: Telegram 13.2 (36535) and Swiftgram 13.1.3
 (353, `app.swiftgram.ios`). Newer builds may need updated profiles or UI hooks.
@@ -68,12 +68,54 @@ Restart Telegram after installing an update to refresh iOS content restrictions.
 After changing the private-chat copy protection option, reopen the other person's
 profile to refresh its cached settings.
 
+### Patching an IPA with ipatch
+
+Download a TGExtra `.ipatch` from [Releases](https://github.com/miuirussia/TGExtra/releases)
+or the [latest prerelease](https://github.com/miuirussia/TGExtra/releases/tag/prerelease).
+Use an original, decrypted Telegram or Swiftgram IPA compatible with the profiles
+listed above. The `.ipatch` already includes the matching TGExtra DEB.
+
+The `ipatch` CLI is available directly, **without signing in**:
+
+| Platform | Download |
+| --- | --- |
+| macOS Apple Silicon | [ipatch](https://ios-patch-engine.kdevlab.com/api/tools/ipatch/darwin-arm64) |
+| macOS Intel | [ipatch](https://ios-patch-engine.kdevlab.com/api/tools/ipatch/darwin-amd64) |
+| Linux x86_64 | [ipatch](https://ios-patch-engine.kdevlab.com/api/tools/ipatch/linux-amd64) |
+| Linux ARM64 | [ipatch](https://ios-patch-engine.kdevlab.com/api/tools/ipatch/linux-arm64) |
+
+Save the binary as `ipatch`, then apply the patch locally (replace the IPA
+and package filenames with your downloads):
+
+```sh
+chmod +x ipatch
+./ipatch -apply -ipa Telegram.ipa -package TGExtra.ipatch -output Telegram-TGExtra.ipa
+```
+
+To preview the patch plan before applying it:
+
+```sh
+./ipatch -dry-run -explain -ipa Telegram.ipa -package TGExtra.ipatch
+```
+
+The resulting `Telegram-TGExtra.ipa` uses ad hoc signing. Sign and install it with
+your preferred sideloading tool, then open **Settings → TGExtra**. Add `-sideload`
+to the patching command to enable sideload compatibility.
+
 ### Swiftgram Pro
 
-In iOSPatchingEngine, open the gear beside the TGExtra `.ipatch` and select
-**Swiftgram Pro** before building the IPA. This option is off by default and
-available only when building an IPA. To disable it, rebuild from the original
-IPA with the option off.
+Enable the optional **Swiftgram Pro** component in the TGExtra `.ipatch` when
+building the IPA. This option is off by default and available only when building
+an IPA. To disable it, rebuild from the original IPA with the option off.
+
+For Swiftgram, enable it with `-feature TGExtra.ipatch:swiftgram-pro`:
+
+```sh
+./ipatch -apply -ipa Swiftgram.ipa -package TGExtra.ipatch \
+  -feature TGExtra.ipatch:swiftgram-pro -output Swiftgram-TGExtra.ipa
+```
+
+Use the same package path for `-package` and the prefix of `-feature`.
 
 This enables local Swiftgram Pro features. Telegram Premium and server-provided
 services are not included. New accounts need one online launch to initialize
