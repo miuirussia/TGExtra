@@ -163,6 +163,12 @@ int main(void) {
         [header.view layoutSubviews];
         NSCAssert(![header.view viewWithTag:9988], @"Remove the badge when the header is reused for another peer");
         header.mutual = YES;
+        text.view.frame = CGRectMake(-140, 0, 370, 28);
+        [header.view layoutSubviews];
+        UIView *unplacedIcon = [header.view viewWithTag:9989];
+        NSCAssert(!unplacedIcon || unplacedIcon.hidden,
+                  @"A new mutual icon must not appear at its default frame before the title has room");
+        text.view.frame = CGRectMake(0, 0, 80, 28);
         [header.view layoutSubviews];
         UIImageView *mutual = (UIImageView *)[header.view viewWithTag:9989];
         NSCAssert(mutual && !mutual.hidden && mutual.isAccessibilityElement && mutual.accessibilityLabel.length,
@@ -185,7 +191,7 @@ int main(void) {
         header.mutual = NO;
         [header.view layoutSubviews];
         NSCAssert(![header.view viewWithTag:9989], @"Contact changes remove a stale mutual icon");
-        puts("PASS profile badge: title selection, native icons, resizing, controls, scroll, expansion and reuse");
+        puts("PASS profile badge: initial placement, title selection, native icons, resizing, controls, scroll, expansion and reuse");
     }
     return 0;
 }

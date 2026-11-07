@@ -133,13 +133,13 @@ static void updateMutualContactIcon(ASDisplayNode *headerNode) {
     if (!icon) {
         UIImageSymbolConfiguration *configuration = [UIImageSymbolConfiguration configurationWithPointSize:16 weight:UIImageSymbolWeightSemibold];
         icon = [[UIImageView alloc] initWithImage:[UIImage systemImageNamed:@"person.2.fill" withConfiguration:configuration]];
+        icon.hidden = YES;
         icon.tag = 9989;
         icon.tintColor = UIColor.systemBlueColor;
         icon.contentMode = UIViewContentModeScaleAspectFit;
         icon.isAccessibilityElement = YES;
         icon.accessibilityLabel = [TGExtraLocalization localizedStringForKey:@"PROFILE_MUTUAL_CONTACT"];
     }
-    if (icon.superview != title.view) [title.view addSubview:icon];
     CGRect occupied = [title.view convertRect:title.view.bounds toView:headerView];
     for (UIView *child in title.view.subviews) {
         if (child != icon && !child.hidden && child.alpha >= 0.01 && !CGRectIsEmpty(child.bounds)) {
@@ -155,8 +155,12 @@ static void updateMutualContactIcon(ASDisplayNode *headerNode) {
     };
     for (NSUInteger i = 0; i < 2; i++) {
         if (!CGRectContainsRect(available, candidates[i]) || profileBadgeIntersectsControl(headerView, headerView, candidates[i])) continue;
-        icon.frame = [headerView convertRect:candidates[i] toView:title.view];
-        icon.hidden = NO;
+        CGRect frame = [headerView convertRect:candidates[i] toView:title.view];
+        [UIView performWithoutAnimation:^{
+            icon.frame = frame;
+            if (icon.superview != title.view) [title.view addSubview:icon];
+            icon.hidden = NO;
+        }];
         break;
     }
 }
