@@ -246,7 +246,7 @@
 "FORWARD_DROP_AUTHOR_TITLE" = "送信者名なしで転送";
 "FORWARD_DROP_AUTHOR_SUBTITLE" = "転送時に元の送信者名を既定で隠します。";
 "AUDIO_TO_VOICE_TITLE" = "音声ファイルを音声メッセージに";
-"AUDIO_TO_VOICE_SUBTITLE" = "「ファイル」で選んだ音声をAAC音声メッセージに変換します。再起動が必要です。 シークレットチャットでは利用できません。";
+"AUDIO_TO_VOICE_SUBTITLE" = "「ファイル」で選んだ音声を音声メッセージかファイルで送るか確認します。再起動が必要です。シークレットチャットでは利用できません。";
 "AUDIO_TO_VOICE_FAILED" = "音声を変換できませんでした。何も送信されていません。";
 "MESSAGE_LOG_TITLE" = "メッセージ履歴";
 "MESSAGE_LOG_SUBTITLE" = "削除と編集を検出時刻とともに表示します。";
@@ -269,3 +269,8 @@
 "SETTINGS_IMPORT_INVALID" = "設定ファイルが無効か未対応です。";
 "SETTINGS_IMPORT_CONFIRM" = "このファイルの設定を%lu件適用しますか？現在の値が置き換わります。";
 "SETTINGS_IMPORT_DONE" = "設定を読み込みました。すべて適用するにはTelegramを再起動してください。";
+
+"AUDIO_TO_VOICE_PROMPT_TITLE" = "音声の送信方法";
+"AUDIO_TO_VOICE_PROMPT_MESSAGE" = "選択した音声ファイル：%lu件。他の書類は通常どおり送信されます。";
+"AUDIO_TO_VOICE_SEND_VOICE" = "音声メッセージとして送信";
+"AUDIO_TO_VOICE_SEND_FILE" = "通常のファイルとして送信";

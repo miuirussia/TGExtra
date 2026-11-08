@@ -247,7 +247,7 @@
 "FORWARD_DROP_AUTHOR_TITLE" = "Forward without author";
 "FORWARD_DROP_AUTHOR_SUBTITLE" = "Hide the original author by default when forwarding messages.";
 "AUDIO_TO_VOICE_TITLE" = "Audio file to voice message";
-"AUDIO_TO_VOICE_SUBTITLE" = "Convert audio selected in Files to AAC voice messages. Requires a relaunch. Unavailable in secret chats.";
+"AUDIO_TO_VOICE_SUBTITLE" = "Ask how to send audio selected in Files: voice or file. Requires a relaunch. Unavailable in secret chats.";
 "AUDIO_TO_VOICE_FAILED" = "Could not convert the audio. Nothing was sent.";
 "MESSAGE_LOG_TITLE" = "Message log";
 "MESSAGE_LOG_SUBTITLE" = "Deleted and edited messages with the time each change was detected.";
@@ -270,3 +270,8 @@
 "SETTINGS_IMPORT_INVALID" = "Invalid or unsupported settings file.";
 "SETTINGS_IMPORT_CONFIRM" = "Apply %lu settings from this file? Existing values will be replaced.";
 "SETTINGS_IMPORT_DONE" = "Settings imported. Relaunch Telegram to apply every change.";
+
+"AUDIO_TO_VOICE_PROMPT_TITLE" = "How to send audio?";
+"AUDIO_TO_VOICE_PROMPT_MESSAGE" = "Audio files selected: %lu. Other documents will be sent as usual.";
+"AUDIO_TO_VOICE_SEND_VOICE" = "Send as Voice";
+"AUDIO_TO_VOICE_SEND_FILE" = "Send as File";

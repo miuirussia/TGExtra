@@ -246,7 +246,7 @@
 "FORWARD_DROP_AUTHOR_TITLE" = "轉傳時隱藏作者";
 "FORWARD_DROP_AUTHOR_SUBTITLE" = "轉傳訊息時預設隱藏原作者。";
 "AUDIO_TO_VOICE_TITLE" = "音訊檔案轉語音訊息";
-"AUDIO_TO_VOICE_SUBTITLE" = "將在「檔案」中選擇的音訊轉換為 AAC 語音訊息。需要重新啟動。 不支援秘密聊天。";
+"AUDIO_TO_VOICE_SUBTITLE" = "在「檔案」中選擇音訊後，詢問以語音還是檔案傳送。需要重新啟動。不支援秘密聊天。";
 "AUDIO_TO_VOICE_FAILED" = "無法轉換音訊，未傳送任何內容。";
 "MESSAGE_LOG_TITLE" = "訊息記錄";
 "MESSAGE_LOG_SUBTITLE" = "顯示刪除和編輯記錄及其偵測時間。";
@@ -269,3 +269,8 @@
 "SETTINGS_IMPORT_INVALID" = "設定檔無效或不受支援。";
 "SETTINGS_IMPORT_CONFIRM" = "套用此檔案中的 %lu 項設定？目前的值將被取代。";
 "SETTINGS_IMPORT_DONE" = "設定已匯入。請重新啟動 Telegram 以套用所有變更。";
+
+"AUDIO_TO_VOICE_PROMPT_TITLE" = "如何傳送音訊？";
+"AUDIO_TO_VOICE_PROMPT_MESSAGE" = "已選擇 %lu 個音訊檔案。其他文件將照常傳送。";
+"AUDIO_TO_VOICE_SEND_VOICE" = "作為語音傳送";
+"AUDIO_TO_VOICE_SEND_FILE" = "作為一般檔案傳送";

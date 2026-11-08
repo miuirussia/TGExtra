@@ -244,10 +244,14 @@ NSDictionary *tgextraRewriteToVoice(id anyDict, id editingContext) {
     return rewritten;
 }
 
-NSURL *TGExtraConvertAudioFile(NSURL *url) {
-    if (!url.isFileURL || ![NSUserDefaults.standardUserDefaults boolForKey:kAudioToVoice]) return url;
+BOOL TGExtraIsAudioFile(NSURL *url) {
+    if (!url.isFileURL) return NO;
     NSSet *extensions = [NSSet setWithArray:@[@"mp3", @"m4a", @"aac", @"wav", @"aif", @"aiff", @"caf", @"flac", @"ogg", @"opus"]];
-    if (![extensions containsObject:url.pathExtension.lowercaseString]) return url;
+    return [extensions containsObject:url.pathExtension.lowercaseString];
+}
+
+NSURL *TGExtraConvertAudioFile(NSURL *url) {
+    if (!TGExtraIsAudioFile(url) || ![NSUserDefaults.standardUserDefaults boolForKey:kAudioToVoice]) return url;
     BOOL scoped = [url startAccessingSecurityScopedResource];
     NSURL *result = nil;
     @try {

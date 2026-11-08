@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 source = (ROOT / 'Sources/tgapi/VideoAudioExtractor.m').read_text()
 paths = source[source.index('static NSString *tgextraVoiceCacheRoot('):source.index('static AVAsset *tgextraResolvePhotosVideo(')]
 export = source[source.index('static NSURL *tgextraExtractAudio('):source.index('NSDictionary *tgextraRewriteToVoice(')]
-convert = source[source.index('NSURL *TGExtraConvertAudioFile('):]
+convert = source[source.index('BOOL TGExtraIsAudioFile('):]
 support = r'''
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>

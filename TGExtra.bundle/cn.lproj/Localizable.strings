@@ -248,7 +248,7 @@
 "FORWARD_DROP_AUTHOR_TITLE" = "转发时隐藏作者";
 "FORWARD_DROP_AUTHOR_SUBTITLE" = "转发消息时默认隐藏原作者。";
 "AUDIO_TO_VOICE_TITLE" = "音频文件转语音消息";
-"AUDIO_TO_VOICE_SUBTITLE" = "将在“文件”中选择的音频转换为 AAC 语音消息。需要重启。 不支持秘密聊天。";
+"AUDIO_TO_VOICE_SUBTITLE" = "在“文件”中选择音频后，询问以语音还是文件发送。需要重启。不支持秘密聊天。";
 "AUDIO_TO_VOICE_FAILED" = "无法转换音频，未发送任何内容。";
 "MESSAGE_LOG_TITLE" = "消息日志";
 "MESSAGE_LOG_SUBTITLE" = "显示删除和编辑记录及其检测时间。";
@@ -271,3 +271,8 @@
 "SETTINGS_IMPORT_INVALID" = "设置文件无效或不受支持。";
 "SETTINGS_IMPORT_CONFIRM" = "应用此文件中的 %lu 项设置？当前值将被替换。";
 "SETTINGS_IMPORT_DONE" = "设置已导入。请重启 Telegram 以应用所有更改。";
+
+"AUDIO_TO_VOICE_PROMPT_TITLE" = "如何发送音频？";
+"AUDIO_TO_VOICE_PROMPT_MESSAGE" = "已选择 %lu 个音频文件。其他文档将照常发送。";
+"AUDIO_TO_VOICE_SEND_VOICE" = "作为语音发送";
+"AUDIO_TO_VOICE_SEND_FILE" = "作为普通文件发送";

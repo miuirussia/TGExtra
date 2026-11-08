@@ -246,7 +246,7 @@
 "FORWARD_DROP_AUTHOR_TITLE" = "Transférer sans auteur";
 "FORWARD_DROP_AUTHOR_SUBTITLE" = "Masquer l’auteur original par défaut lors des transferts.";
 "AUDIO_TO_VOICE_TITLE" = "Fichier audio en message vocal";
-"AUDIO_TO_VOICE_SUBTITLE" = "Convertir l’audio choisi dans Fichiers en messages vocaux AAC. Redémarrage requis. Indisponible dans les chats secrets.";
+"AUDIO_TO_VOICE_SUBTITLE" = "Proposer l’envoi de l’audio choisi dans Fichiers en message vocal ou fichier. Redémarrage requis. Indisponible dans les chats secrets.";
 "AUDIO_TO_VOICE_FAILED" = "Conversion audio impossible. Rien n’a été envoyé.";
 "MESSAGE_LOG_TITLE" = "Journal des messages";
 "MESSAGE_LOG_SUBTITLE" = "Suppressions et modifications avec l’heure de détection.";
@@ -269,3 +269,8 @@
 "SETTINGS_IMPORT_INVALID" = "Fichier de réglages invalide ou non pris en charge.";
 "SETTINGS_IMPORT_CONFIRM" = "Appliquer %lu réglages de ce fichier ? Les valeurs actuelles seront remplacées.";
 "SETTINGS_IMPORT_DONE" = "Réglages importés. Redémarrez Telegram pour tout appliquer.";
+
+"AUDIO_TO_VOICE_PROMPT_TITLE" = "Comment envoyer l’audio ?";
+"AUDIO_TO_VOICE_PROMPT_MESSAGE" = "Fichiers audio sélectionnés : %lu. Les autres documents seront envoyés normalement.";
+"AUDIO_TO_VOICE_SEND_VOICE" = "Message vocal";
+"AUDIO_TO_VOICE_SEND_FILE" = "Fichier ordinaire";

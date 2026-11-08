@@ -22,15 +22,33 @@ support = r'''
 #import <objc/runtime.h>
 #import "Location.h"
 #import "SettingsRows.h"
+#import "AudioFileVoicePrompt.h"
 #define customLog(...) do {} while (0)
 static BOOL enabled = YES;
 static BOOL shouldFixFilePicker(void) { return enabled; }
 @interface Picker : NSObject
 @property NSArray<NSURL *> *captured;
+@property NSUInteger cancellations;
+- (void)documentPickerWasCancelled:(id)picker;
 @end
 static void testSingleOriginal(Picker *self, SEL command, id picker, NSURL *url) { self.captured = @[url]; }
 static void testMultipleOriginal(Picker *self, SEL command, id picker, NSArray *urls) { self.captured = urls; }
-static NSURL *TGExtraConvertAudioFile(NSURL *url) { return url; }
+static NSUInteger conversions, prompts, audioCount;
+static void (^answerPrompt)(TGExtraAudioFileChoice);
+static BOOL TGExtraIsAudioFile(NSURL *url) { return [@[@"wav", @"mp3"] containsObject:url.pathExtension.lowercaseString]; }
+static NSURL *TGExtraConvertAudioFile(NSURL *url) {
+    if (!TGExtraIsAudioFile(url)) return url;
+    conversions++;
+    return [url URLByAppendingPathExtension:@"voice"];
+}
+void TGExtraConfirmAudioFileConversion(UIViewController *picker, NSUInteger count, void (^completion)(TGExtraAudioFileChoice)) {
+    prompts++; audioCount = count; answerPrompt = [completion copy];
+}
+static void awaitPicker(Picker *picker) {
+    NSDate *until = [NSDate dateWithTimeIntervalSinceNow:2];
+    while (!picker.captured && until.timeIntervalSinceNow > 0) [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.01]];
+    NSCAssert(picker.captured, @"Picker completion reaches the UI thread");
+}
 static void TGExtraShowToast(NSString *text) {}
 @interface TGExtraLocalization : NSObject
 + (NSString *)localizedStringForKey:(NSString *)key;
@@ -41,8 +59,9 @@ static void TGExtraShowToast(NSString *text) {}
 @interface TLParser : NSObject
 + (BOOL)audioFileVoiceChatSupported;
 @end
+static BOOL supportedChat = YES;
 @implementation TLParser
-+ (BOOL)audioFileVoiceChatSupported { return YES; }
++ (BOOL)audioFileVoiceChatSupported { return supportedChat; }
 @end
 '''
 
@@ -90,6 +109,43 @@ int main(void) { @autoreleasepool {
     [picker documentPicker:nil didPickDocumentAtURL:single];
     NSCAssert([[NSString stringWithContentsOfURL:picker.captured.firstObject encoding:NSUTF8StringEncoding error:NULL] isEqual:@"single"], @"Single-file relocation");
     [fm removeItemAtURL:[picker.captured.firstObject URLByDeletingLastPathComponent] error:NULL];
+    enabled = NO;
+    NSURL *audio = [base URLByAppendingPathComponent:@"audio.wav"];
+    NSURL *document = [base URLByAppendingPathComponent:@"notes.pdf"];
+    [NSUserDefaults.standardUserDefaults setBool:YES forKey:kAudioToVoice];
+    picker.captured = nil;
+    [picker documentPicker:nil didPickDocumentAtURL:audio];
+    NSCAssert(prompts == 1 && audioCount == 1 && conversions == 0 && !picker.captured, @"Picking audio asks before conversion or sending");
+    answerPrompt(TGExtraAudioFileChoiceOriginal); answerPrompt = nil;
+    awaitPicker(picker);
+    NSCAssert(conversions == 0 && [picker.captured isEqual:@[audio]], @"Choosing a file preserves the original audio");
+    picker.captured = nil;
+    [picker documentPicker:nil didPickDocumentsAtURLs:@[audio, document]];
+    NSCAssert(prompts == 2 && audioCount == 1 && conversions == 0 && !picker.captured, @"Mixed selections show one prompt for audio only");
+    answerPrompt(TGExtraAudioFileChoiceVoice); answerPrompt = nil;
+    awaitPicker(picker);
+    NSCAssert((conversions == 1 && [picker.captured isEqual:@[[audio URLByAppendingPathExtension:@"voice"], document]]), @"Only the confirmed audio becomes voice; other files stay unchanged");
+    for (NSUInteger multiple = 0; multiple < 2; multiple++) {
+        picker.captured = nil;
+        if (multiple) [picker documentPicker:nil didPickDocumentsAtURLs:@[audio]];
+        else [picker documentPicker:nil didPickDocumentAtURL:audio];
+        answerPrompt(TGExtraAudioFileChoiceCancel); answerPrompt = nil;
+        NSCAssert(!picker.captured && conversions == 1, @"Cancellation neither converts nor sends any files");
+    }
+    NSCAssert(picker.cancellations == 2, @"Cancellation closes the host's pending file selection");
+    NSUInteger previousPrompts = prompts;
+    [picker documentPicker:nil didPickDocumentsAtURLs:@[document]];
+    awaitPicker(picker);
+    NSCAssert(prompts == previousPrompts && conversions == 1, @"Other file types need no confirmation");
+    [NSUserDefaults.standardUserDefaults setBool:NO forKey:kAudioToVoice];
+    [picker documentPicker:nil didPickDocumentAtURL:audio];
+    NSCAssert(prompts == previousPrompts && [picker.captured isEqual:@[audio]], @"The checkbox gates audio prompts");
+    [NSUserDefaults.standardUserDefaults setBool:YES forKey:kAudioToVoice];
+    supportedChat = NO;
+    [picker documentPicker:nil didPickDocumentAtURL:audio];
+    NSCAssert(prompts == previousPrompts && conversions == 1, @"Secret chats keep ordinary file sending");
+    [NSUserDefaults.standardUserDefaults removeObjectForKey:kAudioToVoice];
+    supportedChat = YES;
     [fm removeItemAtURL:base error:NULL];
 
     CoordinateDefaults *defaults = [CoordinateDefaults new];
@@ -138,7 +194,7 @@ int main(void) { @autoreleasepool {
         NSCAssert(![TGExtraSettingRow rowForSection:section.integerValue row:1], @"Action rows must not write a switch preference");
     }
     NSCAssert(![TGExtraSettingRow rowForSection:LANGUAGE row:0], @"Language is an action");
-    puts("PASS picker filename collisions, failures, disabled hooks; zero/invalid coordinates; settings row coverage and identity");
+    puts("PASS picker confirmation before conversion/send, file/voice/cancel choices, checkbox gating, mixed files, relocation and settings rows");
 } return 0; }
 '''
 
@@ -156,7 +212,7 @@ static void testClassSnapshot(void) {
     # Keep the production snapshot allocation in the test, then register a late class.
     tests = tests.replace('    NSFileManager *fm', '    testClassSnapshot();\n    NSFileManager *fm', 1)
     harness = path / 'regressions.m'
-    harness.write_text(support + helper + class_test + '@implementation Picker\n' + single + multiple + tests)
+    harness.write_text(support + helper + class_test + '@implementation Picker\n- (void)documentPickerWasCancelled:(id)picker { self.cancellations++; }\n' + single + multiple + tests)
     binary = path / 'regressions'
     subprocess.run(['clang', '-fobjc-arc', '-Werror', '-framework', 'Foundation', '-framework', 'CoreLocation',
                     '-I' + str(ROOT / 'Sources/tgapi'), '-I' + str(ROOT / 'Sources/tgapi/UI'),

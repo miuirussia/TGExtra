@@ -33,7 +33,8 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
 - View disappearing media without starting its timer.
 - Allow screenshots in secret-chat galleries and disable screenshot notifications.
 - Send a video's trimmed audio as a voice message from the video preview.
-- Convert audio selected in the Files picker to AAC voice messages with a waveform.
+- Choose whether to send audio selected in Files as ordinary files or AAC voice
+  messages with a waveform.
 - Forward ordinary messages without the original author header by default.
 - Send a video as a round message: centered square crop, up to 60 seconds of the
   selected trim. Enable **Video to Round Message** in media settings to show the
@@ -176,10 +177,13 @@ Media Freely** before opening timed media to prevent its countdown from starting
 
 Video conversion cannot undo slow motion rendered into a file.
 
-**Audio File to Voice Message** converts audio chosen in Telegram's Files picker
-to M4A/AAC before upload. It requires a relaunch and is unavailable in secret chats.
-Unsupported audio or a failed conversion cancels that selection instead of sending
-the original file. Other document types keep their ordinary upload behavior.
+With **Audio File to Voice Message** enabled, choosing audio in Telegram's Files
+picker opens a prompt before upload: send as voice messages, send as ordinary files,
+or cancel. Conversion to M4A/AAC starts only after choosing voice messages. A mixed
+selection shows one prompt for its audio; other documents remain ordinary files.
+The setting requires a relaunch and is unavailable in secret chats. Unsupported
+audio or a failed conversion cancels that selection instead of sending the original
+file.
 
 **Forward Without Author** sets Telegram's `drop_author` option for ordinary
 forwards; it does not download and reupload those messages. Protected messages

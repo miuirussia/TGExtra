@@ -189,7 +189,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"إعادة التوجيه دون اسم المرسل",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"إخفاء المرسل الأصلي افتراضيًا عند إعادة توجيه الرسائل.",
             @"AUDIO_TO_VOICE_TITLE": @"تحويل ملف صوتي إلى رسالة صوتية",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"تحويل الصوت المختار من الملفات إلى رسائل صوتية AAC. يتطلب إعادة التشغيل. غير متاح في المحادثات السرية.",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"السؤال عن إرسال الصوت المختار من الملفات كرسالة صوتية أو ملف عادي. يتطلب إعادة التشغيل. غير متاح في المحادثات السرية.",
             @"AUDIO_TO_VOICE_FAILED": @"تعذر تحويل الصوت. لم يتم إرسال شيء.",
             @"MESSAGE_LOG_TITLE": @"سجل الرسائل",
             @"MESSAGE_LOG_SUBTITLE": @"الرسائل المحذوفة والمعدلة مع وقت اكتشاف التغيير.",
@@ -212,6 +212,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"ملف الإعدادات غير صالح أو غير مدعوم.",
             @"SETTINGS_IMPORT_CONFIRM": @"تطبيق %lu من الإعدادات من هذا الملف؟ سيتم استبدال القيم الحالية.",
             @"SETTINGS_IMPORT_DONE": @"تم استيراد الإعدادات. أعد تشغيل Telegram لتطبيق جميع التغييرات.",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"كيف تريد إرسال الصوت؟",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"الملفات الصوتية المحددة: %lu. سيتم إرسال المستندات الأخرى كالمعتاد.",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"إرسال كرسالة صوتية",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"إرسال كملف عادي",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -402,7 +406,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"转发时隐藏作者",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"转发消息时默认隐藏原作者。",
             @"AUDIO_TO_VOICE_TITLE": @"音频文件转语音消息",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"将在“文件”中选择的音频转换为 AAC 语音消息。需要重启。 不支持秘密聊天。",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"在“文件”中选择音频后，询问以语音还是文件发送。需要重启。不支持秘密聊天。",
             @"AUDIO_TO_VOICE_FAILED": @"无法转换音频，未发送任何内容。",
             @"MESSAGE_LOG_TITLE": @"消息日志",
             @"MESSAGE_LOG_SUBTITLE": @"显示删除和编辑记录及其检测时间。",
@@ -425,6 +429,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"设置文件无效或不受支持。",
             @"SETTINGS_IMPORT_CONFIRM": @"应用此文件中的 %lu 项设置？当前值将被替换。",
             @"SETTINGS_IMPORT_DONE": @"设置已导入。请重启 Telegram 以应用所有更改。",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"如何发送音频？",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"已选择 %lu 个音频文件。其他文档将照常发送。",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"作为语音发送",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"作为普通文件发送",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -615,7 +623,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"Forward without author",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"Hide the original author by default when forwarding messages.",
             @"AUDIO_TO_VOICE_TITLE": @"Audio file to voice message",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"Convert audio selected in Files to AAC voice messages. Requires a relaunch. Unavailable in secret chats.",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"Ask how to send audio selected in Files: voice or file. Requires a relaunch. Unavailable in secret chats.",
             @"AUDIO_TO_VOICE_FAILED": @"Could not convert the audio. Nothing was sent.",
             @"MESSAGE_LOG_TITLE": @"Message log",
             @"MESSAGE_LOG_SUBTITLE": @"Deleted and edited messages with the time each change was detected.",
@@ -638,6 +646,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"Invalid or unsupported settings file.",
             @"SETTINGS_IMPORT_CONFIRM": @"Apply %lu settings from this file? Existing values will be replaced.",
             @"SETTINGS_IMPORT_DONE": @"Settings imported. Relaunch Telegram to apply every change.",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"How to send audio?",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Audio files selected: %lu. Other documents will be sent as usual.",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"Send as Voice",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"Send as File",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -828,7 +840,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"Reenviar sin autor",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"Oculta al autor original de forma predeterminada al reenviar.",
             @"AUDIO_TO_VOICE_TITLE": @"Archivo de audio a mensaje de voz",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"Convierte el audio elegido en Archivos en mensajes de voz AAC. Requiere reiniciar. No disponible en chats secretos.",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"Pregunta si enviar el audio elegido en Archivos como mensaje de voz o archivo. Requiere reiniciar. No disponible en chats secretos.",
             @"AUDIO_TO_VOICE_FAILED": @"No se pudo convertir el audio. No se envió nada.",
             @"MESSAGE_LOG_TITLE": @"Registro de mensajes",
             @"MESSAGE_LOG_SUBTITLE": @"Eliminaciones y ediciones con la hora de detección.",
@@ -851,6 +863,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"Archivo de ajustes no válido o no compatible.",
             @"SETTINGS_IMPORT_CONFIRM": @"¿Aplicar %lu ajustes de este archivo? Se reemplazarán los valores actuales.",
             @"SETTINGS_IMPORT_DONE": @"Ajustes importados. Reinicia Telegram para aplicar todos los cambios.",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"¿Cómo enviar el audio?",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Archivos de audio seleccionados: %lu. Los demás documentos se enviarán como siempre.",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"Mensaje de voz",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"Archivo normal",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -1041,7 +1057,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"Transférer sans auteur",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"Masquer l’auteur original par défaut lors des transferts.",
             @"AUDIO_TO_VOICE_TITLE": @"Fichier audio en message vocal",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"Convertir l’audio choisi dans Fichiers en messages vocaux AAC. Redémarrage requis. Indisponible dans les chats secrets.",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"Proposer l’envoi de l’audio choisi dans Fichiers en message vocal ou fichier. Redémarrage requis. Indisponible dans les chats secrets.",
             @"AUDIO_TO_VOICE_FAILED": @"Conversion audio impossible. Rien n’a été envoyé.",
             @"MESSAGE_LOG_TITLE": @"Journal des messages",
             @"MESSAGE_LOG_SUBTITLE": @"Suppressions et modifications avec l’heure de détection.",
@@ -1064,6 +1080,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"Fichier de réglages invalide ou non pris en charge.",
             @"SETTINGS_IMPORT_CONFIRM": @"Appliquer %lu réglages de ce fichier ? Les valeurs actuelles seront remplacées.",
             @"SETTINGS_IMPORT_DONE": @"Réglages importés. Redémarrez Telegram pour tout appliquer.",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"Comment envoyer l’audio ?",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Fichiers audio sélectionnés : %lu. Les autres documents seront envoyés normalement.",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"Message vocal",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"Fichier ordinaire",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -1254,7 +1274,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"Inoltra senza autore",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"Nascondi l’autore originale per impostazione predefinita.",
             @"AUDIO_TO_VOICE_TITLE": @"File audio in messaggio vocale",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"Converti l’audio scelto in File in messaggi vocali AAC. Riavvio richiesto. Non disponibile nelle chat segrete.",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"Chiedi se inviare l’audio scelto in File come messaggio vocale o file. Riavvio richiesto. Non disponibile nelle chat segrete.",
             @"AUDIO_TO_VOICE_FAILED": @"Impossibile convertire l’audio. Nessun invio effettuato.",
             @"MESSAGE_LOG_TITLE": @"Registro messaggi",
             @"MESSAGE_LOG_SUBTITLE": @"Eliminazioni e modifiche con l’ora del rilevamento.",
@@ -1277,6 +1297,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"File di impostazioni non valido o non supportato.",
             @"SETTINGS_IMPORT_CONFIRM": @"Applicare %lu impostazioni dal file? I valori attuali saranno sostituiti.",
             @"SETTINGS_IMPORT_DONE": @"Impostazioni importate. Riavvia Telegram per applicare tutte le modifiche.",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"Come inviare l’audio?",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"File audio selezionati: %lu. Gli altri documenti saranno inviati normalmente.",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"Messaggio vocale",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"File normale",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -1467,7 +1491,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"送信者名なしで転送",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"転送時に元の送信者名を既定で隠します。",
             @"AUDIO_TO_VOICE_TITLE": @"音声ファイルを音声メッセージに",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"「ファイル」で選んだ音声をAAC音声メッセージに変換します。再起動が必要です。 シークレットチャットでは利用できません。",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"「ファイル」で選んだ音声を音声メッセージかファイルで送るか確認します。再起動が必要です。シークレットチャットでは利用できません。",
             @"AUDIO_TO_VOICE_FAILED": @"音声を変換できませんでした。何も送信されていません。",
             @"MESSAGE_LOG_TITLE": @"メッセージ履歴",
             @"MESSAGE_LOG_SUBTITLE": @"削除と編集を検出時刻とともに表示します。",
@@ -1490,6 +1514,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"設定ファイルが無効か未対応です。",
             @"SETTINGS_IMPORT_CONFIRM": @"このファイルの設定を%lu件適用しますか？現在の値が置き換わります。",
             @"SETTINGS_IMPORT_DONE": @"設定を読み込みました。すべて適用するにはTelegramを再起動してください。",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"音声の送信方法",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"選択した音声ファイル：%lu件。他の書類は通常どおり送信されます。",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"音声メッセージとして送信",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"通常のファイルとして送信",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1680,7 +1708,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"Пересылать без автора",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"По умолчанию скрывать исходного автора при пересылке сообщений.",
             @"AUDIO_TO_VOICE_TITLE": @"Аудиофайл в голосовое",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"Преобразовывать аудио из «Файлов» в голосовые AAC. Требуется перезапуск. Недоступно в секретных чатах.",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"После выбора аудио в «Файлах» предлагать отправку голосовым или обычным файлом. Требуется перезапуск. Недоступно в секретных чатах.",
             @"AUDIO_TO_VOICE_FAILED": @"Не удалось преобразовать аудио. Ничего не отправлено.",
             @"MESSAGE_LOG_TITLE": @"Журнал сообщений",
             @"MESSAGE_LOG_SUBTITLE": @"Удаления и правки со временем обнаружения изменения.",
@@ -1703,6 +1731,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"Некорректный или неподдерживаемый файл настроек.",
             @"SETTINGS_IMPORT_CONFIRM": @"Применить %lu настроек из файла? Текущие значения будут заменены.",
             @"SETTINGS_IMPORT_DONE": @"Настройки импортированы. Перезапусти Telegram, чтобы применить все изменения.",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"Как отправить аудио?",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Выбрано аудиофайлов: %lu. Остальные документы будут отправлены как обычно.",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"Голосовым",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"Обычным файлом",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1893,7 +1925,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"轉傳時隱藏作者",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"轉傳訊息時預設隱藏原作者。",
             @"AUDIO_TO_VOICE_TITLE": @"音訊檔案轉語音訊息",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"將在「檔案」中選擇的音訊轉換為 AAC 語音訊息。需要重新啟動。 不支援秘密聊天。",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"在「檔案」中選擇音訊後，詢問以語音還是檔案傳送。需要重新啟動。不支援秘密聊天。",
             @"AUDIO_TO_VOICE_FAILED": @"無法轉換音訊，未傳送任何內容。",
             @"MESSAGE_LOG_TITLE": @"訊息記錄",
             @"MESSAGE_LOG_SUBTITLE": @"顯示刪除和編輯記錄及其偵測時間。",
@@ -1916,6 +1948,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"設定檔無效或不受支援。",
             @"SETTINGS_IMPORT_CONFIRM": @"套用此檔案中的 %lu 項設定？目前的值將被取代。",
             @"SETTINGS_IMPORT_DONE": @"設定已匯入。請重新啟動 Telegram 以套用所有變更。",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"如何傳送音訊？",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"已選擇 %lu 個音訊檔案。其他文件將照常傳送。",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"作為語音傳送",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"作為一般檔案傳送",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -2106,7 +2142,7 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"FORWARD_DROP_AUTHOR_TITLE": @"Chuyển tiếp không kèm tác giả",
             @"FORWARD_DROP_AUTHOR_SUBTITLE": @"Mặc định ẩn tác giả gốc khi chuyển tiếp tin nhắn.",
             @"AUDIO_TO_VOICE_TITLE": @"Tệp âm thanh thành tin nhắn thoại",
-            @"AUDIO_TO_VOICE_SUBTITLE": @"Chuyển âm thanh chọn từ Tệp thành tin nhắn thoại AAC. Cần khởi động lại. Không dùng trong trò chuyện bí mật.",
+            @"AUDIO_TO_VOICE_SUBTITLE": @"Hỏi cách gửi âm thanh chọn từ Tệp: tin nhắn thoại hay tệp thường. Cần khởi động lại. Không dùng trong trò chuyện bí mật.",
             @"AUDIO_TO_VOICE_FAILED": @"Không thể chuyển đổi âm thanh. Chưa gửi gì.",
             @"MESSAGE_LOG_TITLE": @"Nhật ký tin nhắn",
             @"MESSAGE_LOG_SUBTITLE": @"Tin bị xóa và chỉnh sửa cùng thời điểm phát hiện.",
@@ -2129,6 +2165,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"SETTINGS_IMPORT_INVALID": @"Tệp cài đặt không hợp lệ hoặc không được hỗ trợ.",
             @"SETTINGS_IMPORT_CONFIRM": @"Áp dụng %lu cài đặt từ tệp này? Các giá trị hiện tại sẽ được thay thế.",
             @"SETTINGS_IMPORT_DONE": @"Đã nhập cài đặt. Khởi động lại Telegram để áp dụng mọi thay đổi.",
+            @"AUDIO_TO_VOICE_PROMPT_TITLE": @"Gửi âm thanh thế nào?",
+            @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Đã chọn %lu tệp âm thanh. Các tài liệu khác sẽ được gửi như bình thường.",
+            @"AUDIO_TO_VOICE_SEND_VOICE": @"Gửi dạng tin nhắn thoại",
+            @"AUDIO_TO_VOICE_SEND_FILE": @"Gửi dạng tệp thường",
         };
     }
     return nil;

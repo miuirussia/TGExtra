@@ -246,7 +246,7 @@
 "FORWARD_DROP_AUTHOR_TITLE" = "Chuyển tiếp không kèm tác giả";
 "FORWARD_DROP_AUTHOR_SUBTITLE" = "Mặc định ẩn tác giả gốc khi chuyển tiếp tin nhắn.";
 "AUDIO_TO_VOICE_TITLE" = "Tệp âm thanh thành tin nhắn thoại";
-"AUDIO_TO_VOICE_SUBTITLE" = "Chuyển âm thanh chọn từ Tệp thành tin nhắn thoại AAC. Cần khởi động lại. Không dùng trong trò chuyện bí mật.";
+"AUDIO_TO_VOICE_SUBTITLE" = "Hỏi cách gửi âm thanh chọn từ Tệp: tin nhắn thoại hay tệp thường. Cần khởi động lại. Không dùng trong trò chuyện bí mật.";
 "AUDIO_TO_VOICE_FAILED" = "Không thể chuyển đổi âm thanh. Chưa gửi gì.";
 "MESSAGE_LOG_TITLE" = "Nhật ký tin nhắn";
 "MESSAGE_LOG_SUBTITLE" = "Tin bị xóa và chỉnh sửa cùng thời điểm phát hiện.";
@@ -269,3 +269,8 @@
 "SETTINGS_IMPORT_INVALID" = "Tệp cài đặt không hợp lệ hoặc không được hỗ trợ.";
 "SETTINGS_IMPORT_CONFIRM" = "Áp dụng %lu cài đặt từ tệp này? Các giá trị hiện tại sẽ được thay thế.";
 "SETTINGS_IMPORT_DONE" = "Đã nhập cài đặt. Khởi động lại Telegram để áp dụng mọi thay đổi.";
+
+"AUDIO_TO_VOICE_PROMPT_TITLE" = "Gửi âm thanh thế nào?";
+"AUDIO_TO_VOICE_PROMPT_MESSAGE" = "Đã chọn %lu tệp âm thanh. Các tài liệu khác sẽ được gửi như bình thường.";
+"AUDIO_TO_VOICE_SEND_VOICE" = "Gửi dạng tin nhắn thoại";
+"AUDIO_TO_VOICE_SEND_FILE" = "Gửi dạng tệp thường";

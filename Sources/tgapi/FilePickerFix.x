@@ -1,8 +1,13 @@
 #import "Headers.h"
 #import "VideoAudioExtractor.h"
 #import "UI/TGExtraLocalization.h"
+#import "UI/AudioFileVoicePrompt.h"
 
 void TGExtraShowToast(NSString *text);
+
+@interface NSObject (TGExtraAudioPickerCancellation)
+- (void)documentPickerWasCancelled:(id)picker;
+@end
 
 bool shouldFixFilePicker() {
 	return [[NSUserDefaults standardUserDefaults] boolForKey:FILE_PICKER_FIX_KEY];
@@ -45,7 +50,7 @@ static NSURL *TGExtraRelocatePickedFile(NSURL *url) {
     return url;
 }
 
-static void TGExtraPreparePickedFiles(NSArray<NSURL *> *urls, void (^completion)(NSArray<NSURL *> *)) {
+static void TGExtraPreparePickedFiles(NSArray<NSURL *> *urls, BOOL convert, void (^completion)(NSArray<NSURL *> *)) {
     NSMutableArray<NSURL *> *scoped = [NSMutableArray new];
     for (NSURL *url in urls) if ([url startAccessingSecurityScopedResource]) [scoped addObject:url];
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
@@ -53,7 +58,7 @@ static void TGExtraPreparePickedFiles(NSArray<NSURL *> *urls, void (^completion)
         NSMutableArray<NSURL *> *exports = [NSMutableArray new];
         @autoreleasepool {
             for (NSURL *url in urls) {
-                NSURL *converted = TGExtraConvertAudioFile(url);
+                NSURL *converted = convert ? TGExtraConvertAudioFile(url) : url;
                 if (!converted) {
                     TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"AUDIO_TO_VOICE_FAILED"]);
                     for (NSURL *file in exports) [NSFileManager.defaultManager removeItemAtURL:file.URLByDeletingLastPathComponent error:NULL];
@@ -69,13 +74,32 @@ static void TGExtraPreparePickedFiles(NSArray<NSURL *> *urls, void (^completion)
     });
 }
 
+static void TGExtraHandlePickedAudioFiles(id picker, NSArray<NSURL *> *urls, void (^completion)(NSArray<NSURL *> *)) {
+    NSUInteger count = 0;
+    NSMutableArray<NSURL *> *scoped = [NSMutableArray new];
+    for (NSURL *url in urls) {
+        if (TGExtraIsAudioFile(url)) count++;
+        if ([url startAccessingSecurityScopedResource]) [scoped addObject:url];
+    }
+    void (^finish)(NSArray<NSURL *> *) = ^(NSArray<NSURL *> *prepared) {
+        completion(prepared);
+        for (NSURL *url in scoped) [url stopAccessingSecurityScopedResource];
+    };
+    if (!count) { TGExtraPreparePickedFiles(urls, NO, finish); return; }
+    TGExtraConfirmAudioFileConversion(picker, count, ^(TGExtraAudioFileChoice choice) {
+        if (choice == TGExtraAudioFileChoiceCancel) { finish(nil); return; }
+        TGExtraPreparePickedFiles(urls, choice == TGExtraAudioFileChoiceVoice, finish);
+    });
+}
+
 %hook LegacyMediaPickerUIICloudFileController
 
 - (void)documentPicker:(id)picker didPickDocumentAtURL:(NSURL *)url {
     if (url && [NSUserDefaults.standardUserDefaults boolForKey:kAudioToVoice] && [TLParser audioFileVoiceChatSupported]) {
         void (*original)(id, SEL, id, NSURL *) = &%orig;
-        TGExtraPreparePickedFiles(@[url], ^(NSArray<NSURL *> *prepared) {
+        TGExtraHandlePickedAudioFiles(picker, @[url], ^(NSArray<NSURL *> *prepared) {
             if (prepared.count) original(self, _cmd, picker, prepared.firstObject);
+            else if ([self respondsToSelector:@selector(documentPickerWasCancelled:)]) [self documentPickerWasCancelled:picker];
         });
         return;
     }
@@ -89,7 +113,10 @@ static void TGExtraPreparePickedFiles(NSArray<NSURL *> *urls, void (^completion)
 - (void)documentPicker:(id)picker didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
     if ([NSUserDefaults.standardUserDefaults boolForKey:kAudioToVoice] && [TLParser audioFileVoiceChatSupported]) {
         void (*original)(id, SEL, id, NSArray *) = &%orig;
-        TGExtraPreparePickedFiles(urls, ^(NSArray<NSURL *> *prepared) { original(self, _cmd, picker, prepared); });
+        TGExtraHandlePickedAudioFiles(picker, urls, ^(NSArray<NSURL *> *prepared) {
+            if (prepared.count) original(self, _cmd, picker, prepared);
+            else if ([self respondsToSelector:@selector(documentPickerWasCancelled:)]) [self documentPickerWasCancelled:picker];
+        });
         return;
     }
     if (!shouldFixFilePicker()) {
