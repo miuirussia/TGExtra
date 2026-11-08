@@ -84,6 +84,25 @@ func testExpandedFeatures() {
     TLParser.noteBlockedRead(historyRead(300), account: "account-2")
     check(TLParser.pendingGhostReadsAfterSend(send(), account: testAccount) == [historyRead(200) as Data], "Coalesce watermarks without releasing unrelated discussion threads")
     check(TLParser.pendingGhostReadsAfterSend(send(thread: 100), account: testAccount).count == 2, "Replies release their own discussion thread")
+    func forwardToThread(_ thread: Int32?, target: TLRecord? = nil, scheduled: Bool = false) -> NSData {
+        var fields: [String: Any] = ["flags": Int32(0), "fromPeer": other, "id": [Int32(1)],
+            "randomId": [Int64(123)], "toPeer": target ?? peer]
+        if let thread = thread { fields["topMsgId"] = thread }
+        if scheduled { fields["scheduleDate"] = Int32(999) }
+        return featureRequest(.messagesForward, fields)
+    }
+    check(TLParser.pendingGhostReadsAfterSend(forwardToThread(100), account: testAccount) == [historyRead(200) as Data, discussion as Data],
+          "Forwards release reads for their top-level destination thread")
+    for thread: Int32? in [nil, 101] {
+        check(TLParser.pendingGhostReadsAfterSend(forwardToThread(thread), account: testAccount) == [historyRead(200) as Data],
+              "Forwards outside the discussion cannot publish its reads")
+    }
+    check(TLParser.pendingGhostReadsAfterSend(forwardToThread(100, target: other), account: testAccount).isEmpty,
+          "Forward threads cannot publish another chat's reads")
+    check(TLParser.pendingGhostReadsAfterSend(forwardToThread(100), account: "account-2") == [historyRead(300) as Data],
+          "Forward threads cannot publish another account's discussion reads")
+    check(TLParser.pendingGhostReadsAfterSend(forwardToThread(100, scheduled: true), account: testAccount).isEmpty,
+          "Scheduled forwards cannot publish reads")
     check(TLParser.pendingGhostReadsAfterSend(send(other), account: testAccount).isEmpty, "Never release another chat's reads")
     check(TLParser.pendingGhostReadsAfterSend(send(), account: nil).isEmpty, "Unknown accounts cannot publish reads")
     check(TLParser.pendingGhostReadsAfterSend(send(scheduled: true), account: testAccount).isEmpty, "Scheduled sends cannot publish reads")
@@ -191,5 +210,32 @@ func testExpandedFeatures() {
     check(TLParser.voiceMedia(from: media) != nil, "File-to-voice works independently of video conversion")
     defaults.set(false, forKey: "TGExtraAudioToVoice")
     check(TLParser.voiceMedia(from: media) == nil, "Disabling file-to-voice preserves ordinary uploads")
+    defaults.set(true, forKey: "TGExtraAudioToVoice")
+    let batchNames = (0..<33).map { "TGExtraAudio-batch-\($0).m4a" }
+    let waveform = Data([1, 2, 3])
+    for (index, name) in batchNames.enumerated() {
+        TLParser.registerVoiceUpload(withFileName: name, duration: index + 1, waveform: waveform as NSData)
+    }
+    func batchUpload(_ index: Int) -> NSData {
+        let name = batchNames[index]
+        let file = Api.InputFile.inputFile(.init(id: Int64(index + 1), parts: 1, name: name, md5Checksum: ""))
+        let media = Api.InputMedia.inputMediaUploadedDocument(.init(flags: 16, file: file, thumb: nil, mimeType: "audio/mp4",
+            attributes: [.documentAttributeFilename(.init(fileName: name))], stickers: nil, videoCover: nil, videoTimestamp: nil, ttlSeconds: nil))
+        return featureRequest(.messagesSendMedia, ["flags": Int32(0), "peer": peer, "media": media.record,
+            "message": "", "randomId": Int64(index + 1)])
+    }
+    for index in Array(batchNames.indices) + [0] {
+        let payload = batchUpload(index)
+        guard let rewritten = TLParser.rewriteRequestPayload(payload),
+              let media = TLParser.request(rewritten)?["media"] as? TLRecord,
+              let attributes = media["attributes"] as? [TLRecord], attributes.count == 1 else {
+            fatalError("Every audio in a batch larger than 32, including retries, must become voice")
+        }
+        let attribute = attributes[0]
+        check(attribute.constructorName == "documentAttributeAudio" && (attribute["flags"] as? Int32 ?? 0) & (1 << 10) != 0 &&
+              attribute["duration"] as? Int32 == Int32(index + 1), "Batch uploads preserve voice flags and each file's duration")
+        check((attribute["waveform"] as? Buffer)?.makeData() == TLParser.packWaveform(waveform), "Batch uploads preserve waveforms")
+        check((media["flags"] as? Int32 ?? 0) & 16 == 0, "Batch voices clear force_file")
+    }
     print("PASS expanded Ghost Mode, read-on-reply isolation, playback privacy, event times, deleted stories, authorless forwards and audio uploads")
 }

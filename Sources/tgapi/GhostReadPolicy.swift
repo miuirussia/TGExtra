@@ -75,7 +75,7 @@ extension TLParser {
         guard let account = account, isGhostReplyPayload(payload), let record = request(payload),
               !exceptionPeer(record), let peer = requestPeer(record) else { return [] }
         let reply = record["replyTo"] as? TLRecord
-        let thread = (reply?["topMsgId"] ?? reply?["replyToMsgId"]) as? Int32
+        let thread = (record["topMsgId"] ?? reply?["topMsgId"] ?? reply?["replyToMsgId"]) as? Int32
         return pendingReads.filter {
             $0.key.account == account && $0.key.peer == peer &&
                 ($0.key.method != .messagesReadDiscussion || $0.key.thread == thread)
