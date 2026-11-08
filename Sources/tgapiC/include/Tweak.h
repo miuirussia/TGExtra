@@ -23,7 +23,7 @@ void TGExtraLogProfileFailure(int64_t userId, NSString *reason);
 void TGExtraRunProfileLookup(void *postbox, void *context, const void *voidMetadata);
 BOOL TGExtraCopyProfilePeer(void *transaction, int64_t userId, void *result);
 BOOL TGExtraProfileRefreshAvailable(void);
-void *TGExtraRefreshProfilePeer(void *engine, int64_t userId, void *context);
+void *TGExtraRefreshProfilePeer(void *engine, int64_t userId, int64_t accessHash, void *context);
 void TGExtraDisposeProfileRefresh(void *token);
 void TGExtraInvokeProfileAction(const void *function, const void *context, const void *peer);
 NSString *TGExtraRustCompatibilityStatus(void);

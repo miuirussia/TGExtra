@@ -1,6 +1,7 @@
 #import "Headers.h"
 #import "HostDisplayNode.h"
 #import "ProfileBridge.h"
+#import "ProfileNavigation.h"
 #import "../GhostExceptions.h"
 #import "../PeerInfoStore.h"
 #import "../Logger/Logger.h"
@@ -73,6 +74,9 @@ static void updateGhostExceptionButtonAppearance(UIButton *button, BOOL isExcept
         }
 
         [TGExtraGhostExceptions addPeerId:peerId.longLongValue name:name username:username];
+        if (box.object) {
+            [TGExtraProfileNavigation rememberProfileForPeerId:peerId fromNode:box.object];
+        }
         tgextraDiag("exception ADD peer=%{public}@ name=%{public}@ username=%{public}@", peerId,
                  name ?: @"(none)", username ?: @"(none)");
         TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"GHOST_EXCEPTION_ADDED_TOAST"]);
@@ -116,6 +120,9 @@ void TGExtraUpdateGhostExceptionButton(ASDisplayNode *headerNode, long long peer
         }
 
         BOOL isException = [TGExtraGhostExceptions containsPeerId:peerId];
+        if (isException) {
+            [TGExtraProfileNavigation rememberProfileForPeerId:@(peerId) fromNode:headerNode];
+        }
 
         UIButton *button = existing;
         if (!button) {

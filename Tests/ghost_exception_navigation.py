@@ -21,6 +21,7 @@ static NSUInteger requests, opens, failures;
 static void (^lookupCompletion)(TGExtraProfileOpener);
 static void TGExtraShowToast(NSString *text) { failures++; }
 @implementation TGExtraProfileNavigation
++ (void)rememberProfileForPeerId:(NSNumber *)peerId fromNode:(id)node {}
 + (void)loadProfileForPeerId:(NSNumber *)peerId fromNode:(id)node
                  completion:(void (^)(TGExtraProfileOpener))completion {
     requests++;

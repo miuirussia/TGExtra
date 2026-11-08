@@ -3,6 +3,56 @@ import tgapiC
 
 @objc(TGExtraProfileNavigation)
 final class ProfileNavigation: NSObject {
+    private static let accessHashesKey = "TGExtraProfileAccessHashesByAccount"
+    private static let accessHashesLock = NSLock()
+
+    @objc(rememberProfileForPeerId:fromNode:)
+    static func rememberProfile(peerId: NSNumber, fromNode node: Any) {
+        guard let context = HostValueReader.storedField("context", in: node) else { return }
+        let data = HostValueReader.storedField("data", in: node)
+        guard let peer = HostValueReader.storedField("peer", in: node)
+                ?? data.flatMap({ HostValueReader.storedField("peer", in: $0) }) else { return }
+        rememberAccessHash(peerId: peerId.int64Value, peer: peer, context: context)
+    }
+
+    private static func rememberAccessHash(peerId: Int64, peer: Any, context: Any) {
+        var user = HostValueReader.unwrapOptional(peer)
+        if String(reflecting: type(of: user)) == "TelegramCore.EnginePeer" {
+            guard let payload = Mirror(reflecting: user).children.first,
+                  payload.label == "user" else { return }
+            user = payload.value
+        }
+        guard peerId > 0,
+              String(reflecting: type(of: user)) == "TelegramCore.TelegramUser",
+              let id = HostValueReader.storedField("id", in: user),
+              let namespace = HostValueReader.storedField("namespace", in: id),
+              HostValueReader.rawNumber(namespace) == 0,
+              let value = HostValueReader.storedField("id", in: id),
+              HostValueReader.rawNumber(value) == peerId,
+              let hash = HostValueReader.storedField("accessHash", in: user),
+              let payload = Mirror(reflecting: HostValueReader.unwrapOptional(hash)).children.first,
+              payload.label == "personal", let hashValue = payload.value as? Int64, hashValue != 0,
+              let account = HostAccountReader.account(in: context) else { return }
+        accessHashesLock.lock()
+        defer { accessHashesLock.unlock() }
+        var accounts = UserDefaults.standard.dictionary(forKey: accessHashesKey) ?? [:]
+        var hashes = accounts[account] as? [String: NSNumber] ?? [:]
+        let key = String(peerId)
+        guard hashes[key]?.int64Value != hashValue else { return }
+        hashes[key] = NSNumber(value: hashValue)
+        accounts[account] = hashes
+        UserDefaults.standard.set(accounts, forKey: accessHashesKey)
+    }
+
+    private static func accessHash(peerId: Int64, context: Any) -> Int64 {
+        guard let account = HostAccountReader.account(in: context) else { return 0 }
+        accessHashesLock.lock()
+        defer { accessHashesLock.unlock() }
+        let accounts = UserDefaults.standard.dictionary(forKey: accessHashesKey)
+        let hashes = accounts?[account] as? [String: NSNumber]
+        return hashes?[String(peerId)]?.int64Value ?? 0
+    }
+
     @objc(loadProfileForPeerId:fromNode:completion:)
     static func loadProfile(peerId: NSNumber, fromNode node: Any,
                             completion: @escaping ((() -> Bool)?) -> Void) {
@@ -81,6 +131,7 @@ final class ProfileNavigation: NSObject {
                     let peer = result.move()
                     result.deallocate()
                     DispatchQueue.main.async {
+                        rememberAccessHash(peerId: peerId.int64Value, peer: peer, context: context)
                         completion {
                             guard let previous = (navigation.value(forKey: "viewControllers") as? [NSObject])?.last else {
                                 TGExtraLogProfileFailure(peerId.int64Value, "navigation stack unavailable")
@@ -133,7 +184,8 @@ final class ProfileNavigation: NSObject {
         let request = ProfileRefreshRequest(completion: completion)
         withExtendedLifetime((engine, request)) {
             request.token = TGExtraRefreshProfilePeer(Unmanaged.passUnretained(engine as AnyObject).toOpaque(),
-                peerId, Unmanaged.passUnretained(request).toOpaque())
+                peerId, accessHash(peerId: peerId, context: context),
+                Unmanaged.passUnretained(request).toOpaque())
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak request] in
             request?.finish("server lookup by ID timed out")

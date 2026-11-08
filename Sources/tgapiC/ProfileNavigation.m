@@ -75,7 +75,7 @@ static void __attribute__((swiftcall)) refreshFailed(const void *error, void *co
     TGExtraProfileRefreshFinished(context, NO);
 }
 
-void *TGExtraRefreshProfilePeer(void *engine, int64_t userId, void *context) {
+void *TGExtraRefreshProfilePeer(void *engine, int64_t userId, int64_t accessHash, void *context) {
     GetterFunction getPeers = dlsym(RTLD_DEFAULT, "$s12TelegramCore0A6EngineC5peersAC5PeersCvg");
     RefreshFunction refresh = dlsym(RTLD_DEFAULT, "$s12TelegramCore0A6EngineC5PeersC17updatedRemotePeer4peer14SwiftSignalKit0J0CyAA0cG0OAA07UpdatedfG5ErrorOGAA0G9ReferenceO_tF");
     GetterFunction makeToken = dlsym(RTLD_DEFAULT, "$s14SwiftSignalKit14MetaDisposableCACycfC");
@@ -84,8 +84,8 @@ void *TGExtraRefreshProfilePeer(void *engine, int64_t userId, void *context) {
     void (*release)(void *) = dlsym(RTLD_DEFAULT, "swift_release");
     void *peers = getPeers(engine);
     // PeerReference.user(id:accessHash:) lowers to two Int64s and tag zero.
-    // Let the source account try the ID without a cached access hash.
-    void *signal = refresh(userId, 0, 0, peers);
+    // Only reuse a personal access hash captured in this source account.
+    void *signal = refresh(userId, accessHash, 0, peers);
     void *token = makeToken(dlsym(RTLD_DEFAULT, "$s14SwiftSignalKit14MetaDisposableCN"));
     TGExtraClassExistential disposable = start(NULL, NULL, refreshFailed, context, refreshCompleted, context, signal);
     set(disposable.object, disposable.witness, token);

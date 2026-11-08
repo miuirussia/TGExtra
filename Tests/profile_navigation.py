@@ -27,6 +27,9 @@ with tempfile.TemporaryDirectory(prefix='tgextra-profile-navigation-') as direct
     logger = tmp / 'logger.o'
     run('clang', '-fobjc-arc', '-Werror', '-DTGEXTRA_TESTING', '-c',
         'Sources/tgapi/Logger/Logger.m', '-o', str(logger))
+    account = tmp / 'account.o'
+    run('clang', '-fobjc-arc', '-Werror', '-c',
+        'Sources/tgapiC/HistoryAccount.m', '-o', str(account))
     missing = tmp / 'missing.m'
     missing.write_text('''#import "Tweak.h"
 void TGExtraProfileLookupBody(void *context, void *transaction) {}
@@ -48,8 +51,9 @@ int main(void) {
             '-lPostbox', '-lSwiftSignalKit', '-lTelegramCore', '-I', 'Sources/tgapiC/include',
             '-import-objc-header', 'Sources/tgapi/Logger/Logger.h',
             '-Xlinker', '-rpath', '-Xlinker', str(tmp),
-            'Sources/tgapi/HostValueReader.swift', 'Sources/tgapi/UI/ProfileNavigation.swift',
-            str(main), str(bridge), str(logger), '-o', str(binary), '-emit-executable')
+            'Sources/tgapi/HostValueReader.swift', 'Sources/tgapi/HostAccountReader.swift',
+            'Sources/tgapi/UI/ProfileNavigation.swift',
+            str(main), str(bridge), str(logger), str(account), '-o', str(binary), '-emit-executable')
         run(str(binary))
     definitions = (ROOT / 'Tests/profile_navigation.swift').read_text().split(
         'precondition(TGExtraProfileLookupAvailable()')[0]
@@ -81,6 +85,7 @@ print("PASS changed future native layout is rejected before calling the native A
         run('swiftc', '-D', future, '-I', str(tmp), '-L', str(tmp), '-lPostbox', '-lSwiftSignalKit', '-lTelegramCore',
             '-import-objc-header', 'Sources/tgapi/Logger/Logger.h',
             '-I', 'Sources/tgapiC/include', '-Xlinker', '-rpath', '-Xlinker', str(tmp),
-            'Sources/tgapi/HostValueReader.swift', 'Sources/tgapi/UI/ProfileNavigation.swift',
-            str(main), str(bridge), str(logger), '-o', str(binary))
+            'Sources/tgapi/HostValueReader.swift', 'Sources/tgapi/HostAccountReader.swift',
+            'Sources/tgapi/UI/ProfileNavigation.swift',
+            str(main), str(bridge), str(logger), str(account), '-o', str(binary))
         run(str(binary))

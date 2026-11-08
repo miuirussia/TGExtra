@@ -35,6 +35,10 @@ private class ProfileNode {
     }
 }
 private final class InheritedProfileNode: ProfileNode {}
+private struct ProfileHeader {
+    let context: Context
+    let peer: EnginePeer?
+}
 
 private func waitFor(_ condition: () -> Bool, timeout: TimeInterval = 5) {
     let deadline = Date().addingTimeInterval(timeout)
@@ -199,3 +203,59 @@ RunLoop.current.run(until: Date().addingTimeInterval(0.05))
 precondition(completions == 1, "A late server response must not finish navigation twice")
 waitFor { DisposableProbe.liveTokens == 0 }
 print("PASS server timeout cancels the request and ignores late completion")
+
+// A real server requires the personal access hash for ordinary user IDs.
+let hashId: Int64 = 5_365_271_490
+let hash: Int64 = -8_765_432_109_876_543_210
+let hashUser = TelegramUser(hashId, accessHash: .personal(hash))
+let hashPostbox = Postbox()
+private let hashNavigation = NavigationProbe()
+private let hashNode = ProfileNode(hashPostbox, navigation: hashNavigation) { peer, _ in
+    precondition(peer.id == hashId)
+    hashNavigation.viewControllers.append(NSObject())
+}
+let hashStoreKey = "TGExtraProfileAccessHashesByAccount"
+UserDefaults.standard.removeObject(forKey: hashStoreKey)
+ProfileNavigation.rememberProfile(peerId: NSNumber(value: hashId),
+    fromNode: ProfileHeader(context: hashNode.context, peer: .user(hashUser)))
+precondition(UserDefaults.standard.dictionary(forKey: hashStoreKey) != nil,
+             "Persist personal access hashes across launches, outside exported settings")
+hashNode.context.account.remoteUsers[hashId] = hashUser
+hashNode.context.account.requiredAccessHashes[hashId] = hash
+completed = false
+ProfileNavigation.loadProfile(peerId: NSNumber(value: hashId), fromNode: hashNode) { action in
+    precondition(action?() == true, "Recover a missing peer with its saved 64-bit personal access hash")
+    completed = true
+}
+waitFor { completed }
+precondition(hashNode.context.account.refreshes == [hashId])
+
+// A lower-quality min hash, wrong peer or unsupported header must not overwrite it.
+for peer in [EnginePeer.user(TelegramUser(hashId, accessHash: .genericPublic(123))),
+             .user(TelegramUser(hashId + 1, accessHash: .personal(456)))] {
+    ProfileNavigation.rememberProfile(peerId: NSNumber(value: hashId),
+        fromNode: ProfileHeader(context: hashNode.context, peer: peer))
+}
+ProfileNavigation.rememberProfile(peerId: NSNumber(value: hashId), fromNode: NSObject())
+hashPostbox.peers.removeAll()
+completed = false
+ProfileNavigation.loadProfile(peerId: NSNumber(value: hashId), fromNode: hashNode) { action in
+    precondition(action?() == true, "Keep the full hash when a min user is displayed later")
+    completed = true
+}
+waitFor { completed }
+
+// Global exceptions must never reuse access hashes captured in another account.
+let isolatedPostbox = Postbox()
+private let isolatedNode = ProfileNode(isolatedPostbox) { _, _ in preconditionFailure("Another account") }
+isolatedNode.context.account.remoteUsers[hashId] = hashUser
+isolatedNode.context.account.requiredAccessHashes[hashId] = hash
+completed = false
+ProfileNavigation.loadProfile(peerId: NSNumber(value: hashId), fromNode: isolatedNode) { action in
+    precondition(action == nil, "A saved access hash cannot cross account boundaries")
+    completed = true
+}
+waitFor { completed }
+UserDefaults.standard.removeObject(forKey: hashStoreKey)
+waitFor { DisposableProbe.liveTokens == 0 }
+print("PASS personal access hash recovery, persistence, min-hash protection and account isolation")

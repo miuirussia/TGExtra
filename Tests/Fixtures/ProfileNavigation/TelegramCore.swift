@@ -1,9 +1,17 @@
 import Postbox
 import SwiftSignalKit
 
+public enum TelegramPeerAccessHash {
+    case personal(Int64)
+    case genericPublic(Int64)
+}
 public final class TelegramUser: Peer {
     public let id: PeerId
-    public init(_ id: Int64) { self.id = PeerId(namespace: 0, id: id) }
+    public let accessHash: TelegramPeerAccessHash?
+    public init(_ id: Int64, accessHash: TelegramPeerAccessHash? = nil) {
+        self.id = PeerId(namespace: 0, id: id)
+        self.accessHash = accessHash
+    }
 }
 public enum EnginePeer {
     case user(TelegramUser)
@@ -35,13 +43,18 @@ public enum PeerReference {
 }
 public enum UpdatedRemotePeerError { case generic }
 public final class Account {
+    public let basePath: String
     public let postbox: Postbox
     public var remoteUsers = [Int64: TelegramUser]()
+    public var requiredAccessHashes = [Int64: Int64]()
     public var refreshes = [Int64]()
     public var deferRefresh = false
     public var pendingCompletion: (() -> Void)?
     public var cancellations = 0
-    public init(postbox: Postbox) { self.postbox = postbox }
+    public init(postbox: Postbox) {
+        self.postbox = postbox
+        self.basePath = "/accounts/account-\(UInt(bitPattern: ObjectIdentifier(postbox)))"
+    }
 }
 public final class TelegramEngine {
     public final class Peers {
@@ -49,9 +62,12 @@ public final class TelegramEngine {
         init(account: Account) { self.account = account }
         public func updatedRemotePeer(peer: PeerReference) -> Signal<EnginePeer, UpdatedRemotePeerError> {
             guard case let .user(id, accessHash) = peer else { preconditionFailure("Only resolve a user ID") }
-            precondition(accessHash == 0)
             account.refreshes.append(id)
             return Signal(cancellable: { next, error, completed in
+                if accessHash != (self.account.requiredAccessHashes[id] ?? 0) {
+                    error(.generic)
+                    return {}
+                }
                 if self.account.deferRefresh {
                     self.account.pendingCompletion = completed
                     return {
