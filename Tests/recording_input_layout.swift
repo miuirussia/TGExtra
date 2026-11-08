@@ -18,6 +18,14 @@ final class LayoutActions: NSObject {
     let sendContainerNode = LayoutNode()
     let expandMediaInputButton = UIButton()
     let expandMediaInputButtonBackgroundView = UIView()
+
+    override init() {
+        super.init()
+        view.addSubview(micButtonBackgroundView)
+        view.addSubview(expandMediaInputButtonBackgroundView)
+        expandMediaInputButtonBackgroundView.addSubview(expandMediaInputButton)
+        view.addSubview(sendContainerNode.view)
+    }
 }
 
 final class LegacyInputBackdrop: UIView {
@@ -165,6 +173,10 @@ final class InputPanel: NSObject {
                 widthAnimation.duration = 1
                 background.layer.add(widthAnimation, forKey: "bounds.size")
                 layoutRecordingInput(background)
+                precondition(panel.mediaActionButtons.expandMediaInputButtonBackgroundView.superview == nil,
+                             "Remove the inactive expand control's entire background from the hierarchy")
+                precondition(!panel.mediaActionButtons.expandMediaInputButton.isDescendant(of: panel.view),
+                             "The inactive sticker button must leave the input hierarchy")
                 let nativeHiddenPanel = InputPanel()
                 nativeHiddenPanel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact, fullWidth: true)
                 precondition(background.frame == nativeHiddenPanel.textInputContainerBackgroundView.frame,
@@ -199,6 +211,35 @@ final class InputPanel: NSObject {
                 let expandFrame = background.frame
                 layoutRecordingInput(background)
                 precondition(background.frame == expandFrame, "Reserve the media keyboard's expand button")
+                precondition(panel.mediaActionButtons.expandMediaInputButton.isDescendant(of: panel.view),
+                             "Restore the expand button when the sticker panel opens")
+                precondition(panel.mediaActionButtons.view.subviews[1] === panel.mediaActionButtons.expandMediaInputButtonBackgroundView,
+                             "Restore the expand background at its original position among other actions")
+                background.layoutIfNeeded()
+                // Closing the media keyboard only changes the action layer's opacity;
+                // the native input frame can stay the same as while stickers were open.
+                panel.mediaActionButtons.expandMediaInputButtonBackgroundView.layer.opacity = 0
+                precondition(panel.mediaActionButtons.expandMediaInputButtonBackgroundView.superview == nil,
+                             "Detach the expand background immediately when stickers close")
+                background.layoutIfNeeded()
+                precondition(background.frame == after,
+                             "Reclaim the recording slot after closing stickers without another native layout")
+                precondition(abs(panel.editor.bounds.width - (oldEditorWidth + reclaimedWidth)) < 0.01,
+                             "Expand the editor together with the background after closing stickers")
+                precondition(abs(panel.accessory.frame.minX - (oldAccessoryX + reclaimedWidth)) < 0.01,
+                             "Move input accessories into the reclaimed sticker slot")
+                bindRecordingInput(panel)
+                panel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact, hasExpand: true)
+                bindRecordingInput(panel)
+                background.layoutIfNeeded()
+                precondition(background.frame == expandFrame, "Keep expansion available after reopening stickers")
+                precondition(panel.mediaActionButtons.expandMediaInputButton.isDescendant(of: panel.view),
+                             "Rebinding while detached must preserve the expand button's parent")
+                panel.mediaActionButtons.expandMediaInputButtonBackgroundView.alpha = 0
+                background.layoutIfNeeded()
+                precondition(background.frame == after, "Rebinding and repeated sticker dismissal still reclaim the slot")
+                precondition(!panel.mediaActionButtons.expandMediaInputButton.isDescendant(of: panel.view),
+                             "Remove the expand button again after reopening and closing stickers")
                 panel.nativeLayout(width: width, trailingInset: inset, compactSideInset: compact, fullWidth: true)
                 let fullFrame = background.frame
                 layoutRecordingInput(background)
@@ -246,7 +287,18 @@ final class InputPanel: NSObject {
         let unbound = InputGlass(frame: CGRect(x: 10, y: 0, width: 200, height: 40))
         layoutRecordingInput(unbound)
         precondition(unbound.bounds.width == 200, "Leave unrelated glass views alone")
-        print("PASS real UIKit recording-slot layout: phone/tablet/landscape, safe insets, glass, editor, masks, autoresizing, text/empty transitions and other controls")
+        weak var releasedBackground: UIView?
+        let retainedExpand = autoreleasepool { () -> UIView in
+            let panel = InputPanel()
+            panel.nativeLayout(width: 375, hasExpand: true)
+            bindRecordingInput(panel)
+            bindRecordingInput(panel)
+            releasedBackground = panel.textInputContainerBackgroundView
+            return panel.mediaActionButtons.expandMediaInputButtonBackgroundView
+        }
+        precondition(releasedBackground == nil, "Observing the sticker action must not retain the input panel")
+        retainedExpand.layer.opacity = 0 // The input owner's observer must have been removed.
+        print("PASS real UIKit recording-slot layout: phone/tablet/landscape, safe insets, glass, editor, masks, autoresizing, text/empty and sticker transitions, observer cleanup and other controls")
     }
 }
 

@@ -13,10 +13,49 @@
 - (UIView *)view;
 @end
 
+static char TGExtraRecordingExpandOpacityContext;
+
 @interface TGExtraRecordingInputOwner : NSObject
 @property (nonatomic, weak) id node;
+@property (nonatomic, weak) UIView *background;
+@property (nonatomic, weak) UIView *expandView;
+@property (nonatomic, weak) UIView *expandSuperview;
+@property (nonatomic) NSUInteger expandSubviewIndex;
+@property (nonatomic, strong) CALayer *expandLayer;
+- (void)updateExpandControl;
 @end
 @implementation TGExtraRecordingInputOwner
+- (void)updateExpandControl {
+    UIView *expand = self.expandView;
+    if (!expand) return;
+    if (expand.superview) {
+        self.expandSuperview = expand.superview;
+        self.expandSubviewIndex = [expand.superview.subviews indexOfObjectIdenticalTo:expand];
+    }
+    if (self.expandLayer.opacity > 0.01) {
+        UIView *parent = self.expandSuperview;
+        if (!expand.superview && parent) {
+            [parent insertSubview:expand atIndex:MIN(self.expandSubviewIndex, parent.subviews.count)];
+        }
+    } else {
+        [expand removeFromSuperview];
+    }
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object
+                       change:(NSDictionary *)change context:(void *)context {
+    if (context == &TGExtraRecordingExpandOpacityContext) {
+        // Closing stickers may only hide this layer, without resizing the input background.
+        [self updateExpandControl];
+        [self.background setNeedsLayout];
+        return;
+    }
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+}
+
+- (void)dealloc {
+    [_expandLayer removeObserver:self forKeyPath:@"opacity" context:&TGExtraRecordingExpandOpacityContext];
+}
 @end
 
 static char TGExtraRecordingInputOwnerKey;
@@ -30,9 +69,24 @@ void TGExtraBindRecordingInput(id node) {
     NSDictionary *layout = [TGExtraRecordingControls inputLayoutFromNode:node];
     UIView *background = TGExtraRecordingView(layout[@"textInputContainerBackgroundView"]);
     if (!background) return;
-    TGExtraRecordingInputOwner *owner = [TGExtraRecordingInputOwner new];
+    TGExtraRecordingInputOwner *owner = objc_getAssociatedObject(background, &TGExtraRecordingInputOwnerKey);
+    if (owner.node == node) {
+        [owner updateExpandControl];
+        [background setNeedsLayout];
+        return;
+    }
+    owner = [TGExtraRecordingInputOwner new];
     owner.node = node;
+    owner.background = background;
+    id media = layout[@"mediaActionButtons"];
+    NSDictionary *controls = media ? [TGExtraRecordingControls fromNode:media] : nil;
+    UIView *expand = TGExtraRecordingView(controls[@"expandMediaInputButtonBackgroundView"]
+        ?: controls[@"expandMediaInputButton"]);
+    owner.expandView = expand;
+    owner.expandLayer = expand.layer;
+    [owner.expandLayer addObserver:owner forKeyPath:@"opacity" options:0 context:&TGExtraRecordingExpandOpacityContext];
     objc_setAssociatedObject(background, &TGExtraRecordingInputOwnerKey, owner, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    [owner updateExpandControl];
     [background setNeedsLayout];
 }
 
@@ -77,6 +131,7 @@ void TGExtraLayoutRecordingInput(UIView *background) {
         [background setNeedsLayout];
         return;
     }
+    [owner updateExpandControl];
     if ([layout[@"hasOtherRightAction"] boolValue] || [layout[@"rightSlowModeInset"] doubleValue] > 0.0) return;
     UIView *media = TGExtraRecordingView(layout[@"mediaActionButtons"]);
     UIView *panel = TGExtraRecordingView(node);
