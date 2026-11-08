@@ -16,7 +16,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-profile-navigation-') as direct
     for module, source, dependencies in [
         ('SwiftSignalKit', 'Tests/Fixtures/MessageCleanup/Signal.swift', []),
         ('Postbox', 'Tests/Fixtures/ProfileNavigation/Postbox.swift', ['-lSwiftSignalKit']),
-        ('TelegramCore', 'Tests/Fixtures/ProfileNavigation/TelegramCore.swift', ['-lPostbox']),
+        ('TelegramCore', 'Tests/Fixtures/ProfileNavigation/TelegramCore.swift', ['-lPostbox', '-lSwiftSignalKit']),
     ]:
         run('swiftc', '-emit-library', '-emit-module', '-module-name', module,
             '-I', str(tmp), '-L', str(tmp), *dependencies, source,
@@ -30,8 +30,10 @@ with tempfile.TemporaryDirectory(prefix='tgextra-profile-navigation-') as direct
     missing = tmp / 'missing.m'
     missing.write_text('''#import "Tweak.h"
 void TGExtraProfileLookupBody(void *context, void *transaction) {}
+void TGExtraProfileRefreshFinished(void *context, BOOL success) {}
 int main(void) {
     NSCAssert(!TGExtraProfileLookupAvailable(), @"Missing host exports must disable the native bridge");
+    NSCAssert(!TGExtraProfileRefreshAvailable(), @"Missing remote lookup exports must disable recovery");
     puts("PASS missing native profile exports are handled safely");
 }
 ''')
@@ -60,17 +62,23 @@ ProfileNavigation.loadProfile(peerId: 42, fromNode: node) { action in
     precondition(action == nil)
     completed = true
 }
+#if FUTURE_REFERENCE_LAYOUT
+waitFor { completed }
+precondition(postbox.transactions == 1 && node.context.account.refreshes.isEmpty)
+#else
 precondition(completed && postbox.transactions == 0)
+#endif
 precondition(TGExtraReadLog().contains("peer=42 reason=unsupported native"))
 print("PASS changed future native layout is rejected before calling the native ABI")
 ''')
-    for future in ['FUTURE_PROFILE_LAYOUT', 'FUTURE_PEER_ID_LAYOUT']:
+    for future in ['FUTURE_PROFILE_LAYOUT', 'FUTURE_PEER_ID_LAYOUT', 'FUTURE_REFERENCE_LAYOUT']:
         for module, dependency in [('Postbox', 'SwiftSignalKit'), ('TelegramCore', 'Postbox')]:
             run('swiftc', '-D', future, '-emit-library', '-emit-module', '-module-name', module,
                 '-I', str(tmp), '-L', str(tmp), f'-l{dependency}',
+                *(['-lSwiftSignalKit'] if dependency != 'SwiftSignalKit' else []),
                 f'Tests/Fixtures/ProfileNavigation/{module}.swift',
                 '-emit-module-path', str(tmp / f'{module}.swiftmodule'), '-o', str(tmp / f'lib{module}.dylib'))
-        run('swiftc', '-I', str(tmp), '-L', str(tmp), '-lPostbox', '-lSwiftSignalKit', '-lTelegramCore',
+        run('swiftc', '-D', future, '-I', str(tmp), '-L', str(tmp), '-lPostbox', '-lSwiftSignalKit', '-lTelegramCore',
             '-import-objc-header', 'Sources/tgapi/Logger/Logger.h',
             '-I', 'Sources/tgapiC/include', '-Xlinker', '-rpath', '-Xlinker', str(tmp),
             'Sources/tgapi/HostValueReader.swift', 'Sources/tgapi/UI/ProfileNavigation.swift',

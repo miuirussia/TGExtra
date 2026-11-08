@@ -4,8 +4,14 @@ import TelegramCore
 import SwiftSignalKit
 import tgapiC
 
-private struct Account { let postbox: Postbox }
-private struct Context { let account: Account }
+private struct Context {
+    let account: Account
+    let engine: TelegramEngine
+    init(postbox: Postbox) {
+        account = Account(postbox: postbox)
+        engine = TelegramEngine(account: account)
+    }
+}
 private struct ProfileData { let peer: EnginePeer? }
 private struct Interaction { let openPeerInfo: (EnginePeer, Bool) -> Void }
 private final class NavigationProbe: NSObject {
@@ -22,7 +28,7 @@ private class ProfileNode {
     let controller: ControllerProbe?
     init(_ postbox: Postbox, navigation: NavigationProbe = NavigationProbe(),
          action: @escaping (EnginePeer, Bool) -> Void) {
-        context = Context(account: Account(postbox: postbox))
+        context = Context(postbox: postbox)
         data = ProfileData(peer: .user(TelegramUser(1)))
         _interaction = Interaction(openPeerInfo: action)
         controller = ControllerProbe(navigation)
@@ -30,8 +36,8 @@ private class ProfileNode {
 }
 private final class InheritedProfileNode: ProfileNode {}
 
-private func waitFor(_ condition: () -> Bool) {
-    let deadline = Date().addingTimeInterval(5)
+private func waitFor(_ condition: () -> Bool, timeout: TimeInterval = 5) {
+    let deadline = Date().addingTimeInterval(timeout)
     while !condition() && Date() < deadline {
         RunLoop.current.run(until: Date().addingTimeInterval(0.01))
     }
@@ -39,6 +45,7 @@ private func waitFor(_ condition: () -> Bool) {
 }
 
 precondition(TGExtraProfileLookupAvailable(), "Resolve real Swift exports")
+precondition(TGExtraProfileRefreshAvailable(), "Resolve native server lookup and cancellation exports")
 TGExtraClearLog()
 let first = Postbox(), second = Postbox()
 let id: Int64 = 7_331_000_001
@@ -123,15 +130,72 @@ ProfileNavigation.loadProfile(peerId: NSNumber(value: id), fromNode: otherNode) 
 waitFor { completed }
 let log = TGExtraReadLog() ?? ""
 for entry in [
-    "peer=7331000001 reason=user not found in source account",
+    "peer=7331000001 reason=server lookup by ID failed; user inaccessible or access hash required",
     "peer=42 reason=native profile action did not open a controller",
     "peer=0 reason=invalid user ID",
     "peer=-1 reason=invalid user ID",
     "peer=42 reason=native profile action missing",
     "peer=42 reason=unsupported native profile action signature:",
 ] {
-    precondition(log.contains(entry), "Missing profile failure diagnostic: \(entry)")
+    precondition(log.contains(entry), "Missing profile failure diagnostic: \(entry)\n\(log)")
 }
 precondition(log.components(separatedBy: "Ghost profile: open failed").count == 8,
              "Write one diagnostic for each failed navigation")
 print("PASS native profiles, account isolation, lifetime and persisted failure logs with user IDs and reasons")
+
+// A user absent from this account's Postbox can be recovered strictly by ID.
+TGExtraClearLog()
+let remoteId: Int64 = 5_365_271_490
+private let remoteNavigation = NavigationProbe()
+private let remoteNode = ProfileNode(second, navigation: remoteNavigation) { peer, _ in
+    precondition(peer.id == remoteId && Thread.isMainThread)
+    remoteNavigation.viewControllers.append(NSObject())
+}
+remoteNode.context.account.remoteUsers[remoteId] = TelegramUser(remoteId)
+completed = false
+ProfileNavigation.loadProfile(peerId: NSNumber(value: remoteId), fromNode: remoteNode) { action in
+    precondition(Thread.isMainThread && action != nil)
+    opener = action
+    completed = true
+}
+waitFor { completed }
+precondition(remoteNode.context.account.refreshes == [remoteId], "Fetch the exact 64-bit ID once")
+precondition(remoteNavigation.viewControllers.count == 1, "Keep settings until lookup finishes")
+precondition(opener?() == true)
+opener = nil
+waitFor { DisposableProbe.liveTokens == 0 }
+precondition(TGExtraReadLog().isEmpty)
+
+// A mismatched server result must never navigate to another ID or loop.
+let missingId: Int64 = remoteId + 1
+remoteNode.context.account.remoteUsers[missingId] = TelegramUser(remoteId + 2)
+completed = false
+ProfileNavigation.loadProfile(peerId: NSNumber(value: missingId), fromNode: remoteNode) { action in
+    precondition(action == nil)
+    completed = true
+}
+waitFor { completed }
+precondition(remoteNode.context.account.refreshes == [remoteId, missingId])
+precondition(TGExtraReadLog().contains("user not found in source account after server lookup by ID"))
+waitFor { DisposableProbe.liveTokens == 0 }
+print("PASS ID-only server recovery, exact-ID verification and disposable cleanup")
+
+remoteNode.context.account.deferRefresh = true
+completed = false
+var completions = 0
+ProfileNavigation.loadProfile(peerId: 999, fromNode: remoteNode) { action in
+    precondition(action == nil && Thread.isMainThread)
+    completions += 1
+    completed = true
+}
+waitFor { remoteNode.context.account.pendingCompletion != nil }
+let lateCompletion = remoteNode.context.account.pendingCompletion
+waitFor({ completed }, timeout: 20)
+precondition(remoteNode.context.account.cancellations == 1)
+precondition(remoteNode.context.account.pendingCompletion == nil)
+precondition(TGExtraReadLog().contains("peer=999 reason=server lookup by ID timed out"))
+lateCompletion?()
+RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+precondition(completions == 1, "A late server response must not finish navigation twice")
+waitFor { DisposableProbe.liveTokens == 0 }
+print("PASS server timeout cancels the request and ignores late completion")

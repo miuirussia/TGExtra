@@ -61,42 +61,83 @@ final class ProfileNavigation: NSObject {
                 reject("unsupported native EnginePeer size: \(MemoryLayout<Peer>.size)")
                 return
             }
-            let request = ProfileLookupRequest { transaction in
-                let result = UnsafeMutablePointer<Peer>.allocate(capacity: 1)
-                guard TGExtraCopyProfilePeer(transaction, peerId.int64Value, result) else {
-                    result.deallocate()
-                    DispatchQueue.main.async { reject("user not found in source account") }
-                    return
-                }
-                let peer = result.move()
-                result.deallocate()
-                DispatchQueue.main.async {
-                    completion {
-                        guard let previous = (navigation.value(forKey: "viewControllers") as? [NSObject])?.last else {
-                            TGExtraLogProfileFailure(peerId.int64Value, "navigation stack unavailable")
-                            return false
-                        }
-                        withExtendedLifetime((node, action)) {
-                            withUnsafePointer(to: peer) {
-                                TGExtraInvokeProfileAction(open.function, open.context, $0)
+            func lookup(refreshIfMissing: Bool) {
+                let request = ProfileLookupRequest { transaction in
+                    let result = UnsafeMutablePointer<Peer>.allocate(capacity: 1)
+                    guard TGExtraCopyProfilePeer(transaction, peerId.int64Value, result) else {
+                        result.deallocate()
+                        DispatchQueue.main.async {
+                            guard refreshIfMissing else {
+                                reject("user not found in source account after server lookup by ID")
+                                return
+                            }
+                            refreshProfile(peerId: peerId.int64Value, context: context) { failure in
+                                if let failure = failure { reject(failure) }
+                                else { lookup(refreshIfMissing: false) }
                             }
                         }
-                        let current = (navigation.value(forKey: "viewControllers") as? [NSObject])?.last
-                        let opened = current != nil && current !== previous
-                        if !opened {
-                            TGExtraLogProfileFailure(peerId.int64Value, "native profile action did not open a controller")
+                        return
+                    }
+                    let peer = result.move()
+                    result.deallocate()
+                    DispatchQueue.main.async {
+                        completion {
+                            guard let previous = (navigation.value(forKey: "viewControllers") as? [NSObject])?.last else {
+                                TGExtraLogProfileFailure(peerId.int64Value, "navigation stack unavailable")
+                                return false
+                            }
+                            withExtendedLifetime((node, action)) {
+                                withUnsafePointer(to: peer) {
+                                    TGExtraInvokeProfileAction(open.function, open.context, $0)
+                                }
+                            }
+                            let current = (navigation.value(forKey: "viewControllers") as? [NSObject])?.last
+                            let opened = current != nil && current !== previous
+                            if !opened {
+                                TGExtraLogProfileFailure(peerId.int64Value, "native profile action did not open a controller")
+                            }
+                            return opened
                         }
-                        return opened
                     }
                 }
+                withExtendedLifetime((postbox, request)) {
+                    TGExtraRunProfileLookup(Unmanaged.passUnretained(postbox as AnyObject).toOpaque(),
+                        Unmanaged.passUnretained(request).toOpaque(),
+                        unsafeBitCast(Void.self, to: UnsafeRawPointer.self))
+                }
             }
-            withExtendedLifetime((postbox, request)) {
-                TGExtraRunProfileLookup(Unmanaged.passUnretained(postbox as AnyObject).toOpaque(),
-                    Unmanaged.passUnretained(request).toOpaque(),
-                    unsafeBitCast(Void.self, to: UnsafeRawPointer.self))
-            }
+            lookup(refreshIfMissing: true)
         }
         _openExistential(peerType, do: load)
+    }
+
+    private static func refreshProfile(peerId: Int64, context: Any,
+                                       completion: @escaping (String?) -> Void) {
+        guard TGExtraProfileRefreshAvailable(),
+              let engine = HostValueReader.storedField("engine", in: context),
+              String(reflecting: type(of: engine)) == "TelegramCore.TelegramEngine" else {
+            completion("user not found in source account; native server lookup by ID unavailable")
+            return
+        }
+        guard let referenceType = _typeByName("12TelegramCore13PeerReferenceO") else {
+            completion("native PeerReference metadata unavailable")
+            return
+        }
+        func referenceLayout<Value>(_: Value.Type) -> Bool {
+            MemoryLayout<Value>.size == 17 && MemoryLayout<Value>.alignment == 8
+        }
+        guard _openExistential(referenceType, do: referenceLayout) else {
+            completion("unsupported native PeerReference layout")
+            return
+        }
+        let request = ProfileRefreshRequest(completion: completion)
+        withExtendedLifetime((engine, request)) {
+            request.token = TGExtraRefreshProfilePeer(Unmanaged.passUnretained(engine as AnyObject).toOpaque(),
+                peerId, Unmanaged.passUnretained(request).toOpaque())
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak request] in
+            request?.finish("server lookup by ID timed out")
+        }
     }
 
     private static func compatiblePeerId(in peer: Any) -> Bool {
@@ -142,6 +183,31 @@ final class ProfileNavigation: NSObject {
 private final class ProfileLookupRequest {
     let body: (UnsafeMutableRawPointer) -> Void
     init(body: @escaping (UnsafeMutableRawPointer) -> Void) { self.body = body }
+}
+
+private final class ProfileRefreshRequest {
+    var token: UnsafeMutableRawPointer?
+    private var completion: ((String?) -> Void)?
+
+    init(completion: @escaping (String?) -> Void) { self.completion = completion }
+
+    func finish(_ failure: String?) {
+        guard let completion = completion else { return }
+        self.completion = nil
+        if let token = token {
+            self.token = nil
+            TGExtraDisposeProfileRefresh(token)
+        }
+        completion(failure)
+    }
+}
+
+@_cdecl("TGExtraProfileRefreshFinished")
+func profileRefreshFinished(_ context: UnsafeMutableRawPointer, _ success: Bool) {
+    let request = Unmanaged<ProfileRefreshRequest>.fromOpaque(context).takeUnretainedValue()
+    DispatchQueue.main.async {
+        request.finish(success ? nil : "server lookup by ID failed; user inaccessible or access hash required")
+    }
 }
 
 @_cdecl("TGExtraProfileLookupBody")
