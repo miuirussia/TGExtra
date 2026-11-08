@@ -20,6 +20,10 @@ void TGExtraLogProfileFailure(int64_t userId, NSString *reason) {
     customLog(@"Ghost profile: open failed peer=%lld reason=%@", (long long)userId, reason);
 }
 
+void TGExtraLogProfileState(int64_t userId, NSString *state) {
+    customLog(@"Ghost profile: peer=%lld %@", (long long)userId, state);
+}
+
 static void __attribute__((swiftcall)) lookupBody(void *result __attribute__((swift_indirect_result)), void *transaction, void *context __attribute__((swift_context))) {
     TGExtraProfileLookupBody(context, transaction);
 }

@@ -33,15 +33,21 @@ final class ProfileNavigation: NSObject {
               let payload = Mirror(reflecting: HostValueReader.unwrapOptional(hash)).children.first,
               payload.label == "personal", let hashValue = payload.value as? Int64, hashValue != 0,
               let account = HostAccountReader.account(in: context) else { return }
+        rememberAccessHash(peerId: peerId, accessHash: hashValue, account: account)
+    }
+
+    static func rememberAccessHash(peerId: Int64, accessHash: Int64, account: String) {
+        guard peerId > 0, accessHash != 0 else { return }
         accessHashesLock.lock()
         defer { accessHashesLock.unlock() }
         var accounts = UserDefaults.standard.dictionary(forKey: accessHashesKey) ?? [:]
         var hashes = accounts[account] as? [String: NSNumber] ?? [:]
         let key = String(peerId)
-        guard hashes[key]?.int64Value != hashValue else { return }
-        hashes[key] = NSNumber(value: hashValue)
+        guard hashes[key]?.int64Value != accessHash else { return }
+        hashes[key] = NSNumber(value: accessHash)
         accounts[account] = hashes
         UserDefaults.standard.set(accounts, forKey: accessHashesKey)
+        TGExtraLogProfileState(peerId, "access hash saved account=\(account)")
     }
 
     private static func accessHash(peerId: Int64, context: Any) -> Int64 {
@@ -121,8 +127,14 @@ final class ProfileNavigation: NSObject {
                                 reject("user not found in source account after server lookup by ID")
                                 return
                             }
+                            let accountName = HostAccountReader.account(in: context) ?? "unknown"
+                            let hasHash = accessHash(peerId: peerId.int64Value, context: context) != 0
+                            TGExtraLogProfileState(peerId.int64Value,
+                                "lookup account=\(accountName) local=missing accessHash=\(hasHash ? "saved" : "missing")")
                             refreshProfile(peerId: peerId.int64Value, context: context) { failure in
-                                if let failure = failure { reject(failure) }
+                                if let failure = failure {
+                                    reject("\(failure); account=\(accountName) accessHash=\(hasHash ? "saved" : "missing")")
+                                }
                                 else { lookup(refreshIfMissing: false) }
                             }
                         }

@@ -20,6 +20,7 @@ void TGExtraVisitLocalMessages(void *transaction, uint32_t peerNamespace, int64_
 BOOL TGExtraIsGhostException(int64_t userId);
 BOOL TGExtraProfileLookupAvailable(void);
 void TGExtraLogProfileFailure(int64_t userId, NSString *reason);
+void TGExtraLogProfileState(int64_t userId, NSString *state);
 void TGExtraRunProfileLookup(void *postbox, void *context, const void *voidMetadata);
 BOOL TGExtraCopyProfilePeer(void *transaction, int64_t userId, void *result);
 BOOL TGExtraProfileRefreshAvailable(void);

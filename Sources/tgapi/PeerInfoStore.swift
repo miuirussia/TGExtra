@@ -26,6 +26,15 @@ final class PeerInfoStore: NSObject {
                 rememberOwnUserId(data.id, account: account)
                 break
             }
+            // A profile is not the only source of usable peer credentials.
+            // Preserve full hashes received in dialogs, messages and updates,
+            // including exceptions saved before hash capture was introduced.
+            let entries = UserDefaults.standard.array(forKey: "TGExtraGhostExceptions") as? [[String: Any]] ?? []
+            let exceptions = Set(entries.compactMap { ($0["id"] as? NSNumber)?.int64Value })
+            for case let .user(data) in users where exceptions.contains(data.id) {
+                guard data.flags & (1 << 20) == 0, let hash = data.accessHash else { continue }
+                ProfileNavigation.rememberAccessHash(peerId: data.id, accessHash: hash, account: account)
+            }
         }
         notePeerNames(in: users)
     }

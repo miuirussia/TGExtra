@@ -168,7 +168,9 @@ precondition(remoteNavigation.viewControllers.count == 1, "Keep settings until l
 precondition(opener?() == true)
 opener = nil
 waitFor { DisposableProbe.liveTokens == 0 }
-precondition(TGExtraReadLog().isEmpty)
+precondition(!TGExtraReadLog().contains("open failed"))
+precondition(TGExtraReadLog().contains("local=missing accessHash=missing"),
+             "Distinguish an absent local peer and missing hash from an inaccessible server user")
 
 // A mismatched server result must never navigate to another ID or loop.
 let missingId: Int64 = remoteId + 1
@@ -229,6 +231,9 @@ ProfileNavigation.loadProfile(peerId: NSNumber(value: hashId), fromNode: hashNod
 }
 waitFor { completed }
 precondition(hashNode.context.account.refreshes == [hashId])
+precondition(TGExtraReadLog().contains("local=missing accessHash=saved"),
+             "Report which recovery credential was available without logging its value")
+precondition(!TGExtraReadLog().contains(String(hash)), "Access hashes must not appear in diagnostics")
 
 // A lower-quality min hash, wrong peer or unsupported header must not overwrite it.
 for peer in [EnginePeer.user(TelegramUser(hashId, accessHash: .genericPublic(123))),

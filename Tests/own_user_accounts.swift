@@ -200,6 +200,45 @@ func testOwnUserAccounts() {
     check(PeerInfoStore.cachedPeerInfo(forId: 505) == ["name": "Anna Ivanova", "username": "anna"],
           "Wire lookups supply names to the exceptions UI through the shared store")
 
+    let hashKey = "TGExtraProfileAccessHashesByAccount"
+    let savedHashes = defaults.object(forKey: hashKey)
+    let savedExceptions = defaults.object(forKey: "TGExtraGhostExceptions")
+    defer {
+        defaults.set(savedHashes, forKey: hashKey)
+        defaults.set(savedExceptions, forKey: "TGExtraGhostExceptions")
+    }
+    defaults.removeObject(forKey: hashKey)
+    let peerId: Int64 = 5_365_271_490
+    let hash: Int64 = -8_765_432_109_876_543_210
+    defaults.set([["id": NSNumber(value: peerId)]], forKey: "TGExtraGhostExceptions")
+    func storedHash(_ account: String) -> Int64? {
+        let hashes = defaults.dictionary(forKey: hashKey)?[account] as? [String: NSNumber]
+        return hashes?[String(peerId)]?.int64Value
+    }
+    func observeHash(_ value: Int64, account: String?, min: Bool = false) {
+        let user = ownUser(peerId, isSelf: false)
+        if case let .user(data) = user {
+            data.flags |= 1 | (min ? 1 << 20 : 0)
+            data.accessHash = value
+        }
+        let buffer = Buffer()
+        buffer.appendInt32(481674261)
+        buffer.appendInt32(1)
+        user.serialize(buffer, true)
+        _ = response(buffer.makeData() as NSData, functionID: 227648840, account: account)
+    }
+    observeHash(hash, account: "account-101")
+    check(storedHash("account-101") == hash,
+          "Recover an old ID-only exception's full hash from normal RPC replies with no profile or username")
+    check(storedHash("account-202") == nil, "Wire hashes remain scoped to their source account")
+    observeHash(123, account: "account-101", min: true)
+    observeHash(456, account: nil)
+    check(storedHash("account-101") == hash,
+          "Min users and unscoped responses cannot replace a full personal access hash")
+    observeHash(789, account: "account-202")
+    check(storedHash("account-101") == hash && storedHash("account-202") == 789,
+          "The same user can have different personal hashes in different accounts")
+
     let reflected = ProfileSubclass("account-404", ownId: 404)
     check(ProfileBridge.getOwnUserIdFromNode(reflected) == 404, "Reflect the inherited header context's own peer, not its displayed peer")
     check(ProfileBridge.getOwnUserIdFromNode(ProfileNode("account-404")) == 404, "Cache reflected ids by account")
