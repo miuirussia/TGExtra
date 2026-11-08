@@ -27,10 +27,13 @@ support = r'''
 #import "SettingsCells.h"
 #import "FilePickerCache.h"
 static NSString *toast;
+static NSDictionary *localized;
 static void TGExtraShowToast(NSString *text) { toast = text; }
 static NSString *TGLoc(NSString *key) {
+    if (localized[key]) return localized[key];
     return [key isEqual:@"TEMPORARY_FILES_USAGE"] ? @"Files: %lu\nSize: %@" : key;
 }
+static void (^cacheSizeCallback)(NSString *);
 static void (^usageCallback)(NSUInteger, unsigned long long, NSError *);
 static void (^clearCallback)(NSError *);
 static NSUInteger measurements, deletions, messagePrompts, cachePrompts, debugOpens;
@@ -58,10 +61,10 @@ static char handlerKey;
 }
 @end
 @implementation TGExtraFilePickerCache
-+ (void)sizeWithCompletion:(void (^)(NSString *))completion {}
++ (void)sizeWithCompletion:(void (^)(NSString *))completion { cacheSizeCallback = completion; }
 + (void)clearWithCompletion:(void (^)(NSError *))completion {}
 @end
-@interface TGExtra : UIViewController
+@interface TGExtra : UIViewController <UITableViewDataSource>
 @property UITableView *tableView;
 @property BOOL isCleanupExpanded;
 @property BOOL isClearingMessageData;
@@ -78,6 +81,13 @@ static char handlerKey;
 }
 '''
 table_methods = r'''
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return TOOLS + 1; }
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return section == TOOLS ? (self.isCleanupExpanded ? 5 : 2) : 0;
+}
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    return [self settingsCellForTableView:tableView indexPath:indexPath];
+}
 - (UIColor *)dynamicColorBW { return UIColor.labelColor; }
 - (void)confirmClearMessageData { messagePrompts++; }
 - (void)clearFilePickerFixCache { cachePrompts++; }
@@ -87,6 +97,41 @@ table_methods = r'''
 ''' + cells + '}\n- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {\n' + actions + '}\n'
 tests = r'''
 @end
+static void testCacheRowLayout(void) {
+    localized = [NSDictionary dictionaryWithContentsOfFile:@"TGExtra.bundle/ru.lproj/Localizable.strings"];
+    NSCAssert(localized.count, @"Load the Russian strings from the screenshot");
+    for (NSArray *scenario in @[@[@320, UIContentSizeCategoryLarge],
+                                @[@375, UIContentSizeCategoryLarge],
+                                @[@812, UIContentSizeCategoryLarge],
+                                @[@375, UIContentSizeCategoryAccessibilityExtraExtraExtraLarge]]) {
+        NSNumber *width = scenario[0];
+        TGExtra *controller = [TGExtra new];
+        controller.isCleanupExpanded = YES;
+        UITableView *table = [[UITableView alloc] initWithFrame:CGRectMake(0, 0, width.doubleValue, 4000) style:UITableViewStyleInsetGrouped];
+        table.traitOverrides.preferredContentSizeCategory = scenario[1];
+        controller.tableView = table;
+        table.dataSource = controller;
+        table.rowHeight = UITableViewAutomaticDimension;
+        table.estimatedRowHeight = 72;
+        [table reloadData];
+        [table layoutIfNeeded];
+        NSIndexPath *path = [NSIndexPath indexPathForRow:3 inSection:TOOLS];
+        UITableViewCell *cell = [table cellForRowAtIndexPath:path];
+        NSCAssert(cell && cacheSizeCallback, @"The cache row starts an asynchronous size request");
+        NSCAssert([cell.accessoryView isKindOfClass:UIActivityIndicatorView.class], @"Measure the initial row with its spinner");
+        cacheSizeCallback(@"0.00 MB");
+        [table layoutIfNeeded];
+        [cell layoutIfNeeded];
+        NSCAssert([cell.accessoryView isKindOfClass:UILabel.class], @"The completion displays the cache size");
+        for (NSInteger row = 0; row < 5; row++) {
+            UITableViewCell *visible = [table cellForRowAtIndexPath:[NSIndexPath indexPathForRow:row inSection:TOOLS]];
+            CGRect title = visible.textLabel.frame, detail = visible.detailTextLabel.frame;
+            NSCAssert(CGRectGetMinY(title) >= 0 && CGRectGetMinY(detail) >= CGRectGetMaxY(title), @"The title and subtitle fit without overlap at width %@, row %ld", width, (long)row);
+            NSCAssert(CGRectGetMaxY(detail) <= CGRectGetHeight(visible.contentView.bounds) + 1, @"The full description stays inside the row at width %@, row %ld", width, (long)row);
+        }
+    }
+    localized = nil;
+}
 static void confirm(TGExtra *controller) {
     UIAlertAction *action = controller.alert.actions.lastObject;
     NSCAssert(action.style == UIAlertActionStyleDestructive, @"Force cleanup requires a destructive confirmation");
@@ -146,7 +191,8 @@ int main(void) { @autoreleasepool {
     confirm(controller);
     clearCallback(error);
     NSCAssert(!controller.isClearingTemporaryFiles && [toast isEqual:@"Cannot read files"], @"Report deletion failures and allow retry");
-    puts("PASS real UIKit cleanup expansion, row actions, collapse while busy, confirmation, cancellation and errors");
+    testCacheRowLayout();
+    puts("PASS real UIKit cleanup expansion, actions, confirmation, errors and Russian text layout after cache measurement at phone/landscape widths and largest text size");
 } return 0; }
 '''
 with tempfile.TemporaryDirectory(prefix='tgextra-cleanup-confirmation-') as directory:
@@ -158,6 +204,6 @@ with tempfile.TemporaryDirectory(prefix='tgextra-cleanup-confirmation-') as dire
                     '-isysroot', str(sdk), '-iframework', str(frameworks), '-F', str(frameworks),
                     '-fobjc-arc', '-Werror', '-I', str(root / 'Sources/tgapi'),
                     '-I', str(root / 'Sources/tgapi/UI'), str(root / 'Sources/tgapi/UI/SettingsCells.m'),
-                    '-framework', 'UIKit', '-framework', 'Foundation',
+                    '-framework', 'UIKit', '-framework', 'Foundation', '-framework', 'CoreGraphics',
                     '-Wl,-rpath,/System/iOSSupport/System/Library/Frameworks', str(main), '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=20)

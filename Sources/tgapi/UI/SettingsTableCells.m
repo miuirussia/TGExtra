@@ -159,6 +159,9 @@
           label.text = size;
           [label sizeToFit];
           cell.accessoryView = label;
+          // The wider accessory can add lines to the title and description.
+          [tableView beginUpdates];
+          [tableView endUpdates];
         }
       }];
       cell.textLabel.numberOfLines = 0;
