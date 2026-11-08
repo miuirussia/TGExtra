@@ -50,6 +50,8 @@ private func waitFor(_ condition: () -> Bool, timeout: TimeInterval = 5) {
 
 precondition(TGExtraProfileLookupAvailable(), "Resolve real Swift exports")
 precondition(TGExtraProfileRefreshAvailable(), "Resolve native server lookup and cancellation exports")
+let forceServerKey = "TGExtraForceProfileServerLookup"
+UserDefaults.standard.removeObject(forKey: forceServerKey)
 TGExtraClearLog()
 let first = Postbox(), second = Postbox()
 let id: Int64 = 7_331_000_001
@@ -264,3 +266,51 @@ waitFor { completed }
 UserDefaults.standard.removeObject(forKey: hashStoreKey)
 waitFor { DisposableProbe.liveTokens == 0 }
 print("PASS personal access hash recovery, persistence, min-hash protection and account isolation")
+
+// The diagnostic switch exercises the server even while a usable local peer exists.
+UserDefaults.standard.set(true, forKey: forceServerKey)
+TGExtraClearLog()
+let refreshedUser = TelegramUser(hashId, accessHash: .personal(hash))
+hashNode.context.account.remoteUsers[hashId] = refreshedUser
+let previousRefreshes = hashNode.context.account.refreshes.count
+let previousTransactions = hashPostbox.transactions
+completed = false
+ProfileNavigation.loadProfile(peerId: NSNumber(value: hashId), fromNode: hashNode) { action in
+    precondition(action?() == true, "Force remote lookup before opening an already cached peer")
+    completed = true
+}
+waitFor { completed }
+precondition(hashNode.context.account.refreshes.count == previousRefreshes + 1,
+             "Perform exactly one server lookup, without a refresh loop")
+precondition(hashPostbox.transactions == previousTransactions + 2,
+             "Read the local peer for its hash, then read again after server refresh")
+precondition(hashPostbox.peers[refreshedUser.id] === refreshedUser, "Open the freshly fetched peer")
+precondition(TGExtraReadLog().contains("local=bypassed accessHash=saved"))
+precondition(TGExtraReadLog().contains("server lookup by ID succeeded"))
+precondition(!TGExtraReadLog().contains(String(hash)))
+
+// A failed forced lookup must stay visible rather than succeed using the cache.
+hashNode.context.account.remoteUsers.removeValue(forKey: hashId)
+let previousOpens = hashNavigation.viewControllers.count
+completed = false
+ProfileNavigation.loadProfile(peerId: NSNumber(value: hashId), fromNode: hashNode) { action in
+    precondition(action == nil, "Report a server failure even when a cached peer exists")
+    completed = true
+}
+waitFor { completed }
+precondition(hashNavigation.viewControllers.count == previousOpens)
+precondition(hashPostbox.peers[refreshedUser.id] === refreshedUser, "Never delete the real cached peer")
+
+UserDefaults.standard.set(false, forKey: forceServerKey)
+let refreshesBeforeCachedOpen = hashNode.context.account.refreshes.count
+completed = false
+ProfileNavigation.loadProfile(peerId: NSNumber(value: hashId), fromNode: hashNode) { action in
+    precondition(action?() == true, "Disabling the switch immediately restores ordinary cached navigation")
+    completed = true
+}
+waitFor { completed }
+precondition(hashNode.context.account.refreshes.count == refreshesBeforeCachedOpen)
+UserDefaults.standard.removeObject(forKey: forceServerKey)
+UserDefaults.standard.removeObject(forKey: hashStoreKey)
+waitFor { DisposableProbe.liveTokens == 0 }
+print("PASS forced server lookup toggle, cached hash recovery, errors, unchanged local peers and immediate off/on behavior")

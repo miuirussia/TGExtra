@@ -275,3 +275,7 @@
 "AUDIO_TO_VOICE_PROMPT_MESSAGE" = "Audio files selected: %lu. Other documents will be sent as usual.";
 "AUDIO_TO_VOICE_SEND_VOICE" = "Send as Voice";
 "AUDIO_TO_VOICE_SEND_FILE" = "Send as File";
+
+"FORCE_PROFILE_SERVER_LOOKUP_TITLE" = "Load Exception Profiles from Server";
+
+"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" = "Always refresh Ghost Mode exception profiles from the server to test opening without cached profile data.";

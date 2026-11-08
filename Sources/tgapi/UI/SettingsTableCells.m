@@ -124,9 +124,10 @@
     cell.detailTextLabel.numberOfLines = 0;
     return cell;
   } else if (indexPath.section == TOOLS) {
-    if (indexPath.row == 0 || !self.isCleanupExpanded || indexPath.row == 4) {
+    NSInteger toolRow = indexPath.row - 1;
+    if (toolRow == 0 || !self.isCleanupExpanded || toolRow == 4) {
       cell = TGExtraNormalSettingsCell(tableView);
-      BOOL cleanup = indexPath.row == 0;
+      BOOL cleanup = toolRow == 0;
       cell.textLabel.text = TGLoc(cleanup ? @"CLEANUP_TITLE" : @"DEBUG_LOG_TITLE");
       cell.detailTextLabel.text = cleanup
           ? TGLoc(self.isCleanupExpanded ? @"CLEANUP_HIDE" : @"CLEANUP_SUBTITLE")
@@ -139,7 +140,7 @@
       cell.accessibilityTraits = UIAccessibilityTraitButton;
       return cell;
     }
-    if (indexPath.row == 3) {
+    if (toolRow == 3) {
       cell = TGExtraNormalSettingsCell(tableView);
       cell.textLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_TITLE");
       cell.detailTextLabel.text = TGLoc(@"CLEAR_FILE_PICKER_CACHE_SUBTITLE");
@@ -169,7 +170,7 @@
       return cell;
     }
     cell = TGExtraNormalSettingsCell(tableView);
-    BOOL temporary = indexPath.row == 2;
+    BOOL temporary = toolRow == 2;
     BOOL checking = temporary && self.isCheckingTemporaryFiles;
     BOOL clearing = temporary ? self.isClearingTemporaryFiles || checking : self.isClearingMessageData;
     cell.textLabel.text = clearing

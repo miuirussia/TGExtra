@@ -277,3 +277,7 @@
 "AUDIO_TO_VOICE_PROMPT_MESSAGE" = "Выбрано аудиофайлов: %lu. Остальные документы будут отправлены как обычно.";
 "AUDIO_TO_VOICE_SEND_VOICE" = "Голосовым";
 "AUDIO_TO_VOICE_SEND_FILE" = "Обычным файлом";
+
+"FORCE_PROFILE_SERVER_LOOKUP_TITLE" = "Загружать профили с сервера";
+
+"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" = "Всегда запрашивать профили из исключений с сервера для проверки открытия без локального кэша.";

@@ -276,3 +276,7 @@
 "AUDIO_TO_VOICE_PROMPT_MESSAGE" = "File audio selezionati: %lu. Gli altri documenti saranno inviati normalmente.";
 "AUDIO_TO_VOICE_SEND_VOICE" = "Messaggio vocale";
 "AUDIO_TO_VOICE_SEND_FILE" = "File normale";
+
+"FORCE_PROFILE_SERVER_LOOKUP_TITLE" = "Carica i profili dal server";
+
+"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" = "Aggiorna sempre dal server i profili delle eccezioni della modalità fantasma per verificarne l’apertura senza dati nella cache.";

@@ -274,3 +274,7 @@
 "AUDIO_TO_VOICE_PROMPT_MESSAGE" = "已選擇 %lu 個音訊檔案。其他文件將照常傳送。";
 "AUDIO_TO_VOICE_SEND_VOICE" = "作為語音傳送";
 "AUDIO_TO_VOICE_SEND_FILE" = "作為一般檔案傳送";
+
+"FORCE_PROFILE_SERVER_LOOKUP_TITLE" = "從伺服器載入例外使用者資料";
+
+"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" = "一律從伺服器更新幽靈模式例外使用者的資料，以測試不依賴本機快取的開啟方式。";

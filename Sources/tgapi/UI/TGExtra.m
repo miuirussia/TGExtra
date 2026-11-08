@@ -190,7 +190,7 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
   case SETTINGS_TRANSFER:
     return 2;
   case TOOLS:
-    return 2 + (self.isCleanupExpanded ? 3 : 0);
+    return 3 + (self.isCleanupExpanded ? 3 : 0);
   case CREDITS:
     return 2;
   default:
@@ -284,17 +284,19 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
   }
 
   if (indexPath.section == TOOLS) {
-    if (indexPath.row == 0) {
+    NSInteger toolRow = indexPath.row - 1;
+    if (toolRow < 0) return;
+    if (toolRow == 0) {
       self.isCleanupExpanded = !self.isCleanupExpanded;
       [self.tableView reloadSections:[NSIndexSet indexSetWithIndex:TOOLS]
                     withRowAnimation:UITableViewRowAnimationAutomatic];
-    } else if (!self.isCleanupExpanded || indexPath.row == 4) {
+    } else if (!self.isCleanupExpanded || toolRow == 4) {
       [self showDebugLog];
-    } else if (indexPath.row == 1) {
+    } else if (toolRow == 1) {
       [self confirmClearMessageData];
-    } else if (indexPath.row == 2) {
+    } else if (toolRow == 2) {
       [self confirmClearTemporaryFiles];
-    } else if (indexPath.row == 3) {
+    } else if (toolRow == 3) {
       [self clearFilePickerFixCache];
     }
     return;

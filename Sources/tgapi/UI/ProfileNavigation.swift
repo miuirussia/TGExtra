@@ -109,6 +109,7 @@ final class ProfileNavigation: NSObject {
             return
         }
         let open = nativeActionWords(action)
+        let forceServerLookup = UserDefaults.standard.bool(forKey: "TGExtraForceProfileServerLookup")
 
         func load<Peer>(_: Peer.Type) {
             // EnginePeer is a one-word native enum. The host initializer below
@@ -116,6 +117,20 @@ final class ProfileNavigation: NSObject {
             guard MemoryLayout<Peer>.size == MemoryLayout<UInt>.size else {
                 reject("unsupported native EnginePeer size: \(MemoryLayout<Peer>.size)")
                 return
+            }
+            func refresh(localState: String) {
+                let accountName = HostAccountReader.account(in: context) ?? "unknown"
+                let hasHash = accessHash(peerId: peerId.int64Value, context: context) != 0
+                TGExtraLogProfileState(peerId.int64Value,
+                    "lookup account=\(accountName) local=\(localState) accessHash=\(hasHash ? "saved" : "missing")")
+                refreshProfile(peerId: peerId.int64Value, context: context) { failure in
+                    if let failure = failure {
+                        reject("\(failure); account=\(accountName) accessHash=\(hasHash ? "saved" : "missing")")
+                    } else {
+                        TGExtraLogProfileState(peerId.int64Value, "server lookup by ID succeeded")
+                        lookup(refreshIfMissing: false)
+                    }
+                }
             }
             func lookup(refreshIfMissing: Bool) {
                 let request = ProfileLookupRequest { transaction in
@@ -127,16 +142,7 @@ final class ProfileNavigation: NSObject {
                                 reject("user not found in source account after server lookup by ID")
                                 return
                             }
-                            let accountName = HostAccountReader.account(in: context) ?? "unknown"
-                            let hasHash = accessHash(peerId: peerId.int64Value, context: context) != 0
-                            TGExtraLogProfileState(peerId.int64Value,
-                                "lookup account=\(accountName) local=missing accessHash=\(hasHash ? "saved" : "missing")")
-                            refreshProfile(peerId: peerId.int64Value, context: context) { failure in
-                                if let failure = failure {
-                                    reject("\(failure); account=\(accountName) accessHash=\(hasHash ? "saved" : "missing")")
-                                }
-                                else { lookup(refreshIfMissing: false) }
-                            }
+                            refresh(localState: "missing")
                         }
                         return
                     }
@@ -144,6 +150,10 @@ final class ProfileNavigation: NSObject {
                     result.deallocate()
                     DispatchQueue.main.async {
                         rememberAccessHash(peerId: peerId.int64Value, peer: peer, context: context)
+                        if forceServerLookup && refreshIfMissing {
+                            refresh(localState: "bypassed")
+                            return
+                        }
                         completion {
                             guard let previous = (navigation.value(forKey: "viewControllers") as? [NSObject])?.last else {
                                 TGExtraLogProfileFailure(peerId.int64Value, "navigation stack unavailable")

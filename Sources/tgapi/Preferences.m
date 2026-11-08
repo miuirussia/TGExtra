@@ -3,7 +3,7 @@
 
 static NSArray<NSString *> *TGExtraPreferenceKeys(void) {
     return @[
-        kGhostModeEnabled, kGhostDetailsToggle,
+        kGhostModeEnabled, kGhostDetailsToggle, kForceProfileServerLookup,
         kGhostReadOnReply, kGhostKeepVoiceUnread, kSaveDeletedStories, kAudioToVoice, kForwardDropAuthor,
         kDisableOnlineStatus, kDisableTypingStatus, kDisableRecordingVideoStatus,
         kDisableUploadingVideoStatus, kDisableRecordingVoiceStatus, kDisableUploadingVoiceStatus,
@@ -26,6 +26,7 @@ static NSArray<NSString *> *TGExtraTransferKeys(void) {
     NSMutableArray *keys = [TGExtraPreferenceKeys() mutableCopy];
     [keys removeObject:@"TGExtraFeatureMigrationDone"];
     [keys removeObject:kGhostDetailsToggle];
+    [keys removeObject:kForceProfileServerLookup];
     return keys;
 }
 

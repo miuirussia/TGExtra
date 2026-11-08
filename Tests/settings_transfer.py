@@ -22,6 +22,7 @@ int main(int argc, char **argv) { @autoreleasepool {
     [defaults setObject:@"keep" forKey:@"HostSetting"];
     [defaults setBool:YES forKey:kGhostReadOnReply];
     [defaults setBool:NO forKey:kGhostKeepVoiceUnread];
+    [defaults setBool:YES forKey:kForceProfileServerLookup];
     [defaults setObject:@[@{@"id": @42, @"name": @"Old", @"customName": @"Friend"}] forKey:kGhostExceptions];
     NSCAssert([TGExtraGhostExceptions containsPeerId:42], @"Warm the exception cache");
     NSError *error = nil;
@@ -29,6 +30,7 @@ int main(int argc, char **argv) { @autoreleasepool {
     NSDictionary *values = TGExtraValidateSettings(exported, &error);
     NSCAssert(values && [values[kGhostReadOnReply] boolValue] && ![values[kGhostKeepVoiceUnread] boolValue], @"Round trip true and false settings");
     NSCAssert(values[@"HostSetting"] == nil && values[@"TGExtraFeatureMigrationDone"] == nil, @"Export contains only transferable preferences");
+    NSCAssert(values[kForceProfileServerLookup] == nil, @"Keep profile diagnostic mode out of shared settings");
     NSCAssert([values[kGhostExceptions][0][@"customName"] isEqual:@"Friend"], @"Preserve custom exception labels");
     NSDictionary *bad[] = {
         @{kGhostReadOnReply: @1}, @{kGhostReadOnReply: @"true"}, @{kGhostExceptions: @"bad"},

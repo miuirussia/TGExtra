@@ -47,6 +47,7 @@ int main(int argc, const char **argv) {
             [defaults setBool:!hidden forKey:kIgnorePrivateChatCopyProtection];
             [defaults setBool:hidden forKey:kDisableDoubleTapReactions];
             [defaults setBool:hidden forKey:kForceTLottie];
+            [defaults setBool:hidden forKey:kForceProfileServerLookup];
             [defaults setBool:hidden forKey:kHideRecordingButton];
             [defaults setBool:hidden forKey:kVideoToVoice];
             [defaults setBool:hidden forKey:kVideoToRound];
@@ -64,6 +65,7 @@ int main(int argc, const char **argv) {
             NSCAssert([defaults boolForKey:kIgnorePrivateChatCopyProtection] == !hidden, @"Restore the private-chat copy option");
             NSCAssert([defaults boolForKey:kDisableDoubleTapReactions] == hidden, @"Restore the double-tap reaction option");
             NSCAssert([defaults boolForKey:kForceTLottie] == hidden, @"Restore the forced tlottie option");
+            NSCAssert([defaults boolForKey:kForceProfileServerLookup] == hidden, @"Restore the profile server lookup diagnostic option");
             NSCAssert([defaults boolForKey:kHideRecordingButton] == hidden, @"Restore recording button removal");
             NSCAssert([defaults boolForKey:kVideoToVoice] == hidden, @"Restore the video-to-voice checkbox");
             NSCAssert([defaults boolForKey:kVideoToRound] == hidden, @"Restore the video-to-round checkbox");

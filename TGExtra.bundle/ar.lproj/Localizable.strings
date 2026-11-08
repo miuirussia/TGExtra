@@ -273,3 +273,7 @@
 "AUDIO_TO_VOICE_PROMPT_MESSAGE" = "الملفات الصوتية المحددة: %lu. سيتم إرسال المستندات الأخرى كالمعتاد.";
 "AUDIO_TO_VOICE_SEND_VOICE" = "إرسال كرسالة صوتية";
 "AUDIO_TO_VOICE_SEND_FILE" = "إرسال كملف عادي";
+
+"FORCE_PROFILE_SERVER_LOOKUP_TITLE" = "تحميل ملفات الاستثناءات من الخادم";
+
+"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" = "تحديث ملفات استثناءات وضع الشبح دائمًا من الخادم لاختبار فتحها دون بيانات مخزنة مؤقتًا.";

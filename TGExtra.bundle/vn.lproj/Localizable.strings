@@ -274,3 +274,7 @@
 "AUDIO_TO_VOICE_PROMPT_MESSAGE" = "Đã chọn %lu tệp âm thanh. Các tài liệu khác sẽ được gửi như bình thường.";
 "AUDIO_TO_VOICE_SEND_VOICE" = "Gửi dạng tin nhắn thoại";
 "AUDIO_TO_VOICE_SEND_FILE" = "Gửi dạng tệp thường";
+
+"FORCE_PROFILE_SERVER_LOOKUP_TITLE" = "Tải hồ sơ từ máy chủ";
+
+"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" = "Luôn cập nhật hồ sơ ngoại lệ của chế độ ẩn từ máy chủ để kiểm tra việc mở hồ sơ mà không dùng dữ liệu đã lưu đệm.";

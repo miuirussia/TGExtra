@@ -132,6 +132,9 @@
     } else if (section == FAKE_LOCATION && row == 0) {
         return [self rowWithKey:FAKE_LOCATION_ENABLED_KEY title:@"ENABLE_FAKE_LOCATION_TITLE"
             subtitle:@"ENABLE_FAKE_LOCATION_SUBTITLE" icon:@"location.fill"];
+    } else if (section == TOOLS && row == 0) {
+        return [self rowWithKey:kForceProfileServerLookup title:@"FORCE_PROFILE_SERVER_LOOKUP_TITLE"
+            subtitle:@"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" icon:@"arrow.triangle.2.circlepath"];
     }
     return row >= 0 && row < (NSInteger)rows.count ? rows[row] : nil;
 }

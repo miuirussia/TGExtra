@@ -276,3 +276,7 @@
 "AUDIO_TO_VOICE_PROMPT_MESSAGE" = "已选择 %lu 个音频文件。其他文档将照常发送。";
 "AUDIO_TO_VOICE_SEND_VOICE" = "作为语音发送";
 "AUDIO_TO_VOICE_SEND_FILE" = "作为普通文件发送";
+
+"FORCE_PROFILE_SERVER_LOOKUP_TITLE" = "从服务器加载例外用户资料";
+
+"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" = "始终从服务器刷新幽灵模式例外用户的资料，以测试不依赖本地缓存的打开方式。";

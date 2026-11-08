@@ -216,6 +216,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"الملفات الصوتية المحددة: %lu. سيتم إرسال المستندات الأخرى كالمعتاد.",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"إرسال كرسالة صوتية",
             @"AUDIO_TO_VOICE_SEND_FILE": @"إرسال كملف عادي",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"تحميل ملفات الاستثناءات من الخادم",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"تحديث ملفات استثناءات وضع الشبح دائمًا من الخادم لاختبار فتحها دون بيانات مخزنة مؤقتًا.",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -433,6 +435,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"已选择 %lu 个音频文件。其他文档将照常发送。",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"作为语音发送",
             @"AUDIO_TO_VOICE_SEND_FILE": @"作为普通文件发送",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"从服务器加载例外用户资料",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"始终从服务器刷新幽灵模式例外用户的资料，以测试不依赖本地缓存的打开方式。",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -650,6 +654,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Audio files selected: %lu. Other documents will be sent as usual.",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"Send as Voice",
             @"AUDIO_TO_VOICE_SEND_FILE": @"Send as File",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"Load Exception Profiles from Server",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"Always refresh Ghost Mode exception profiles from the server to test opening without cached profile data.",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -867,6 +873,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Archivos de audio seleccionados: %lu. Los demás documentos se enviarán como siempre.",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"Mensaje de voz",
             @"AUDIO_TO_VOICE_SEND_FILE": @"Archivo normal",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"Cargar perfiles desde el servidor",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"Actualizar siempre desde el servidor los perfiles de las excepciones del modo fantasma para probar su apertura sin datos en caché.",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -1084,6 +1092,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Fichiers audio sélectionnés : %lu. Les autres documents seront envoyés normalement.",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"Message vocal",
             @"AUDIO_TO_VOICE_SEND_FILE": @"Fichier ordinaire",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"Charger les profils depuis le serveur",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"Actualiser les profils des exceptions du mode fantôme depuis le serveur pour tester leur ouverture sans données en cache.",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -1301,6 +1311,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"File audio selezionati: %lu. Gli altri documenti saranno inviati normalmente.",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"Messaggio vocale",
             @"AUDIO_TO_VOICE_SEND_FILE": @"File normale",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"Carica i profili dal server",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"Aggiorna sempre dal server i profili delle eccezioni della modalità fantasma per verificarne l’apertura senza dati nella cache.",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -1518,6 +1530,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"選択した音声ファイル：%lu件。他の書類は通常どおり送信されます。",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"音声メッセージとして送信",
             @"AUDIO_TO_VOICE_SEND_FILE": @"通常のファイルとして送信",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"例外ユーザーのプロフィールをサーバーから取得",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"ゴーストモードの例外ユーザーのプロフィールを常にサーバーから更新し、キャッシュに依存しない表示をテストします。",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1735,6 +1749,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Выбрано аудиофайлов: %lu. Остальные документы будут отправлены как обычно.",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"Голосовым",
             @"AUDIO_TO_VOICE_SEND_FILE": @"Обычным файлом",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"Загружать профили с сервера",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"Всегда запрашивать профили из исключений с сервера для проверки открытия без локального кэша.",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1952,6 +1968,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"已選擇 %lu 個音訊檔案。其他文件將照常傳送。",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"作為語音傳送",
             @"AUDIO_TO_VOICE_SEND_FILE": @"作為一般檔案傳送",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"從伺服器載入例外使用者資料",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"一律從伺服器更新幽靈模式例外使用者的資料，以測試不依賴本機快取的開啟方式。",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -2169,6 +2187,8 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"AUDIO_TO_VOICE_PROMPT_MESSAGE": @"Đã chọn %lu tệp âm thanh. Các tài liệu khác sẽ được gửi như bình thường.",
             @"AUDIO_TO_VOICE_SEND_VOICE": @"Gửi dạng tin nhắn thoại",
             @"AUDIO_TO_VOICE_SEND_FILE": @"Gửi dạng tệp thường",
+            @"FORCE_PROFILE_SERVER_LOOKUP_TITLE": @"Tải hồ sơ từ máy chủ",
+            @"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE": @"Luôn cập nhật hồ sơ ngoại lệ của chế độ ẩn từ máy chủ để kiểm tra việc mở hồ sơ mà không dùng dữ liệu đã lưu đệm.",
         };
     }
     return nil;

@@ -15,8 +15,9 @@ source = (root / 'Sources/tgapi/UI/SettingsMaintenance.m').read_text()
 source = source[source.index('- (void)confirmClearTemporaryFiles {'):source.index('- (void)confirmClearMessageData {')]
 source = source.replace('[UIAlertAction actionWithTitle:', '[TestAction actionWithTitle:')
 cells = (root / 'Sources/tgapi/UI/SettingsTableCells.m').read_text()
+switch_cells = cells[cells.index('  TGExtraSettingRow *setting ='):cells.index('  if (indexPath.section == SETTINGS_TRANSFER')]
 cells = cells[cells.index('  } else if (indexPath.section == TOOLS) {'):cells.index('  } else if (indexPath.section == CREDITS)')]
-cells = cells.replace('  } else if', '  if', 1) + '\n  }\n  return nil;\n'
+cells = switch_cells + cells.replace('  } else if', '  if', 1) + '\n  }\n  return nil;\n'
 menu = (root / 'Sources/tgapi/UI/TGExtra.m').read_text()
 actions = menu[menu.index('  if (indexPath.section == TOOLS) {'):menu.index('  if (indexPath.section == CREDITS) {')]
 support = r'''
@@ -72,6 +73,7 @@ static char handlerKey;
 @property BOOL isClearingTemporaryFiles;
 @property UIAlertController *alert;
 - (void)confirmClearTemporaryFiles;
+- (void)switchChanged:(UISwitch *)sender;
 - (UITableViewCell *)settingsCellForTableView:(UITableView *)tableView indexPath:(NSIndexPath *)indexPath;
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath;
 @end
@@ -83,12 +85,13 @@ static char handlerKey;
 table_methods = r'''
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView { return TOOLS + 1; }
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return section == TOOLS ? (self.isCleanupExpanded ? 5 : 2) : 0;
+    return section == TOOLS ? (self.isCleanupExpanded ? 6 : 3) : 0;
 }
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     return [self settingsCellForTableView:tableView indexPath:indexPath];
 }
 - (UIColor *)dynamicColorBW { return UIColor.labelColor; }
+- (void)switchChanged:(UISwitch *)sender {}
 - (void)confirmClearMessageData { messagePrompts++; }
 - (void)clearFilePickerFixCache { cachePrompts++; }
 - (void)showDebugLog { debugOpens++; }
@@ -115,7 +118,7 @@ static void testCacheRowLayout(void) {
         table.estimatedRowHeight = 72;
         [table reloadData];
         [table layoutIfNeeded];
-        NSIndexPath *path = [NSIndexPath indexPathForRow:3 inSection:TOOLS];
+        NSIndexPath *path = [NSIndexPath indexPathForRow:4 inSection:TOOLS];
         UITableViewCell *cell = [table cellForRowAtIndexPath:path];
         NSCAssert(cell && cacheSizeCallback, @"The cache row starts an asynchronous size request");
         NSCAssert([cell.accessoryView isKindOfClass:UIActivityIndicatorView.class], @"Measure the initial row with its spinner");
@@ -123,7 +126,7 @@ static void testCacheRowLayout(void) {
         [table layoutIfNeeded];
         [cell layoutIfNeeded];
         NSCAssert([cell.accessoryView isKindOfClass:UILabel.class], @"The completion displays the cache size");
-        for (NSInteger row = 0; row < 5; row++) {
+        for (NSInteger row = 0; row < 6; row++) {
             UITableViewCell *visible = [table cellForRowAtIndexPath:[NSIndexPath indexPathForRow:row inSection:TOOLS]];
             CGRect title = visible.textLabel.frame, detail = visible.detailTextLabel.frame;
             NSCAssert(CGRectGetMinY(title) >= 0 && CGRectGetMinY(detail) >= CGRectGetMaxY(title), @"The title and subtitle fit without overlap at width %@, row %ld", width, (long)row);
@@ -141,29 +144,43 @@ static void confirm(TGExtra *controller) {
 int main(void) { @autoreleasepool {
     TGExtra *controller = [TGExtra new];
     controller.tableView = [[UITableView alloc] initWithFrame:CGRectMake(0, 0, 375, 812) style:UITableViewStyleInsetGrouped];
-    NSIndexPath *expander = [NSIndexPath indexPathForRow:0 inSection:TOOLS];
-    UITableViewCell *collapsed = [controller settingsCellForTableView:controller.tableView indexPath:[NSIndexPath indexPathForRow:1 inSection:TOOLS]];
+    NSIndexPath *togglePath = [NSIndexPath indexPathForRow:0 inSection:TOOLS];
+    [NSUserDefaults.standardUserDefaults removeObjectForKey:@"TGExtraForceProfileServerLookup"];
+    UITableViewCell *toggleCell = [controller settingsCellForTableView:controller.tableView indexPath:togglePath];
+    NSCAssert([toggleCell.textLabel.text isEqual:@"FORCE_PROFILE_SERVER_LOOKUP_TITLE"] &&
+              [toggleCell.accessoryView isKindOfClass:UISwitch.class], @"Tools contains a standard profile diagnostic switch");
+    UISwitch *toggle = (UISwitch *)toggleCell.accessoryView;
+    NSCAssert(!toggle.on && toggle.tag == 1000 + TOOLS * 1000, @"The diagnostic switch defaults off and uses ordinary settings routing");
+    [NSUserDefaults.standardUserDefaults setBool:YES forKey:@"TGExtraForceProfileServerLookup"];
+    toggleCell = [controller settingsCellForTableView:controller.tableView indexPath:togglePath];
+    NSCAssert(((UISwitch *)toggleCell.accessoryView).on, @"The diagnostic row reflects its saved setting");
+    [NSUserDefaults.standardUserDefaults removeObjectForKey:@"TGExtraForceProfileServerLookup"];
+    [controller tableView:controller.tableView didSelectRowAtIndexPath:togglePath];
+    NSCAssert(!controller.isCleanupExpanded && !debugOpens && !messagePrompts && !measurements,
+              @"Tapping the switch row cannot trigger a cleanup or open the log");
+    NSIndexPath *expander = [NSIndexPath indexPathForRow:1 inSection:TOOLS];
+    UITableViewCell *collapsed = [controller settingsCellForTableView:controller.tableView indexPath:[NSIndexPath indexPathForRow:2 inSection:TOOLS]];
     NSCAssert([collapsed.textLabel.text isEqual:@"DEBUG_LOG_TITLE"], @"Collapsed cleanup leaves the debug log visible");
     [controller tableView:controller.tableView didSelectRowAtIndexPath:expander];
     NSCAssert(controller.isCleanupExpanded && !controller.alert && measurements == 0, @"Expanding cleanup only reveals actions");
     NSArray *titles = @[@"CLEANUP_TITLE", @"MESSAGE_DATA_CLEAR_TITLE", @"TEMPORARY_FILES_CLEAR_TITLE", @"CLEAR_FILE_PICKER_CACHE_TITLE", @"DEBUG_LOG_TITLE"];
     for (NSInteger row = 0; row < 5; row++) {
-        NSIndexPath *path = [NSIndexPath indexPathForRow:row inSection:TOOLS];
+        NSIndexPath *path = [NSIndexPath indexPathForRow:row + 1 inSection:TOOLS];
         UITableViewCell *cell = [controller settingsCellForTableView:controller.tableView indexPath:path];
         NSCAssert([cell.textLabel.text isEqual:titles[row]] && (cell.accessibilityTraits & UIAccessibilityTraitButton), @"Expanded actions have the correct labels and VoiceOver roles");
         NSCAssert(cell.textLabel.adjustsFontForContentSizeCategory && cell.detailTextLabel.numberOfLines == 0, @"Cleanup supports large text and wrapped descriptions");
     }
     for (NSNumber *row in @[@1, @3, @4]) {
-        [controller tableView:controller.tableView didSelectRowAtIndexPath:[NSIndexPath indexPathForRow:row.integerValue inSection:TOOLS]];
+        [controller tableView:controller.tableView didSelectRowAtIndexPath:[NSIndexPath indexPathForRow:row.integerValue + 1 inSection:TOOLS]];
     }
     NSCAssert(messagePrompts == 1 && cachePrompts == 1 && debugOpens == 1, @"Expanded action positions remain correctly wired");
-    [controller tableView:controller.tableView didSelectRowAtIndexPath:[NSIndexPath indexPathForRow:2 inSection:TOOLS]];
+    [controller tableView:controller.tableView didSelectRowAtIndexPath:[NSIndexPath indexPathForRow:3 inSection:TOOLS]];
     NSCAssert(controller.isCheckingTemporaryFiles && !controller.alert && deletions == 0, @"Measure first without deleting or blocking the UI");
-    UITableViewCell *busy = [controller settingsCellForTableView:controller.tableView indexPath:[NSIndexPath indexPathForRow:2 inSection:TOOLS]];
+    UITableViewCell *busy = [controller settingsCellForTableView:controller.tableView indexPath:[NSIndexPath indexPathForRow:3 inSection:TOOLS]];
     NSCAssert(!busy.userInteractionEnabled && [busy.textLabel.text isEqual:@"TEMPORARY_FILES_CHECKING"] && (busy.accessibilityTraits & UIAccessibilityTraitNotEnabled), @"Busy cleanup rows show progress and disable interaction");
     [controller tableView:controller.tableView didSelectRowAtIndexPath:expander];
     NSCAssert(!controller.isCleanupExpanded && controller.isCheckingTemporaryFiles, @"Collapsing the menu preserves active cleanup state");
-    [controller tableView:controller.tableView didSelectRowAtIndexPath:[NSIndexPath indexPathForRow:1 inSection:TOOLS]];
+    [controller tableView:controller.tableView didSelectRowAtIndexPath:[NSIndexPath indexPathForRow:2 inSection:TOOLS]];
     NSCAssert(debugOpens == 2 && measurements == 1, @"The log remains accessible while cleanup is collapsed and busy");
     [controller confirmClearTemporaryFiles];
     NSCAssert(measurements == 1, @"Ignore duplicate taps during measurement");
@@ -203,7 +220,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-cleanup-confirmation-') as dire
     subprocess.run(['xcrun', 'clang', '-target', f'{platform.machine()}-apple-ios17.0-macabi',
                     '-isysroot', str(sdk), '-iframework', str(frameworks), '-F', str(frameworks),
                     '-fobjc-arc', '-Werror', '-I', str(root / 'Sources/tgapi'),
-                    '-I', str(root / 'Sources/tgapi/UI'), str(root / 'Sources/tgapi/UI/SettingsCells.m'),
+                    '-I', str(root / 'Sources/tgapi/UI'), str(root / 'Sources/tgapi/UI/SettingsCells.m'), str(root / 'Sources/tgapi/UI/SettingsRows.m'),
                     '-framework', 'UIKit', '-framework', 'Foundation', '-framework', 'CoreGraphics',
                     '-Wl,-rpath,/System/iOSSupport/System/Library/Frameworks', str(main), '-o', str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=20)

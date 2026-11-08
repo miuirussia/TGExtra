@@ -274,3 +274,7 @@
 "AUDIO_TO_VOICE_PROMPT_MESSAGE" = "選択した音声ファイル：%lu件。他の書類は通常どおり送信されます。";
 "AUDIO_TO_VOICE_SEND_VOICE" = "音声メッセージとして送信";
 "AUDIO_TO_VOICE_SEND_FILE" = "通常のファイルとして送信";
+
+"FORCE_PROFILE_SERVER_LOOKUP_TITLE" = "例外ユーザーのプロフィールをサーバーから取得";
+
+"FORCE_PROFILE_SERVER_LOOKUP_SUBTITLE" = "ゴーストモードの例外ユーザーのプロフィールを常にサーバーから更新し、キャッシュに依存しない表示をテストします。";

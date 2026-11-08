@@ -3,6 +3,7 @@
 
 #define kGhostModeEnabled @"TGExtraGhostModeEnabled"
 #define kGhostDetailsToggle @"TGExtraGhostDetailsToggle"
+#define kForceProfileServerLookup @"TGExtraForceProfileServerLookup"
 #define kDisableOnlineStatus @"disableOnlineStatus"
 
 #define kDisableTypingStatus @"disableTypingStatus"
