@@ -9,6 +9,7 @@ NSDictionary *TGExtraTestReadContentsRequest(NSData *payload, NSString *account)
 NSDictionary *TGExtraTestRustReadContentsRequest(NSData *payload, NSString *account, NSData *serverResponse);
 NSData *TGExtraFakeResponseForPayload(NSData *payload);
 void TGExtraTestSetGhostException(int64_t peerId, BOOL enabled);
+NSArray<NSData *> *TGExtraTestGhostReply(NSData *read, NSData *send, NSString *account, BOOL failSend, BOOL failRead);
 
 BOOL TGExtraNativeTestConfig(NSDictionary *config, NSData *uuid, uintptr_t constructor, uintptr_t result);
 void TGExtraNativeFixtureEnable(void);

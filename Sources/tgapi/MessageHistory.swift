@@ -171,6 +171,14 @@ final class MessageHistoryStore {
             }
             entries[key] = entry
             persistLocked(key)
+            let now = Date().timeIntervalSince1970
+            var event: [String: Any] = ["kind": "edited", "account": key.account, "peer": key.peer,
+                "id": key.id, "namespace": key.namespace, "text": text,
+                "old": entry.versions[entry.versions.count - 2], "date": now]
+            if key.peer > 0 { event["name"] = PeerInfoStore.cachedPeerInfo(forId: NSNumber(value: key.peer))?["name"] }
+            archive.saveEvent(event,
+                identifier: "edited:\(key.storageKey):\(UUID().uuidString)", date: now)
+            TLParser.notifyEventLogChanged()
             return true
         }
     }

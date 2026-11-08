@@ -11,6 +11,7 @@ static NSURL *temporaryRoot(void) {
 
 static BOOL isExportFile(NSString *name) {
     return [name hasPrefix:@"TGExtraPaid-"] || [name hasPrefix:@"TGExtraStory-"] ||
+           [name hasPrefix:@"TGExtraSettings-"] ||
            [name hasPrefix:@"TGExtraStoryInput-"];
 }
 

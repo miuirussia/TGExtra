@@ -40,6 +40,8 @@ class TLParser: NSObject {
         dirtyMarkers.removeAll()
         contentReadStates.removeAll()
         contentReadOrder.removeAll()
+        clearPendingGhostReads()
+        clearStoryCache()
         for key in [markerUdKey, "TGExtraDeletedMsgIds", "TGExtraSelfDestructingMsgIds", "TGExtraAutoDeleteMsgIds"] {
             UserDefaults.standard.removeObject(forKey: key)
         }

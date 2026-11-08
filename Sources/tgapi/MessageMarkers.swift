@@ -62,6 +62,7 @@ extension TLParser {
               (messageMarkers[key, default: 0] & bit) == 0 else { return }
         messageMarkers[key, default: 0] |= bit
         if bit & deletedMarker != 0 { pinSnapshots(for: key) }
+        if bit & deletedMarker != 0 { logDeletion(id: id, peer: key.peer, account: key.account, namespace: namespace) }
         persistMarkers(key)
     }
 

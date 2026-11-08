@@ -718,3 +718,5 @@ testMarkerBatchPersistence()
 testOptimizedWirePaths()
 
 testSnapshotCacheIndex()
+
+testExpandedFeatures()

@@ -97,10 +97,22 @@ extension TLParser {
                 loadMarkers()
                 let peer = -(1_000_000_000_000 + data.channelId)
                 let key = MessageKey(account: account, peer: peer, id: 0)
+                let previous = messageMarkers[key, default: 0]
                 messageMarkers[key] = max(messageMarkers[key, default: 0], Int(data.availableMinId))
                 pinChannelSnapshots(account: account, peer: peer, through: data.availableMinId)
                 persistMarkers(key)
                 loadSnapshots()
+                var affected = Set(snapshots.keys.filter {
+                    $0.account == account && $0.peer == peer && $0.namespace == 0 &&
+                        $0.id > previous && $0.id <= data.availableMinId
+                })
+                MessageHistoryArchive.shared.visitSnapshotKeys { source, _ in
+                    if source.account == account && source.peer == peer && source.namespace == 0 &&
+                        source.id > previous && source.id <= data.availableMinId { affected.insert(source) }
+                }
+                for source in affected {
+                    recordMarker(deletedMarker, id: source.id, peer: peer, account: account, namespace: 0)
+                }
                 if !snapshots.isEmpty { writeSnapshots() }
                 let maxId = data.availableMinId
                 DispatchQueue.main.async {

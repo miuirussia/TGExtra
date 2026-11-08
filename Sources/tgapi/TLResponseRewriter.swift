@@ -2,7 +2,7 @@ import Foundation
 
 extension TLParser {
     static func rewriteDecoded(_ result: Any, settings: MessagePatches.Settings) -> (Any, Bool) {
-        var modified = false
+        var modified = patchDeletedStories(Api.record(result), peer: requestedStoryPeer)
         var newResult: Any = result
 
         if let updates = result as? Api.Updates {
@@ -23,7 +23,7 @@ extension TLParser {
             case let .updateShortMessage(data):
                 noteContentReadState(id: data.id, peer: data.userId,
                                      mention: data.flags & (1 << 4) != 0 && data.flags & (1 << 5) != 0,
-                                     reaction: false, disappearingMedia: false)
+                                     reaction: false, disappearingMedia: false, playableMedia: false)
                 recordShortFormOriginal(id: data.id, text: data.message,
                                         peer: data.userId, entities: data.entities, outgoing: data.flags & (1 << 1) != 0, date: data.date)
                 let before = updates.record.changes.count
@@ -34,7 +34,7 @@ extension TLParser {
             case let .updateShortChatMessage(data):
                 noteContentReadState(id: data.id, peer: -data.chatId,
                                      mention: data.flags & (1 << 4) != 0 && data.flags & (1 << 5) != 0,
-                                     reaction: false, disappearingMedia: false)
+                                     reaction: false, disappearingMedia: false, playableMedia: false)
                 recordShortFormOriginal(id: data.id, text: data.message,
                                         peer: -data.chatId, entities: data.entities,
                                         outgoing: data.flags & (1 << 1) != 0 || isOwnAuthor(.peerUser(.init(userId: data.fromId)), account: processingHistoryAccount), date: data.date)

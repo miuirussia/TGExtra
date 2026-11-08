@@ -11,10 +11,13 @@ enum MessagePatches {
         case keepEditHistory = "TGExtraAntiEdit"
         case hideDisappearingLabel = "TGExtraHideDisappearingLabel"
         case videoToVoice = "TGExtraVideoToVoice"
+        case audioToVoice = "TGExtraAudioToVoice"
         case videoToRound = "TGExtraVideoToRound"
         case ghostMode = "TGExtraGhostModeEnabled"
         case hideMentionReads = "disableMentionReadReceipt"
         case hideReactionReads = "disableReactionReadReceipt"
+        case hideVoiceReads = "TGExtraGhostKeepVoiceUnread"
+        case saveDeletedStories = "TGExtraSaveDeletedStories"
     }
 
     static func shouldReserialize(changed: Bool, settings: Settings = .init()) -> Bool {
@@ -41,15 +44,18 @@ enum MessagePatches {
         var keepEditHistory: Bool { enabled(.keepEditHistory) }
         var hideDisappearingLabel: Bool { enabled(.hideDisappearingLabel) }
         var videoToVoice: Bool { enabled(.videoToVoice) }
+        var audioToVoice: Bool { enabled(.audioToVoice) }
         var videoToRound: Bool { enabled(.videoToRound) }
         var ghostMode: Bool { enabled(.ghostMode) }
         var hideMentionReads: Bool { enabled(.hideMentionReads) }
         var hideReactionReads: Bool { enabled(.hideReactionReads) }
+        var hideVoiceReads: Bool { enabled(.hideVoiceReads) }
+        var saveDeletedStories: Bool { enabled(.saveDeletedStories) }
         var protectsAnyDeletions: Bool { keepDeletedMessages || preventMediaSelfDestruct || preventAutoDelete }
-        var tracksContentReads: Bool { hideMentionReads || hideReactionReads || preventMediaSelfDestruct }
-        var filtersContentReceipts: Bool { preventMediaSelfDestruct || (ghostMode && (hideMentionReads || hideReactionReads)) }
+        var tracksContentReads: Bool { hideMentionReads || hideReactionReads || hideVoiceReads || preventMediaSelfDestruct }
+        var filtersContentReceipts: Bool { preventMediaSelfDestruct || (ghostMode && (hideMentionReads || hideReactionReads || hideVoiceReads)) }
         var processesMessages: Bool {
-            protectsAnyDeletions || bypassForwarding || bypassPrivateCopy || keepEditHistory || tracksContentReads
+            protectsAnyDeletions || bypassForwarding || bypassPrivateCopy || keepEditHistory || tracksContentReads || saveDeletedStories
         }
 
         func protectsDeletion(disappearing: Bool, autoDelete: Bool) -> Bool {
@@ -57,14 +63,15 @@ enum MessagePatches {
         }
 
         func allowsContentReceipt(disappearing: Bool?, mention: Bool?, reaction: Bool?,
-                                  classified: Bool, ghostException: Bool) -> Bool {
+                                  classified: Bool, ghostException: Bool, playableMedia: Bool? = nil) -> Bool {
             if preventMediaSelfDestruct && disappearing != false { return false }
             let mentions = ghostMode && hideMentionReads
             let reactions = ghostMode && hideReactionReads
-            guard mentions || reactions else { return true }
+            let voice = ghostMode && hideVoiceReads
+            guard mentions || reactions || voice else { return true }
             guard classified else { return false }
             if ghostException { return true }
-            return !(mentions && (mention ?? true)) && !(reactions && (reaction ?? true))
+            return !(mentions && (mention ?? true)) && !(reactions && (reaction ?? true)) && !(voice && (playableMedia ?? true))
         }
     }
 
@@ -227,10 +234,13 @@ enum MessagePatches {
 
     @discardableResult
     static func replaceVoiceAttributes(in record: TLRecord, attributes: [Api.DocumentAttribute], registeredUpload: Bool,
-                                       settings: Settings = .init()) -> Bool {
-        guard settings.videoToVoice, registeredUpload, record.typeName == "InputMedia",
+                                       settings: Settings = .init(), audioFileUpload: Bool = false) -> Bool {
+        guard audioFileUpload ? settings.audioToVoice : settings.videoToVoice, registeredUpload, record.typeName == "InputMedia",
               record.constructorName == "inputMediaUploadedDocument" else { return false }
-        return TLDataPatch(record, rule: Setting.videoToVoice.rawValue).replaceField("attributes", attributes)
+        let patch = TLDataPatch(record, rule: audioFileUpload ? Setting.audioToVoice.rawValue : Setting.videoToVoice.rawValue)
+        let replaced = patch.replaceField("attributes", attributes)
+        let cleared = patch.clearFlag(.forceFile)
+        return replaced || cleared
     }
 
     @discardableResult

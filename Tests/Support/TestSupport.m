@@ -84,6 +84,43 @@ static NSData *typingPayload(int64_t user, int32_t action) {
 @implementation TestHistoryRequestService
 @end
 
+@interface TestGhostRequestService : TestHistoryRequestService
+@property NSMutableArray<NSData *> *reads;
+@property BOOL failRead;
+@end
+@implementation TestGhostRequestService
+- (void)addRequest:(MTRequest *)request {
+    NSCAssert(TGExtraIsGhostReadRequest(request), @"Replayed reads bypass only their own privacy policy");
+    [self.reads addObject:request.payload];
+    uint32_t boolean = 0x997275b5;
+    NSData *response = [NSData dataWithBytes:&boolean length:4];
+    MTRpcError *error = self.failRead ? [[MTRpcError alloc] initWithErrorCode:500 errorDescription:@"TEST"] : nil;
+    request.completed(error ? nil : request.responseParser(response), nil, error);
+}
+@end
+
+NSArray<NSData *> *TGExtraTestGhostReply(NSData *read, NSData *send, NSString *account, BOOL failSend, BOOL failRead) {
+    TestHistoryUsage *usage = [TestHistoryUsage new];
+    usage.filePath = [NSString stringWithFormat:@"/accounts/%@/network-stats", account];
+    TestGhostRequestService *service = [TestGhostRequestService new];
+    service.mtProto = [[TestHistoryMTProto alloc] initWithUsage:usage];
+    service.reads = [NSMutableArray new]; service.failRead = failRead;
+    if (read) {
+        MTRequest *blocked = [MTRequest new];
+        [blocked setPayload:read metadata:nil shortMetadata:nil responseParser:^id(NSData *data) { return data; }];
+        blocked.fakeData = [TLParser fakeResponseForPayload:read];
+        TGExtraSetHistoryRequestService(blocked, service);
+        TGExtraPrepareGhostRequest(blocked, (id)service);
+    }
+    MTRequest *request = [MTRequest new];
+    [request setPayload:send metadata:nil shortMetadata:nil responseParser:^id(NSData *data) { return data; }];
+    TGExtraSetHistoryRequestService(request, service);
+    TGExtraPrepareGhostRequest(request, (id)service);
+    MTRpcError *error = failSend ? [[MTRpcError alloc] initWithErrorCode:500 errorDescription:@"TEST"] : nil;
+    if (request.completed) request.completed(error ? nil : @YES, nil, error);
+    return service.reads;
+}
+
 NSDictionary *TGExtraTestReadContentsRequest(NSData *payload, NSString *account) {
     MTRequest *request = [MTRequest new];
     id (^parser)(NSData *) = ^id(NSData *bytes) { return bytes; };

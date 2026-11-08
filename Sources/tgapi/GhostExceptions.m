@@ -22,7 +22,14 @@ static NSSet<NSNumber *> *sIdCache = nil;
 + (void)initialize {
   if (self == [TGExtraGhostExceptions class]) {
     sLock = [NSObject new];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(settingsImported:)
+        name:@"TGExtraSettingsImported" object:nil];
   }
+}
+
++ (void)settingsImported:(NSNotification *)notification {
+  @synchronized(sLock) { sEntries = nil; sIdCache = nil; }
+  [NSNotificationCenter.defaultCenter postNotificationName:kTGExtraGhostExceptionsChangedNotification object:nil];
 }
 
 static void loadIfNeeded(void) {

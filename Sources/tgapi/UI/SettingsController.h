@@ -44,3 +44,8 @@
 - (void)clearFilePickerFixCache;
 - (void)confirmClearTemporaryFiles;
 @end
+
+@interface TGExtra (Transfer) <UIDocumentPickerDelegate>
+- (void)exportSettings;
+- (void)importSettings;
+@end

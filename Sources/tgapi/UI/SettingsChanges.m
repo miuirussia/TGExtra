@@ -61,6 +61,8 @@
 
     [[NSUserDefaults standardUserDefaults] setBool:sender.isOn
                                             forKey:switchKey];
+    if ([switchKey isEqual:kGhostModeEnabled] || [switchKey isEqual:kGhostReadOnReply] ||
+        [switchKey isEqual:kDisableMessageReadReceipt]) [TLParser clearPendingGhostReads];
     if (!TGExtraSavePreferences()) {
       TGExtraShowToast(TGLoc(@"SETTINGS_SAVE_FAILED"));
     }

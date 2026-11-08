@@ -35,7 +35,7 @@ extension TLParser {
     }
 
     static func voiceMedia(from media: Api.InputMedia) -> Api.InputMedia? {
-        guard MessagePatches.Settings().videoToVoice,
+        guard MessagePatches.Settings().videoToVoice || UserDefaults.standard.bool(forKey: "TGExtraAudioToVoice"),
               case let .inputMediaUploadedDocument(data) = media else { return nil }
 
         var fileName: String?
@@ -51,19 +51,22 @@ extension TLParser {
         var newAttributes: [Api.DocumentAttribute]?
 
         if let name = fileName, let upload = voiceUpload(forFileName: name) {
+            let enabled = name.hasPrefix("TGExtraAudio-") ? UserDefaults.standard.bool(forKey: "TGExtraAudioToVoice") : MessagePatches.Settings().videoToVoice
+            guard enabled else { return nil }
             diag("v2v wire: \(name) -> voice, \(upload.duration)s")
             newAttributes = [voiceAttribute(upload)]
         }
 
         guard let attributes = newAttributes else { return nil }
 
-        guard MessagePatches.replaceVoiceAttributes(in: media.record, attributes: attributes, registeredUpload: true) else { return nil }
+        guard MessagePatches.replaceVoiceAttributes(in: media.record, attributes: attributes, registeredUpload: true,
+            audioFileUpload: fileName?.hasPrefix("TGExtraAudio-") == true) else { return nil }
         return media
     }
 
     @objc static func rewriteVoiceUpload(_ data: NSData) -> NSData? {
         let settings = MessagePatches.Settings()
-        guard settings.videoToVoice || settings.videoToRound, let method = requestMethod(data),
+        guard settings.videoToVoice || settings.videoToRound || UserDefaults.standard.bool(forKey: "TGExtraAudioToVoice"), let method = requestMethod(data),
               [TLMethodID.messagesSendMedia, .messagesUploadMedia, .messagesSendMultiMedia].contains(method),
               let record = request(data) else { return nil }
         var changed = false

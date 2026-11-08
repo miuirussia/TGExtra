@@ -156,8 +156,11 @@ extension TLParser {
         let previousNamespace = processingNamespace
         let previousIds = requestedMessageIds
         let previousPeer = requestedMessagePeer
+        let previousStoryPeer = requestedStoryPeer
+        let previousStoryIds = requestedStoryIds
         processingHistoryAccount = account
         processingSettings = MessagePatches.Settings(snapshot: true)
+        (requestedStoryPeer, requestedStoryIds) = storyRequest(request as NSData?)
         let settings = packetSettings
         switch TLMethodID(signature: function) {
         case .messagesGetScheduledHistory, .messagesGetScheduledMessages: processingNamespace = 3
@@ -170,6 +173,7 @@ extension TLParser {
         defer {
             processingHistoryAccount = previousAccount; processingSettings = previousSettings
             processingNamespace = previousNamespace; requestedMessageIds = previousIds; requestedMessagePeer = previousPeer
+            requestedStoryPeer = previousStoryPeer; requestedStoryIds = previousStoryIds
             markerBatchDepth -= 1
             if markerBatchDepth == 0 { flushMarkers() }
             processingLock.unlock()
@@ -179,7 +183,7 @@ extension TLParser {
         let nativeRoot = TGExtraNativeObject(object: root)
         let descriptor = nativeRoot.flatMap { HostSchema.shared?.constructors[Int32(bitPattern: $0.constructorId)] }
         let appConfig = descriptor.map { HostSchema.shared?.types[$0.typeIndex] == "help.AppConfig" } ?? false
-        if !appConfig && !settings.protectsAnyDeletions && !settings.keepEditHistory && !settings.tracksContentReads {
+        if !appConfig && !settings.protectsAnyDeletions && !settings.keepEditHistory && !settings.tracksContentReads && !settings.saveDeletedStories {
             var mask = TGExtraNativeSettings()
             if settings.bypassForwarding { mask.insert(.bypassForwarding) }
             if settings.bypassPrivateCopy { mask.insert(.bypassPrivateCopy) }
@@ -237,12 +241,17 @@ extension TLParser {
         }
         let previousIds = requestedMessageIds
         let previousPeer = requestedMessagePeer
+        let previousStoryPeer = requestedStoryPeer
+        let previousStoryIds = requestedStoryIds
+        (requestedStoryPeer, requestedStoryIds) = storyRequest(requestPayload)
         let validation = validationRequest(requestPayload, function: functionID.int32Value)
         requestedMessageIds = validation?.ids
         requestedMessagePeer = validation?.peer
         defer {
             requestedMessageIds = previousIds
             requestedMessagePeer = previousPeer
+            requestedStoryPeer = previousStoryPeer
+            requestedStoryIds = previousStoryIds
         }
         let method = TLMethodID(signature: functionID.int32Value)
         switch method {

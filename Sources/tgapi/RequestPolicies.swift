@@ -39,13 +39,16 @@ extension TLParser {
             guard ghost, defaults.bool(forKey: "disableOnlineStatus"), let record = request(payload),
                   let offline = record["offline"] as? TLRecord, offline.constructorName == "boolFalse" else { return nil }
             constructor = "boolTrue"
+        case .messagesSetEncryptedTyping:
+            guard ghost, defaults.bool(forKey: "disableTypingStatus"), request(payload) != nil else { return nil }
+            constructor = "boolTrue"
         case .messagesSetTyping:
             guard ghost, let record = request(payload), !exceptionPeer(record),
                   let action = record["action"] as? TLRecord, let key = typingSettings[action.constructorName],
                   defaults.bool(forKey: key) else { return nil }
             constructor = "boolTrue"
-        case .messagesReadHistory, .channelsReadHistory:
-            guard ghost, defaults.bool(forKey: "disableMessageReadReceipt"),
+        case .messagesReadHistory, .channelsReadHistory, .messagesReadDiscussion, .messagesReadEncryptedHistory:
+            guard ghost, defaults.bool(forKey: "disableMessageReadReceipt") || defaults.bool(forKey: "TGExtraGhostReadOnReply"),
                   let record = request(payload), !exceptionPeer(record) else { return nil }
             constructor = method == .messagesReadHistory ? "affectedMessages" : "boolTrue"
         case .messagesReadMentions, .messagesReadReactions:
@@ -56,6 +59,10 @@ extension TLParser {
             guard ghost, defaults.bool(forKey: "disableStoriesReadReceipt"),
                   let record = request(payload), !exceptionPeer(record) else { return nil }
             constructor = "vector"
+        case .storiesIncrementViews:
+            guard ghost, defaults.bool(forKey: "disableStoriesReadReceipt"),
+                  let record = request(payload), !exceptionPeer(record) else { return nil }
+            constructor = "boolTrue"
         case .messagesGetSponsoredMessages:
             guard defaults.bool(forKey: "disableAllAds"), request(payload) != nil else { return nil }
             constructor = "sponsoredMessagesEmpty"
@@ -69,6 +76,12 @@ extension TLParser {
 
     @objc static func rewriteRequestPayload(_ payload: NSData) -> NSData? {
         switch requestMethod(payload) {
+        case .messagesForward:
+            guard UserDefaults.standard.bool(forKey: "TGExtraForwardDropAuthor"),
+                  let record = request(payload), let flags = record["flags"] as? Int32,
+                  flags & (1 << 11) == 0 else { return nil }
+            record["flags"] = flags | (1 << 11)
+            return record.serializedData().map { $0 as NSData }
         case .helpGetAppConfig: return rewriteAppConfigRequest(payload)
         case .messagesSendMedia, .messagesUploadMedia, .messagesSendMultiMedia: return rewriteVoiceUpload(payload)
         default: return nil

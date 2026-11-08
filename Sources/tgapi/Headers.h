@@ -5,6 +5,13 @@
 
 @interface TLParser : NSObject
 + (BOOL)nativeTLAvailable;
++ (void)noteBlockedRead:(NSData *)payload account:(NSString *)account;
++ (BOOL)isGhostReplyPayload:(NSData *)payload;
++ (NSArray<NSData *> *)pendingGhostReadsAfterSend:(NSData *)payload account:(NSString *)account;
++ (void)acknowledgeGhostRead:(NSData *)payload account:(NSString *)account;
++ (void)clearPendingGhostReads;
++ (NSArray<NSDictionary *> *)messageLogEntries;
++ (BOOL)clearMessageLog;
 + (NSData *)handleResponse:(NSData *)data functionID:(NSNumber *)ios account:(NSString *)account requestPayload:(NSData *)payload;
 + (void)addDeletedId:(int32_t)msgId peer:(int64_t)peer account:(NSString *)account messageNamespace:(int32_t)messageNamespace;
 + (void)loadPersistedIds;
@@ -12,6 +19,7 @@
 + (void)registerMessageCleanupContext:(id)context;
 + (void)registerVideoConversionChat:(id)controller;
 + (BOOL)roundVideoChatSupported;
++ (BOOL)audioFileVoiceChatSupported;
 + (BOOL)isDeleted:(NSNumber *)msgId peer:(NSNumber *)peer account:(NSString *)account messageNamespace:(NSNumber *)messageNamespace;
 + (NSData *)stripAntiSelfDestruct:(NSData *)data account:(NSString *)account;
 + (void)registerVoiceUploadWithFileName:(NSString *)fileName
@@ -71,6 +79,9 @@
 extern "C" {
 #endif
 BOOL TGExtraIsPreparingReadContentsRequest(MTRequest *request);
+BOOL TGExtraIsGhostReadRequest(MTRequest *request);
+void TGExtraPrepareGhostRequest(MTRequest *request, MTRequestMessageService *service);
+void TGExtraSendPendingGhostReads(NSData *sentPayload, NSString *account, MTRequestMessageService *service);
 void TGExtraPrepareReadContentsRequest(MTRequest *request, NSString *account);
 NSData *TGExtraFakeResponseForPayload(NSData *payload);
 NSData *TGExtraRewriteRequestPayload(NSData *payload);

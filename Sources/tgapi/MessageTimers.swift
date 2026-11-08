@@ -39,7 +39,7 @@ extension TLParser {
     static func stripTTLMessage(_ apiMsg: Api.Message) -> (Api.Message, Bool) {
         if case let .messageService(data) = apiMsg {
             noteContentReadState(id: data.id, peer: peerKey(data.peerId), mention: false,
-                                 reaction: hasUnreadReactions(data.reactions), disappearingMedia: false)
+                                 reaction: hasUnreadReactions(data.reactions), disappearingMedia: false, playableMedia: false)
             guard data.ttlPeriod != nil else { return (apiMsg, false) }
             recordTimedId(data.id, scope: deletionScope(data.peerId), disappearing: false)
             return (apiMsg, MessagePatches.removeAutoDeleteTimer(from: apiMsg.record, settings: packetSettings))
@@ -54,7 +54,8 @@ extension TLParser {
         }
         noteContentReadState(id: data.id, peer: scope,
                              mention: data.flags & (1 << 4) != 0 && data.flags & (1 << 5) != 0,
-                             reaction: hasUnreadReactions(data.reactions), disappearingMedia: disappearingMedia)
+                             reaction: hasUnreadReactions(data.reactions), disappearingMedia: disappearingMedia,
+                             playableMedia: playableMedia(data.media))
         let autoDelete = data.ttlPeriod != nil
         if autoDelete { recordTimedId(data.id, scope: scope, disappearing: false) }
         let before = apiMsg.record.changes.count

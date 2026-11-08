@@ -297,6 +297,7 @@ static void completeRecovery(TGERustEngine *engine, TGERustSession *session, TGE
         }
     }
     engine.callback(engine.context, session.handle, &event);
+    if (!error && result) TGExtraSendPendingGhostReads(pending.payload, session.account, (id)session.service);
     flushDependents(engine, session, event.requestId);
 }
 
@@ -398,6 +399,8 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
             }
         }
         engine.callback(context, handle, event);
+        if (pending && event->kind == 1 && !pending.fakeResponse)
+            TGExtraSendPendingGhostReads(pending.payload, session.account, (id)session.service);
         if (pending && (event->kind == 1 || event->kind == 2 || event->kind == 36))
             flushDependents(engine, session, event->requestId);
     }
@@ -559,6 +562,7 @@ static void receiveEvent(void *context, uint64_t handle, const TGERustEvent *eve
         pending.send = original;
         pending.payload = TGExtraRewriteRequestPayload(payload);
         pending.fakeResponse = TGExtraFakeResponseForPayload(pending.payload);
+        if (pending.fakeResponse) [TLParser noteBlockedRead:pending.payload account:state.account];
         NSDictionary *contentPolicy = [TLParser readMessageContentsPolicy:pending.payload account:state.account];
         if (contentPolicy[@"payload"]) pending.payload = contentPolicy[@"payload"];
         if (contentPolicy[@"response"]) pending.fakeResponse = contentPolicy[@"response"];

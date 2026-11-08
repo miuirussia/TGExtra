@@ -126,6 +126,21 @@ func testNativeEngine() {
         autoreleasepool { _ = TGExtraNativeFixtureDecode(lifetimePacket, nil, 0, nil, true) }
     }
     check(TGExtraNativeFixtureLiveCount() == liveBefore, "Native bridge balances decoded object ownership")
+    defaults.set(true, forKey: "TGExtraSaveDeletedStories")
+    let story = TLRecord(type: "StoryItem", constructor: "storyItem")
+    let expiry = Int32(Date().timeIntervalSince1970 + 3600)
+    story.fields = ["flags": Int32(0), "id": Int32(1), "date": expiry - 7200, "expireDate": expiry,
+                    "media": Api.MessageMedia.messageMediaEmpty.record]
+    let peerStories = TLRecord(type: "PeerStories", constructor: "peerStories")
+    peerStories.fields = ["flags": Int32(0), "peer": Api.Peer.peerUser(.init(userId: 42)).record, "stories": [story]]
+    _ = native(peerStories)
+    peerStories["stories"] = [TLRecord]()
+    let restoredStories = native(peerStories)!
+    let storyReader = BufferReader(Buffer(nsData: restoredStories))
+    let storyRoot = TLCodec.parse(storyReader, descriptor: TLCodec.descriptor(storyReader.readInt32()!)!)!
+    check((storyRoot["stories"] as? [TLRecord])?.count == 1, "Native story recovery materializes cached bodies")
+    check(native(peerStories, account: "native-other") == serialized(peerStories), "Native story recovery isolates accounts")
+    defaults.set(false, forKey: "TGExtraSaveDeletedStories")
     flags()
     print("PASS native host engine: one decode, content, forwarding, TTL, deletions, edit history, rejected packets and labels")
 }

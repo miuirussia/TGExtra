@@ -28,6 +28,8 @@ final class MessageHistoryArchive {
     private var pendingSnapshots = [MessageKey: MessageSnapshotRow]()
     private var removedSnapshots = Set<MessageKey>()
     private var pendingMarkers = [MessageKey: Int]()
+    private var pendingEvents = [String: (Data, Int64)]()
+    private var pendingStories = [String: (Data, Int64)]()
     private var flushScheduled = false
 #if TGEXTRA_TESTING
     private var commits = 0
@@ -60,6 +62,8 @@ final class MessageHistoryArchive {
               execute("CREATE TABLE IF NOT EXISTS revisions (key TEXT PRIMARY KEY, value BLOB NOT NULL)"),
               execute("CREATE TABLE IF NOT EXISTS snapshots (key TEXT PRIMARY KEY, value BLOB NOT NULL, position INTEGER NOT NULL)"),
               execute("CREATE TABLE IF NOT EXISTS markers (key TEXT PRIMARY KEY, value INTEGER NOT NULL)"),
+              execute("CREATE TABLE IF NOT EXISTS events (key TEXT PRIMARY KEY, value BLOB NOT NULL, position INTEGER NOT NULL)"),
+              execute("CREATE TABLE IF NOT EXISTS stories (key TEXT PRIMARY KEY, value BLOB NOT NULL, position INTEGER NOT NULL)"),
               execute("CREATE TABLE IF NOT EXISTS message_data_migration (value INTEGER NOT NULL)") else {
             sqlite3_close(handle)
             database = nil
@@ -295,7 +299,7 @@ final class MessageHistoryArchive {
     @discardableResult
     private func flushPending() -> Bool {
         guard !pendingRevisions.isEmpty || !removedRevisions.isEmpty || !pendingSnapshots.isEmpty ||
-              !removedSnapshots.isEmpty || !pendingMarkers.isEmpty else { return true }
+              !removedSnapshots.isEmpty || !pendingMarkers.isEmpty || !pendingEvents.isEmpty || !pendingStories.isEmpty else { return true }
         guard open(), execute("BEGIN IMMEDIATE") else { return false }
         var success = true
         for (key, value) in pendingRevisions where success { success = write(value, key: key) }
@@ -307,12 +311,27 @@ final class MessageHistoryArchive {
         for (key, value) in pendingMarkers where success {
             success = mutate("INSERT OR REPLACE INTO markers VALUES (?, ?)", key: key.storageKey, integer: Int64(value))
         }
+        for (key, row) in pendingEvents where success {
+            success = mutate("INSERT OR IGNORE INTO events VALUES (?, ?, ?)", key: key, data: row.0, integer: row.1)
+        }
+        for (key, row) in pendingStories where success {
+            success = mutate("INSERT OR REPLACE INTO stories VALUES (?, ?, ?)", key: key, data: row.0, integer: row.1)
+        }
+        if success && !pendingEvents.isEmpty {
+            success = execute("DELETE FROM events WHERE key NOT IN (SELECT key FROM events ORDER BY position DESC, rowid DESC LIMIT 2000)")
+        }
+        if success && !pendingStories.isEmpty {
+            success = execute("DELETE FROM stories WHERE position <= \(Int64(Date().timeIntervalSince1970))") &&
+                execute("DELETE FROM stories WHERE key NOT IN (SELECT key FROM stories ORDER BY position DESC LIMIT 600)") &&
+                execute("DELETE FROM stories WHERE key IN (SELECT key FROM (SELECT key, SUM(length(value)) OVER (ORDER BY position DESC, key DESC) AS bytes FROM stories) WHERE bytes > 33554432)")
+        }
         guard success, execute("COMMIT") else { _ = execute("ROLLBACK"); return false }
 #if TGEXTRA_TESTING
         commits += 1
 #endif
         pendingRevisions.removeAll(); removedRevisions.removeAll()
         pendingSnapshots.removeAll(); removedSnapshots.removeAll(); pendingMarkers.removeAll()
+        pendingEvents.removeAll(); pendingStories.removeAll()
         return true
     }
 
@@ -342,17 +361,73 @@ final class MessageHistoryArchive {
         }
     }
 
+    func saveEvent(_ value: [String: Any], identifier: String, date: TimeInterval) {
+        guard let data = try? PropertyListSerialization.data(fromPropertyList: value, format: .binary, options: 0) else { return }
+        queue.async { [self] in
+            pendingEvents[identifier] = (data, Int64(date * 1000))
+            scheduleFlush()
+        }
+    }
+
+    func eventEntries() -> [[String: Any]] {
+        queue.sync {
+            guard open(), flushPending(), let query = statement("SELECT value FROM events ORDER BY position DESC, rowid DESC LIMIT 2000") else { return [] }
+            defer { sqlite3_reset(query) }
+            var result = [[String: Any]]()
+            while sqlite3_step(query) == SQLITE_ROW {
+                guard let bytes = sqlite3_column_blob(query, 0) else { continue }
+                let data = Data(bytes: bytes, count: Int(sqlite3_column_bytes(query, 0)))
+                if let entry = (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any] {
+                    result.append(entry)
+                }
+            }
+            return result
+        }
+    }
+
+    func clearEvents() -> Bool {
+        queue.sync {
+            guard open(), execute("DELETE FROM events") else { return false }
+            pendingEvents.removeAll()
+            return true
+        }
+    }
+
+    func saveStory(_ bytes: Data, key: MessageKey, expiry: Int32) {
+        queue.async { [self] in
+            pendingStories[key.storageKey] = (bytes, Int64(expiry))
+            scheduleFlush()
+        }
+    }
+
+    func loadStories() -> [MessageKey: Data] {
+        queue.sync {
+            guard open(), flushPending(), execute("DELETE FROM stories WHERE position <= \(Int64(Date().timeIntervalSince1970))"),
+                  let query = statement("SELECT key, value FROM stories ORDER BY position DESC LIMIT 600") else { return [:] }
+            defer { sqlite3_reset(query) }
+            var result = [MessageKey: Data]()
+            while sqlite3_step(query) == SQLITE_ROW {
+                guard let raw = sqlite3_column_text(query, 0), let key = MessageKey(storageKey: String(cString: raw)),
+                      let bytes = sqlite3_column_blob(query, 1) else { continue }
+                result[key] = Data(bytes: bytes, count: Int(sqlite3_column_bytes(query, 1)))
+            }
+            return result
+        }
+    }
+
     @discardableResult
     func clear() -> Bool {
         queue.sync {
             guard open(), execute("BEGIN IMMEDIATE") else { return false }
             guard execute("DELETE FROM revisions"), execute("DELETE FROM snapshots"), execute("DELETE FROM markers"),
+                  execute("DELETE FROM events"), execute("DELETE FROM stories"),
                   execute("DELETE FROM message_data_migration"), execute("INSERT INTO message_data_migration VALUES (1)"),
                   execute("PRAGMA user_version=1"), execute("COMMIT") else {
                 _ = execute("ROLLBACK"); return false
             }
             pendingRevisions.removeAll(); removedRevisions.removeAll()
             pendingSnapshots.removeAll(); removedSnapshots.removeAll(); pendingMarkers.removeAll()
+            pendingEvents.removeAll(); pendingStories.removeAll()
             // DELETE frees pages for SQLite reuse; VACUUM returns them to the OS.
             // The deletion is already committed even if compaction cannot finish.
             for statement in statements.values { sqlite3_finalize(statement) }

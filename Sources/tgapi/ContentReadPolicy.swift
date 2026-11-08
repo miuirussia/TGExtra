@@ -7,6 +7,7 @@ extension TLParser {
         var mention: Bool?
         var reaction: Bool?
         var disappearingMedia: Bool?
+        var playableMedia: Bool?
     }
 
     // Access requires processingLock.
@@ -18,7 +19,7 @@ extension TLParser {
         return packetSettings.tracksContentReads
     }
 
-    static func noteContentReadState(id: Int32, peer: Int64, mention: Bool? = nil, reaction: Bool?, disappearingMedia: Bool? = nil) {
+    static func noteContentReadState(id: Int32, peer: Int64, mention: Bool? = nil, reaction: Bool?, disappearingMedia: Bool? = nil, playableMedia: Bool? = nil) {
         guard tracksContentReads, processingNamespace == 0,
               let key = markerKey(id: id, peer: peer, account: processingHistoryAccount, namespace: 0) else { return }
         if contentReadStates[key] == nil {
@@ -30,6 +31,7 @@ extension TLParser {
         if let mention = mention { state.mention = mention }
         state.reaction = reaction == nil && state.reaction == true ? true : reaction
         if let disappearingMedia = disappearingMedia { state.disappearingMedia = disappearingMedia }
+        if disappearingMedia != nil { state.playableMedia = playableMedia }
         contentReadStates[key] = state
     }
 
@@ -65,7 +67,7 @@ extension TLParser {
             let marked = settings.preventMediaSelfDestruct && markerBits(id: $0, peer: peer, account: account, namespace: 0) & disappearingMarker != 0
             return settings.allowsContentReceipt(disappearing: marked ? true : state?.disappearingMedia,
                 mention: state?.mention, reaction: state?.reaction, classified: state != nil,
-                ghostException: state.map { TGExtraIsGhostException($0.peer) } ?? false)
+                ghostException: state.map { TGExtraIsGhostException($0.peer) } ?? false, playableMedia: state?.playableMedia)
         }
         processingLock.unlock()
         guard allowed.count != ids.count else { return nil }

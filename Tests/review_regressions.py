@@ -10,9 +10,9 @@ helper = picker[picker.index('static NSURL *TGExtraRelocatePickedFile'):picker.i
 methods = picker[picker.index('- (void)documentPicker:'):picker.index('%hook NSURL')]
 methods = methods[:methods.index('%end')]
 single, multiple = methods.split('- (void)documentPicker:(id)picker didPickDocumentsAtURLs:', 1)
-single = single.replace('%orig;', 'self.captured = url ? @[url] : @[];').replace('%orig(picker, TGExtraRelocatePickedFile(url));', 'self.captured = @[TGExtraRelocatePickedFile(url)];')
+single = single.replace('&%orig', 'testSingleOriginal').replace('%orig;', 'self.captured = url ? @[url] : @[];').replace('%orig(picker, TGExtraRelocatePickedFile(url));', 'self.captured = @[TGExtraRelocatePickedFile(url)];')
 multiple = '- (void)documentPicker:(id)picker didPickDocumentsAtURLs:' + multiple
-multiple = multiple.replace('%orig;', 'self.captured = urls;').replace('%orig(picker, relocated);', 'self.captured = relocated;')
+multiple = multiple.replace('&%orig', 'testMultipleOriginal').replace('%orig;', 'self.captured = urls;').replace('%orig(picker, relocated);', 'self.captured = relocated;')
 # The copied class list owns its count; registering another class cannot grow that buffer.
 scan = picker[picker.index('unsigned int numClasses = 0;'):picker.index('\n\t\tClass DocumentPickerViewController')]
 assert 'objc_copyClassList' in scan and 'objc_getClassList' not in picker
@@ -27,6 +27,22 @@ static BOOL enabled = YES;
 static BOOL shouldFixFilePicker(void) { return enabled; }
 @interface Picker : NSObject
 @property NSArray<NSURL *> *captured;
+@end
+static void testSingleOriginal(Picker *self, SEL command, id picker, NSURL *url) { self.captured = @[url]; }
+static void testMultipleOriginal(Picker *self, SEL command, id picker, NSArray *urls) { self.captured = urls; }
+static NSURL *TGExtraConvertAudioFile(NSURL *url) { return url; }
+static void TGExtraShowToast(NSString *text) {}
+@interface TGExtraLocalization : NSObject
++ (NSString *)localizedStringForKey:(NSString *)key;
+@end
+@implementation TGExtraLocalization
++ (NSString *)localizedStringForKey:(NSString *)key { return key; }
+@end
+@interface TLParser : NSObject
++ (BOOL)audioFileVoiceChatSupported;
+@end
+@implementation TLParser
++ (BOOL)audioFileVoiceChatSupported { return YES; }
 @end
 '''
 
@@ -101,11 +117,11 @@ int main(void) { @autoreleasepool {
         kDisableChoosingContactStatus, kDisablePlayingGameStatus, kDisableRecordingRoundVideoStatus,
         kDisableUploadingRoundVideoStatus, kDisableSpeakingInGroupCallStatus, kDisableChoosingStickerStatus,
         kDisableEmojiInteractionStatus, kDisableEmojiAcknowledgementStatus, kDisableMessageReadReceipt,
-        kDisableReactionReadReceipt, kDisableMentionReadReceipt, kDisableStoriesReadReceipt];
+        kDisableReactionReadReceipt, kDisableMentionReadReceipt, kDisableStoriesReadReceipt, kGhostKeepVoiceUnread, kGhostReadOnReply];
     NSCAssert([[TGExtraSettingRow.ghostRows valueForKey:@"key"] isEqual:ghostKeys], @"Keep every Ghost toggle in order");
-    NSDictionary *sections = @{@(MESSAGE_HISTORY): @[kAntiRevoke, kAntiAutoDelete, kAntiEdit],
+    NSDictionary *sections = @{@(MESSAGE_HISTORY): @[kAntiRevoke, kAntiAutoDelete, kAntiEdit, kSaveDeletedStories, kForwardDropAuthor],
         @(CONTENT_ACCESS): @[kDisableForwardRestriction, kIgnorePrivateChatCopyProtection, kDisableScreenshotNotification, kAntiSelfDestruct, kHideDisappearingLabel],
-        @(MEDIA): @[kVideoToVoice, kVideoToRound, kForceTLottie, FILE_PICKER_FIX_KEY], @(INTERFACE): @[kDisableAllAds, kDisableDoubleTapReactions, kHideRecordingButton]};
+        @(MEDIA): @[kVideoToVoice, kAudioToVoice, kVideoToRound, kForceTLottie, FILE_PICKER_FIX_KEY], @(INTERFACE): @[kDisableAllAds, kDisableDoubleTapReactions, kHideRecordingButton]};
     for (NSNumber *section in sections) {
         NSArray *rows = [TGExtraSettingRow featureRowsForSection:section.integerValue];
         NSCAssert([[rows valueForKey:@"key"] isEqual:sections[section]], @"Keep all categorized toggles");

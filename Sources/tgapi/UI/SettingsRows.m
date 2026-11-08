@@ -58,6 +58,10 @@
                 subtitle:@"DISABLE_MENTION_READ_RECEIPT_SUBTITLE" icon:@""],
             [self rowWithKey:kDisableStoriesReadReceipt title:@"DISABLE_STORY_READ_RECEIPT_TITLE"
                 subtitle:@"DISABLE_STORY_READ_RECEIPT_SUBTITLE" icon:@""],
+            [self rowWithKey:kGhostKeepVoiceUnread title:@"KEEP_VOICE_UNREAD_TITLE"
+                subtitle:@"KEEP_VOICE_UNREAD_SUBTITLE" icon:@""],
+            [self rowWithKey:kGhostReadOnReply title:@"READ_ON_REPLY_TITLE"
+                subtitle:@"READ_ON_REPLY_SUBTITLE" icon:@""],
         ];
     });
     return rows;
@@ -75,6 +79,10 @@
                 subtitle:@"ANTI_AUTO_DELETE_SUBTITLE" icon:@"clock.arrow.circlepath"],
             [self rowWithKey:kAntiEdit title:@"ANTI_EDIT_TITLE"
                 subtitle:@"ANTI_EDIT_SUBTITLE" icon:@"pencil.slash"],
+            [self rowWithKey:kSaveDeletedStories title:@"SAVE_DELETED_STORIES_TITLE"
+                subtitle:@"SAVE_DELETED_STORIES_SUBTITLE" icon:@"rectangle.stack.badge.minus"],
+            [self rowWithKey:kForwardDropAuthor title:@"FORWARD_DROP_AUTHOR_TITLE"
+                subtitle:@"FORWARD_DROP_AUTHOR_SUBTITLE" icon:@"arrowshape.turn.up.right.fill"],
         ],
         @(CONTENT_ACCESS): @[
             [self rowWithKey:kDisableForwardRestriction title:@"ENABLE_SAVING_PROTECTED_CONTENT_TITLE"
@@ -91,6 +99,8 @@
         @(MEDIA): @[
             [self rowWithKey:kVideoToVoice title:@"VIDEO_TO_VOICE_TITLE"
                 subtitle:@"VIDEO_TO_VOICE_SUBTITLE" icon:@"waveform.circle.fill"],
+            [self rowWithKey:kAudioToVoice title:@"AUDIO_TO_VOICE_TITLE"
+                subtitle:@"AUDIO_TO_VOICE_SUBTITLE" icon:@"waveform"],
             [self rowWithKey:kVideoToRound title:@"VIDEO_TO_ROUND_TITLE"
                 subtitle:@"VIDEO_TO_ROUND_SUBTITLE" icon:@"video.circle.fill"],
             [self rowWithKey:kForceTLottie title:@"FORCE_TLOTTIE_TITLE"

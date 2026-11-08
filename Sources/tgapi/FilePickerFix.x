@@ -1,4 +1,8 @@
 #import "Headers.h"
+#import "VideoAudioExtractor.h"
+#import "UI/TGExtraLocalization.h"
+
+void TGExtraShowToast(NSString *text);
 
 bool shouldFixFilePicker() {
 	return [[NSUserDefaults standardUserDefaults] boolForKey:FILE_PICKER_FIX_KEY];
@@ -41,9 +45,40 @@ static NSURL *TGExtraRelocatePickedFile(NSURL *url) {
     return url;
 }
 
+static void TGExtraPreparePickedFiles(NSArray<NSURL *> *urls, void (^completion)(NSArray<NSURL *> *)) {
+    NSMutableArray<NSURL *> *scoped = [NSMutableArray new];
+    for (NSURL *url in urls) if ([url startAccessingSecurityScopedResource]) [scoped addObject:url];
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+        NSMutableArray *prepared = [NSMutableArray new];
+        NSMutableArray<NSURL *> *exports = [NSMutableArray new];
+        @autoreleasepool {
+            for (NSURL *url in urls) {
+                NSURL *converted = TGExtraConvertAudioFile(url);
+                if (!converted) {
+                    TGExtraShowToast([TGExtraLocalization localizedStringForKey:@"AUDIO_TO_VOICE_FAILED"]);
+                    for (NSURL *file in exports) [NSFileManager.defaultManager removeItemAtURL:file.URLByDeletingLastPathComponent error:NULL];
+                    [prepared removeAllObjects];
+                    break;
+                }
+                if (converted != url) [exports addObject:converted];
+                [prepared addObject:shouldFixFilePicker() && converted == url ? TGExtraRelocatePickedFile(converted) : converted];
+            }
+        }
+        for (NSURL *url in scoped) [url stopAccessingSecurityScopedResource];
+        dispatch_async(dispatch_get_main_queue(), ^{ completion(prepared); });
+    });
+}
+
 %hook LegacyMediaPickerUIICloudFileController
 
 - (void)documentPicker:(id)picker didPickDocumentAtURL:(NSURL *)url {
+    if (url && [NSUserDefaults.standardUserDefaults boolForKey:kAudioToVoice] && [TLParser audioFileVoiceChatSupported]) {
+        void (*original)(id, SEL, id, NSURL *) = &%orig;
+        TGExtraPreparePickedFiles(@[url], ^(NSArray<NSURL *> *prepared) {
+            if (prepared.count) original(self, _cmd, picker, prepared.firstObject);
+        });
+        return;
+    }
     if (!shouldFixFilePicker() || !url) {
         %orig;
         return;
@@ -52,6 +87,11 @@ static NSURL *TGExtraRelocatePickedFile(NSURL *url) {
 }
 
 - (void)documentPicker:(id)picker didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+    if ([NSUserDefaults.standardUserDefaults boolForKey:kAudioToVoice] && [TLParser audioFileVoiceChatSupported]) {
+        void (*original)(id, SEL, id, NSArray *) = &%orig;
+        TGExtraPreparePickedFiles(urls, ^(NSArray<NSURL *> *prepared) { original(self, _cmd, picker, prepared); });
+        return;
+    }
     if (!shouldFixFilePicker()) {
         %orig;
         return;
@@ -85,7 +125,8 @@ static NSURL *TGExtraRelocatePickedFile(NSURL *url) {
 
 __attribute__((constructor))
 static void initFileHooks() {
-	if (![[NSUserDefaults standardUserDefaults] boolForKey:FILE_PICKER_FIX_KEY]) {
+	if (![[NSUserDefaults standardUserDefaults] boolForKey:FILE_PICKER_FIX_KEY] &&
+        ![[NSUserDefaults standardUserDefaults] boolForKey:kAudioToVoice]) {
 		return;
 	}
 

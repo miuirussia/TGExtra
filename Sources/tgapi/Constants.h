@@ -26,6 +26,11 @@
 #define kDisableReactionReadReceipt @"disableReactionReadReceipt"
 #define kDisableMentionReadReceipt @"disableMentionReadReceipt"
 #define kDisableStoriesReadReceipt @"disableStoriesReadReceipt"
+#define kGhostReadOnReply @"TGExtraGhostReadOnReply"
+#define kGhostKeepVoiceUnread @"TGExtraGhostKeepVoiceUnread"
+#define kSaveDeletedStories @"TGExtraSaveDeletedStories"
+#define kAudioToVoice @"TGExtraAudioToVoice"
+#define kForwardDropAuthor @"TGExtraForwardDropAuthor"
 #define kDisableScreenshotNotification @"TGExtraDisableScreenshotNotification"
 
 #define kDisableAllAds @"disableAllAds"

@@ -28,6 +28,17 @@
     return cell;
   }
 
+  if (indexPath.section == SETTINGS_TRANSFER || indexPath.section == MESSAGE_HISTORY) {
+    cell = TGExtraNormalSettingsCell(tableView);
+    BOOL journal = indexPath.section == MESSAGE_HISTORY;
+    BOOL exporting = indexPath.row == 0;
+    cell.textLabel.text = TGLoc(journal ? @"MESSAGE_LOG_TITLE" : exporting ? @"SETTINGS_EXPORT_TITLE" : @"SETTINGS_IMPORT_TITLE");
+    cell.detailTextLabel.text = TGLoc(journal ? @"MESSAGE_LOG_SUBTITLE" : exporting ? @"SETTINGS_EXPORT_SUBTITLE" : @"SETTINGS_IMPORT_SUBTITLE");
+    cell.imageView.image = [UIImage systemImageNamed:journal ? @"list.bullet.rectangle" : exporting ? @"square.and.arrow.up" : @"square.and.arrow.down"];
+    cell.imageView.tintColor = [self dynamicColorBW];
+    cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    return cell;
+  }
   if (indexPath.section == GHOST_MODE) {
     cell = TGExtraNormalSettingsCell(tableView);
     cell.textLabel.text = TGLoc(@"ADVANCED_SETTINGS_TITLE");

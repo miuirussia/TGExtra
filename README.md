@@ -16,6 +16,9 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
 - Disable ads and remove iOS content restrictions.
 - Ghost Mode: hide online status, typing and activity indicators. Control message,
   reaction, mention and story read receipts separately.
+- Ghost Mode also covers discussion reads, profile story views, and secret-chat
+  typing and history read receipts. Optionally keep voice/round playback hidden
+  and mark a chat read only after successfully sending a reply.
 - Add Ghost Mode exceptions for typing and read receipts. Online status stays
   hidden for everyone.
 - Save protected content and forward photos, videos, documents, audio and voice
@@ -24,9 +27,14 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
 - Ignore copy protection in private chats.
 - Keep deleted messages and messages with auto-delete timers.
 - Keep edit history; tap the pencil beside a message to view revisions.
+- Browse deleted and edited messages in a local journal, including the time each
+  change was detected, with filters by event type and account.
+- Keep previously received deleted stories until their original expiry.
 - View disappearing media without starting its timer.
 - Allow screenshots in secret-chat galleries and disable screenshot notifications.
 - Send a video's trimmed audio as a voice message from the video preview.
+- Convert audio selected in the Files picker to AAC voice messages with a waveform.
+- Forward ordinary messages without the original author header by default.
 - Send a video as a round message: centered square crop, up to 60 seconds of the
   selected trim. Enable **Video to Round Message** in media settings to show the
   preview button. Unavailable in secret chats.
@@ -36,6 +44,7 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
 - Automatically remove temporary upload sources after Telegram copies them to its media cache.
 - Set a fake location on the map, by searching for an address, or by entering coordinates.
 - Choose from ten interface languages.
+- Export and import TGExtra settings as a JSON file.
 - Disable double-tap reactions.
 - Show a mutual-contact icon beside profile names and a copyable profile ID in
   the information block.
@@ -134,6 +143,12 @@ receipts if it cannot identify the message or account. Message classification
 updates when the message is received again. Disappearing-media protection takes
 priority over Ghost Mode exceptions.
 
+**Read on Reply** requires Ghost Mode and hides history receipts until a reply. It releases
+only history receipts captured during the current launch, after a successful send
+in the same account and chat; discussion receipts also require a matching thread.
+Failed or scheduled sends do not release reads. Playback and story receipts remain
+subject to their own privacy switches. Disabling the mode discards its queue.
+
 On Rust MTProto, hiding activity still requires a network connection: TGExtra
 replaces suppressed requests with `help.getNearestDc`.
 
@@ -161,6 +176,21 @@ Media Freely** before opening timed media to prevent its countdown from starting
 
 Video conversion cannot undo slow motion rendered into a file.
 
+**Audio File to Voice Message** converts audio chosen in Telegram's Files picker
+to M4A/AAC before upload. It requires a relaunch and is unavailable in secret chats.
+Unsupported audio or a failed conversion cancels that selection instead of sending
+the original file. Other document types keep their ordinary upload behavior.
+
+**Forward Without Author** sets Telegram's `drop_author` option for ordinary
+forwards; it does not download and reupload those messages. Protected messages
+still use the protected-copy mechanism described above.
+
+Deleted-story protection caches only stories TGExtra received while the setting
+was enabled. It preserves their original expiry and restores cached bodies in
+deletion updates, peer lists and requested-ID lookups. Restored stories have a
+deletion mark; their media must still be available from Telegram or its local
+cache. This is not a permanent media backup.
+
 ### Message history
 
 Edit history records other people's messages received while the feature is
@@ -185,6 +215,21 @@ within 30 seconds for active accounts, or when an inactive account is opened.
 Existing cloud auto-delete timers are not removed.
 
 History is stored locally in SQLite and survives updates.
+
+The message journal keeps up to 2,000 events across accounts. Its timestamps show
+when TGExtra observed a deletion or edit, rather than a guaranteed server-side
+deletion time. It can show text only when that content was received. Clearing the
+journal preserves edit history and retained messages. Clearing the message
+database also removes the journal and cached stories.
+
+### Settings transfer
+
+Use **Transfer Settings → Export Settings** to save or share `TGExtra-settings.json`.
+Use **Import Settings** to choose that file and review the number of settings before
+applying them. Transfers include Ghost Mode exceptions, their custom labels and
+fake-location coordinates; message history and Telegram's own settings are excluded.
+Invalid values are rejected before applying changes. Relaunch Telegram after an
+import to activate settings whose hooks are installed at launch.
 
 **Message Data → Force Clear Temporary Files** removes TGExtra's picker files,
 converted voice messages and video notes, temporary media exports, and legacy

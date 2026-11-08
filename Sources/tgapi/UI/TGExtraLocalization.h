@@ -7,3 +7,7 @@
 + (instancetype)shared;
 + (NSString *)localizedStringForKey:(NSString *)key;
 @end
+
+@interface TGExtraLocalization (Loading)
+- (void)loadDefault;
+@end

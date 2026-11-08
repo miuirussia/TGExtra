@@ -243,3 +243,21 @@ NSDictionary *tgextraRewriteToVoice(id anyDict, id editingContext) {
     [rewritten removeObjectForKey:@"coverImage"];
     return rewritten;
 }
+
+NSURL *TGExtraConvertAudioFile(NSURL *url) {
+    if (!url.isFileURL || ![NSUserDefaults.standardUserDefaults boolForKey:kAudioToVoice]) return url;
+    NSSet *extensions = [NSSet setWithArray:@[@"mp3", @"m4a", @"aac", @"wav", @"aif", @"aiff", @"caf", @"flac", @"ogg", @"opus"]];
+    if (![extensions containsObject:url.pathExtension.lowercaseString]) return url;
+    BOOL scoped = [url startAccessingSecurityScopedResource];
+    NSURL *result = nil;
+    @try {
+        AVURLAsset *asset = [AVURLAsset URLAssetWithURL:url options:nil];
+        double duration = CMTimeGetSeconds(asset.duration);
+        if ([asset tracksWithMediaType:AVMediaTypeVideo].count == 0 && isfinite(duration) && duration > 0 && duration < INT32_MAX) {
+            result = tgextraExtractAudio(asset, CMTimeRangeMake(kCMTimeZero, asset.duration), @"TGExtraAudio-voice");
+        }
+    } @finally {
+        if (scoped) [url stopAccessingSecurityScopedResource];
+    }
+    return result;
+}

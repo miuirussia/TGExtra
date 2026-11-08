@@ -20,7 +20,7 @@ ifeq ($(THEOS_CURRENT_ARCH),arm64e)
 $(TWEAK_NAME)_CFLAGS += -fptrauth-objc-class-ro
 $(TWEAK_NAME)_SWIFTFLAGS += -sign-class-ro
 endif
-$(TWEAK_NAME)_FRAMEWORKS = CoreServices UIKit QuartzCore CoreLocation MapKit AVFoundation Photos Intents CryptoKit
+$(TWEAK_NAME)_FRAMEWORKS = CoreServices UIKit QuartzCore CoreLocation MapKit AVFoundation Photos Intents CryptoKit UniformTypeIdentifiers
 $(TWEAK_NAME)_LIBRARIES = z sqlite3
 $(TWEAK_NAME)_LOGOS_DEFAULT_GENERATOR = internal
 

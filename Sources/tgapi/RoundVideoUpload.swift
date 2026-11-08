@@ -19,6 +19,8 @@ extension TLParser {
         return namespace != 3
     }
 
+    @objc static func audioFileVoiceChatSupported() -> Bool { roundVideoChatSupported() }
+
     static let roundVideoQueue = DispatchQueue(label: "com.tgextra.roundVideoUploads")
     static var roundVideoUploads = [String: Double]()
     static var roundVideoOrder = [String]()

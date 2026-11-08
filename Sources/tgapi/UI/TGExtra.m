@@ -1,5 +1,6 @@
 #import "SettingsController.h"
 #import "Icons.h"
+#import "MessageLogViewController.h"
 
 static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
 
@@ -175,7 +176,7 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
 - (NSInteger)tableView:(UITableView *)tableView
     numberOfRowsInSection:(NSInteger)section {
   NSArray *rows = [TGExtraSettingRow featureRowsForSection:section];
-  if (rows) return rows.count;
+  if (rows) return rows.count + (section == MESSAGE_HISTORY ? 1 : 0);
 
   switch (section) {
   case GHOST_MODE:
@@ -186,6 +187,8 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
     return 2;
   case LANGUAGE:
     return 1;
+  case SETTINGS_TRANSFER:
+    return 2;
   case TOOLS:
     return 2 + (self.isCleanupExpanded ? 3 : 0);
   case CREDITS:
@@ -218,6 +221,8 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
     return TGLoc(@"LANGUAGE_SECTION_HEADER");
   case TOOLS:
     return TGLoc(@"TOOLS_SECTION_HEADER");
+  case SETTINGS_TRANSFER:
+    return TGLoc(@"SETTINGS_TRANSFER_TITLE");
   case CREDITS:
     return TGLoc(@"CREDITS_SECTION_HEADER");
   default:
@@ -237,6 +242,16 @@ static NSString *const kTGExtraTweakVersion = @TGEXTRA_VERSION;
 - (void)tableView:(UITableView *)tableView
     didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
   [tableView deselectRowAtIndexPath:indexPath animated:YES];
+
+  if (indexPath.section == MESSAGE_HISTORY && indexPath.row == [TGExtraSettingRow featureRowsForSection:MESSAGE_HISTORY].count) {
+    [self.navigationController pushViewController:[TGExtraMessageLogViewController new] animated:YES];
+    return;
+  }
+  if (indexPath.section == SETTINGS_TRANSFER) {
+    if (indexPath.row == 0) [self exportSettings];
+    else [self importSettings];
+    return;
+  }
 
   if (indexPath.section == GHOST_MODE && indexPath.row == 1) { // Ghost Expansion
     self.isGhostModeExpanded = !self.isGhostModeExpanded;
