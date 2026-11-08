@@ -232,3 +232,7 @@
 "PROFILE_MUTUAL_CONTACT" = "雙向聯絡人";
 "PROFILE_ID_COPY_HINT" = "點一下以複製個人資料 ID";
 "PROFILE_ID_COPIED" = "已複製個人資料 ID";
+"EDIT_HISTORY_COUNT" = "版本數：%ld";
+"EDIT_HISTORY_CURRENT" = "目前";
+"EDIT_HISTORY_COPY_ALL" = "複製全部";
+"EDIT_HISTORY_COPIED" = "已複製";

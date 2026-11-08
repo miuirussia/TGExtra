@@ -6,6 +6,8 @@ final class MessageHistoryStore {
         var versions: [String]
         var editDate: Int32?
         var contents: [[String: Data]]
+        // Zero denotes a revision whose timestamp was not saved by older builds.
+        var dates: [Int32]
     }
 
     private var entries = [MessageKey: EditEntry]()
@@ -58,8 +60,14 @@ final class MessageHistoryStore {
             return nil
         }
         let savedContents = value["contents"] as? [[String: Data]] ?? []
+        var dates = value["dates"] as? [Int32] ?? []
+        if dates.count != versions.count {
+            dates = Array(repeating: 0, count: versions.count)
+            dates[dates.count - 1] = (value["editDate"] as? NSNumber)?.int32Value ?? 0
+        }
         let entry = EditEntry(versions: versions, editDate: (value["editDate"] as? NSNumber)?.int32Value,
-                              contents: savedContents.count == versions.count ? savedContents : Array(repeating: [:], count: versions.count))
+                              contents: savedContents.count == versions.count ? savedContents : Array(repeating: [:], count: versions.count),
+                              dates: dates)
         entries[key] = entry
         trimCacheLocked()
         return entry
@@ -75,7 +83,7 @@ final class MessageHistoryStore {
 
     private func persistLocked(_ key: MessageKey) {
         guard let entry = entries[key] else { return }
-        var value: [String: Any] = ["versions": entry.versions, "contents": entry.contents]
+        var value: [String: Any] = ["versions": entry.versions, "contents": entry.contents, "dates": entry.dates]
         if let date = entry.editDate { value["editDate"] = NSNumber(value: date) }
         dirty.remove(key)
         archive.save(value, key: key)
@@ -91,7 +99,7 @@ final class MessageHistoryStore {
             var batch = [MessageKey: [String: Any]]()
             for key in dirty {
                 guard let entry = entries[key] else { continue }
-                var value: [String: Any] = ["versions": entry.versions, "contents": entry.contents]
+                var value: [String: Any] = ["versions": entry.versions, "contents": entry.contents, "dates": entry.dates]
                 if let date = entry.editDate { value["editDate"] = NSNumber(value: date) }
                 batch[key] = value
             }
@@ -109,11 +117,11 @@ final class MessageHistoryStore {
 
     func record(_ text: String, key: MessageKey, editDate: Int32?,
                 allowUndatedEdit: Bool = false, content: [String: Data],
-                localSnapshot: Bool = false) -> Bool {
+                localSnapshot: Bool = false, messageDate: Int32? = nil) -> Bool {
         return queue.sync(flags: .barrier) {
             guard loadLocked() else { return false }
             guard var entry = entryLocked(for: key) else {
-                entries[key] = EditEntry(versions: [text], editDate: editDate, contents: [content])
+                entries[key] = EditEntry(versions: [text], editDate: editDate, contents: [content], dates: [editDate ?? messageDate ?? 0])
                 cacheOrder.append(key)
                 originalOrder.append(key)
                 dirty.insert(key)
@@ -121,6 +129,12 @@ final class MessageHistoryStore {
                 trimCacheLocked()
                 schedulePersistLocked()
                 return false
+            }
+            if entry.versions.count == 1, entry.dates[0] == 0, let date = messageDate, date > 0, editDate == nil {
+                entry.dates[0] = date
+                entries[key] = entry
+                dirty.insert(key)
+                schedulePersistLocked()
             }
             guard editDate != nil || allowUndatedEdit else { return false }
             if let date = editDate, let latestDate = entry.editDate, date < latestDate { return false }
@@ -136,7 +150,9 @@ final class MessageHistoryStore {
                 let merged = previousContent.merging(content) { _, observed in observed }
                 let learnedContent = merged != previousContent
                 if learnedContent { entry.contents[entry.contents.count - 1] = merged }
-                if dateChanged || learnedContent {
+                let learnedDate = entry.dates.last == 0 && (editDate ?? 0) > 0
+                if dateChanged || learnedDate, let date = editDate { entry.dates[entry.dates.count - 1] = date }
+                if dateChanged || learnedContent || learnedDate {
                     entries[key] = entry
                     if entry.versions.count > 1 { persistLocked(key) }
                     else { dirty.insert(key); schedulePersistLocked() }
@@ -146,10 +162,12 @@ final class MessageHistoryStore {
             if entry.versions.count == 1 { originalOrder.removeAll { $0 == key } }
             entry.versions.append(text)
             entry.contents.append(content)
+            entry.dates.append(editDate ?? Int32(Date().timeIntervalSince1970))
             if entry.versions.count > maxVersionsPerMessage {
                 let removed = 1..<(entry.versions.count - maxVersionsPerMessage + 1)
                 entry.versions.removeSubrange(removed)
                 entry.contents.removeSubrange(removed)
+                entry.dates.removeSubrange(removed)
             }
             entries[key] = entry
             persistLocked(key)
@@ -201,9 +219,11 @@ final class MessageHistoryStore {
                 let previous = index > 0 ? entry.contents[index - 1] : content
                 let richFormattingChanged = index > 0 && entry.versions[index] == entry.versions[index - 1] &&
                     contentDiffers(previous, content, fields: ["rich"])
-                return ["text": entry.versions[index], "content": content,
+                var detail: [String: Any] = ["text": entry.versions[index], "content": content,
                         "mediaChanged": contentDiffers(previous, content, fields: ["mediaIdentity"]),
                         "formatChanged": contentDiffers(previous, content, fields: ["entities"]) || richFormattingChanged]
+                if entry.dates[index] > 0 { detail["date"] = NSNumber(value: entry.dates[index]) }
+                return detail
             }
         }
     }

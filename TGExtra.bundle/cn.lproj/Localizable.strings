@@ -234,3 +234,7 @@
 "PROFILE_MUTUAL_CONTACT" = "双向联系人";
 "PROFILE_ID_COPY_HINT" = "轻点以复制个人资料 ID";
 "PROFILE_ID_COPIED" = "已复制个人资料 ID";
+"EDIT_HISTORY_COUNT" = "版本数：%ld";
+"EDIT_HISTORY_CURRENT" = "当前";
+"EDIT_HISTORY_COPY_ALL" = "复制全部";
+"EDIT_HISTORY_COPIED" = "已复制";

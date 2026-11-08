@@ -235,3 +235,7 @@
 "PROFILE_MUTUAL_CONTACT" = "Взаимный контакт";
 "PROFILE_ID_COPY_HINT" = "Нажмите, чтобы скопировать ID профиля";
 "PROFILE_ID_COPIED" = "ID профиля скопирован";
+"EDIT_HISTORY_COUNT" = "Версий: %ld";
+"EDIT_HISTORY_CURRENT" = "Сейчас";
+"EDIT_HISTORY_COPY_ALL" = "Копировать всё";
+"EDIT_HISTORY_COPIED" = "Скопировано";

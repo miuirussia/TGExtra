@@ -233,3 +233,7 @@
 "PROFILE_MUTUAL_CONTACT" = "Mutual contact";
 "PROFILE_ID_COPY_HINT" = "Tap to copy the profile ID";
 "PROFILE_ID_COPIED" = "Profile ID copied";
+"EDIT_HISTORY_COUNT" = "Versions: %ld";
+"EDIT_HISTORY_CURRENT" = "Now";
+"EDIT_HISTORY_COPY_ALL" = "Copy All";
+"EDIT_HISTORY_COPIED" = "Copied";

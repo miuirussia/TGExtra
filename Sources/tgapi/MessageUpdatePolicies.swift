@@ -139,7 +139,7 @@ extension TLParser {
             if packetSettings.keepEditHistory && isOwnIdKnown && !own {
                 let text = data.richMessage.map { richText($0) }.flatMap { $0.isEmpty ? nil : $0 } ?? data.message
                 if recordText(text, forId: data.id, peer: peerKey(peer), editDate: nil, allowUndatedEdit: isEdit,
-                              content: revisionContent(entities: data.entities, media: data.media, rich: data.richMessage)),
+                              content: revisionContent(entities: data.entities, media: data.media, rich: data.richMessage), messageDate: data.date),
                    let account = processingHistoryAccount {
                     let id = data.id
                     let peerId = peerKey(peer)

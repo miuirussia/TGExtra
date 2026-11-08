@@ -232,3 +232,7 @@
 "PROFILE_MUTUAL_CONTACT" = "Liên hệ hai chiều";
 "PROFILE_ID_COPY_HINT" = "Nhấn để sao chép ID hồ sơ";
 "PROFILE_ID_COPIED" = "Đã sao chép ID hồ sơ";
+"EDIT_HISTORY_COUNT" = "Số phiên bản: %ld";
+"EDIT_HISTORY_CURRENT" = "Hiện tại";
+"EDIT_HISTORY_COPY_ALL" = "Sao chép tất cả";
+"EDIT_HISTORY_COPIED" = "Đã sao chép";

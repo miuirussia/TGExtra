@@ -25,7 +25,7 @@ extension TLParser {
                                      mention: data.flags & (1 << 4) != 0 && data.flags & (1 << 5) != 0,
                                      reaction: false, disappearingMedia: false)
                 recordShortFormOriginal(id: data.id, text: data.message,
-                                        peer: data.userId, entities: data.entities, outgoing: data.flags & (1 << 1) != 0)
+                                        peer: data.userId, entities: data.entities, outgoing: data.flags & (1 << 1) != 0, date: data.date)
                 let before = updates.record.changes.count
                 if data.ttlPeriod != nil { recordTimedId(data.id, scope: cloudScope, disappearing: false) }
                 MessagePatches.removeAutoDeleteTimer(from: updates.record, settings: packetSettings)
@@ -37,7 +37,7 @@ extension TLParser {
                                      reaction: false, disappearingMedia: false)
                 recordShortFormOriginal(id: data.id, text: data.message,
                                         peer: -data.chatId, entities: data.entities,
-                                        outgoing: data.flags & (1 << 1) != 0 || isOwnAuthor(.peerUser(.init(userId: data.fromId)), account: processingHistoryAccount))
+                                        outgoing: data.flags & (1 << 1) != 0 || isOwnAuthor(.peerUser(.init(userId: data.fromId)), account: processingHistoryAccount), date: data.date)
                 let before = updates.record.changes.count
                 if data.ttlPeriod != nil { recordTimedId(data.id, scope: cloudScope, disappearing: false) }
                 MessagePatches.removeAutoDeleteTimer(from: updates.record, settings: packetSettings)

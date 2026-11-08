@@ -235,3 +235,7 @@
 "PROFILE_MUTUAL_CONTACT" = "Contacto mutuo";
 "PROFILE_ID_COPY_HINT" = "Toca para copiar el ID del perfil";
 "PROFILE_ID_COPIED" = "ID del perfil copiado";
+"EDIT_HISTORY_COUNT" = "Versiones: %ld";
+"EDIT_HISTORY_CURRENT" = "Ahora";
+"EDIT_HISTORY_COPY_ALL" = "Copiar todo";
+"EDIT_HISTORY_COPIED" = "Copiado";

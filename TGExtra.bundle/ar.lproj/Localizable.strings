@@ -231,3 +231,7 @@
 "PROFILE_MUTUAL_CONTACT" = "جهة اتصال متبادلة";
 "PROFILE_ID_COPY_HINT" = "اضغط لنسخ معرّف الملف الشخصي";
 "PROFILE_ID_COPIED" = "تم نسخ معرّف الملف الشخصي";
+"EDIT_HISTORY_COUNT" = "الإصدارات: %ld";
+"EDIT_HISTORY_CURRENT" = "الآن";
+"EDIT_HISTORY_COPY_ALL" = "نسخ الكل";
+"EDIT_HISTORY_COPIED" = "تم النسخ";

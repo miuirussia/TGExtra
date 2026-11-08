@@ -5,6 +5,7 @@ func testHistoryArchive() {
     defer { try? FileManager.default.removeItem(at: directory) }
     let path = directory.appendingPathComponent("History.sqlite").path
     let key = MessageKey(account: "account-1", peer: 42, id: 1)
+    testRevisionDates(directory: directory, key: key)
     let original: [String: Any] = ["versions": ["A", "B"], "editDate": 1,
                                    "contents": [["entities": Data([1, 2])], [:]]]
     do {
@@ -133,4 +134,44 @@ func testHistoryArchive() {
           "Lazy reads do not resurrect a pending snapshot removal")
     lookups.setReadOnly(false)
     print("PASS bounded revision cache, lazy reload, editing and discarding evicted histories")
+}
+
+private func testRevisionDates(directory: URL, key: MessageKey) {
+    let path = directory.appendingPathComponent("Dates.sqlite").path
+    let archive = MessageHistoryArchive(path: path)
+    let store = MessageHistoryStore(archive: archive)
+    _ = store.record("Original", key: key, editDate: nil, content: [:], messageDate: 100)
+    _ = store.record("Edit", key: key, editDate: 200, content: [:], messageDate: 100)
+    _ = store.record("Edit", key: key, editDate: 200, content: [:])
+    _ = store.record("Stale", key: key, editDate: 150, content: [:])
+    check(store.details(for: key)?.compactMap { $0["date"] as? Int32 } == [100, 200],
+          "Original and edit use server dates; duplicate and stale observations preserve them")
+    let observed = Int32(Date().timeIntervalSince1970)
+    _ = store.record("Undated edit", key: key, editDate: nil, allowUndatedEdit: true, content: [:])
+    let date = store.details(for: key)?.last?["date"] as? Int32 ?? 0
+    check(date >= observed && date <= Int32(Date().timeIntervalSince1970), "Undated edits retain their observation time")
+    _ = archive.load()
+    let reopened = MessageHistoryStore(archive: MessageHistoryArchive(path: path))
+    check(reopened.details(for: key)?.compactMap { $0["date"] as? Int32 } == [100, 200, date],
+          "Each revision date survives reopening the database")
+    for i: Int32 in 1...25 {
+        _ = store.record("Edit \(i)", key: key, editDate: 300 + i, content: [:])
+    }
+    let trimmed = store.details(for: key)!
+    check(trimmed.count == 20 && trimmed.first?["date"] as? Int32 == 100 &&
+          trimmed.dropFirst().allSatisfy { detail in
+              guard let text = detail["text"] as? String, let i = Int32(text.dropFirst(5)) else { return false }
+              return detail["date"] as? Int32 == 300 + i
+          }, "Trimming keeps the original timestamp and aligns every retained date with its revision")
+    let legacyKey = MessageKey(account: key.account, peer: key.peer, id: 2)
+    archive.save(["versions": ["Old", "Middle", "Latest"], "editDate": 900], key: legacyKey)
+    let legacy = MessageHistoryStore(archive: archive)
+    let details = legacy.details(for: legacyKey)!
+    check(details[0]["date"] == nil && details[1]["date"] == nil && details[2]["date"] as? Int32 == 900,
+          "Legacy archives recover only the known latest date without inventing earlier timestamps")
+    _ = legacy.record("Next", key: legacyKey, editDate: 901, content: [:])
+    let migrated = MessageHistoryStore(archive: archive).details(for: legacyKey)!
+    check(migrated.count == 4 && migrated[0]["date"] == nil && migrated[3]["date"] as? Int32 == 901,
+          "Appending to a legacy archive persists the new date alongside unknown old dates")
+    print("PASS revision timestamps, duplicates, undated edits, trimming, legacy dates and database reopen")
 }

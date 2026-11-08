@@ -160,7 +160,9 @@ extension TLParser {
             content["mediaIdentity"] = storedMediaIdentity(media)
         }
         let key = MessageKey(account: account, peer: message.peer, id: message.id, namespace: message.namespace)
-        if editHistoryStore.record(text, key: key, editDate: editDate, content: content, localSnapshot: true) {
+        let messageDate = HostValueReader.storedField("timestamp", in: message.value)
+            .flatMap { HostValueReader.rawNumber($0) }.flatMap { Int32(exactly: $0) }
+        if editHistoryStore.record(text, key: key, editDate: editDate, content: content, localSnapshot: true, messageDate: messageDate) {
             notifyMessageEdited(key)
         }
     }

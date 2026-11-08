@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory(prefix='tgextra-history-diff-') as directory:
             'xcrun', 'clang', '-target', f'{platform.machine()}-apple-ios17.0-macabi', '-isysroot', str(sdk),
             '-iframework', str(frameworks), '-F', str(frameworks), '-fobjc-arc', '-Werror',
             '-Wno-deprecated-declarations', '-Wno-arc-performSelector-leaks', '-DTGEXTRA_UIKIT',
-            '-I', str(ui), '-I', str(work), '-framework', 'UIKit', '-framework', 'Foundation', '-framework', 'CoreGraphics',
+            '-I', str(ui), '-I', str(work), '-framework', 'UIKit', '-framework', 'Foundation', '-framework', 'CoreGraphics', '-framework', 'QuartzCore',
             '-Wl,-rpath,/System/iOSSupport/System/Library/Frameworks',
             *sources, str(ui / 'EditHistoryViewController.m'), '-o', str(binary),
         ], env=environment, check=True)

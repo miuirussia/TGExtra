@@ -8,10 +8,10 @@ extension TLParser {
     }
 
     static func recordText(_ text: String, forId id: Int32, peer: Int64,
-                                   editDate: Int32?, allowUndatedEdit: Bool = false, content: [String: Data] = [:]) -> Bool {
+                                   editDate: Int32?, allowUndatedEdit: Bool = false, content: [String: Data] = [:], messageDate: Int32? = nil) -> Bool {
         guard id != 0, peer != 0, let account = processingHistoryAccount else { return false }
         let key = MessageKey(account: account, peer: peer, id: id, namespace: processingNamespace)
-        return editHistoryStore.record(text, key: key, editDate: editDate, allowUndatedEdit: allowUndatedEdit, content: content)
+        return editHistoryStore.record(text, key: key, editDate: editDate, allowUndatedEdit: allowUndatedEdit, content: content, messageDate: messageDate)
     }
 
     static func discardOwnEditHistory(id: Int32, peer: Int64, account: String?, namespace: Int32) {
@@ -85,7 +85,7 @@ extension TLParser {
         return pieces.joined(separator: value is Api.RichMessage || mirror.displayStyle == .collection ? "\n" : "")
     }
 
-    static func recordShortFormOriginal(id: Int32, text: String, peer: Int64, entities: [Api.MessageEntity]?, outgoing: Bool) {
+    static func recordShortFormOriginal(id: Int32, text: String, peer: Int64, entities: [Api.MessageEntity]?, outgoing: Bool, date: Int32) {
         if outgoing {
             discardOwnEditHistory(id: id, peer: peer, account: processingHistoryAccount, namespace: processingNamespace)
             return
@@ -93,7 +93,7 @@ extension TLParser {
         guard packetSettings.keepEditHistory else { return }
         guard id != 0 else { return }
         diag("anti-edit RECORD id=\(id) peer=\(peer) \(text.count) chars")
-        _ = recordText(text, forId: id, peer: peer, editDate: nil, content: revisionContent(entities: entities, media: nil, rich: nil))
+        _ = recordText(text, forId: id, peer: peer, editDate: nil, content: revisionContent(entities: entities, media: nil, rich: nil), messageDate: date)
     }
 
     static func trackMessageVersions(_ apiMsg: Api.Message, allowUndatedEdit: Bool = false) {
@@ -109,7 +109,7 @@ extension TLParser {
         let text = data.richMessage.map { richText($0) }.flatMap { $0.isEmpty ? nil : $0 } ?? data.message
         let content = revisionContent(entities: data.entities, media: data.media, rich: data.richMessage)
         guard recordText(text, forId: data.id, peer: peer, editDate: data.editDate,
-                         allowUndatedEdit: allowUndatedEdit, content: content),
+                         allowUndatedEdit: allowUndatedEdit, content: content, messageDate: data.date),
               let account = processingHistoryAccount else { return }
         diag("anti-edit VERSION id=\(data.id) peer=\(peer) account=\(account)")
 

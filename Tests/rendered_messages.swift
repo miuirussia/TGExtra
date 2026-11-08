@@ -33,6 +33,7 @@ private struct CachedPhoto { let imageId: CachedMediaId }
 private struct CachedFile { let fileId: CachedMediaId }
 private struct CachedMessage {
     let id: CachedMessageId
+    let timestamp: Int32 = 1234
     let text: String
     let attributes: [Any]
     let media: [Any]
@@ -92,6 +93,8 @@ func testRenderedMessages() {
     check(TLParser.hasAdMessageFromNode(cachedNode(ad)) && !TLParser.hasAdMessageFromNode(node), "Ad detection also reads stored attributes without computed message KVC")
     _ = strip(serialized(message(82000, text: "Network edit", edit: 2000)))
     check(history(forId: 82000, peer: 42) == ["Cached original", "Network edit"], "Cached original precedes the first observed network edit")
+    let dates = TLParser.editRevisionDetails(forId: 82000, peer: 42, account: testAccount, namespace: nil)?.compactMap { $0["date"] as? Int32 }
+    check(dates == [1234, 2000], "Cached originals use their stored timestamp and network edits use their server edit date")
     for _ in 0..<3 { _ = TLParser.messageState(from: node, observe: true) }
     let older = cachedNode(cachedMessage(82000, text: "Old dated cache", edit: 1999))
     _ = TLParser.messageState(from: older, observe: true)

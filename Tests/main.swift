@@ -370,6 +370,8 @@ _ = patch(Api.Update.updateNewMessage(.init(message: original, pts: 50, ptsCount
 let edited = message(40, text: "New text", edit: 1235)
 check(patch(Api.Update.updateEditMessage(.init(message: edited, pts: 51, ptsCount: 1))) == nil, "Keep latest edited text in the chat")
 check(history(forId: 40, peer: 42) == ["Original 😀", "New text"], "Keep original and revised text")
+check(TLParser.editRevisionDetails(forId: 40, peer: 42, account: testAccount, namespace: nil)?.compactMap { $0["date"] as? Int32 } == [1234, 1235],
+      "Network original and edit dates remain paired with their saved text")
 check(history(forId: 40, peer: 43) == nil, "Never mix edit histories across peers")
 check(!MessageHistoryArchive.shared.load().isEmpty, "Persist edit history immediately")
 let opaqueOriginal = updatesWithOpaquePeer([.updateNewMessage(.init(message: message(105), pts: 50, ptsCount: 1))])

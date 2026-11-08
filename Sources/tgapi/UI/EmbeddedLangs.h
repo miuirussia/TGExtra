@@ -176,6 +176,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"جهة اتصال متبادلة",
             @"PROFILE_ID_COPY_HINT": @"اضغط لنسخ معرّف الملف الشخصي",
             @"PROFILE_ID_COPIED": @"تم نسخ معرّف الملف الشخصي",
+            @"EDIT_HISTORY_COUNT": @"الإصدارات: %ld",
+            @"EDIT_HISTORY_CURRENT": @"الآن",
+            @"EDIT_HISTORY_COPY_ALL": @"نسخ الكل",
+            @"EDIT_HISTORY_COPIED": @"تم النسخ",
         };
     }
     if ([code isEqualToString:@"cn"]) {
@@ -353,6 +357,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"双向联系人",
             @"PROFILE_ID_COPY_HINT": @"轻点以复制个人资料 ID",
             @"PROFILE_ID_COPIED": @"已复制个人资料 ID",
+            @"EDIT_HISTORY_COUNT": @"版本数：%ld",
+            @"EDIT_HISTORY_CURRENT": @"当前",
+            @"EDIT_HISTORY_COPY_ALL": @"复制全部",
+            @"EDIT_HISTORY_COPIED": @"已复制",
         };
     }
     if ([code isEqualToString:@"en"]) {
@@ -530,6 +538,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"Mutual contact",
             @"PROFILE_ID_COPY_HINT": @"Tap to copy the profile ID",
             @"PROFILE_ID_COPIED": @"Profile ID copied",
+            @"EDIT_HISTORY_COUNT": @"Versions: %ld",
+            @"EDIT_HISTORY_CURRENT": @"Now",
+            @"EDIT_HISTORY_COPY_ALL": @"Copy All",
+            @"EDIT_HISTORY_COPIED": @"Copied",
         };
     }
     if ([code isEqualToString:@"es"]) {
@@ -707,6 +719,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"Contacto mutuo",
             @"PROFILE_ID_COPY_HINT": @"Toca para copiar el ID del perfil",
             @"PROFILE_ID_COPIED": @"ID del perfil copiado",
+            @"EDIT_HISTORY_COUNT": @"Versiones: %ld",
+            @"EDIT_HISTORY_CURRENT": @"Ahora",
+            @"EDIT_HISTORY_COPY_ALL": @"Copiar todo",
+            @"EDIT_HISTORY_COPIED": @"Copiado",
         };
     }
     if ([code isEqualToString:@"fr"]) {
@@ -884,6 +900,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"Contact mutuel",
             @"PROFILE_ID_COPY_HINT": @"Touchez pour copier l’ID du profil",
             @"PROFILE_ID_COPIED": @"ID du profil copié",
+            @"EDIT_HISTORY_COUNT": @"Versions : %ld",
+            @"EDIT_HISTORY_CURRENT": @"Maintenant",
+            @"EDIT_HISTORY_COPY_ALL": @"Tout copier",
+            @"EDIT_HISTORY_COPIED": @"Copié",
         };
     }
     if ([code isEqualToString:@"it"]) {
@@ -1061,6 +1081,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"Contatto reciproco",
             @"PROFILE_ID_COPY_HINT": @"Tocca per copiare l’ID del profilo",
             @"PROFILE_ID_COPIED": @"ID profilo copiato",
+            @"EDIT_HISTORY_COUNT": @"Versioni: %ld",
+            @"EDIT_HISTORY_CURRENT": @"Ora",
+            @"EDIT_HISTORY_COPY_ALL": @"Copia tutto",
+            @"EDIT_HISTORY_COPIED": @"Copiato",
         };
     }
     if ([code isEqualToString:@"ja"]) {
@@ -1238,6 +1262,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"相互連絡先",
             @"PROFILE_ID_COPY_HINT": @"タップしてプロフィールIDをコピー",
             @"PROFILE_ID_COPIED": @"プロフィールIDをコピーしました",
+            @"EDIT_HISTORY_COUNT": @"バージョン数：%ld",
+            @"EDIT_HISTORY_CURRENT": @"現在",
+            @"EDIT_HISTORY_COPY_ALL": @"すべてコピー",
+            @"EDIT_HISTORY_COPIED": @"コピーしました",
         };
     }
     if ([code isEqualToString:@"ru"]) {
@@ -1415,6 +1443,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"Взаимный контакт",
             @"PROFILE_ID_COPY_HINT": @"Нажмите, чтобы скопировать ID профиля",
             @"PROFILE_ID_COPIED": @"ID профиля скопирован",
+            @"EDIT_HISTORY_COUNT": @"Версий: %ld",
+            @"EDIT_HISTORY_CURRENT": @"Сейчас",
+            @"EDIT_HISTORY_COPY_ALL": @"Копировать всё",
+            @"EDIT_HISTORY_COPIED": @"Скопировано",
         };
     }
     if ([code isEqualToString:@"tw"]) {
@@ -1592,6 +1624,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"雙向聯絡人",
             @"PROFILE_ID_COPY_HINT": @"點一下以複製個人資料 ID",
             @"PROFILE_ID_COPIED": @"已複製個人資料 ID",
+            @"EDIT_HISTORY_COUNT": @"版本數：%ld",
+            @"EDIT_HISTORY_CURRENT": @"目前",
+            @"EDIT_HISTORY_COPY_ALL": @"複製全部",
+            @"EDIT_HISTORY_COPIED": @"已複製",
         };
     }
     if ([code isEqualToString:@"vn"]) {
@@ -1769,6 +1805,10 @@ static inline NSDictionary *GetAllTranslations(NSString *code) {
             @"PROFILE_MUTUAL_CONTACT": @"Liên hệ hai chiều",
             @"PROFILE_ID_COPY_HINT": @"Nhấn để sao chép ID hồ sơ",
             @"PROFILE_ID_COPIED": @"Đã sao chép ID hồ sơ",
+            @"EDIT_HISTORY_COUNT": @"Số phiên bản: %ld",
+            @"EDIT_HISTORY_CURRENT": @"Hiện tại",
+            @"EDIT_HISTORY_COPY_ALL": @"Sao chép tất cả",
+            @"EDIT_HISTORY_COPIED": @"Đã sao chép",
         };
     }
     return nil;

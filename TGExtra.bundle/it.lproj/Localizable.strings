@@ -234,3 +234,7 @@
 "PROFILE_MUTUAL_CONTACT" = "Contatto reciproco";
 "PROFILE_ID_COPY_HINT" = "Tocca per copiare l’ID del profilo";
 "PROFILE_ID_COPIED" = "ID profilo copiato";
+"EDIT_HISTORY_COUNT" = "Versioni: %ld";
+"EDIT_HISTORY_CURRENT" = "Ora";
+"EDIT_HISTORY_COPY_ALL" = "Copia tutto";
+"EDIT_HISTORY_COPIED" = "Copiato";

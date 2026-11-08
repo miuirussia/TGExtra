@@ -232,3 +232,7 @@
 "PROFILE_MUTUAL_CONTACT" = "相互連絡先";
 "PROFILE_ID_COPY_HINT" = "タップしてプロフィールIDをコピー";
 "PROFILE_ID_COPIED" = "プロフィールIDをコピーしました";
+"EDIT_HISTORY_COUNT" = "バージョン数：%ld";
+"EDIT_HISTORY_CURRENT" = "現在";
+"EDIT_HISTORY_COPY_ALL" = "すべてコピー";
+"EDIT_HISTORY_COPIED" = "コピーしました";
