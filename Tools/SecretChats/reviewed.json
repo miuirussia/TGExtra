@@ -95,14 +95,14 @@
       "fingerprint": {
         "algorithm": "arm64-reloc-v1",
         "size": 7648,
-        "sha256": "268eb66c62ce8f2ee7d3766da1458f3e01bc57c9050e939cfb5f17617eec1034"
+        "sha256": "c1b7522d26b47d805dbb2f03a0c1821073153bbe1b3a442f020a63704221be50"
       }
     },
     "timer": {
       "fingerprint": {
         "algorithm": "arm64-reloc-v1",
         "size": 836,
-        "sha256": "3a568f630694c8dad2cb068c1101093f73bdab6f9b0dbc421a67e1093ff5a399"
+        "sha256": "cfd5da7ac0fec0fe48eae8de1a5c9c938337362417381f91549d6628a8b1525a"
       }
     },
     "screenshotThunk": {
@@ -116,14 +116,14 @@
       "fingerprint": {
         "algorithm": "arm64-reloc-v1",
         "size": 608,
-        "sha256": "1ad3cf4b7cdda9e366a10f06977d80a26b9c5401511b30e6dd58f9296a7b7cd7"
+        "sha256": "c5f4197ae8cf6a67e7e90b3a49efde687f776805579875c88cf369300d6d719c"
       }
     },
     "consume": {
       "fingerprint": {
         "algorithm": "arm64-reloc-v1",
         "size": 2600,
-        "sha256": "ab740f069f227296d3d8cb23ef8658875200961d07837331000606bd8a1d2d58"
+        "sha256": "2ba2c7a09aa7b43aa14215a2e624b6103f41cee052d0af05b12a82744fde26e7"
       }
     },
     "sites": {
@@ -134,8 +134,8 @@
           "function": {
             "fingerprint": {
               "algorithm": "arm64-reloc-v1",
-              "size": 496,
-              "sha256": "4390ff4a5334a8f3063f9429e3af23771faca6364e3c517ea2383d387ba3daf3"
+              "size": 508,
+              "sha256": "bbc84e2f0228859d61b682fb45fea5257c80cc4e42e0dabf8faf92436ef2205d"
             }
           }
         }
@@ -145,7 +145,7 @@
         "offset": 6100,
         "original": {
           "bytes": {
-            "expected": "501800b0104240f900021fd6"
+            "expected": "f018009010ee42f900021fd6"
           }
         },
         "binding": {
@@ -158,7 +158,7 @@
         "offset": 168,
         "original": {
           "bytes": {
-            "expected": "501800b0102e40f900021fd6"
+            "expected": "f018009010d642f900021fd6"
           }
         },
         "binding": {
