@@ -25,8 +25,8 @@
       "sha256": "aa2c8495d646780475ec08fa4af1c4ce21af2da647a0e83307098ffb4e8c9de2",
       "variants": [
         {
-          "reference": "Swiftgram 13.1.3 (357), arm64",
-          "sha256": "2a7999735d696d3b57ebfc8347fda4bf8ca9760c3f1cf53a78d72c6a9f1abe71"
+          "reference": "Swiftgram 13.1.3 (360), arm64",
+          "sha256": "30bea71c977f062ad41989e80ef079491fa084794263a07d4af5dcddc3226fce"
         }
       ]
     },

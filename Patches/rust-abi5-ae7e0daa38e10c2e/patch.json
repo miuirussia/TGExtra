@@ -32,7 +32,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 4640,
-                        "sha256": "6f6c0612adebe6a9d76282bc688c8b6b2a4e210228ef1157a7f00483ba80dc75"
+                        "sha256": "e9998ebf8a23a79a335213b80e9b219711593216e43df9984874f2782d3eccfd"
                       }
                     }
                   }
@@ -80,7 +80,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 2120,
-                        "sha256": "ebb0f3b78190b83209a43ce6c09020c28c824ef87daafec62e1dd3e8141edfe2"
+                        "sha256": "1bf11408a378506955d16bf8574d2d3e6bb24dbce9ebd231cee6019240000a47"
                       }
                     }
                   }
@@ -104,7 +104,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 288,
-                        "sha256": "ee86ff857d1c4200b6ca4143aa8dea8fe14aec91a340ff0aa752108505e5b5ae"
+                        "sha256": "6e2b6caf341a2e3c9be0813e739189b21fcf7fc9ce7578d5133112344f6c877b"
                       }
                     }
                   }
@@ -137,7 +137,7 @@
                       "fingerprint": {
                         "algorithm": "arm64-reloc-v1",
                         "size": 3532,
-                        "sha256": "509abf9241a6c94eb3bb8d2887e7764ad2677eea7cbd7da526d9791386150c00"
+                        "sha256": "53d493c19bc1dd66201bbb5dd576fe479fc31ea05df378b2d615c191458a847a"
                       }
                     }
                   }
@@ -1340,7 +1340,7 @@
               ]
             }
           ],
-          "id": "rust-abi5-9f51fd5c8c3072e2",
+          "id": "rust-abi5-ae7e0daa38e10c2e",
           "description": "Rust MTProto Bridge"
         }
       ]

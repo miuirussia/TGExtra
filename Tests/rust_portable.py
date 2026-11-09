@@ -33,8 +33,8 @@ def fingerprint_image(words, offset=0x1000):
 
 
 class PortableRustTests(unittest.TestCase):
-    def test_swiftgram_353_constructor_is_rejected(self):
-        ipa = ROOT/'packages/Swiftgram_v13.1.3.ipa'
+    def test_retired_swiftgram_constructors_are_rejected(self):
+        ipa = ROOT/'packages/Swiftgram_v13.1.3_360.ipa'
         if not ipa.is_file():
             self.skipTest('reference IPA is not present')
         reviewed = json.loads((ROOT/'Tools/RustBridge/abi5.json').read_text())
@@ -45,17 +45,19 @@ class PortableRustTests(unittest.TestCase):
         image = MachO(original)
         start = identify(image, reviewed)['engineCreate']
         _, end = image.function(start)
-        changed = bytearray(original)
-        # Build 353 differs in these four global stores after normalization.
-        for relative in (0x11c4, 0x11e0, 0x11e8, 0x11f0):
-            offset = image.offset(start)+relative
-            word = (image.u32(offset) & ~0x3ffc00) | ((0xed0//8) << 10)
-            struct.pack_into('<I', changed, offset, word)
-        retired = MachO(changed)
-        self.assertEqual(retired.fingerprint(start, end),
-                         '7521afb6b701d642cb71759a5666b8be55de173f6188bfad068ed795ef78bfed')
-        with self.assertRaisesRegex(ValueError, 'Rust engine_create'):
-            inspect_runtime(changed, reviewed)
+        for build, page_offset, digest in (
+                (353, 0xed0, '7521afb6b701d642cb71759a5666b8be55de173f6188bfad068ed795ef78bfed'),
+                (357, 0x48, '2a7999735d696d3b57ebfc8347fda4bf8ca9760c3f1cf53a78d72c6a9f1abe71')):
+            with self.subTest(build=build):
+                changed = bytearray(original)
+                # Retired builds retain different page offsets in these stores.
+                for relative in (0x11c4, 0x11e0, 0x11e8, 0x11f0):
+                    offset = image.offset(start)+relative
+                    word = (image.u32(offset) & ~0x3ffc00) | ((page_offset//8) << 10)
+                    struct.pack_into('<I', changed, offset, word)
+                self.assertEqual(MachO(changed).fingerprint(start, end), digest)
+                with self.assertRaisesRegex(ValueError, 'Rust engine_create'):
+                    inspect_runtime(changed, reviewed)
 
     def test_retired_swiftgram_runtime_is_rejected(self):
         ipa = ROOT/'packages/Swiftgram_v13.1.1.ipa'
@@ -69,7 +71,7 @@ class PortableRustTests(unittest.TestCase):
                 inspect_runtime(archive.read(entry), reviewed)
 
     def test_reviewed_reference_clients_match_committed_profiles(self):
-        references = ('Telegram_v13.2.ipa', 'Swiftgram_v13.1.3.ipa')
+        references = ('Telegram_v13.2.ipa', 'Swiftgram_v13.1.3_360.ipa')
         images = [ROOT/'packages'/name for name in references if (ROOT/'packages'/name).is_file()]
         if not images:
             self.skipTest('reference IPAs are not present')

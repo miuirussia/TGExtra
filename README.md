@@ -64,7 +64,7 @@ Install the DEB or build an IPA with `ipatch` as described below.
 Rust MTProto clients need a matching compatibility profile.
 
 Reference builds: Telegram 13.2 (36535) and Swiftgram 13.1.3
-(357, `app.swiftgram.ios`). Newer builds may need updated profiles or UI hooks.
+(360, `app.swiftgram.ios`). Newer builds may need updated profiles or UI hooks.
 Privacy and message protection require the app's TLS1 v3 schema.
 
 Secret-chat notification, deletion and timer protection require an IPA built
