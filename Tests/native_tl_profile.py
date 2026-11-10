@@ -19,7 +19,7 @@ sys.path.insert(0, str(ROOT/'Tools'))
 from prepare_native_tl import identify, matcher, payload_template, MachO
 from package_ipatch import write_archive
 PROFILE = ROOT/'Patches/native-tl-v1'
-REFERENCE_IPAS = ('Telegram_v13.2.ipa', 'Swiftgram_v13.1.3_360.ipa')
+REFERENCE_IPAS = ('Telegram_v13.2.1.ipa', 'Swiftgram_v13.1.3_360.ipa')
 
 
 class NativeTLProfileTests(unittest.TestCase):

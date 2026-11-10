@@ -71,7 +71,7 @@ artifact, including its generated sizes, relocations and Rust profile identities
 ## Native TL decoder
 
 `native-tl-v1` accelerates the MtProtoKit response path on the reviewed Telegram
-13.2 (36535) and Swiftgram 13.1.3 (360) generic arm64 engines. The profile checks
+13.2.1 (36542) and Swiftgram 13.1.3 (360) generic arm64 engines. The profile checks
 the constructor parser, its object-body parser, the function-result parser and
 the Swift top-level wrapper. Exactly one constructor call in that wrapper and
 one function-result call are redirected. Recursive native calls stay unchanged.
@@ -101,7 +101,7 @@ Only successful complete root decodes can publish policy state.
 Regenerate or verify the profile and runtime matcher from a reviewed reference:
 
 ~~~sh
-python3 Tools/prepare_native_tl.py packages/Telegram_v13.2.ipa
+python3 Tools/prepare_native_tl.py packages/Telegram_v13.2.1.ipa
 python3 Tools/prepare_native_tl.py packages/Swiftgram_v13.1.3_360.ipa --check
 IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/native_tl_profile.py
 ~~~
@@ -112,7 +112,7 @@ replace device testing. Native arm64e binary profiles are not currently provided
 
 ## Secret-chat protection
 
-`secret-chats-v1` supports Telegram 13.2 (36535) and Swiftgram 13.1.3 (360),
+`secret-chats-v1` supports Telegram 13.2.1 (36542) and Swiftgram 13.1.3 (360),
 generic arm64, through the required TGExtra component. It works with both MTProto
 transports and requires rebuilding the IPA; a DEB alone does not install it.
 
@@ -151,7 +151,7 @@ files wait for Telegram's fetcher; encrypted containers are never exported.
 Regenerate and test:
 
 ~~~sh
-python3 Tools/prepare_secret_chats.py --telegram packages/Telegram_v13.2.ipa --swiftgram packages/Swiftgram_v13.1.3_360.ipa
+python3 Tools/prepare_secret_chats.py --telegram packages/Telegram_v13.2.1.ipa --swiftgram packages/Swiftgram_v13.1.3_360.ipa
 python3 Tools/build_payloads.py --check
 IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/secret_chats.py
 ~~~
@@ -247,14 +247,14 @@ function cluster and call counts. A changed constructor or conservative
 fingerprint can require a separate profile even if the Rust ABI is unchanged.
 Bundle IDs remain explicit; the generator adds the input client's ID and retains
 previously authorized IDs when exporting the same profile again.
-The committed portable profiles have been checked on Telegram 13.2 (36535) and
+The committed portable profiles have been checked on Telegram 13.2.1 (36542) and
 Swiftgram 13.1.3 (360, app.swiftgram.ios), including engine planning and application
 to extracted copies of both clients. Swiftgram needs its own profile because its
 engine constructor and session initializer have different conservative
 fingerprints. These checks do not replace on-device validation.
 
-Telegram 13.2 uses `rust-abi5-8df96f517487121e` with ABI 5. The four reviewed
-global stores in `engineCreate` use page offset `0x818`. The shared native TL
+Telegram 13.2.1 uses `rust-abi5-d6764f8847f9c835` with ABI 5. The four reviewed
+global stores in `engineCreate` use page offset `0xb8`. The shared native TL
 parser profile remains included. Swiftgram 13.1.3 (360) uses
 `rust-abi5-ae7e0daa38e10c2e`.
 

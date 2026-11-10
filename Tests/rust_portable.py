@@ -33,6 +33,28 @@ def fingerprint_image(words, offset=0x1000):
 
 
 class PortableRustTests(unittest.TestCase):
+    def test_retired_telegram_constructor_is_rejected(self):
+        ipa = ROOT/'packages/Telegram_v13.2.1.ipa'
+        if not ipa.is_file():
+            self.skipTest('reference IPA is not present')
+        reviewed = json.loads((ROOT/'Tools/RustBridge/abi5.json').read_text())
+        with zipfile.ZipFile(ipa) as archive:
+            entry = next(n for n in archive.namelist()
+                         if n.endswith('/TelegramUIFramework.framework/TelegramUIFramework'))
+            original = archive.read(entry)
+        image = MachO(original)
+        start = identify(image, reviewed)['engineCreate']
+        _, end = image.function(start)
+        changed = bytearray(original)
+        for relative in (0x11c4, 0x11e0, 0x11e8, 0x11f0):
+            offset = image.offset(start)+relative
+            word = (image.u32(offset) & ~0x3ffc00) | ((0x818//8) << 10)
+            struct.pack_into('<I', changed, offset, word)
+        self.assertEqual(MachO(changed).fingerprint(start, end),
+                         'aa2c8495d646780475ec08fa4af1c4ce21af2da647a0e83307098ffb4e8c9de2')
+        with self.assertRaisesRegex(ValueError, 'Rust engine_create'):
+            inspect_runtime(changed, reviewed)
+
     def test_retired_swiftgram_constructors_are_rejected(self):
         ipa = ROOT/'packages/Swiftgram_v13.1.3_360.ipa'
         if not ipa.is_file():
@@ -71,7 +93,7 @@ class PortableRustTests(unittest.TestCase):
                 inspect_runtime(archive.read(entry), reviewed)
 
     def test_reviewed_reference_clients_match_committed_profiles(self):
-        references = ('Telegram_v13.2.ipa', 'Swiftgram_v13.1.3_360.ipa')
+        references = ('Telegram_v13.2.1.ipa', 'Swiftgram_v13.1.3_360.ipa')
         images = [ROOT/'packages'/name for name in references if (ROOT/'packages'/name).is_file()]
         if not images:
             self.skipTest('reference IPAs are not present')
