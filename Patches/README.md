@@ -1,5 +1,8 @@
 # Portable client profiles and optional features
 
+Detailed beginner guide to updating Telegram and Swiftgram patches:
+[English](UPDATING.en.md) · [Русский](UPDATING.ru.md).
+
 Client profiles included in every GitHub ipatch release live in separate folders:
 
 ~~~text

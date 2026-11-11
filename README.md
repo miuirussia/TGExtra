@@ -287,6 +287,9 @@ To attempt client patch updates from decrypted IPAs in `packages/`, run
 [Patches/README.md](Patches/README.md#generating-a-profile) for client selection
 and compatibility limits.
 
+Step-by-step patch update guides, including ARM64 basics and manual updates:
+[English](Patches/UPDATING.en.md) · [Русский](Patches/UPDATING.ru.md).
+
 After editing translations, regenerate the embedded fallbacks:
 
 ```sh
