@@ -18,7 +18,7 @@ bundle IDs still constrain selection. Use `--patch-set-dir Patches` to include
 a profile in future GitHub releases. See [Patches/README.md](../../Patches/README.md)
 for engine requirements, validation and offline application.
 
-The reviewed references are Telegram 13.2.1 (36542) and Swiftgram 13.1.3 (360,
+The reviewed references are Telegram 13.2.1 (36542) and Swiftgram 13.2 (361,
 `app.swiftgram.ios`). Their 4640-byte `engineCreate` bodies have four link-time
 differences retained by the review fingerprint: stores at body offsets
 `0x11c4`, `0x11e0`, `0x11e8` and `0x11f0` use the relocated global's page offset

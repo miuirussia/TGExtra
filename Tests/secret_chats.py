@@ -69,7 +69,7 @@ class SecretChatTests(unittest.TestCase):
                 self.assertEqual(len(code), block['size'])
 
     def test_reviewed_clients_and_changed_abi(self):
-        for client, filename in [('telegram', 'Telegram_v13.2.1.ipa'), ('swiftgram', 'Swiftgram_v13.1.3_360.ipa')]:
+        for client, filename in [('telegram', 'Telegram_v13.2.1.ipa'), ('swiftgram', 'Swiftgram_v13.2.ipa')]:
             ipa = ROOT/'packages'/filename
             if not ipa.exists(): continue
             with self.subTest(client=client):
@@ -97,7 +97,7 @@ class SecretChatTests(unittest.TestCase):
 
     def test_changed_original_targets_are_rejected_with_unchanged_callers(self):
         references = [(client, ROOT/'packages'/filename) for client, filename in
-                      [('telegram', 'Telegram_v13.2.1.ipa'), ('swiftgram', 'Swiftgram_v13.1.3_360.ipa')]
+                      [('telegram', 'Telegram_v13.2.1.ipa'), ('swiftgram', 'Swiftgram_v13.2.ipa')]
                       if (ROOT/'packages'/filename).is_file()]
         if not references:
             self.skipTest('reference IPAs are not present')
@@ -133,7 +133,7 @@ class SecretChatTests(unittest.TestCase):
 
     def test_changed_import_bindings_are_rejected_by_generator_and_engine(self):
         references = [(client, ROOT/'packages'/filename) for client, filename in
-                      [('telegram', 'Telegram_v13.2.1.ipa'), ('swiftgram', 'Swiftgram_v13.1.3_360.ipa')]
+                      [('telegram', 'Telegram_v13.2.1.ipa'), ('swiftgram', 'Swiftgram_v13.2.ipa')]
                       if (ROOT/'packages'/filename).is_file()]
         if not references:
             self.skipTest('reference IPAs are not present')
@@ -225,7 +225,7 @@ class SecretChatTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='tgextra-secret-plan-') as directory:
             package = Path(directory)/'secret.ipatch'
             write_archive(package, document, files)
-            for filename in ('Telegram_v13.2.1.ipa', 'Swiftgram_v13.1.3_360.ipa'):
+            for filename in ('Telegram_v13.2.1.ipa', 'Swiftgram_v13.2.ipa'):
                 ipa = ROOT/'packages'/filename
                 if not ipa.exists(): continue
                 result = subprocess.run([os.environ['IPATCH_ENGINE_CLI'], '-dry-run', '-ipa', str(ipa), '-package', str(package)],

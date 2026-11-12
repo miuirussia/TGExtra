@@ -56,7 +56,7 @@ class PortableRustTests(unittest.TestCase):
             inspect_runtime(changed, reviewed)
 
     def test_retired_swiftgram_constructors_are_rejected(self):
-        ipa = ROOT/'packages/Swiftgram_v13.1.3_360.ipa'
+        ipa = ROOT/'packages/Swiftgram_v13.2.ipa'
         if not ipa.is_file():
             self.skipTest('reference IPA is not present')
         reviewed = json.loads((ROOT/'Tools/RustBridge/abi5.json').read_text())
@@ -93,7 +93,7 @@ class PortableRustTests(unittest.TestCase):
                 inspect_runtime(archive.read(entry), reviewed)
 
     def test_reviewed_reference_clients_match_committed_profiles(self):
-        references = ('Telegram_v13.2.1.ipa', 'Swiftgram_v13.1.3_360.ipa')
+        references = ('Telegram_v13.2.1.ipa', 'Swiftgram_v13.2.ipa')
         images = [ROOT/'packages'/name for name in references if (ROOT/'packages'/name).is_file()]
         if not images:
             self.skipTest('reference IPAs are not present')
