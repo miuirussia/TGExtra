@@ -26,6 +26,7 @@ python3 Tests/temporary_files_uikit.py
 bash Tests/audio_waveform.sh
 bash Tests/round_video_recovery.sh
 python3 Tests/video_preview.py
+python3 Tests/modern_video_conversion.py
 python3 Tests/double_tap_reactions.py
 python3 Tests/recording_button.py
 python3 Tests/recording_input_layout.py

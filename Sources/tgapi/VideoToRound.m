@@ -2,6 +2,39 @@
 #import "UI/Headers.h"
 #import "VideoAudioExtractor.h"
 #import "RoundVideoExport.h"
+#import "../tgapiC/include/VideoConversion.h"
+
+@interface NSObject (TGExtraRoundVideoAdjustments)
+- (bool)sendAsTelescope;
+@end
+
+static NSDictionary *tgextraRoundVideoDescription(NSDictionary *dict, NSURL *output, double duration) {
+    NSMutableDictionary *rewritten = [dict mutableCopy];
+    for (NSString *key in @[@"asset", @"url", @"adjustments", @"isAnimation", @"document",
+                           @"dimensions", @"duration", @"coverImage", @"previewImage", @"groupedId", @"stickers"]) {
+        [rewritten removeObjectForKey:key];
+    }
+    id adjustments = TGExtraVideoAdjustments(@{
+        @"originalSize": [NSValue valueWithCGSize:CGSizeMake(384, 384)],
+        @"cropRect": [NSValue valueWithCGRect:CGRectMake(0, 0, 384, 384)],
+        @"trimStart": @0, @"trimEnd": @(duration), @"preset": @7, @"sendAsTelescope": @YES
+    });
+    if ([adjustments respondsToSelector:@selector(sendAsTelescope)] && [adjustments sendAsTelescope]) {
+        // Swiftgram consumes this before enqueueing: both its local message and
+        // its upload carry instantRoundVideo, rather than an ordinary MP4 file.
+        rewritten[@"type"] = @"video";
+        rewritten[@"url"] = output.path;
+        rewritten[@"dimensions"] = [NSValue valueWithCGSize:CGSizeMake(384, 384)];
+        rewritten[@"duration"] = @(duration);
+        rewritten[@"adjustments"] = adjustments;
+    } else {
+        rewritten[@"type"] = @"file";
+        rewritten[@"tempFileUrl"] = output;
+        rewritten[@"mimeType"] = @"video/mp4";
+        rewritten[@"fileName"] = output.lastPathComponent;
+    }
+    return rewritten;
+}
 
 NSDictionary *tgextraRewriteToRound(id value, id editingContext) {
     if (![value isKindOfClass:NSDictionary.class]) return nil;
@@ -37,15 +70,7 @@ NSDictionary *tgextraRewriteToRound(id value, id editingContext) {
         return nil;
     }
     [TLParser registerRoundVideoUploadWithFileName:output.lastPathComponent duration:duration];
-    NSMutableDictionary *rewritten = [dict mutableCopy];
-    rewritten[@"type"] = @"file";
-    rewritten[@"tempFileUrl"] = output;
-    rewritten[@"mimeType"] = @"video/mp4";
-    rewritten[@"fileName"] = output.lastPathComponent;
-    for (NSString *key in @[@"asset", @"url", @"adjustments", @"isAnimation", @"document",
-                           @"dimensions", @"duration", @"coverImage", @"previewImage", @"groupedId", @"stickers"]) {
-        [rewritten removeObjectForKey:key];
-    }
+    NSMutableDictionary *rewritten = [tgextraRoundVideoDescription(dict, output, duration) mutableCopy];
     CGImageRef image = TGExtraCopyRoundVideoPreview(exported);
     if (image) {
         rewritten[@"previewImage"] = [UIImage imageWithCGImage:image];

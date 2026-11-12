@@ -18,6 +18,7 @@ NSSet<NSString *> *tgextraVoiceItems(id editingContext);
 BOOL tgextraToggleVoiceItem(id galleryItem);
 NSSet<NSString *> *tgextraRoundItems(id editingContext);
 BOOL tgextraToggleRoundItem(id galleryItem);
+void tgextraClearConversionItem(id galleryItem);
 #ifdef __cplusplus
 }
 #endif

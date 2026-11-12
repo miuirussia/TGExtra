@@ -1,5 +1,6 @@
 #import <Foundation/Foundation.h>
 #import "NativeTL.h"
+#import "VideoConversion.h"
 
 #ifdef __cplusplus
 extern "C" {

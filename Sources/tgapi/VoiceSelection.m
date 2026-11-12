@@ -70,3 +70,17 @@ BOOL tgextraToggleVoiceItem(id galleryItem) {
 BOOL tgextraToggleRoundItem(id galleryItem) {
     return tgextraToggleConversionItem(galleryItem, kTGExtraRoundItemsKey, kTGExtraVoiceItemsKey);
 }
+
+void tgextraClearConversionItem(id galleryItem) {
+    id context = tgextraVoiceEditingContext(galleryItem);
+    NSString *identifier = tgextraVoiceItemIdentifier(galleryItem);
+    if (!context || !identifier) return;
+    @synchronized(context) {
+        for (NSValue *key in @[[NSValue valueWithPointer:kTGExtraVoiceItemsKey],
+                              [NSValue valueWithPointer:kTGExtraRoundItemsKey]]) {
+            NSMutableSet *items = [objc_getAssociatedObject(context, key.pointerValue) mutableCopy];
+            [items removeObject:identifier];
+            objc_setAssociatedObject(context, key.pointerValue, items, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+    }
+}

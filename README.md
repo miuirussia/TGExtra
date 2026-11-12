@@ -39,6 +39,9 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
 - Send a video as a round message: centered square crop, up to 60 seconds of the
   selected trim. Enable **Video to Round Message** in media settings to show the
   preview button. Unavailable in secret chats.
+  Both conversion buttons also appear in the current media editor. TGExtra routes
+  only selected conversions through the legacy-item send adapter and keeps the
+  client's editor and built-in round-video mode enabled.
 - Save high-frame-rate videos and stories to Photos at 30 fps in H.264/AAC.
   Videos at 24/30 fps are unchanged.
 - Fix the Files picker and clear its temporary cache.

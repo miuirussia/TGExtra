@@ -143,6 +143,12 @@ static void tgextraStyleRoundButton(UIButton *button, BOOL enabled) { button.act
 @end
 @implementation TestGalleryItem
 @end
+@interface TestNativeRoundAdjustments : NSObject
+- (bool)sendAsTelescope;
+@end
+@implementation TestNativeRoundAdjustments
+- (bool)sendAsTelescope { return true; }
+@end
 '''
 
 tests = r'''
@@ -246,6 +252,10 @@ int main(void) {
         NSCAssert(![tgextraVoiceItems(context) containsObject:url.absoluteString], @"Round selection clears voice selection");
         prepareSend(context);
         NSCAssert([generator(@{@"type": @"cameraVideo", @"url": url}, nil, nil, nil)[@"type"] isEqual:@"round"], @"Convert camera video to round");
+        NSDictionary *nativeRound = @{@"type": @"cameraVideo", @"url": url,
+                                      @"adjustments": [TestNativeRoundAdjustments new]};
+        NSCAssert(generator(nativeRound, nil, nil, nil) == nativeRound,
+                  @"Native Swiftgram round conversion wins over a stale TGExtra selection");
         NSCAssert([sendItem(@"photo", camera, url.absoluteString)[@"type"] isEqual:@"photo"], @"Round selection leaves photos unchanged");
         [[TGExtraVoiceToggleTarget shared] handleTap:button];
         NSCAssert(![tgextraRoundItems(context) containsObject:url.absoluteString], @"Voice selection clears round selection");

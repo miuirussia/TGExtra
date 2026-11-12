@@ -10,6 +10,7 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
 @interface NSObject (TGExtraVideoConversionSignals)
 - (id)deliverOn:(id)queue;
 - (id)map:(id (^)(id))transform;
+- (bool)sendAsTelescope;
 @end
 
 @interface TGExtraVideoConversion : NSObject
@@ -37,6 +38,10 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
     if (voiceItems.count == 0 && roundItems.count == 0) return %orig;
     TGExtraDescriptionGenerator wrapped =
         ^id(id dict, NSAttributedString *caption, NSString *hash, NSString *uniqueId) {
+            id adjustments = [dict isKindOfClass:NSDictionary.class] ? dict[@"adjustments"] : nil;
+            if ([adjustments respondsToSelector:@selector(sendAsTelescope)] && [adjustments sendAsTelescope]) {
+                return descriptionGenerator(dict, caption, hash, uniqueId);
+            }
             NSString *identifier = uniqueId;
             if (!identifier && [dict isKindOfClass:NSDictionary.class]) {
                 identifier = tgextraVoiceItemIdentifier(dict[@"asset"] ?: dict[@"url"]);
