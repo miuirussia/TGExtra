@@ -220,6 +220,18 @@ NSDictionary *tgextraRewriteToVoice(id anyDict, id editingContext) {
 
     id item = dict[@"asset"];
     CMTimeRange range = tgextraTrimRange(editingContext, item, asset);
+    // Camera descriptions carry their trim directly, without a Photos asset.
+    id adjustments = dict[@"adjustments"];
+    if ([adjustments respondsToSelector:@selector(trimApplied)] && [adjustments trimApplied] &&
+        [adjustments respondsToSelector:@selector(trimStartValue)] &&
+        [adjustments respondsToSelector:@selector(trimEndValue)]) {
+        NSTimeInterval start = [adjustments trimStartValue];
+        NSTimeInterval end = [adjustments trimEndValue];
+        if (isfinite(start) && isfinite(end) && start >= 0 && end > start) {
+            range = CMTimeRangeFromTimeToTime(CMTimeMakeWithSeconds(start, NSEC_PER_SEC),
+                                              CMTimeMakeWithSeconds(end, NSEC_PER_SEC));
+        }
+    }
 
     NSString *baseName = nil;
     if ([item respondsToSelector:@selector(fileName)]) baseName = [item fileName];

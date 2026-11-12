@@ -12,6 +12,7 @@ python3 Tests/settings_menu.py
 python3 Tests/settings_apply.py
 python3 Tests/ghost_exception_navigation.py
 python3 Tests/profile_navigation.py
+python3 Tests/account_context.py
 python3 Tests/review_regressions.py
 python3 Tests/review_fixes.py
 python3 Tests/settings_persistence.py
@@ -19,6 +20,7 @@ python3 Tests/settings_transfer.py
 python3 Tests/location_selector.py
 python3 Tests/video_to_voice.py
 python3 Tests/video_audio_recovery.py
+python3 Tests/video_voice_trim.py
 python3 Tests/audio_export_cleanup.py
 python3 Tests/audio_file_voice.py
 python3 Tests/temporary_files.py

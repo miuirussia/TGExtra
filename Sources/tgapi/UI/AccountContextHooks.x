@@ -16,7 +16,7 @@ static Class tgextraChatControllerClass(void) {
 - (void)viewDidLoad {
     %orig;
     @try {
-        id context = [((id)self) valueForKey:@"context"];
+        id context = [TGExtraProfileBridge getStoredField:@"context" fromNode:self];
         TGExtraProfileBridge.sharedContext = context;
         [TLParser registerMessageCleanupContext:context];
         NSNumber *currId = [TGExtraProfileBridge getCurrentUserId];
@@ -33,7 +33,7 @@ static Class tgextraChatControllerClass(void) {
 - (void)loadView {
     %orig;
     @try {
-        id context = [((id)self) valueForKey:@"context"];
+        id context = [TGExtraProfileBridge getStoredField:@"context" fromNode:self];
         if (context) {
             TGExtraProfileBridge.sharedContext = context;
             [TLParser registerMessageCleanupContext:context];
