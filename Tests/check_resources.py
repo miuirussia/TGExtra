@@ -16,7 +16,7 @@ expected_features = {
     'kDisableAllAds', 'kDisableForwardRestriction', 'kAntiRevoke', 'kAntiAutoDelete',
     'kDisableScreenshotNotification', 'kAntiSelfDestruct', 'kAntiEdit',
     'kHideDisappearingLabel', 'kVideoToVoice', 'kVideoToRound', 'kIgnorePrivateChatCopyProtection',
-    'kDisableDoubleTapReactions', 'kHideRecordingButton', 'kForceTLottie',
+    'kDisableDoubleTapReactions', 'kHideRecordingButton',
     'kSaveDeletedStories', 'kAudioToVoice', 'kForwardDropAuthor',
 }
 categories = rows[rows.index('+ (NSArray<TGExtraSettingRow *> *)featureRowsForSection:'):rows.index('+ (TGExtraSettingRow *)rowForSection:')]

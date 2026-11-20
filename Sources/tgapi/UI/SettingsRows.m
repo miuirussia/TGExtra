@@ -103,8 +103,6 @@
                 subtitle:@"AUDIO_TO_VOICE_SUBTITLE" icon:@"waveform"],
             [self rowWithKey:kVideoToRound title:@"VIDEO_TO_ROUND_TITLE"
                 subtitle:@"VIDEO_TO_ROUND_SUBTITLE" icon:@"video.circle.fill"],
-            [self rowWithKey:kForceTLottie title:@"FORCE_TLOTTIE_TITLE"
-                subtitle:@"FORCE_TLOTTIE_SUBTITLE" icon:@"play.rectangle"],
             [self rowWithKey:FILE_PICKER_FIX_KEY title:@"FIX_FILE_PICKER_TITLE"
                 subtitle:@"FIX_FILE_PICKER_SUBTITLE" icon:@"folder.fill.badge.gear"],
         ],

@@ -22,6 +22,7 @@ support = r'''
 #import <objc/message.h>
 #import "Constants.h"
 #import "VoiceSelection.h"
+#import "Compatibility.h"
 typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, NSString *);
 static const void *kTGExtraVoicePreviewItemKey = &kTGExtraVoicePreviewItemKey;
 static TGExtraDescriptionGenerator generator;
@@ -188,6 +189,16 @@ static id sendItem(NSString *type, id asset, NSString *uniqueId) {
 }
 int main(void) {
     @autoreleasepool {
+        SEL sendSelector = @selector(resultSignalsForSelectionContext:editingContext:intent:currentItem:storeAssets:convertToJpeg:descriptionGenerator:saveEditedPhotos:);
+        NSCAssert(TGExtraVoiceSendMatches(class_getClassMethod(TestSender.class, sendSelector)),
+                  @"The send hook matches Telegram and Swiftgram's int32 intent ABI");
+        NSCAssert(!TGExtraVoiceSendMatches(NULL), @"Skip a missing send method");
+        Class incompatible = objc_allocateClassPair(NSObject.class, "IncompatibleMediaAssetsController", 0);
+        class_addMethod(object_getClass(incompatible), sendSelector,
+            class_getMethodImplementation(object_getClass(TestSender.class), sendSelector), "@@:@@q@BB@?B");
+        objc_registerClassPair(incompatible);
+        NSCAssert(!TGExtraVoiceSendMatches(class_getClassMethod(incompatible, sendSelector)),
+                  @"Reject a changed intent ABI even when the argument count matches");
         NSString *suite = [@"TGExtraVoiceTest-" stringByAppendingString:NSUUID.UUID.UUIDString];
         NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:suite];
         Method method = class_getClassMethod(NSUserDefaults.class, @selector(standardUserDefaults));

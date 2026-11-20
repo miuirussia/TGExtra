@@ -39,7 +39,6 @@
 #define kIgnorePrivateChatCopyProtection @"TGExtraIgnorePrivateChatCopyProtection"
 #define kDisableDoubleTapReactions @"TGExtraDisableDoubleTapReactions"
 #define kHideRecordingButton @"TGExtraHideRecordingButton"
-#define kForceTLottie @"TGExtraForceTLottie"
 
 #define kAntiRevoke @"TGExtraAntiRevoke"
 #define kAntiEdit @"TGExtraAntiEdit"

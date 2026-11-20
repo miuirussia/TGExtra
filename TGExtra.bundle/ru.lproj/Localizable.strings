@@ -184,8 +184,6 @@
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Отключить реакции по даблтапу";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Реакции остаются доступны через меню по долгому нажатию.";
 
-"FORCE_TLOTTIE_TITLE" = "Принудительно использовать tlottie";
-"FORCE_TLOTTIE_SUBTITLE" = "Сменить движок анимаций с rlottie на tlottie, если он есть в клиенте. Нужен перезапуск; готовые кадры останутся в кэше.";
 
 // Purchased media export
 "PAID_MEDIA_SAVE" = "Сохранить купленное медиа";

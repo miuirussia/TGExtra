@@ -54,8 +54,6 @@ Open **Telegram Settings → TGExtra**, below **My Profile** or Swiftgram's sett
   the information block.
 - Hide the voice/round-video recording button under **Interface and gestures**.
   Requires a relaunch.
-- Use tlottie instead of rlottie on clients with a compatible renderer. Restart
-  after changing the option.
 - Enable local Swiftgram Pro features when building an IPA.
 
 New features default to off. Updates preserve existing preferences.
@@ -66,7 +64,7 @@ Releases include rootful, rootless and roothide DEBs and matching `.ipatch` file
 Install the DEB or build an IPA with `ipatch` as described below.
 Rust MTProto clients need a matching compatibility profile.
 
-Reference builds: Telegram 13.2.1 (36542) and Swiftgram 13.2
+Reference builds: Telegram 13.3 (37637) and Swiftgram 13.2
 (361, `app.swiftgram.ios`). Newer builds may need updated profiles or UI hooks.
 Privacy and message protection require the app's TLS1 v3 schema.
 
@@ -302,7 +300,7 @@ python3 generate_langs.py
 To update the typed policy views and test fixture from an original decrypted IPA:
 
 ```sh
-python3 Tools/update_telegram_api.py packages/Telegram_v13.2.1.ipa
+python3 Tools/update_telegram_api.py packages/Telegram_v13.3.ipa
 ```
 
 The fixture schema is stored in `Tests/Fixtures`; the tweak reads the installed

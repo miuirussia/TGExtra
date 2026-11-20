@@ -20,12 +20,18 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
 @implementation TGExtraVideoConversion
 @end
 
+static BOOL TGExtraVoiceSendMatches(Method method) {
+    return TGExtraMethodMatches(method, @encode(id),
+        @[@(@encode(id)), @(@encode(id)), @(@encode(int32_t)), @(@encode(id)),
+          @(@encode(bool)), @(@encode(bool)), @(@encode(TGExtraDescriptionGenerator)), @(@encode(bool))]);
+}
+
 %group TGExtraVoiceSend
 %hook TGMediaAssetsController
 
 + (NSArray *)resultSignalsForSelectionContext:(id)selectionContext
                                editingContext:(id)editingContext
-                                       intent:(NSInteger)intent
+                                       intent:(int32_t)intent
                                   currentItem:(id)currentItem
                                   storeAssets:(bool)storeAssets
                                 convertToJpeg:(bool)convertToJpeg
@@ -104,7 +110,7 @@ typedef id (^TGExtraDescriptionGenerator)(id, NSAttributedString *, NSString *, 
     Class cls = objc_getClass("TGMediaAssetsController");
     Method send = class_getClassMethod(cls, NSSelectorFromString(@"resultSignalsForSelectionContext:editingContext:intent:currentItem:storeAssets:convertToJpeg:descriptionGenerator:saveEditedPhotos:"));
     Class signal = objc_getClass("SSignal");
-    if (send && method_getNumberOfArguments(send) == 10 && objc_getClass("SQueue") &&
+    if (TGExtraVoiceSendMatches(send) && objc_getClass("SQueue") &&
         [signal instancesRespondToSelector:@selector(deliverOn:)] &&
         [signal instancesRespondToSelector:@selector(map:)]) {
         %init(TGExtraVoiceSend);

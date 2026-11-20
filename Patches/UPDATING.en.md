@@ -12,7 +12,7 @@ program and verify that the patch still behaves correctly. Changing a version
 number or hash alone does not establish compatibility.
 
 The current reference builds documented in this repository are **Telegram
-13.2.1 (36542)** and **Swiftgram 13.1.3 (360, `app.swiftgram.ios`)**. These are
+13.3 (37637)** and **Swiftgram 13.2 (361, `app.swiftgram.ios`)**. These are
 reviewed starting points; they do not establish support for every newer version.
 
 ## Contents
@@ -334,7 +334,7 @@ python3 Tests/ipatch_packaging.py
 The tests use the environment variables set above. `SWIFTGRAM_REFERENCE_IPA`
 selects the IPA for Pro validation, but **does not switch every other test**.
 Some Native TL, Rust, and Secret Chats checks look for fixed reference filenames:
-`packages/Telegram_v13.2.1.ipa` and `packages/Swiftgram_v13.1.3_360.ipa`.
+`packages/Telegram_v13.3.ipa` and `packages/Swiftgram_v13.2.ipa`.
 Some checks simply omit the comparison if those files are missing.
 
 Keep the actual old references under their original names. Always validate the
@@ -812,7 +812,7 @@ Telegram's and Swiftgram's conservative fingerprints can require separate
 profiles even when the ABI is the same.
 
 The Rust README documents an example: four global stores inside `engineCreate`
-use page offset `0xb8` in Telegram and `0x4b8` in Swiftgram. Accepting the second
+use page offset `0x7e8` in Telegram 13.3 and `0x4b8` in Swiftgram. Accepting each
 variant was based on reviewing the corresponding `ADRP` instructions, loads,
 stores, and branches. It does not establish that arbitrary changed offsets
 can be ignored.

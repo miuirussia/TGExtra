@@ -182,8 +182,6 @@
 "DISABLE_DOUBLE_TAP_REACTIONS_TITLE" = "Disable double-tap reactions";
 "DISABLE_DOUBLE_TAP_REACTIONS_SUBTITLE" = "Reactions remain available in the long-press menu.";
 
-"FORCE_TLOTTIE_TITLE" = "Force tlottie";
-"FORCE_TLOTTIE_SUBTITLE" = "Switch animations from rlottie to tlottie if the client includes it. Restart required; cached frames are kept.";
 
 // Purchased media export
 "PAID_MEDIA_SAVE" = "Save purchased media";

@@ -1,6 +1,6 @@
 {
   "source": "TelegramMessenger/mtproto-engine@da4b2170210aab0430c4ff18c032991f3030cf45",
-  "reference": "Telegram 13.2.1 (36542), arm64",
+  "reference": "Telegram 13.3 (37637), arm64",
   "functions": {
     "bufferData": {
       "size": 12,
@@ -22,8 +22,12 @@
     },
     "engineCreate": {
       "size": 4640,
-      "sha256": "27af086f4d8a2725b60345262508ccbafa1885dcb6352adbb08251006ecd3b09",
+      "sha256": "7cbadc0cc50b295a08fe3c9c3015f6788dc984e69cab94ce919e3ed1d2e83a8a",
       "variants": [
+        {
+          "reference": "Telegram 13.2.1 (36542), arm64",
+          "sha256": "27af086f4d8a2725b60345262508ccbafa1885dcb6352adbb08251006ecd3b09"
+        },
         {
           "reference": "Swiftgram 13.2 (361), arm64",
           "sha256": "30bea71c977f062ad41989e80ef079491fa084794263a07d4af5dcddc3226fce"

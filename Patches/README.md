@@ -74,7 +74,7 @@ artifact, including its generated sizes, relocations and Rust profile identities
 ## Native TL decoder
 
 `native-tl-v1` accelerates the MtProtoKit response path on the reviewed Telegram
-13.2.1 (36542) and Swiftgram 13.2 (361) generic arm64 engines. The profile checks
+13.3 (37637) and Swiftgram 13.2 (361) generic arm64 engines. The profile checks
 the constructor parser, its object-body parser, the function-result parser and
 the Swift top-level wrapper. Exactly one constructor call in that wrapper and
 one function-result call are redirected. Recursive native calls stay unchanged.
@@ -104,7 +104,7 @@ Only successful complete root decodes can publish policy state.
 Regenerate or verify the profile and runtime matcher from a reviewed reference:
 
 ~~~sh
-python3 Tools/prepare_native_tl.py packages/Telegram_v13.2.1.ipa
+python3 Tools/prepare_native_tl.py packages/Telegram_v13.3.ipa
 python3 Tools/prepare_native_tl.py packages/Swiftgram_v13.2.ipa --check
 IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/native_tl_profile.py
 ~~~
@@ -115,7 +115,7 @@ replace device testing. Native arm64e binary profiles are not currently provided
 
 ## Secret-chat protection
 
-`secret-chats-v1` supports Telegram 13.2.1 (36542) and Swiftgram 13.2 (361),
+`secret-chats-v1` supports Telegram 13.3 (37637) and Swiftgram 13.2 (361),
 generic arm64, through the required TGExtra component. It works with both MTProto
 transports and requires rebuilding the IPA; a DEB alone does not install it.
 
@@ -147,6 +147,16 @@ changing a GOT ordinal, symbol name or library cannot reuse the profile.
 This requires an engine supporting the `dylib` field on v4 `import_stub` anchors.
 Older engines reject the updated profiles and must be updated first.
 
+The Telegram 13.3 review retains the deletion and clearing calls at incoming-body
+offsets 5876 and 6096, and the expiry lookup at offset 168. The consumption
+function adds a saved SIMD register pair, moving its lookup from offset 52 to 56;
+the message-ID arguments in x1–x3 and namespace in w1 keep the reviewed ABI.
+The deletion target and consumption lookup fingerprints, and the 12-byte
+screenshot transaction thunk, are unchanged. The screenshot body grows to
+620 bytes and the consumption body to 2624 bytes. Caller fingerprints and exact
+Postbox stub bytes are refreshed; both imported symbols and dylib bindings stay
+the same. The existing bridge payloads are reused.
+
 `MediaCapture.x` handles screenshots. Saving copies the account's completed
 decrypted `SecretFileMediaResource` cache entry after checking its length. Missing
 files wait for Telegram's fetcher; encrypted containers are never exported.
@@ -154,7 +164,7 @@ files wait for Telegram's fetcher; encrypted containers are never exported.
 Regenerate and test:
 
 ~~~sh
-python3 Tools/prepare_secret_chats.py --telegram packages/Telegram_v13.2.1.ipa --swiftgram packages/Swiftgram_v13.2.ipa
+python3 Tools/prepare_secret_chats.py --telegram packages/Telegram_v13.3.ipa --swiftgram packages/Swiftgram_v13.2.ipa
 python3 Tools/build_payloads.py --check
 IPATCH_ENGINE_CLI=/path/to/ipatch python3 Tests/secret_chats.py
 ~~~
@@ -250,16 +260,17 @@ function cluster and call counts. A changed constructor or conservative
 fingerprint can require a separate profile even if the Rust ABI is unchanged.
 Bundle IDs remain explicit; the generator adds the input client's ID and retains
 previously authorized IDs when exporting the same profile again.
-The committed portable profiles have been checked on Telegram 13.2.1 (36542) and
+The current portable profiles have been checked on Telegram 13.3 (37637) and
 Swiftgram 13.2 (361, app.swiftgram.ios), including engine planning and application
 to extracted copies of both clients. Swiftgram needs its own profile because its
 engine constructor and session initializer have different conservative
 fingerprints. These checks do not replace on-device validation.
 
-Telegram 13.2.1 uses `rust-abi5-d6764f8847f9c835` with ABI 5. The four reviewed
-global stores in `engineCreate` use page offset `0xb8`. The shared native TL
+Telegram 13.3 uses `rust-abi5-05aa23635162c8a8` with ABI 5. The four reviewed
+global stores in `engineCreate` use page offset `0x7e8`. The shared native TL
 parser profile remains included. Swiftgram 13.2 (361) uses
 `rust-abi5-ae7e0daa38e10c2e`.
+The earlier Telegram 13.2.1 Rust profile `rust-abi5-d6764f8847f9c835` is retained.
 
 The bridge targets C ABI 5 of TelegramMessenger/mtproto-engine, pinned by
 Telegram-iOS 1dd3e7f4ed to da4b2170210aab0430c4ff18c032991f3030cf45.

@@ -26,7 +26,6 @@ extension TLParser {
             ("Recording button", ["ChatTextInputMediaRecordingButton.ChatTextInputMediaRecordingButton", "TelegramUI.ChatTextInputMediaRecordingButton"], "micButtonInteractionBegan"),
             ("Voice preview", ["TGMediaPickerGalleryInterfaceView"], "itemFocused:itemView:"),
             ("Copy protection UI", ["TelegramUI.ChatPresentationInterfaceState", "ChatPresentationInterfaceState.ChatPresentationInterfaceState"], "copyProtectionEnabled"),
-            ("tlottie", ["TLottieAnimation"], "initWithData:fitzModifier:colorReplacements:"),
         ]
         for (name, classes, selector) in interfaces {
             let available = classes.contains { class_getInstanceMethod(NSClassFromString($0), NSSelectorFromString(selector)) != nil }
